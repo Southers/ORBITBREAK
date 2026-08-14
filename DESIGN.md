@@ -93,6 +93,8 @@ Aim time is not a tiebreaker, preserving thoughtful and accessible play.
 
 The first vertical slice is Breaker's Reach, an authored six-world system spanning multiple viewports. The camera follows the Runner while a compact scanner preserves system context without turning navigation into a menu. Offscreen route labels stay clamped to the play area and point toward the next authored choices.
 
+Shatterbelt proves that another system must change the scoring problem, not merely rearrange planets. Its lower convoy is a readable four-launch completion route. Its upper line collects the Arc, then asks the player to delay the Loom launch until the deterministic Sentinel clears a long, partially hidden bend around high-value Shard. Both routes converge on Drift and Vault, so the risky decision is comparable rather than a separate ruleset: safe play banks 7,700; the timed Deep Assist route banks 10,400. The moving hazard's position, preview warning and live collision all use the same fixed-step clock.
+
 The vocabulary stays small:
 
 - **Living worlds:** safe launch nodes and concise story moments.
@@ -121,7 +123,7 @@ Cloudflare Workers + D1 is the chosen first production candidate because it supp
 
 The result screen exposes the online contract through a focused Breakers Board dialog. A verified live run may attach a 3–12 character callsign and bank its replay; the list shows rank, callsign, score, launches and flight time; Watch fetches the selected input stream and sends it through local validation before live playback. A watched route cannot be resubmitted. When the endpoint is absent or unreachable, the dialog says so plainly while leaving local personal bests and replay intact.
 
-The most competitive format is a short system run. Campaign totals and identical daily challenges are later possibilities, not vertical-slice requirements.
+The competitive format is a short authored-system run with versioned boards. Campaign totals and identical daily challenges are later possibilities, not current requirements.
 
 ## Story and presentation
 

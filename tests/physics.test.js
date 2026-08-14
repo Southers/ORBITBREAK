@@ -20,6 +20,7 @@ import {
   predictTrajectory,
   simulatePhysicsStep,
 } from '../src/physics.js';
+import { predictSlingshotEvents } from '../src/scoring.js';
 
 /**
  * The tests below lock the core jam mechanic before visual work begins. They deliberately
@@ -679,7 +680,7 @@ test('the alternate Meadow shot predicts and reaches Grove on the same fixed ste
   assert.equal(LiveCollisionStep, Prediction.points.length - 1);
 });
 
-test('Broken Belt opens with deterministic direct and high-route landings', () => {
+test('Broken Belt opens with deterministic safe and mastery commitments', () => {
   const Runtime = createAuthoredSystemRuntime(BrokenBeltSystemDefinition, { createVector });
   const RelayDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'relay');
   const KilnDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'kiln');
@@ -696,7 +697,7 @@ test('Broken Belt opens with deterministic direct and high-route landings', () =
       + ((RelayToKiln.y / RelayToKilnLength) * (RelayDefinition.radius + 0.49)),
     0,
   );
-  const createPrediction = (Velocity) => predictTrajectory(
+  const createPrediction = (Velocity, StartTimeSeconds = 0) => predictTrajectory(
     StartingPosition,
     Velocity,
     Runtime.worlds,
@@ -705,61 +706,124 @@ test('Broken Belt opens with deterministic direct and high-route landings', () =
       fixedStepSeconds: 1 / 120,
       maximumSteps: 520,
       ignoredWorldIdentifier: 'relay',
+      collisionBodyDefinitions: Runtime.tacticalBodies,
+      startTimeSeconds: StartTimeSeconds,
     },
   );
+  const SafeAngleRadians = 4 * (Math.PI / 180);
   const DirectPrediction = createPrediction(createVector(
-    (RelayToKiln.x / RelayToKilnLength) * 8.85,
-    (RelayToKiln.y / RelayToKilnLength) * 8.85,
+    Math.cos(SafeAngleRadians) * 18.4,
+    Math.sin(SafeAngleRadians) * 18.4,
     0,
   ));
-  const HighRouteAngleRadians = 106 * (Math.PI / 180);
+  const HighRouteAngleRadians = 62 * (Math.PI / 180);
   const HighRoutePrediction = createPrediction(createVector(
-    Math.cos(HighRouteAngleRadians) * 8,
-    Math.sin(HighRouteAngleRadians) * 8,
+    Math.cos(HighRouteAngleRadians) * 18.4,
+    Math.sin(HighRouteAngleRadians) * 18.4,
     0,
   ));
-  const MasteryPrediction = predictTrajectory(
-    StartingPosition,
-    createVector(
-      Math.cos(HighRouteAngleRadians) * 8,
-      Math.sin(HighRouteAngleRadians) * 8,
-      0,
-    ),
-    Runtime.worlds,
-    {
-      seedRadius: 0.46,
-      fixedStepSeconds: 1 / 120,
-      maximumSteps: 520,
-      ignoredWorldIdentifier: 'relay',
-      collisionBodyDefinitions: Runtime.tacticalBodies.filter(
-        (BodyDefinition) => BodyDefinition.kind !== 'worldheart',
-      ),
-      startTimeSeconds: 0,
-    },
-  );
 
   assert.equal(DirectPrediction.collisionWorldIdentifier, 'kiln');
   assert.equal(HighRoutePrediction.collisionWorldIdentifier, 'loom');
-  assert.equal(MasteryPrediction.collisionWorldIdentifier, 'loom');
   assert.deepEqual(
-    getTrajectoryPickupIdentifiers(MasteryPrediction.points, Runtime.stardust, 0.68).sort(),
+    getTrajectoryPickupIdentifiers(HighRoutePrediction.points, Runtime.stardust, 0.68).sort(),
     Runtime.stardust.map((StardustDefinition) => StardustDefinition.id).sort(),
   );
 });
 
-test('Broken Belt Shard exit reaches the Belt Heart with matching live physics', () => {
+test('Broken Belt has complete deterministic four-launch safe and mastery routes', () => {
   const Runtime = createAuthoredSystemRuntime(BrokenBeltSystemDefinition, { createVector });
-  const CollisionBodyDefinitions = Runtime.tacticalBodies.filter(
-    (BodyDefinition) => BodyDefinition.kind !== 'seedstone',
-  );
-  const StartingPosition = createVector(1.971, 4.165, 0);
-  const LaunchAngleRadians = 138 * (Math.PI / 180);
-  const LaunchVelocity = createVector(
-    Math.cos(LaunchAngleRadians) * 5.45,
-    Math.sin(LaunchAngleRadians) * 5.45,
+  const RelayDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'relay');
+  const KilnDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'kiln');
+  const OpeningDirection = createVector(
+    KilnDefinition.position.x - RelayDefinition.position.x,
+    KilnDefinition.position.y - RelayDefinition.position.y,
     0,
   );
-  const Prediction = predictTrajectory(
+  const OpeningDirectionLength = Math.hypot(OpeningDirection.x, OpeningDirection.y);
+  const OpeningPosition = createVector(
+    RelayDefinition.position.x
+      + ((OpeningDirection.x / OpeningDirectionLength) * (RelayDefinition.radius + 0.49)),
+    RelayDefinition.position.y
+      + ((OpeningDirection.y / OpeningDirectionLength) * (RelayDefinition.radius + 0.49)),
+    0,
+  );
+  const runRoute = (Shots) => {
+    let Position = OpeningPosition;
+    let ElapsedTimeSeconds = 0;
+    const Outcomes = [];
+    for (const Shot of Shots) {
+      ElapsedTimeSeconds = Math.max(ElapsedTimeSeconds, Shot.notBeforeSeconds ?? 0);
+      const AngleRadians = Shot.angleDegrees * (Math.PI / 180);
+      const Prediction = predictTrajectory(
+        Position,
+        createVector(
+          Math.cos(AngleRadians) * Shot.speed,
+          Math.sin(AngleRadians) * Shot.speed,
+          0,
+        ),
+        Runtime.worlds,
+        {
+          seedRadius: 0.46,
+          fixedStepSeconds: 1 / 120,
+          maximumSteps: 520,
+          ignoredWorldIdentifier: Shot.originIdentifier,
+          collisionBodyDefinitions: Runtime.tacticalBodies,
+          startTimeSeconds: ElapsedTimeSeconds,
+        },
+      );
+      Outcomes.push(Prediction);
+      Position = Prediction.points.at(-1);
+      ElapsedTimeSeconds += (Prediction.points.length - 1) / 120;
+    }
+    return Outcomes;
+  };
+  const SafeOutcomes = runRoute([
+    { originIdentifier: 'relay', angleDegrees: 4, speed: 18.4 },
+    { originIdentifier: 'kiln', angleDegrees: 35, speed: 18.4 },
+    { originIdentifier: 'drift', angleDegrees: 12, speed: 18.4 },
+    { originIdentifier: 'vault', angleDegrees: 21, speed: 18.4 },
+  ]);
+  const MasteryOutcomes = runRoute([
+    { originIdentifier: 'relay', angleDegrees: 62, speed: 18.4 },
+    { originIdentifier: 'loom', angleDegrees: 0.5, speed: 18.4, notBeforeSeconds: 2.5 },
+    { originIdentifier: 'drift', angleDegrees: 4, speed: 18.4 },
+    { originIdentifier: 'vault', angleDegrees: 34, speed: 18.4 },
+  ]);
+
+  assert.deepEqual(
+    SafeOutcomes.map((Outcome) => (
+      Outcome.collisionWorldIdentifier ?? Outcome.collisionBodyIdentifier
+    )),
+    ['kiln', 'drift', 'vault', 'belt-heart'],
+  );
+  assert.deepEqual(
+    MasteryOutcomes.map((Outcome) => (
+      Outcome.collisionWorldIdentifier ?? Outcome.collisionBodyIdentifier
+    )),
+    ['loom', 'drift', 'vault', 'belt-heart'],
+  );
+  const MasteryEvents = predictSlingshotEvents(
+    MasteryOutcomes[1].points,
+    Runtime.worlds,
+    { runnerRadius: 0.46, ignoredBodyIdentifier: 'loom' },
+  );
+  assert.deepEqual(
+    MasteryEvents.map((Event) => [Event.bodyIdentifier, Event.tier, Event.points]),
+    [['shard', 'deep', 2400]],
+  );
+});
+
+test('Broken Belt Sentinel closes and opens the same mastery line deterministically', () => {
+  const Runtime = createAuthoredSystemRuntime(BrokenBeltSystemDefinition, { createVector });
+  const StartingPosition = createVector(-13.416387701359206, 5.309760114113797, 0);
+  const AngleRadians = 0.5 * (Math.PI / 180);
+  const LaunchVelocity = createVector(
+    Math.cos(AngleRadians) * 18.4,
+    Math.sin(AngleRadians) * 18.4,
+    0,
+  );
+  const createPrediction = (StartTimeSeconds) => predictTrajectory(
     StartingPosition,
     LaunchVelocity,
     Runtime.worlds,
@@ -767,33 +831,46 @@ test('Broken Belt Shard exit reaches the Belt Heart with matching live physics',
       seedRadius: 0.46,
       fixedStepSeconds: 1 / 120,
       maximumSteps: 520,
-      ignoredWorldIdentifier: 'shard',
-      collisionBodyDefinitions: CollisionBodyDefinitions,
-      startTimeSeconds: 0,
+      ignoredWorldIdentifier: 'loom',
+      collisionBodyDefinitions: Runtime.tacticalBodies,
+      startTimeSeconds: StartTimeSeconds,
     },
   );
+  const BlockedPrediction = createPrediction(0);
+  const OpenPrediction = createPrediction(2.5);
 
-  let LiveState = { position: StartingPosition, velocity: LaunchVelocity };
-  let LiveCollision = null;
+  let LiveState = {
+    position: createVector(StartingPosition.x, StartingPosition.y, 0),
+    velocity: createVector(LaunchVelocity.x, LaunchVelocity.y, 0),
+  };
+  let LiveCollisionIdentifier = null;
   let LiveCollisionStep = null;
   for (let StepIndex = 1; StepIndex <= 520; StepIndex += 1) {
     LiveState = simulatePhysicsStep(LiveState, Runtime.worlds, 1 / 120);
-    LiveCollision = findCollidingBody(
+    const CollisionBody = findCollidingBody(
       LiveState.position,
       0.46,
-      CollisionBodyDefinitions,
-      StepIndex / 120,
+      Runtime.tacticalBodies,
+      2.5 + (StepIndex / 120),
     );
-    if (LiveCollision) {
+    const CollisionWorld = findCollidingWorld(
+      LiveState.position,
+      0.46,
+      Runtime.worlds,
+      'loom',
+    );
+    if (CollisionBody || CollisionWorld) {
+      LiveCollisionIdentifier = CollisionBody?.definition.id ?? CollisionWorld.id;
       LiveCollisionStep = StepIndex;
       break;
     }
   }
 
-  assert.equal(Prediction.collisionKind, 'worldheart');
-  assert.equal(Prediction.collisionBodyIdentifier, 'belt-heart');
-  assert.equal(LiveCollision?.definition.id, 'belt-heart');
-  assert.equal(LiveCollisionStep, Prediction.points.length - 1);
+  assert.equal(BlockedPrediction.collisionKind, 'hazard');
+  assert.equal(BlockedPrediction.collisionBodyIdentifier, 'sentinel');
+  assert.equal(OpenPrediction.collisionWorldIdentifier, 'drift');
+  assert.equal(LiveCollisionIdentifier, 'drift');
+  assert.equal(LiveCollisionStep, OpenPrediction.points.length - 1);
 });
 
 test('Wandering Garden opens safely and its moving moon matches live collision timing', () => {

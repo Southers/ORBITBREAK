@@ -74,6 +74,16 @@ test('authored scoring values fail closed when present but invalid', () => {
 test('Broken Belt satisfies the authored-system content contract', () => {
   assert.deepEqual(validateAuthoredSystemDefinition(BrokenBeltSystemDefinition), []);
   assert.equal(BrokenBeltSystemDefinition.worlds.length, 6);
+  assert.equal(BrokenBeltSystemDefinition.contentVersion, 'broken-belt-1');
+  assert.equal(BrokenBeltSystemDefinition.camera.followPlayer, true);
+  const WorldXs = BrokenBeltSystemDefinition.worlds.map(
+    (WorldDefinition) => WorldDefinition.position.x,
+  );
+  assert.ok(Math.max(...WorldXs) - Math.min(...WorldXs) > 45);
+  const ShardDefinition = BrokenBeltSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'shard',
+  );
+  assert.equal(ShardDefinition.slingshotValue, 1200);
 });
 
 test('Wandering Garden satisfies the moving-system content contract', () => {
@@ -277,7 +287,7 @@ test('Broken Belt landing order exposes distinct authored continuations', () => 
   assert.deepEqual(
     getRouteChoices(CampaignNodes, 'loom', 2, Runtime.routeSuggestions.loom)
       .map((WorldDefinition) => WorldDefinition.id),
-    ['shard', 'vault'],
+    ['drift', 'shard'],
   );
 
   const KilnFirstRuntime = createAuthoredSystemRuntime(BrokenBeltSystemDefinition);
@@ -289,7 +299,7 @@ test('Broken Belt landing order exposes distinct authored continuations', () => 
   assert.deepEqual(
     getRouteChoices(KilnFirstNodes, 'kiln', 2, KilnFirstRuntime.routeSuggestions.kiln)
       .map((WorldDefinition) => WorldDefinition.id),
-    ['drift', 'vault'],
+    ['drift', 'loom'],
   );
 });
 
