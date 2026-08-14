@@ -224,6 +224,16 @@ revealed iron-crown Warden at a 184/190 draw-call peak, with no overflow or brow
 closes the inhabitants/local-motion gap without touching gameplay or replay state. Art remains
 **8/10** pending a verified final collective-response/defeat presentation; Milestone 5 remains open.
 
+Checkpoint D — 15 August 2026: the existing pooled finale core, return links, expanding rings and
+sparks now respond to every Command defeat rather than only the campaign finale. Breaker's Reach has
+a compact 1.35-second timing profile, the cooled command core answers every restored world and the
+inhabitant pool shifts into a shared celebration rhythm; reduced motion resolves the same response
+immediately. This remains presentation-only and all deterministic tests pass. A fresh browser route
+verified startup and early landings without errors, but scripted high-volume surface input diverged
+before the second circuit and did not reach the final Pulse. Therefore the visual ending gate is not
+claimed yet: Milestone 5 stays open until a complete desktop run and portrait replay prove the new
+collective response and its worst-case draw-call budget.
+
 ## Milestone 6 — Reliability and release readiness
 
 - Tune route fairness and score values through repeated fresh-player runs.

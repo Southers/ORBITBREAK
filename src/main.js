@@ -248,7 +248,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob26';
+GameCanvas.dataset.build = '20260815-ob27';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -2800,6 +2800,8 @@ GameCanvas.dataset.inhabitantCount = String(InhabitantInstances.length);
 
 function updateInhabitantVisuals(ElapsedTimeSeconds) {
   let NextVisibleInhabitantCount = 0;
+  const IsCollectiveResponseActive = FinaleRestorationStartedAtSeconds !== null
+    && GamePhase === 'victoryPending';
   for (let InhabitantIndex = 0; InhabitantIndex < InhabitantInstances.length; InhabitantIndex += 1) {
     const Inhabitant = InhabitantInstances[InhabitantIndex];
     const WorldRuntime = WorldRuntimeByIdentifier.get(Inhabitant.worldDefinition.id);
@@ -2826,7 +2828,12 @@ function updateInhabitantVisuals(ElapsedTimeSeconds) {
     InhabitantTransform.rotation.set(0, 0, SurfaceAngle - (Math.PI * 0.5));
     const BobScale = PrefersReducedMotion
       ? 1
-      : 1 + (Math.sin((ElapsedTimeSeconds * 3.2) + Inhabitant.phase) * 0.08);
+      : 1 + (
+        Math.sin(
+          (ElapsedTimeSeconds * (IsCollectiveResponseActive ? 6.4 : 3.2))
+            + Inhabitant.phase,
+        ) * (IsCollectiveResponseActive ? 0.2 : 0.08)
+      );
     InhabitantTransform.scale.set(
       EmergenceProgress,
       EmergenceProgress * BobScale,
@@ -5399,8 +5406,8 @@ function completeWorldheartLiberation() {
   updateWorldheartObjective();
   updateVictorySummary();
   hideInstruction();
+  beginFinaleRestoration();
   if (IsCampaignFinale) {
-    beginFinaleRestoration();
     showStatusToast('THE WORLDHEART IS AWAKENING', 2200, 'memory');
   } else {
     showStatusToast(
@@ -5411,7 +5418,7 @@ function completeWorldheartLiberation() {
 
   const VictoryDelaySeconds = PrefersReducedMotion
     ? 0.85
-    : ActiveSystem.finale?.victoryDelaySeconds ?? 0.85;
+    : ActiveSystem.finale?.victoryDelaySeconds ?? 1.35;
   WorldheartCompletionTimeoutIdentifier = window.setTimeout(() => {
     revealVictoryPanel();
     GamePhase = 'victory';
@@ -5494,7 +5501,7 @@ function updateFinaleRestorationVisuals(ElapsedTimeSeconds) {
     return;
   }
 
-  const FinaleDurationSeconds = ActiveSystem.finale.victoryDelaySeconds;
+  const FinaleDurationSeconds = ActiveSystem.finale?.victoryDelaySeconds ?? 1.35;
   const FinaleElapsedSeconds = PrefersReducedMotion
     ? FinaleDurationSeconds
     : Math.min(
@@ -5506,7 +5513,11 @@ function updateFinaleRestorationVisuals(ElapsedTimeSeconds) {
     0,
     1,
   );
-  const PulseArrivalProgress = THREE.MathUtils.smoothstep(FinaleElapsedSeconds, 0.18, 2.25);
+  const PulseArrivalProgress = THREE.MathUtils.smoothstep(
+    FinaleElapsedSeconds,
+    IsCampaignFinale ? 0.18 : 0.08,
+    IsCampaignFinale ? 2.25 : 0.82,
+  );
 
   FinaleCoreMesh.position.set(
     WorldheartDefinition.position.x,
@@ -5525,8 +5536,8 @@ function updateFinaleRestorationVisuals(ElapsedTimeSeconds) {
     const WorldPulseProgress = WorldDefinition.restored
       ? THREE.MathUtils.smoothstep(
         FinaleElapsedSeconds,
-        0.2 + (WorldIndex * 0.12),
-        1.35 + (WorldIndex * 0.12),
+        IsCampaignFinale ? 0.2 + (WorldIndex * 0.12) : 0.08 + (WorldIndex * 0.045),
+        IsCampaignFinale ? 1.35 + (WorldIndex * 0.12) : 0.62 + (WorldIndex * 0.1),
       )
       : 0;
     FinaleLinkPositionValues[LinkValueOffset] = WorldheartDefinition.position.x;
@@ -5592,7 +5603,7 @@ function updateFinaleRestorationVisuals(ElapsedTimeSeconds) {
   FinaleSparkMaterial.opacity = 0.28 + (PulseArrivalProgress * 0.62);
 
   Scene.background.copy(InitialSceneBackgroundColor).lerp(
-    ActiveSystem.finale.awakenedBackgroundColor,
+    ActiveSystem.finale?.awakenedBackgroundColor ?? InitialSceneBackgroundColor,
     FinaleProgress,
   );
   Renderer.toneMappingExposure = ActiveSystem.environment.toneMappingExposure
