@@ -55,6 +55,21 @@ button:focus-visible,
   cursor: grabbing;
 }
 
+.liberation-flash {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(
+    circle at var(--liberation-x, 50%) var(--liberation-y, 50%),
+    rgba(255, 245, 190, 0.5) 0,
+    rgba(120, 224, 255, 0.18) 12%,
+    transparent 43%
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
 .hud {
   position: absolute;
   z-index: 5;

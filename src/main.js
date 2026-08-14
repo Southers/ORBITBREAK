@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260814-ob4';
+import { WorldseedAudio } from './audio.js?v=20260814-ob5';
 
 import {
   DefaultAuthoredSystemIdentifier,
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-ob4';
+} from './content.js?v=20260814-ob5';
 
 import {
   countRestoredWorlds,
@@ -19,7 +19,7 @@ import {
   isSystemRestored,
   isWorldheartUnlocked,
   rollbackFlightPickups,
-} from './campaign.js?v=20260814-ob4';
+} from './campaign.js?v=20260814-ob5';
 
 import {
   calculateBodyPositionAtTime,
@@ -29,22 +29,28 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260814-ob4';
+} from './physics.js?v=20260814-ob5';
 import {
   createRunResult,
   loadPersonalBest,
   savePersonalBest,
-} from './records.js?v=20260814-ob4';
+} from './records.js?v=20260814-ob5';
+import {
+  getLiberationFlashOpacity,
+  getRunnerAnimationState,
+  getRunnerPose,
+  getStillnessPresentation,
+} from './presentation.js?v=20260814-ob5';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
   calculateStagedGrowthProgress,
-} from './restoration.js?v=20260814-ob4';
+} from './restoration.js?v=20260814-ob5';
 import {
   createRunState,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260814-ob4';
+} from './run.js?v=20260814-ob5';
 import {
   addCompletionBonus,
   bankFlightScore,
@@ -52,7 +58,7 @@ import {
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260814-ob4';
+} from './scoring.js?v=20260814-ob5';
 
 const RequestedSystemIdentifier = new URLSearchParams(window.location.search).get('system')
   ?? DefaultAuthoredSystemIdentifier;
@@ -92,6 +98,7 @@ const StardustDefinitions = ActiveSystem.stardust;
  */
 
 const GameCanvas = document.querySelector('#GameCanvas');
+const LiberationFlashElement = document.querySelector('#LiberationFlash');
 const CounterElement = document.querySelector('.counter');
 const LaunchCounterElement = document.querySelector('#LaunchCounter');
 const WorldCounterElement = document.querySelector('#WorldCounter');
@@ -135,7 +142,7 @@ const ReplayButtonElement = document.querySelector('#ReplayButton');
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob4';
+GameCanvas.dataset.build = '20260814-ob5';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.pageActive = String(!document.hidden);
 GameCanvas.dataset.webglAvailable = 'true';
@@ -229,6 +236,7 @@ let HasLaunchedOnce = false;
 let LaunchPulseLifeSeconds = 0;
 let ImpactPulseLifeSeconds = 0;
 let CameraImpactLifeSeconds = 0;
+let LiberationFlashLifeSeconds = 0;
 let SeedstoneUsesRemaining = SeedstoneDefinition.uses;
 let SeedstoneCrumbleStartedAtSeconds = null;
 let AttachedSeedstoneSurfaceOffset = null;
@@ -564,6 +572,34 @@ function createWorldContourRings(WorldRadius, RingColor) {
   return RingGroup;
 }
 
+/** Wraps an occupied world in a rigid, readable Stillness control field. */
+function createStillnessCage(WorldDefinition) {
+  const CageGroup = new THREE.Group();
+  const CageMaterial = new THREE.MeshBasicMaterial({
+    color: 0x82a8b4,
+    transparent: true,
+    opacity: 0.22,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const CageRadius = WorldDefinition.radius * 1.14;
+  const Rotations = [
+    [Math.PI * 0.5, 0, 0],
+    [Math.PI * 0.22, Math.PI * 0.34, Math.PI * 0.08],
+    [Math.PI * 0.72, Math.PI * -0.2, Math.PI * 0.38],
+  ];
+  for (const [RotationX, RotationY, RotationZ] of Rotations) {
+    const CageRing = new THREE.Mesh(
+      new THREE.TorusGeometry(CageRadius, 0.025, 5, 72),
+      CageMaterial,
+    );
+    CageRing.rotation.set(RotationX, RotationY, RotationZ);
+    CageGroup.add(CageRing);
+  }
+  CageGroup.visible = !WorldDefinition.restored;
+  return { group: CageGroup, material: CageMaterial };
+}
+
 /**
  * Extends a standard lit material with the spherical dead-to-alive colour wave.
  *
@@ -670,11 +706,21 @@ function createRestorationSurfaceMaterial(WorldDefinition) {
           variedAliveColor = mix(variedAliveColor, accentColor, tideBands * 0.52);
         }
         variedAliveColor = mix(variedAliveColor, accentColor, vLandmarkMask * 0.82);
-        diffuseColor.rgb = mix(deadColor, variedAliveColor, restoredSurface);
+        float controlLatitude = abs(sin(vRestorationDirection.y * 24.0));
+        float controlLongitude = abs(sin(
+          atan(vRestorationDirection.z, vRestorationDirection.x) * 9.0
+        ));
+        float controlGrid = smoothstep(0.88, 0.98, max(
+          controlLatitude,
+          controlLongitude
+        ));
+        vec3 occupiedColor = deadColor * (0.72 + (surfacePattern * 0.035));
+        occupiedColor += vec3(0.11, 0.2, 0.23) * controlGrid;
+        diffuseColor.rgb = mix(occupiedColor, variedAliveColor, restoredSurface);
         diffuseColor.rgb += waveColor * restorationBand * activeRestorationWave * 0.9;`,
       );
   };
-  SurfaceMaterial.customProgramCacheKey = () => 'worldseed-restoration-surface-v2';
+  SurfaceMaterial.customProgramCacheKey = () => 'orbitbreak-restoration-surface-v3';
 
   return { material: SurfaceMaterial, uniforms: RestorationUniforms };
 }
@@ -2377,6 +2423,8 @@ function createWorld(WorldDefinition) {
   if (AmbientMoteGroup) {
     WorldGroup.add(AmbientMoteGroup);
   }
+  const StillnessCage = createStillnessCage(WorldDefinition);
+  WorldGroup.add(StillnessCage.group);
   Scene.add(WorldGroup);
 
   const WorldRuntime = {
@@ -2391,6 +2439,8 @@ function createWorld(WorldDefinition) {
     contourRingGroup: ContourRingGroup,
     surfaceMarkerGroup: SurfaceMarkerGroup,
     ambientMoteGroup: AmbientMoteGroup,
+    stillnessCageGroup: StillnessCage.group,
+    stillnessCageMaterial: StillnessCage.material,
     restorationOriginLocal: new THREE.Vector3(1, 0, 0),
     restorationStartedAtSeconds: WorldDefinition.restored ? -Infinity : null,
     restorationCompleted: WorldDefinition.restored,
@@ -2658,17 +2708,43 @@ RunnerVisorMesh.scale.set(1, 0.7, 0.34);
 RunnerVisualGroup.add(RunnerVisorMesh);
 
 const RunnerLimbGeometry = new THREE.CylinderGeometry(0.052, 0.065, 0.24, 8);
+const RunnerArmMeshes = [];
+const RunnerLegMeshes = [];
 for (const Side of [-1, 1]) {
   const ArmMesh = new THREE.Mesh(RunnerLimbGeometry, RunnerSuitMaterial);
   ArmMesh.position.set(Side * 0.245, -0.12, 0);
   ArmMesh.rotation.z = Side * -0.22;
+  ArmMesh.userData.side = Side;
+  RunnerArmMeshes.push(ArmMesh);
   RunnerVisualGroup.add(ArmMesh);
 
   const LegMesh = new THREE.Mesh(RunnerLimbGeometry, RunnerSuitMaterial);
   LegMesh.position.set(Side * 0.095, -0.34, 0);
   LegMesh.rotation.z = Side * -0.08;
+  LegMesh.userData.side = Side;
+  RunnerLegMeshes.push(LegMesh);
   RunnerVisualGroup.add(LegMesh);
 }
+
+const RunnerThrusterMaterial = new THREE.MeshBasicMaterial({
+  color: 0x7deaff,
+  transparent: true,
+  opacity: 0.82,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+const RunnerThrusterGroup = new THREE.Group();
+for (const Side of [-1, 1]) {
+  const ThrusterFlame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.065, 0.3, 8),
+    RunnerThrusterMaterial,
+  );
+  ThrusterFlame.position.set(Side * 0.09, -0.5, -0.07);
+  ThrusterFlame.rotation.z = Math.PI;
+  RunnerThrusterGroup.add(ThrusterFlame);
+}
+RunnerThrusterGroup.visible = false;
+RunnerVisualGroup.add(RunnerThrusterGroup);
 
 const RunnerAntennaStem = new THREE.Mesh(
   new THREE.CylinderGeometry(0.018, 0.018, 0.16, 6),
@@ -3608,6 +3684,17 @@ function restoreWorld(WorldDefinition, ImpactPosition) {
   WorldRuntime.restorationStartedAtSeconds = GameElapsedTimeSeconds;
   WorldRuntime.restorationWaveMesh.visible = true;
   WorldRuntime.contourRingGroup.visible = true;
+  RouteLabelProjection.set(ImpactPosition.x, ImpactPosition.y, ImpactPosition.z).project(Camera);
+  LiberationFlashElement.style.setProperty(
+    '--liberation-x',
+    `${THREE.MathUtils.clamp((RouteLabelProjection.x * 0.5 + 0.5) * 100, 0, 100)}%`,
+  );
+  LiberationFlashElement.style.setProperty(
+    '--liberation-y',
+    `${THREE.MathUtils.clamp((-RouteLabelProjection.y * 0.5 + 0.5) * 100, 0, 100)}%`,
+  );
+  LiberationFlashLifeSeconds = 0.72;
+  CameraImpactLifeSeconds = Math.max(CameraImpactLifeSeconds, 0.34);
 
   for (const SurfacePropObject of WorldRuntime.surfaceMarkerGroup.children) {
     SurfacePropObject.userData.restorationDistance = calculateNormalizedSphericalDistance(
@@ -3629,7 +3716,7 @@ function restoreWorld(WorldDefinition, ImpactPosition) {
   }
   updateWorldheartObjective();
   WorldseedSound.restore(WorldDefinition.id, RestoredWorldCount);
-  showStatusToast(`${WorldDefinition.label} AWAKENING`, 1450);
+  showStatusToast(`CONTROL SIGNAL BREAKING · ${WorldDefinition.label}`, 1450);
 }
 
 /**
@@ -4482,6 +4569,10 @@ function simulateSeedFixedStep() {
   if (SlingshotEvents.length > 0) {
     const SlingshotEvent = SlingshotEvents[SlingshotEvents.length - 1];
     updateScoreInterface();
+    WorldseedSound.slingshot(
+      SlingshotEvent.tierLabel,
+      SlingshotEvent.chainMultiplier,
+    );
     showStatusToast(
       `${SlingshotEvent.tierLabel} · ${SlingshotEvent.bodyLabel} +${SlingshotEvent.points.toLocaleString('en-GB')} · CHAIN ×${SlingshotEvent.chainMultiplier}`,
       1050,
@@ -4553,6 +4644,7 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
 
     if (!WorldDefinition.restored) {
       WorldRuntime.group.rotation.y += 0.0005;
+      WorldRuntime.stillnessCageGroup.rotation.y += 0.0015;
       continue;
     }
 
@@ -4569,6 +4661,15 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
     const ShaderWaveProgress = LinearRestorationProgress >= 1 ? 1.2 : WaveProgress;
     WorldRuntime.restorationUniforms.restorationProgress.value = ShaderWaveProgress;
     WorldRuntime.restorationWaveMesh.visible = LinearRestorationProgress < 1;
+    const StillnessPresentation = getStillnessPresentation(
+      true,
+      LinearRestorationProgress,
+    );
+    WorldRuntime.stillnessCageGroup.visible = StillnessPresentation.visible;
+    WorldRuntime.stillnessCageGroup.scale.setScalar(StillnessPresentation.scale);
+    WorldRuntime.stillnessCageMaterial.opacity = StillnessPresentation.opacity;
+    WorldRuntime.stillnessCageGroup.rotation.x += 0.0018 * (1 + LinearRestorationProgress);
+    WorldRuntime.stillnessCageGroup.rotation.y += 0.0025 * (1 + LinearRestorationProgress);
 
     const AtmosphereLinearProgress = THREE.MathUtils.clamp(
       (LinearRestorationProgress - 0.12) / 0.76,
@@ -4609,13 +4710,13 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
         if (CurrentWorldIdentifier === WorldDefinition.id) {
           if (RunFailurePending) {
             scheduleRunFailure('FINAL LAUNCH ENDED AWAY FROM THE COMMAND WORLD');
-          } else if (WorldheartJustUnlocked) {
-            WorldheartJustUnlocked = false;
-            WorldseedSound.worldheartOpen();
-            showStatusToast(`${WorldheartDefinition.label} ROUTE OPEN`, 1400);
           } else {
             GameCanvas.dataset.lastMemory = WorldDefinition.memory;
             showStatusToast(WorldDefinition.memory, 2100, 'memory');
+          }
+          if (WorldheartJustUnlocked) {
+            WorldheartJustUnlocked = false;
+            WorldseedSound.worldheartOpen();
           }
           if (GamePhase === 'victoryPending') {
             revealVictoryPanel();
@@ -4779,10 +4880,43 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   GameCanvas.dataset.runnerScreenX = GameCanvas.dataset.seedScreenX;
   GameCanvas.dataset.runnerScreenY = GameCanvas.dataset.seedScreenY;
 
+  const RunnerAnimationState = getRunnerAnimationState(GamePhase, IsPointerAiming);
+  const RunnerPose = getRunnerPose(RunnerAnimationState);
+  const PoseBlend = PrefersReducedMotion
+    ? 1
+    : 1 - Math.exp(-DeltaTimeSeconds * 13);
+  GameCanvas.dataset.runnerAnimation = RunnerAnimationState;
+  for (const ArmMesh of RunnerArmMeshes) {
+    ArmMesh.rotation.z = THREE.MathUtils.lerp(
+      ArmMesh.rotation.z,
+      ArmMesh.userData.side * -RunnerPose.armAngle,
+      PoseBlend,
+    );
+  }
+  for (const LegMesh of RunnerLegMeshes) {
+    LegMesh.rotation.z = THREE.MathUtils.lerp(
+      LegMesh.rotation.z,
+      LegMesh.userData.side * -RunnerPose.legAngle,
+      PoseBlend,
+    );
+  }
+  RunnerThrusterGroup.visible = RunnerPose.thrusterVisible;
+  if (RunnerPose.thrusterVisible) {
+    const Speed = Math.hypot(SeedPhysicsState.velocity.x, SeedPhysicsState.velocity.y);
+    const ThrusterScale = 0.76 + Math.min(0.55, Speed * 0.024)
+      + (PrefersReducedMotion ? 0 : Math.sin(ElapsedTimeSeconds * 32) * 0.08);
+    RunnerThrusterGroup.scale.set(1, ThrusterScale, 1);
+  }
+
   if (GamePhase === 'flying') {
     const FlightAngle = Math.atan2(SeedPhysicsState.velocity.y, SeedPhysicsState.velocity.x);
     RunnerVisualGroup.rotation.z = FlightAngle - (Math.PI * 0.5);
     RunnerVisualGroup.rotation.y += DeltaTimeSeconds * 1.8;
+    RunnerVisualGroup.rotation.x = THREE.MathUtils.lerp(
+      RunnerVisualGroup.rotation.x,
+      0,
+      PoseBlend,
+    );
   } else {
     const AttachedBody = getWorldDefinition(CurrentWorldIdentifier)
       ?? TacticalBodyDefinitions.find(
@@ -4796,9 +4930,34 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
       RunnerVisualGroup.rotation.z = SurfaceAngle - (Math.PI * 0.5);
     }
     RunnerVisualGroup.rotation.y = Math.sin(ElapsedTimeSeconds * 1.7) * 0.08;
+    const RecoveryRoll = RunnerAnimationState === 'recovering'
+      ? Math.sin(ElapsedTimeSeconds * 18) * 0.5
+      : 0;
+    RunnerVisualGroup.rotation.x = THREE.MathUtils.lerp(
+      RunnerVisualGroup.rotation.x,
+      RecoveryRoll,
+      PoseBlend,
+    );
   }
   SeedHaloMesh.scale.setScalar(1 + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.08));
-  SeedHaloMaterial.opacity = 0.105 + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.025);
+  SeedHaloMaterial.color.setHex(
+    RunnerAnimationState === 'recovering' ? 0xff766d : 0x6de8ff,
+  );
+  SeedHaloMaterial.opacity = (
+    RunnerAnimationState === 'liberating' ? 0.2 : 0.105
+  ) + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.025);
+
+  if (LiberationFlashLifeSeconds > 0) {
+    LiberationFlashLifeSeconds = Math.max(
+      0,
+      LiberationFlashLifeSeconds - DeltaTimeSeconds,
+    );
+    LiberationFlashElement.style.opacity = String(getLiberationFlashOpacity(
+      LiberationFlashLifeSeconds,
+    ));
+  } else {
+    LiberationFlashElement.style.opacity = '0';
+  }
 
   if (GamePhase === 'flying') {
     TrailEmissionAccumulatorSeconds += DeltaTimeSeconds;
@@ -5002,9 +5161,13 @@ function resetGame() {
   LaunchPulseLifeSeconds = 0;
   ImpactPulseLifeSeconds = 0;
   CameraImpactLifeSeconds = 0;
+  LiberationFlashLifeSeconds = 0;
   LaunchPulseMesh.visible = false;
   ImpactPulseMesh.visible = false;
+  LiberationFlashElement.style.opacity = '0';
   SeedGroup.scale.setScalar(1);
+  RunnerThrusterGroup.visible = false;
+  RunnerVisualGroup.rotation.set(0, 0, 0);
   Camera.position.x = 0;
   Camera.position.y = 0;
   GameCanvas.classList.remove('is-aiming');
@@ -5025,6 +5188,7 @@ function resetGame() {
   GameCanvas.dataset.lastPredictionVisiblePoints = '';
   GameCanvas.dataset.lastPredictionTotalPoints = '';
   GameCanvas.dataset.lastPredictionOutcomeVisible = '';
+  GameCanvas.dataset.runnerAnimation = 'ready';
   GameCanvas.dataset.lastBank = '';
   GameCanvas.dataset.lastScoreLost = '';
   GameCanvas.dataset.completionBonus = '';
@@ -5066,6 +5230,11 @@ function resetGame() {
     WorldRuntime.contourRingGroup.visible = IsInitiallyRestored;
     WorldRuntime.contourRingGroup.rotation.set(0, 0, 0);
     WorldRuntime.contourRingGroup.scale.setScalar(1);
+    const StillnessPresentation = getStillnessPresentation(IsInitiallyRestored, 1);
+    WorldRuntime.stillnessCageGroup.visible = StillnessPresentation.visible;
+    WorldRuntime.stillnessCageGroup.rotation.set(0, 0, 0);
+    WorldRuntime.stillnessCageGroup.scale.setScalar(StillnessPresentation.scale);
+    WorldRuntime.stillnessCageMaterial.opacity = StillnessPresentation.opacity;
     WorldRuntime.group.rotation.set(0, 0, 0);
     WorldRuntime.group.scale.setScalar(1);
     if (WorldRuntime.ambientMoteGroup) {

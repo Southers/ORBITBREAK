@@ -10,11 +10,13 @@ The safe route completes the system. The dangerous route reaches the leaderboard
 
 This repository has separated from WORLDSEED. Its deterministic fixed-step physics, authored-content pipeline, miniature rendering and one-pointer controls are preserved while the new game is built in small playable checkpoints.
 
-Milestones 1 and 2 now establish the competitive loop. A procedural tiny astronaut has eight launches; every release spends one, including misses, and the eighth flight is allowed to finish. The exact ranked prediction ends after 1.33 seconds, so longer routes demand judgement. Passing into and back out of a planet's influence band earns Assist, Deep or Razor points, distinct planets build a chain and the same body scores only once per flight. A safe landing banks the visible at-risk score; a miss or asteroid impact loses it. Liberating an optional world and reaching the Command World add clear bonuses.
+Milestones 1–5 now establish the complete vertical-slice loop. A procedural tiny astronaut has eight launches; every release spends one, including misses, and the eighth flight is allowed to finish. The exact ranked prediction ends after 1.33 seconds, so longer routes demand judgement. Passing into and back out of a planet's influence band earns Assist, Deep or Razor points, distinct planets build a chain and the same body scores only once per flight. A safe landing banks the visible at-risk score; a miss or asteroid impact loses it. Liberating an optional world and reaching the Command World add clear bonuses.
 
 Breaker's Reach is now the default ORBITBREAK vertical slice: six worlds span several camera views, a compact scanner keeps distant routes readable, and offscreen labels point toward authored choices. A four-launch low route reaches the Command World with room for recovery; the high opening bends around Ember and Grove before Tide for a much larger bank. The later campaign chapters remain inherited WORLDSEED migration fixtures and should not be mistaken for finished ORBITBREAK content.
 
 Completed runs now show exactly how many points came from slingshots, liberated worlds and unused launches, plus deterministic airborne time. Ranked personal bests persist locally per system/content version and compare score, launches, then flight time. Run again is the primary results action.
+
+Occupied worlds now carry an unmistakable Stillness control grid and orbital cage. Landing breaks the cage under the spherical liberation wave, restores the world's colour and motion, and reveals a concise story memory. The Runner braces while aiming, flies under twin thrusters, celebrates a liberation and visibly tumbles on recovery; the animation never changes deterministic physics.
 
 The locked target is deliberately small:
 
@@ -26,6 +28,7 @@ The locked target is deliberately small:
 - safe-landing banking with miss rollback — implemented;
 - one large authored vertical-slice system — implemented as Breaker's Reach;
 - transparent results and versioned local personal bests — implemented;
+- distinct occupation, Runner and liberation presentation — implemented;
 - validated online leaderboards only after replay recording.
 
 See `DESIGN.md` for the complete rules and `JAM_PLAN.md` for implementation order.
