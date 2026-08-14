@@ -71,6 +71,8 @@ Checkpoint: implemented with a transparent slingshot/liberation/unused-launch br
 
 Exit: the game looks and sounds like ORBITBREAK rather than a renamed prototype.
 
+Checkpoint: implemented with a rigid luminous control grid and three-band Stillness cage around every occupied world. The spherical colour wave now visibly breaks that cage, triggers a target-centred flash and stronger camera/audio response, and always resolves into the world's concise liberation memory—even when opening the Command World route. The Runner has distinct braced aim, thruster-led flight, liberation and red recovery poses without changing its physics footprint. Slingshot tiers and chains now receive rising procedural confirmations. Pure presentation tests cover phase priority, poses, cage removal and flash bounds. A complete desktop route again finished Haven → Ember → Grove → Tide → Command in four launches for 7,000 points; the moving liberation frame showed the cage/wave contrast and the finished run retained its full results flow. The 390×844 pass verified exact-preview launch, flight, liberation, miss recovery and reset with no overflow. Peak observed desktop rendering remained below budget at 160 draw calls and the browser console was clean.
+
 ## Milestone 6 — Validated online leaderboard
 
 - Record compact deterministic replays with content and physics versions.

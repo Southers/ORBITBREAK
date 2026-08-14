@@ -1,5 +1,5 @@
 /**
- * Small procedural score and sound-design system for WORLDSEED.
+ * Small procedural score and sound-design system for ORBITBREAK.
  *
  * Every voice is generated with the Web Audio API after the first player gesture, so the
  * jam build ships no external audio files and remains safe under browser autoplay rules.
@@ -265,6 +265,14 @@ export class WorldseedAudio {
 
   restore(WorldIdentifier, RestoredWorldCount) {
     const RootFrequency = WorldIdentifier === 'ember' ? 220 : 277.18;
+    this.playNoise({ duration: 0.34, volume: 0.11, frequency: 1900 });
+    this.playTone({
+      frequency: 96,
+      endFrequency: RootFrequency * 1.5,
+      duration: 0.48,
+      volume: 0.085,
+      type: 'sawtooth',
+    });
     const Ratios = [1, 1.25, 1.5, 2, 2.5];
     Ratios.forEach((Ratio, NoteIndex) => {
       this.playTone({
@@ -277,6 +285,30 @@ export class WorldseedAudio {
       });
     });
     this.setRestoredWorldCount(RestoredWorldCount);
+  }
+
+  slingshot(TierLabel, ChainMultiplier) {
+    const TierOffset = TierLabel.startsWith('RAZOR')
+      ? 1.34
+      : TierLabel.startsWith('DEEP') ? 1.17 : 1;
+    const ChainOffset = Math.min(1.28, 1 + ((ChainMultiplier - 1) * 0.08));
+    const RootFrequency = 390 * TierOffset * ChainOffset;
+    this.playTone({
+      frequency: RootFrequency,
+      endFrequency: RootFrequency * 1.65,
+      duration: 0.2,
+      volume: 0.065,
+      type: 'triangle',
+    });
+    if (ChainMultiplier > 1) {
+      this.playTone({
+        frequency: RootFrequency * 1.5,
+        endFrequency: RootFrequency * 2,
+        duration: 0.24,
+        volume: 0.045,
+        delay: 0.055,
+      });
+    }
   }
 
   restorationComplete(WorldIdentifier) {

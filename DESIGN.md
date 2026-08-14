@@ -115,6 +115,10 @@ The most competitive format is a short system run. Campaign totals and identical
 
 The Stillness should be understood visually: occupied worlds are pale, rigid and geometrically constrained. Liberation cracks that order and restores asymmetry, colour, inhabitants, movement and another layer of sound.
 
+The vertical slice expresses that contrast with a luminous control grid and three orbital cage bands around every occupied world. On landing, the cage expands and fades while the existing spherical wave burns colour back around the planet. A short impact flash, camera response and rising procedural chord make the state change readable even when the target occupies little of a mobile screen.
+
+The Runner supports the same readability. Braced limbs communicate aiming, tucked arms and twin thrusters communicate flight, a raised pose celebrates liberation, and a red splayed recovery pose makes a lost shot immediately distinct. These poses never alter collision geometry or deterministic physics.
+
 Story uses only:
 
 - one concise system introduction;
