@@ -127,8 +127,17 @@ test('landing banks a flight and a miss rolls its unbanked value back', () => {
   ScoreState.flightScore = 900;
   assert.equal(rollbackFlightScore(ScoreState), 900);
   assert.equal(ScoreState.bankedScore, 2200);
+  assert.equal(ScoreState.bankedSlingshotScore, 1200);
+  assert.equal(ScoreState.liberationScore, 1000);
   assert.equal(addCompletionBonus(ScoreState, 3), 3000);
   assert.equal(ScoreState.bankedScore, 5200);
+  assert.equal(ScoreState.completionBonus, 3000);
+  assert.equal(
+    ScoreState.bankedSlingshotScore
+      + ScoreState.liberationScore
+      + ScoreState.completionBonus,
+    ScoreState.bankedScore,
+  );
 });
 
 test('prediction uses the same pass sampling contract as live fixed steps', () => {

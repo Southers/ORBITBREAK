@@ -14,6 +14,8 @@ Milestones 1 and 2 now establish the competitive loop. A procedural tiny astrona
 
 Breaker's Reach is now the default ORBITBREAK vertical slice: six worlds span several camera views, a compact scanner keeps distant routes readable, and offscreen labels point toward authored choices. A four-launch low route reaches the Command World with room for recovery; the high opening bends around Ember and Grove before Tide for a much larger bank. The later campaign chapters remain inherited WORLDSEED migration fixtures and should not be mistaken for finished ORBITBREAK content.
 
+Completed runs now show exactly how many points came from slingshots, liberated worlds and unused launches, plus deterministic airborne time. Ranked personal bests persist locally per system/content version and compare score, launches, then flight time. Run again is the primary results action.
+
 The locked target is deliberately small:
 
 - one tiny astronaut controlled with drag and release — implemented;
@@ -23,7 +25,8 @@ The locked target is deliberately small:
 - optional high-value occupied planets — implemented in Breaker's Reach;
 - safe-landing banking with miss rollback — implemented;
 - one large authored vertical-slice system — implemented as Breaker's Reach;
-- local personal bests before any validated online leaderboard.
+- transparent results and versioned local personal bests — implemented;
+- validated online leaderboards only after replay recording.
 
 See `DESIGN.md` for the complete rules and `JAM_PLAN.md` for implementation order.
 

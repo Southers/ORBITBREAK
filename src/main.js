@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260814-ob3';
+import { WorldseedAudio } from './audio.js?v=20260814-ob4';
 
 import {
   DefaultAuthoredSystemIdentifier,
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-ob3';
+} from './content.js?v=20260814-ob4';
 
 import {
   countRestoredWorlds,
@@ -19,7 +19,7 @@ import {
   isSystemRestored,
   isWorldheartUnlocked,
   rollbackFlightPickups,
-} from './campaign.js?v=20260814-ob3';
+} from './campaign.js?v=20260814-ob4';
 
 import {
   calculateBodyPositionAtTime,
@@ -29,17 +29,22 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260814-ob3';
+} from './physics.js?v=20260814-ob4';
+import {
+  createRunResult,
+  loadPersonalBest,
+  savePersonalBest,
+} from './records.js?v=20260814-ob4';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
   calculateStagedGrowthProgress,
-} from './restoration.js?v=20260814-ob3';
+} from './restoration.js?v=20260814-ob4';
 import {
   createRunState,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260814-ob3';
+} from './run.js?v=20260814-ob4';
 import {
   addCompletionBonus,
   bankFlightScore,
@@ -47,7 +52,7 @@ import {
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260814-ob3';
+} from './scoring.js?v=20260814-ob4';
 
 const RequestedSystemIdentifier = new URLSearchParams(window.location.search).get('system')
   ?? DefaultAuthoredSystemIdentifier;
@@ -116,15 +121,21 @@ const VictoryPanelElement = document.querySelector('#VictoryPanel');
 const VictoryEyebrowElement = document.querySelector('#VictoryEyebrow');
 const VictoryTitleElement = document.querySelector('#VictoryTitle');
 const VictoryBodyElement = document.querySelector('#VictoryBody');
+const PersonalBestLabelElement = document.querySelector('#PersonalBestLabel');
+const ResultSlingshotScoreElement = document.querySelector('#ResultSlingshotScore');
+const ResultLiberationScoreElement = document.querySelector('#ResultLiberationScore');
+const ResultCompletionBonusElement = document.querySelector('#ResultCompletionBonus');
+const ResultFlightTimeElement = document.querySelector('#ResultFlightTime');
 const ConstellationSummaryElement = document.querySelector('#ConstellationSummary');
 const EmblemRowElement = document.querySelector('#EmblemRow');
 const EmblemElements = [...document.querySelectorAll('[data-emblem]')];
 let ConstellationNodeElements = [];
 const PlayAgainButtonElement = document.querySelector('#PlayAgainButton');
+const ReplayButtonElement = document.querySelector('#ReplayButton');
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob3';
+GameCanvas.dataset.build = '20260814-ob4';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.pageActive = String(!document.hidden);
 GameCanvas.dataset.webglAvailable = 'true';
@@ -194,6 +205,7 @@ const RouteLabelProjection = new THREE.Vector3();
 let PhysicsAccumulatorSeconds = 0;
 let PhysicsElapsedTimeSeconds = 0;
 let GameElapsedTimeSeconds = 0;
+let RunFlightTimeSeconds = 0;
 let IsPageActive = !document.hidden;
 let IsWebGLContextAvailable = true;
 let AdaptivePixelRatioCap = 2;
@@ -262,7 +274,8 @@ function configureSystemInterface() {
   EmblemRowElement.setAttribute('aria-label', `${ActiveSystem.label} emblems`);
   PlayAgainButtonElement.textContent = NextSystemIdentifier
     ? `Continue to ${getAuthoredSystemDefinition(NextSystemIdentifier).label}`
-    : `Replay ${ActiveSystem.label}`;
+    : '';
+  PlayAgainButtonElement.hidden = !NextSystemIdentifier;
 
   ObjectivePipsElement.replaceChildren();
   for (let PipIndex = 0; PipIndex < ActiveSystem.worldheartUnlockThreshold; PipIndex += 1) {
@@ -3189,6 +3202,18 @@ function updateWorldheartObjective() {
   }
 }
 
+function formatFlightTime(FlightTimeMilliseconds) {
+  return `${(FlightTimeMilliseconds / 1000).toFixed(1)}s`;
+}
+
+function updateStoredPersonalBest(RunResult) {
+  try {
+    return savePersonalBest(window.localStorage, RunResult);
+  } catch {
+    return null;
+  }
+}
+
 /** Populates the non-blocking completion summary from the actual run state. */
 function updateVictorySummary() {
   const CollectedStardustCount = StardustDefinitions.filter(
@@ -3208,7 +3233,30 @@ function updateVictorySummary() {
   const CompletionBody = EarnedEmblemCount === 3
     ? ActiveSystem.completion.perfectBody
     : ActiveSystem.completion.body;
-  VictoryBodyElement.textContent = `${CompletionBody} ${ScoreState.bankedScore.toLocaleString('en-GB')} points · ${RunState.launchesUsed} / ${RunState.maximumLaunches} launches used.`;
+  const RunResult = createRunResult({
+    systemIdentifier: ActiveSystem.id,
+    contentVersion: ActiveSystem.contentVersion,
+    score: ScoreState.bankedScore,
+    launchesUsed: RunState.launchesUsed,
+    flightTimeMilliseconds: Math.round(RunFlightTimeSeconds * 1000),
+  });
+  const PersonalBestUpdate = updateStoredPersonalBest(RunResult);
+  const PersonalBestScore = PersonalBestUpdate?.personalBest.score ?? RunResult.score;
+  PersonalBestLabelElement.textContent = PersonalBestUpdate === null
+    ? 'RANKED · LOCAL BEST UNAVAILABLE'
+    : PersonalBestUpdate.isNewPersonalBest
+      ? `RANKED · NEW PERSONAL BEST · ${RunResult.score.toLocaleString('en-GB')}`
+      : `RANKED · PERSONAL BEST · ${PersonalBestScore.toLocaleString('en-GB')}`;
+  ResultSlingshotScoreElement.textContent = ScoreState.bankedSlingshotScore.toLocaleString('en-GB');
+  ResultLiberationScoreElement.textContent = ScoreState.liberationScore.toLocaleString('en-GB');
+  ResultCompletionBonusElement.textContent = ScoreState.completionBonus.toLocaleString('en-GB');
+  ResultFlightTimeElement.textContent = formatFlightTime(RunResult.flightTimeMilliseconds);
+  VictoryBodyElement.textContent = `${CompletionBody} ${RunState.launchesUsed} / ${RunState.maximumLaunches} launches · ${formatFlightTime(RunResult.flightTimeMilliseconds)} flight time.`;
+  GameCanvas.dataset.personalBest = String(PersonalBestScore);
+  GameCanvas.dataset.isNewPersonalBest = String(PersonalBestUpdate?.isNewPersonalBest === true);
+  GameCanvas.dataset.flightTimeMilliseconds = String(RunResult.flightTimeMilliseconds);
+  GameCanvas.dataset.contentVersion = ActiveSystem.contentVersion;
+  GameCanvas.dataset.assistState = RunResult.assistState;
 
   for (const EmblemElement of EmblemElements) {
     const IsEarned = Emblems[EmblemElement.dataset.emblem] === true;
@@ -3706,7 +3754,7 @@ function attachSeedToSeedstone(ImpactPosition, BodyPosition) {
 /** Reveals the modal completion summary and moves keyboard focus into it. */
 function revealVictoryPanel() {
   VictoryPanelElement.hidden = false;
-  PlayAgainButtonElement.focus({ preventScroll: true });
+  ReplayButtonElement.focus({ preventScroll: true });
 }
 
 /** Completes the system only when the player physically carries the seed into the exit. */
@@ -4379,6 +4427,7 @@ function simulateSeedFixedStep() {
   if (GamePhase !== 'flying') {
     return;
   }
+  RunFlightTimeSeconds += FixedPhysicsStepSeconds;
 
   SeedPhysicsState = simulatePhysicsStep(
     SeedPhysicsState,
@@ -4979,8 +5028,23 @@ function resetGame() {
   GameCanvas.dataset.lastBank = '';
   GameCanvas.dataset.lastScoreLost = '';
   GameCanvas.dataset.completionBonus = '';
+  GameCanvas.dataset.flightTimeMilliseconds = '0';
+  GameCanvas.dataset.isNewPersonalBest = 'false';
+  GameCanvas.dataset.contentVersion = ActiveSystem.contentVersion;
+  GameCanvas.dataset.assistState = 'ranked';
   RunState = createRunState(ActiveSystem.launchBudget);
   ScoreState = createScoreState();
+  RunFlightTimeSeconds = 0;
+  try {
+    const PersonalBest = loadPersonalBest(
+      window.localStorage,
+      ActiveSystem.id,
+      ActiveSystem.contentVersion,
+    );
+    GameCanvas.dataset.personalBest = PersonalBest ? String(PersonalBest.score) : '';
+  } catch {
+    GameCanvas.dataset.personalBest = '';
+  }
 
   for (const WorldDefinition of WorldDefinitions) {
     const IsInitiallyRestored = WorldDefinition.initiallyRestored === true;
@@ -5267,6 +5331,7 @@ window.addEventListener('keydown', (KeyboardEventData) => {
   }
 });
 ResetButtonElement.addEventListener('click', resetGame);
+ReplayButtonElement.addEventListener('click', resetGame);
 PlayAgainButtonElement.addEventListener('click', continueCampaignOrReplay);
 AudioButtonElement.addEventListener('click', () => {
   const IsMuted = WorldseedSound.toggleMute();

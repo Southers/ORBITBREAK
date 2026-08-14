@@ -63,6 +63,9 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
   if (!SystemDefinition.label || typeof SystemDefinition.label !== 'string') {
     Errors.push('Authored system requires a display label.');
   }
+  if (!SystemDefinition.contentVersion || typeof SystemDefinition.contentVersion !== 'string') {
+    Errors.push('Authored system requires a contentVersion.');
+  }
   if (!SystemDefinition.openingBody || typeof SystemDefinition.openingBody !== 'string') {
     Errors.push('Authored system requires openingBody story copy.');
   }
@@ -422,6 +425,7 @@ export function createAuthoredSystemRuntime(
   return {
     id: SystemDefinition.id,
     label: SystemDefinition.label,
+    contentVersion: SystemDefinition.contentVersion,
     openingBody: SystemDefinition.openingBody,
     camera: SystemDefinition.camera ? { ...SystemDefinition.camera } : null,
     environment: {
@@ -472,6 +476,7 @@ export function createAuthoredSystemRuntime(
 /** Current prologue authored through the same contract future systems will use. */
 export const FirstLightSystemDefinition = {
   id: 'first-light',
+  contentVersion: 'migration-1',
   label: 'FIRST LIGHT',
   launchBudget: 8,
   openingBody: 'The Runner has eight launches. Pull away from a gold ring, then release.',
@@ -603,6 +608,7 @@ export const FirstLightSystemDefinition = {
 /** ORBITBREAK's first score-attack arena, spanning several camera views. */
 export const BreakerReachSystemDefinition = {
   id: 'breaker-reach',
+  contentVersion: 'breaker-reach-1',
   label: "BREAKER'S REACH",
   launchBudget: 8,
   openingBody: 'The Command World lies beyond the Reach. Take the low route, or risk the Frost giant for a bigger chain.',
@@ -715,6 +721,7 @@ export const BreakerReachSystemDefinition = {
 /** The first full chapter: a fractured relay system held together by remembered routes. */
 export const BrokenBeltSystemDefinition = {
   id: 'broken-belt',
+  contentVersion: 'migration-1',
   label: 'BROKEN BELT',
   launchBudget: 8,
   openingBody: 'The Belt is coming apart. Choose which lost signal to wake first.',
@@ -859,6 +866,7 @@ export const BrokenBeltSystemDefinition = {
 /** A living system whose useful routes open and close as its small bodies move. */
 export const WanderingGardenSystemDefinition = {
   id: 'wandering-garden',
+  contentVersion: 'migration-1',
   label: 'WANDERING GARDEN',
   launchBudget: 8,
   openingBody: 'The Garden is still turning. Wake a path, then ride its little moon into bloom.',
@@ -1008,6 +1016,7 @@ export const WanderingGardenSystemDefinition = {
 /** The campaign's deepest authored system, built around long assists and narrow clearings. */
 export const LongNightSystemDefinition = {
   id: 'long-night',
+  contentVersion: 'migration-1',
   label: 'THE LONG NIGHT',
   launchBudget: 8,
   openingBody: 'Dawn is gone here. Carry the Garden\'s green pulse through the longest dark.',
@@ -1163,6 +1172,7 @@ export const LongNightSystemDefinition = {
 /** The campaign finale, recombining every learned route decision around the true Worldheart. */
 export const WorldheartSystemDefinition = {
   id: 'worldheart',
+  contentVersion: 'migration-1',
   label: 'WORLDHEART',
   launchBudget: 8,
   openingBody: 'Every restored system is behind you. Choose how the last living seed comes home.',

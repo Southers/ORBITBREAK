@@ -59,6 +59,8 @@ Checkpoint: implemented as Breaker's Reach, the new default arena. Six worlds sp
 
 Exit: the vertical slice supports repeatable score attack without an online service.
 
+Checkpoint: implemented with a transparent slingshot/liberation/unused-launch breakdown, deterministic airborne flight time, explicit ranked state and content-versioned local personal bests. Ranking compares score, then launches used, then flight time; corrupt storage fails closed and worse runs never replace a better result. The primary completion action is now Run again, with campaign continuation secondary. Pure tests cover ranking, persistence, version isolation and corrupt data. Desktop browser play saved a new 7,000-point best with a 0 + 3,000 + 4,000 breakdown, replayed immediately with the best retained, and correctly treated an identical second completion as non-record. The 390×844 results layout fits without scrolling, preserves focus and has a clean console.
+
 ## Milestone 5 — Liberation presentation
 
 - Replace inherited WORLDSEED content and Worldheart language.
