@@ -216,3 +216,9 @@ export function getReplayStorageKey(SystemIdentifier, ContentVersion) {
   assertIdentifier(ContentVersion, 'Replay content version');
   return `orbitbreak.last-replay.${SystemIdentifier}.${ContentVersion}`;
 }
+
+export function getPersonalBestGhostStorageKey(SystemIdentifier, ContentVersion) {
+  assertIdentifier(SystemIdentifier, 'Ghost system');
+  assertIdentifier(ContentVersion, 'Ghost content version');
+  return `orbitbreak.best-ghost.${SystemIdentifier}.${ContentVersion}`;
+}

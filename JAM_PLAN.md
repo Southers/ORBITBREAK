@@ -165,6 +165,18 @@ a launch-only Command shortcut cannot rank. Desktop browser completion produced 
 result with 1,350 Flight, 6,900 Network and 4,000 Victory, and no browser errors. The public
 leaderboard remains offline and no external release action was taken.
 
+Checkpoint B — 15 August 2026: Milestone 4's optional local personal-best ghost is complete. Only a
+schema-v2 completed replay that independently validates to the stored ranked best can supply it;
+new ghosts are saved only when a verified run actually becomes the personal best. The rendered
+dashed route contains launch origins but deliberately omits launch velocity, so it shares route
+ideas without solving aim. It is off by default, toggles through the accessible Ghost button or
+`G`, and appears only in Scout view or active flight, never during replay playback. Existing matching
+verified bests migrate from local replay storage. Desktop and 390×844 portrait browser checks proved
+the seven-waypoint migration, click and keyboard toggles, 44px mobile targets, no page overflow and
+no browser errors. All 139 tests, syntax checks, release audit and validator benchmark pass. The
+public leaderboard remains offline and no external release action was taken. Milestone 4's exit gate
+is met: the same sector supports a direct safe completion and a higher-value deliberate network route.
+
 ## Milestone 5 — Tiny Worlds story and art pass
 
 - Give every retained planet a distinct miniature culture, terrain silhouette and occupation scar.

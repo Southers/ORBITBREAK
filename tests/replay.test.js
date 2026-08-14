@@ -5,6 +5,7 @@ import {
   PhysicsModelVersion,
   createReplayRecorder,
   finishReplay,
+  getPersonalBestGhostStorageKey,
   getReplayStorageKey,
   parseReplay,
   recordReplayBurn,
@@ -131,5 +132,9 @@ test('replay storage is isolated by system and content version', () => {
   assert.equal(
     getReplayStorageKey('breakers-reach', 'breaker-reach-4'),
     'orbitbreak.last-replay.breakers-reach.breaker-reach-4',
+  );
+  assert.equal(
+    getPersonalBestGhostStorageKey('breakers-reach', 'breaker-reach-4'),
+    'orbitbreak.best-ghost.breakers-reach.breaker-reach-4',
   );
 });

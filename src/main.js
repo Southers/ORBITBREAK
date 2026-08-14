@@ -95,12 +95,14 @@ import {
   PhysicsModelVersion,
   createReplayRecorder,
   finishReplay,
+  getPersonalBestGhostStorageKey,
   getReplayStorageKey,
   parseReplay,
   recordReplayBurn,
   recordReplayLaunch,
   serializeReplay,
-} from './replay.js?v=20260814-ob14';
+} from './replay.js?v=20260815-ob23';
+import { getReplayGhostWaypoints } from './ghost.js?v=20260815-ob23';
 import {
   consumeDueReplayBurn,
   consumeDueReplayLaunch,
@@ -243,9 +245,10 @@ const MotionButtonElement = document.querySelector('#MotionButton');
 const ScoutButtonElement = document.querySelector('#ScoutButton');
 const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
 const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
+const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob22';
+GameCanvas.dataset.build = '20260815-ob23';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -292,6 +295,25 @@ Scene.fog = new THREE.FogExp2(
   ActiveSystem.environment.fogColor,
   ActiveSystem.environment.fogDensity,
 );
+
+const PersonalBestGhostGeometry = new THREE.BufferGeometry();
+const PersonalBestGhostMaterial = new THREE.LineDashedMaterial({
+  color: 0x72d9ff,
+  transparent: true,
+  opacity: 0.56,
+  dashSize: 0.48,
+  gapSize: 0.3,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+const PersonalBestGhostLine = new THREE.Line(
+  PersonalBestGhostGeometry,
+  PersonalBestGhostMaterial,
+);
+PersonalBestGhostLine.visible = false;
+PersonalBestGhostLine.frustumCulled = false;
+PersonalBestGhostLine.renderOrder = 2;
+Scene.add(PersonalBestGhostLine);
 
 const Renderer = new THREE.WebGLRenderer({
   canvas: GameCanvas,
@@ -353,6 +375,8 @@ let ActivePointerIdentifier = null;
 let KeyboardAimState = createKeyboardAimState();
 let IsScoutMode = false;
 let ScoutZoomScale = 1;
+let IsPersonalBestGhostEnabled = false;
+let HasPersonalBestGhost = false;
 let BaseCameraDistance = 42;
 let FlightElapsedSeconds = 0;
 let IsBreakerBurnAvailable = false;
@@ -4031,6 +4055,127 @@ function publishFinishedReplay(Outcome) {
   }
 }
 
+function updatePersonalBestGhostVisibility() {
+  const ShouldShowGhost = HasPersonalBestGhost
+    && IsPersonalBestGhostEnabled
+    && ReplayPlaybackState === null
+    && (IsScoutMode || GamePhase === 'flying');
+  if (
+    PersonalBestGhostLine.visible === ShouldShowGhost
+    && GameCanvas.dataset.ghostVisible === String(ShouldShowGhost)
+  ) return;
+  PersonalBestGhostLine.visible = ShouldShowGhost;
+  GameCanvas.dataset.ghostVisible = String(ShouldShowGhost);
+}
+
+function configurePersonalBestGhost(SerializedReplay) {
+  let Replay = null;
+  try {
+    Replay = SerializedReplay ? parseReplay(SerializedReplay) : null;
+  } catch {
+    Replay = null;
+  }
+  const MatchesActiveSystem = Replay?.systemIdentifier === ActiveSystem.id
+    && Replay?.contentVersion === ActiveSystem.contentVersion;
+  const Waypoints = MatchesActiveSystem ? getReplayGhostWaypoints(Replay) : [];
+  HasPersonalBestGhost = Waypoints.length >= 2;
+
+  if (HasPersonalBestGhost) {
+    const Positions = new Float32Array(Waypoints.length * 3);
+    Waypoints.forEach((Waypoint, WaypointIndex) => {
+      Positions[WaypointIndex * 3] = Waypoint.x;
+      Positions[(WaypointIndex * 3) + 1] = Waypoint.y;
+      Positions[(WaypointIndex * 3) + 2] = 0.16;
+    });
+    PersonalBestGhostGeometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(Positions, 3),
+    );
+    PersonalBestGhostGeometry.computeBoundingSphere();
+    PersonalBestGhostLine.computeLineDistances();
+  } else {
+    IsPersonalBestGhostEnabled = false;
+  }
+
+  GhostButtonElement.hidden = !HasPersonalBestGhost;
+  GhostButtonElement.setAttribute('aria-pressed', String(IsPersonalBestGhostEnabled));
+  GhostButtonElement.setAttribute(
+    'aria-label',
+    `Personal-best route ghost ${IsPersonalBestGhostEnabled ? 'on' : 'off'}`,
+  );
+  GameCanvas.dataset.ghostAvailable = String(HasPersonalBestGhost);
+  GameCanvas.dataset.ghostEnabled = String(IsPersonalBestGhostEnabled);
+  GameCanvas.dataset.ghostWaypointCount = String(HasPersonalBestGhost ? Waypoints.length : 0);
+  updatePersonalBestGhostVisibility();
+}
+
+function replayMatchesStoredPersonalBest(SerializedReplay) {
+  const Validation = validateSerializedReplay(SerializedReplay);
+  const PersonalBest = loadPersonalBest(
+    window.localStorage,
+    ActiveSystem.id,
+    ActiveSystem.contentVersion,
+  );
+  return Validation.valid
+    && PersonalBest !== null
+    && Validation.result.systemIdentifier === PersonalBest.systemIdentifier
+    && Validation.result.contentVersion === PersonalBest.contentVersion
+    && Validation.result.score === PersonalBest.score
+    && Validation.result.launchesUsed === PersonalBest.launchesUsed
+    && Validation.result.flightTimeMilliseconds === PersonalBest.flightTimeMilliseconds;
+}
+
+function loadPersonalBestGhost() {
+  let SerializedGhost = null;
+  try {
+    const GhostStorageKey = getPersonalBestGhostStorageKey(
+      ActiveSystem.id,
+      ActiveSystem.contentVersion,
+    );
+    const StoredGhost = window.localStorage.getItem(GhostStorageKey);
+    if (StoredGhost && replayMatchesStoredPersonalBest(StoredGhost)) {
+      SerializedGhost = StoredGhost;
+    } else {
+      const LastReplay = window.localStorage.getItem(
+        getReplayStorageKey(ActiveSystem.id, ActiveSystem.contentVersion),
+      );
+      if (LastReplay && replayMatchesStoredPersonalBest(LastReplay)) {
+        SerializedGhost = LastReplay;
+        window.localStorage.setItem(GhostStorageKey, LastReplay);
+      }
+    }
+  } catch {
+    // The game remains fully playable when private browsing blocks local persistence.
+  }
+  configurePersonalBestGhost(SerializedGhost);
+}
+
+function savePersonalBestGhost(SerializedReplay) {
+  try {
+    window.localStorage.setItem(
+      getPersonalBestGhostStorageKey(ActiveSystem.id, ActiveSystem.contentVersion),
+      SerializedReplay,
+    );
+  } catch {
+    // A verified best still counts when local persistence is unavailable.
+  }
+  configurePersonalBestGhost(SerializedReplay);
+}
+
+function setPersonalBestGhostEnabled(Enabled, { announce = false } = {}) {
+  IsPersonalBestGhostEnabled = Enabled && HasPersonalBestGhost;
+  GhostButtonElement.setAttribute('aria-pressed', String(IsPersonalBestGhostEnabled));
+  GhostButtonElement.setAttribute(
+    'aria-label',
+    `Personal-best route ghost ${IsPersonalBestGhostEnabled ? 'on' : 'off'}`,
+  );
+  GameCanvas.dataset.ghostEnabled = String(IsPersonalBestGhostEnabled);
+  updatePersonalBestGhostVisibility();
+  if (announce && HasPersonalBestGhost) {
+    showStatusToast(`PERSONAL BEST GHOST ${IsPersonalBestGhostEnabled ? 'ON' : 'OFF'}`, 900);
+  }
+}
+
 /** Populates the non-blocking completion summary from the actual run state. */
 function updateVictorySummary() {
   publishFinishedReplay('complete');
@@ -4078,6 +4223,9 @@ function updateVictorySummary() {
     ? String(ReplayValidation.result.score)
     : '';
   const PersonalBestUpdate = IsReplayVerified ? updateStoredPersonalBest(RunResult) : null;
+  if (PersonalBestUpdate?.isNewPersonalBest) {
+    savePersonalBestGhost(GameCanvas.dataset.replayPayload);
+  }
   const PersonalBestScore = PersonalBestUpdate?.personalBest.score ?? RunResult.score;
   PersonalBestLabelElement.textContent = !IsReplayVerified
     ? 'UNVERIFIED REPLAY · LOCAL BEST NOT UPDATED'
@@ -6557,6 +6705,7 @@ function setScoutMode(Enabled, { snapToRunner = true } = {}) {
   ScoutZoomInButtonElement.hidden = !IsScoutMode;
   GameCanvas.dataset.scoutMode = String(IsScoutMode);
   GameCanvas.classList.toggle('is-scouting', IsScoutMode && IsPointerScouting);
+  updatePersonalBestGhostVisibility();
   resizeRenderer();
 }
 
@@ -6828,6 +6977,7 @@ function resetGame() {
   GameCanvas.dataset.contentVersion = ActiveSystem.contentVersion;
   GameCanvas.dataset.assistState = 'ranked';
   GameCanvas.dataset.replayPhysicsVersion = PhysicsModelVersion;
+  loadPersonalBestGhost();
   GameCanvas.dataset.replayLaunchCount = '0';
   GameCanvas.dataset.replayOutcome = 'recording';
   GameCanvas.dataset.replayMode = '';
@@ -7279,6 +7429,7 @@ function renderFrame() {
   updateStardustVisuals(ElapsedTimeSeconds);
   updateRouteLabels();
   updateFlightAudio();
+  updatePersonalBestGhostVisibility();
 
   Renderer.render(Scene, Camera);
   updatePerformanceBudget(DeltaTimeSeconds);
@@ -7502,6 +7653,11 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     setScoutMode(!IsScoutMode, { snapToRunner: IsScoutMode });
     return;
   }
+  if (PressedKey === 'g' && !KeyboardEventData.shiftKey && !KeyboardEventData.repeat) {
+    KeyboardEventData.preventDefault();
+    setPersonalBestGhostEnabled(!IsPersonalBestGhostEnabled, { announce: true });
+    return;
+  }
   if (IsScoutMode && (PressedKey === '+' || PressedKey === '=' || PressedKey === '-')) {
     KeyboardEventData.preventDefault();
     adjustScoutZoom(PressedKey === '-' ? 1 : -1);
@@ -7571,6 +7727,9 @@ ScoutButtonElement.addEventListener('click', () => {
 });
 ScoutZoomOutButtonElement.addEventListener('click', () => adjustScoutZoom(1));
 ScoutZoomInButtonElement.addEventListener('click', () => adjustScoutZoom(-1));
+GhostButtonElement.addEventListener('click', () => {
+  setPersonalBestGhostEnabled(!IsPersonalBestGhostEnabled, { announce: true });
+});
 BurnButtonElement.addEventListener('click', requestBreakerAction);
 
 createLighting();

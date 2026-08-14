@@ -871,6 +871,7 @@ button:focus-visible,
 #AudioButton,
 #MotionButton,
 #ScoutButton,
+#GhostButton,
 .scout-zoom-button {
   pointer-events: auto;
   cursor: pointer;
@@ -973,6 +974,7 @@ button:focus-visible,
 #AudioButton,
 #MotionButton,
 #ScoutButton,
+#GhostButton,
 .scout-zoom-button {
   min-height: 44px;
   padding: 7px 10px;
@@ -1028,6 +1030,7 @@ button:focus-visible,
   #AudioButton,
   #MotionButton,
   #ScoutButton,
+  #GhostButton,
   .scout-zoom-button {
     min-width: 44px;
     padding-inline: 7px;
