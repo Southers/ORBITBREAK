@@ -19,6 +19,13 @@ import {
 test('First Light satisfies the authored-system content contract', () => {
   assert.deepEqual(validateAuthoredSystemDefinition(FirstLightSystemDefinition), []);
   assert.equal(createAuthoredSystemRuntime(FirstLightSystemDefinition).launchBudget, 8);
+  const FrostDefinition = FirstLightSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'frost',
+  );
+  const GroveDefinition = FirstLightSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'grove',
+  );
+  assert.ok(FrostDefinition.slingshotValue > GroveDefinition.slingshotValue);
 });
 
 test('authored systems fail closed without a positive launch budget', () => {
@@ -28,6 +35,16 @@ test('authored systems fail closed without a positive launch budget', () => {
   assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
     'Authored system requires a positive integer launchBudget.',
   ));
+});
+
+test('authored scoring values fail closed when present but invalid', () => {
+  const InvalidSystemDefinition = structuredClone(FirstLightSystemDefinition);
+  InvalidSystemDefinition.worlds[0].slingshotValue = 0;
+  InvalidSystemDefinition.worlds[1].liberationValue = 2.5;
+
+  const Errors = validateAuthoredSystemDefinition(InvalidSystemDefinition);
+  assert.ok(Errors.includes('World meadow has an invalid slingshotValue.'));
+  assert.ok(Errors.includes('World ember has an invalid liberationValue.'));
 });
 
 test('Broken Belt satisfies the authored-system content contract', () => {

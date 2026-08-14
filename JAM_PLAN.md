@@ -31,9 +31,11 @@ Checkpoint: implemented with a procedural helmeted Runner that preserves the pro
 - Add authored values, deep-pass tiers and distinct-body chain multipliers.
 - Bank a flight chain only on safe landing and roll it back on failure.
 - Prevent the same body from scoring more than once per flight.
-- Add optional occupied-world and landing-precision points.
+- Add optional occupied-world liberation points.
 
 Exit: repeating the same route with better judgement can produce a meaningfully better score.
+
+Checkpoint: implemented with a 1.33-second exact ranked preview, deterministic enter/exit influence bands, Assist/Deep/Razor tiers, authored body values, distinct-body chain multipliers, safe-landing banking, miss/hazard rollback, occupied-world bonuses and unused-launch completion points. Same-body anti-farming and prediction/live sampling share one scoring contract. Landing precision remains deferred until the large-system target zones exist. Pure scoring/content tests cover band entry and exit, depth tiers, chaining, anti-farming, banking, rollback, completion and invalid authored values. Desktop browser play verifies a 1,350-point Ember Razor Assist banked with Tide liberation for 2,350 total, plus a two-body 2,500-point chain visibly lost to the Void; portrait mobile verifies the score HUD and a real one-pointer landing. Browser consoles are clean.
 
 ## Milestone 3 — Large-system vertical slice
 

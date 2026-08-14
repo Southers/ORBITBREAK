@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260814-ob1';
+import { WorldseedAudio } from './audio.js?v=20260814-ob2';
 
 import {
   DefaultAuthoredSystemIdentifier,
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-ob1';
+} from './content.js?v=20260814-ob2';
 
 import {
   countRestoredWorlds,
@@ -19,7 +19,7 @@ import {
   isSystemRestored,
   isWorldheartUnlocked,
   rollbackFlightPickups,
-} from './campaign.js?v=20260814-ob1';
+} from './campaign.js?v=20260814-ob2';
 
 import {
   calculateBodyPositionAtTime,
@@ -29,17 +29,25 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260814-ob1';
+} from './physics.js?v=20260814-ob2';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
   calculateStagedGrowthProgress,
-} from './restoration.js?v=20260814-ob1';
+} from './restoration.js?v=20260814-ob2';
 import {
   createRunState,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260814-ob1';
+} from './run.js?v=20260814-ob2';
+import {
+  addCompletionBonus,
+  bankFlightScore,
+  createScoreState,
+  predictSlingshotEvents,
+  rollbackFlightScore,
+  sampleSlingshotBodies,
+} from './scoring.js?v=20260814-ob2';
 
 const RequestedSystemIdentifier = new URLSearchParams(window.location.search).get('system')
   ?? DefaultAuthoredSystemIdentifier;
@@ -82,6 +90,10 @@ const GameCanvas = document.querySelector('#GameCanvas');
 const CounterElement = document.querySelector('.counter');
 const LaunchCounterElement = document.querySelector('#LaunchCounter');
 const WorldCounterElement = document.querySelector('#WorldCounter');
+const ScoreCounterElement = document.querySelector('#ScoreCounter');
+const FlightScoreElement = document.querySelector('#FlightScore');
+const FlightScoreValueElement = document.querySelector('#FlightScoreValue');
+const ChainValueElement = document.querySelector('#ChainValue');
 const StardustCounterElement = document.querySelector('#StardustCounter');
 const ObjectivePanelElement = document.querySelector('#ObjectivePanel');
 const ObjectiveStateElement = document.querySelector('#ObjectiveState');
@@ -109,7 +121,7 @@ const PlayAgainButtonElement = document.querySelector('#PlayAgainButton');
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob1';
+GameCanvas.dataset.build = '20260814-ob2';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.pageActive = String(!document.hidden);
 GameCanvas.dataset.webglAvailable = 'true';
@@ -122,10 +134,12 @@ const MaximumDragDistance = 6.25;
 const LaunchVelocityPerDragUnit = 2.95;
 const MinimumLaunchDragDistance = 0.22;
 const MaximumTrajectoryPredictionSteps = 520;
+const RankedPredictionVisibleSteps = 160;
+GameCanvas.dataset.rankedPredictionSteps = String(RankedPredictionVisibleSteps);
 const OutOfBoundsDistance = 34;
 const StartingWorldIdentifier = ActiveSystem.startingWorldIdentifier;
 GameCanvas.dataset.currentNode = StartingWorldIdentifier;
-const MaximumDrawCallBudget = 180;
+const MaximumDrawCallBudget = 190;
 const WorldheartUnlockThreshold = ActiveSystem.worldheartUnlockThreshold;
 const StardustPickupRadius = 0.22;
 const StardustCollectionRadius = SeedRadius + StardustPickupRadius;
@@ -216,6 +230,7 @@ let SeedPhysicsState = {
   velocity: createVector(),
 };
 let RunState = createRunState(ActiveSystem.launchBudget);
+let ScoreState = createScoreState();
 const WorldseedSound = new WorldseedAudio();
 
 const WorldRuntimeByIdentifier = new Map();
@@ -2588,7 +2603,7 @@ SeedGroup.add(SeedPointerHitMesh);
  * Launch preview uses a single line plus a terminal landing marker. The final art pass can
  * convert this to a dotted shader or particle trail without touching trajectory logic.
  */
-const MaximumPreviewPointCount = Math.ceil(MaximumTrajectoryPredictionSteps / 4) + 2;
+const MaximumPreviewPointCount = Math.ceil(RankedPredictionVisibleSteps / 4) + 2;
 const TrajectoryPositionValues = new Float32Array(MaximumPreviewPointCount * 3);
 const TrajectoryGeometry = new THREE.BufferGeometry();
 const TrajectoryPositionAttribute = new THREE.BufferAttribute(TrajectoryPositionValues, 3);
@@ -3074,7 +3089,7 @@ function updateVictorySummary() {
   const CompletionBody = EarnedEmblemCount === 3
     ? ActiveSystem.completion.perfectBody
     : ActiveSystem.completion.body;
-  VictoryBodyElement.textContent = `${CompletionBody} ${RunState.launchesUsed} / ${RunState.maximumLaunches} launches used.`;
+  VictoryBodyElement.textContent = `${CompletionBody} ${ScoreState.bankedScore.toLocaleString('en-GB')} points · ${RunState.launchesUsed} / ${RunState.maximumLaunches} launches used.`;
 
   for (const EmblemElement of EmblemElements) {
     const IsEarned = Emblems[EmblemElement.dataset.emblem] === true;
@@ -3237,6 +3252,17 @@ function updateLaunchCounter() {
   GameCanvas.dataset.runStatus = RunState.status;
 }
 
+/** Keeps banked points and the current at-risk chain visible throughout a run. */
+function updateScoreInterface() {
+  ScoreCounterElement.textContent = ScoreState.bankedScore.toLocaleString('en-GB');
+  FlightScoreValueElement.textContent = `+${ScoreState.flightScore.toLocaleString('en-GB')}`;
+  ChainValueElement.textContent = `CHAIN ×${Math.max(1, Math.min(ScoreState.chainCount, 4))}`;
+  FlightScoreElement.hidden = ScoreState.flightScore === 0;
+  GameCanvas.dataset.score = String(ScoreState.bankedScore);
+  GameCanvas.dataset.flightScore = String(ScoreState.flightScore);
+  GameCanvas.dataset.chainCount = String(ScoreState.chainCount);
+}
+
 /**
  * Displays a short centre-screen status message without queueing old messages.
  *
@@ -3315,6 +3341,20 @@ function resetFlightFeedback() {
   FlightOriginWorldIdentifier = null;
   FlightHadAsteroidClosePass = false;
   FlightClosePassWorldIdentifiers.clear();
+}
+
+function bankCurrentFlight(LandingBonus = 0) {
+  const BankResult = bankFlightScore(ScoreState, { landingBonus: LandingBonus });
+  GameCanvas.dataset.lastBank = String(BankResult.bankedPoints);
+  updateScoreInterface();
+  return BankResult;
+}
+
+function loseCurrentFlightScore() {
+  const LostPoints = rollbackFlightScore(ScoreState);
+  GameCanvas.dataset.lastScoreLost = String(LostPoints);
+  updateScoreInterface();
+  return LostPoints;
 }
 
 /** Returns the best accolade earned during the current successful flight. */
@@ -3463,6 +3503,9 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
     WorldDefinition.id,
     !WasAlreadyRestored,
   );
+  const BankResult = bankCurrentFlight(
+    WasAlreadyRestored ? 0 : (WorldDefinition.liberationValue ?? 1000),
+  );
   GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
   commitFlightStardust();
   resetFlightFeedback();
@@ -3474,11 +3517,19 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
       WorldDefinition.memory,
     );
     if (LandingAccolade) {
-      showStatusToast(`${LandingAccolade} · ${WorldDefinition.label} AWAKENING`, 1450);
+      showStatusToast(
+        `${LandingAccolade} · +${BankResult.bankedPoints.toLocaleString('en-GB')} BANKED`,
+        1450,
+      );
     }
   } else if (WasAlreadyRestored && GamePhase !== 'victory' && GamePhase !== 'victoryPending') {
     GamePhase = 'attached';
-    showStatusToast(LandingAccolade ?? 'CLEAN LANDING', 700);
+    showStatusToast(
+      BankResult.bankedPoints > 0
+        ? `+${BankResult.bankedPoints.toLocaleString('en-GB')} BANKED`
+        : (LandingAccolade ?? 'CLEAN LANDING'),
+      850,
+    );
     showRouteChoiceInstruction();
   }
   settleNonCommandFlight(`${WorldDefinition.label} WAS NOT THE COMMAND WORLD`);
@@ -3516,14 +3567,14 @@ function attachSeedToSeedstone(ImpactPosition, BodyPosition) {
   LaunchIgnoredBodyIdentifier = null;
   GamePhase = 'attached';
   GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
+  const BankResult = bankCurrentFlight();
   commitFlightStardust();
   resetFlightFeedback();
-  showStatusToast(
-    LandingAccolade
+  showStatusToast(BankResult.bankedPoints > 0
+    ? `+${BankResult.bankedPoints.toLocaleString('en-GB')} BANKED · ${SeedstoneDefinition.label}`
+    : (LandingAccolade
       ? `${LandingAccolade} · ${SeedstoneDefinition.label} READY`
-      : `${SeedstoneDefinition.label} READY · 1 LAUNCH`,
-    1100,
-  );
+      : `${SeedstoneDefinition.label} READY · 1 LAUNCH`), 1100);
   showInstruction(
     SeedstoneDefinition.orbit ? 'Moving launch window' : 'Temporary launchpad',
     SeedstoneDefinition.orbit
@@ -3562,6 +3613,10 @@ function attachSeedToWorldheart(ImpactPosition) {
   WorldheartDefinition.restored = true;
   RunState = settleRunFlight(RunState, { reachedCommandWorld: true });
   updateLaunchCounter();
+  const BankResult = bankCurrentFlight();
+  const CompletionBonus = addCompletionBonus(ScoreState, RunState.remainingLaunches);
+  updateScoreInterface();
+  GameCanvas.dataset.completionBonus = String(CompletionBonus);
   GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
   commitFlightStardust();
   resetFlightFeedback();
@@ -3573,7 +3628,10 @@ function attachSeedToWorldheart(ImpactPosition) {
     beginFinaleRestoration();
     showStatusToast('THE WORLDHEART IS AWAKENING', 2200, 'memory');
   } else {
-    showStatusToast(`${WorldheartDefinition.label} RECONNECTED`, 1100);
+    showStatusToast(
+      `${WorldheartDefinition.label} · +${(BankResult.bankedPoints + CompletionBonus).toLocaleString('en-GB')} BANKED`,
+      1400,
+    );
   }
 
   const VictoryDelaySeconds = PrefersReducedMotion
@@ -3803,9 +3861,27 @@ function updateAimPreview(CurrentPointerWorldPosition) {
       startTimeSeconds: PhysicsElapsedTimeSeconds,
     },
   );
+  const VisiblePredictionPoints = TrajectoryPrediction.points.slice(
+    0,
+    RankedPredictionVisibleSteps + 1,
+  );
+  const IsOutcomeVisible = TrajectoryPrediction.points.length <= RankedPredictionVisibleSteps + 1;
+  GameCanvas.dataset.lastPredictionVisiblePoints = String(VisiblePredictionPoints.length);
+  GameCanvas.dataset.lastPredictionTotalPoints = String(TrajectoryPrediction.points.length);
+  GameCanvas.dataset.lastPredictionOutcomeVisible = String(IsOutcomeVisible);
+  const PredictedSlingshotEvents = predictSlingshotEvents(
+    VisiblePredictionPoints,
+    WorldDefinitions,
+    {
+      runnerRadius: SeedRadius,
+      ignoredBodyIdentifier: getWorldDefinition(CurrentWorldIdentifier)
+        ? CurrentWorldIdentifier
+        : null,
+    },
+  );
   PredictedStardustIdentifiers.clear();
   for (const StardustIdentifier of getTrajectoryPickupIdentifiers(
-    TrajectoryPrediction.points,
+    VisiblePredictionPoints,
     StardustDefinitions,
     StardustCollectionRadius,
   )) {
@@ -3817,10 +3893,10 @@ function updateAimPreview(CurrentPointerWorldPosition) {
   let PreviewPointCount = 0;
   for (
     let PredictionPointIndex = 0;
-    PredictionPointIndex < TrajectoryPrediction.points.length;
+    PredictionPointIndex < VisiblePredictionPoints.length;
     PredictionPointIndex += PreviewSampleStride
   ) {
-    const PredictionPoint = TrajectoryPrediction.points[PredictionPointIndex];
+    const PredictionPoint = VisiblePredictionPoints[PredictionPointIndex];
     TrajectoryPositionAttribute.setXYZ(
       PreviewPointCount,
       PredictionPoint.x,
@@ -3831,17 +3907,18 @@ function updateAimPreview(CurrentPointerWorldPosition) {
   }
 
   const FinalPredictionPoint = TrajectoryPrediction.points[TrajectoryPrediction.points.length - 1];
+  const FinalVisiblePredictionPoint = VisiblePredictionPoints[VisiblePredictionPoints.length - 1];
   const LastPreviewOffset = Math.max(0, (PreviewPointCount - 1) * 3);
-  const FinalPointDifferenceX = TrajectoryPositionValues[LastPreviewOffset] - FinalPredictionPoint.x;
-  const FinalPointDifferenceY = TrajectoryPositionValues[LastPreviewOffset + 1] - FinalPredictionPoint.y;
+  const FinalPointDifferenceX = TrajectoryPositionValues[LastPreviewOffset] - FinalVisiblePredictionPoint.x;
+  const FinalPointDifferenceY = TrajectoryPositionValues[LastPreviewOffset + 1] - FinalVisiblePredictionPoint.y;
   if (
     PreviewPointCount === 0
     || ((FinalPointDifferenceX * FinalPointDifferenceX) + (FinalPointDifferenceY * FinalPointDifferenceY)) > 0.01
   ) {
     TrajectoryPositionAttribute.setXYZ(
       PreviewPointCount,
-      FinalPredictionPoint.x,
-      FinalPredictionPoint.y,
+      FinalVisiblePredictionPoint.x,
+      FinalVisiblePredictionPoint.y,
       0.12,
     );
     PreviewPointCount += 1;
@@ -3856,7 +3933,7 @@ function updateAimPreview(CurrentPointerWorldPosition) {
   AimPowerFillElement.style.width = `${PowerPercentage}%`;
   AimPowerValueElement.textContent = `${PowerPercentage}%`;
 
-  if (TrajectoryPrediction.collisionKind === 'hazard') {
+  if (IsOutcomeVisible && TrajectoryPrediction.collisionKind === 'hazard') {
     TrajectoryMaterial.color.set(0xff766d);
     TrajectoryMaterial.opacity = 0.88;
     LandingMarkerMaterial.color.set(0xff766d);
@@ -3868,7 +3945,7 @@ function updateAimPreview(CurrentPointerWorldPosition) {
     );
     LandingMarkerMesh.position.set(FinalPredictionPoint.x, FinalPredictionPoint.y, 0.2);
     LandingMarkerMesh.visible = true;
-  } else if (TrajectoryPrediction.collisionKind === 'seedstone') {
+  } else if (IsOutcomeVisible && TrajectoryPrediction.collisionKind === 'seedstone') {
     const SeedstonePosition = calculateBodyPositionAtTime(
       SeedstoneDefinition,
       TrajectoryPrediction.collisionTimeSeconds,
@@ -3893,7 +3970,7 @@ function updateAimPreview(CurrentPointerWorldPosition) {
       0.2,
     );
     LandingMarkerMesh.visible = true;
-  } else if (TrajectoryPrediction.collisionKind === 'worldheart') {
+  } else if (IsOutcomeVisible && TrajectoryPrediction.collisionKind === 'worldheart') {
     TrajectoryMaterial.color.set(0xffd678);
     TrajectoryMaterial.opacity = 0.9;
     LandingMarkerMaterial.color.set(0xffd678);
@@ -3918,7 +3995,7 @@ function updateAimPreview(CurrentPointerWorldPosition) {
       0.2,
     );
     LandingMarkerMesh.visible = true;
-  } else if (TrajectoryPrediction.collisionWorldIdentifier) {
+  } else if (IsOutcomeVisible && TrajectoryPrediction.collisionWorldIdentifier) {
     const LandingWorldDefinition = getWorldDefinition(TrajectoryPrediction.collisionWorldIdentifier);
     const IsNewWorldLanding = !LandingWorldDefinition.restored;
     TrajectoryMaterial.color.set(IsNewWorldLanding ? 0xffd98a : 0xbceca8);
@@ -3944,6 +4021,24 @@ function updateAimPreview(CurrentPointerWorldPosition) {
       0.2,
     );
     LandingMarkerMesh.visible = true;
+  } else if (!IsOutcomeVisible) {
+    TrajectoryMaterial.color.set(
+      TrajectoryPrediction.collisionKind === 'hazard' ? 0xff9b77 : 0x9db8c6,
+    );
+    TrajectoryMaterial.opacity = 0.58;
+    LandingMarkerMesh.visible = false;
+    AimPanelElement.classList.remove('is-locked');
+    AimLabelElement.textContent = TrajectoryPrediction.collisionKind === 'hazard'
+      ? 'DANGER AHEAD'
+      : 'LONG ARC';
+    showInstruction(
+      TrajectoryPrediction.collisionKind === 'hazard'
+        ? 'Something crosses the hidden path'
+        : 'The ranked preview ends here',
+      TrajectoryPrediction.collisionKind === 'hazard'
+        ? 'Change the angle or timing—the warning is exact, but the impact point stays hidden.'
+        : 'Judge the remaining gravity curve, or use nearby worlds to build a scoring chain.',
+    );
   } else {
     TrajectoryMaterial.color.set(0x9db8c6);
     TrajectoryMaterial.opacity = 0.48;
@@ -3958,9 +4053,17 @@ function updateAimPreview(CurrentPointerWorldPosition) {
   if (PredictedStardustIdentifiers.size > 0) {
     AimLabelElement.textContent += ` · ARC +${PredictedStardustIdentifiers.size}`;
   }
+  if (PredictedSlingshotEvents.length > 0) {
+    const PredictedPoints = PredictedSlingshotEvents.reduce(
+      (Total, Event) => Total + Event.points,
+      0,
+    );
+    AimLabelElement.textContent += ` · ASSIST +${PredictedPoints.toLocaleString('en-GB')}`;
+  }
   WorldseedSound.updateAim(
     PowerRatio,
-    TrajectoryPrediction.collisionKind !== null
+    IsOutcomeVisible
+      && TrajectoryPrediction.collisionKind !== null
       && TrajectoryPrediction.collisionKind !== 'hazard',
   );
 }
@@ -4098,6 +4201,7 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
 
   RunState = settleRunFlight(RunState);
   updateLaunchCounter();
+  const LostPoints = loseCurrentFlightScore();
   rollbackFlightStardust();
   resetFlightFeedback();
   SeedPhysicsState.velocity = createVector();
@@ -4108,7 +4212,12 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
 
   GamePhase = 'recovering';
   WorldseedSound.failure();
-  showStatusToast(StatusMessage, 700);
+  showStatusToast(
+    LostPoints > 0
+      ? `${StatusMessage} · ${LostPoints.toLocaleString('en-GB')} LOST`
+      : StatusMessage,
+    850,
+  );
 
   if (RecoveryTimeoutIdentifier !== null) {
     window.clearTimeout(RecoveryTimeoutIdentifier);
@@ -4192,6 +4301,24 @@ function simulateSeedFixedStep() {
   }
 
   updateFlightFeedback();
+
+  const SlingshotEvents = sampleSlingshotBodies(
+    ScoreState,
+    SeedPhysicsState.position,
+    WorldDefinitions,
+    {
+      runnerRadius: SeedRadius,
+      ignoredBodyIdentifier: FlightOriginWorldIdentifier,
+    },
+  );
+  if (SlingshotEvents.length > 0) {
+    const SlingshotEvent = SlingshotEvents[SlingshotEvents.length - 1];
+    updateScoreInterface();
+    showStatusToast(
+      `${SlingshotEvent.tierLabel} · ${SlingshotEvent.bodyLabel} +${SlingshotEvent.points.toLocaleString('en-GB')} · CHAIN ×${SlingshotEvent.chainMultiplier}`,
+      1050,
+    );
+  }
 
   const CollisionWorldDefinition = findCollidingWorld(
     SeedPhysicsState.position,
@@ -4715,7 +4842,14 @@ function resetGame() {
   GameCanvas.dataset.lastLaunchVelocityX = '';
   GameCanvas.dataset.lastLaunchVelocityY = '';
   GameCanvas.dataset.lastLaunchTime = '';
+  GameCanvas.dataset.lastPredictionVisiblePoints = '';
+  GameCanvas.dataset.lastPredictionTotalPoints = '';
+  GameCanvas.dataset.lastPredictionOutcomeVisible = '';
+  GameCanvas.dataset.lastBank = '';
+  GameCanvas.dataset.lastScoreLost = '';
+  GameCanvas.dataset.completionBonus = '';
   RunState = createRunState(ActiveSystem.launchBudget);
+  ScoreState = createScoreState();
 
   for (const WorldDefinition of WorldDefinitions) {
     const IsInitiallyRestored = WorldDefinition.initiallyRestored === true;
@@ -4843,6 +4977,7 @@ function resetGame() {
 
   updateWorldCounter();
   updateLaunchCounter();
+  updateScoreInterface();
   updateStardustCounter();
   updateWorldheartObjective();
   updateTargetBeacons(0);
