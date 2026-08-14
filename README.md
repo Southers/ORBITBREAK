@@ -20,7 +20,7 @@ Occupied worlds now carry an unmistakable Stillness control grid and orbital cag
 
 The leaderboard foundation now records each attempt as a compact deterministic replay: versioned fixed-step launch timing, origin and exact velocity only. Completed payloads persist locally; they do not trust or contain the displayed score. A DOM-free validator rebuilds the authored system, re-simulates those inputs and derives every result field independently. Only an exact match receives Verified and may update the local personal best. Verified routes can be watched immediately through the live simulation from the result screen. The same validation contract must run server-side before any future online score is accepted.
 
-A provider-neutral leaderboard service contract now covers constrained callsigns, validated submission, locked ranking, top-list reads and on-demand replay fetches. Its in-memory store is test-only: no external service or public board exists until a durable provider, abuse limits and deployment are deliberately configured.
+A provider-neutral leaderboard service contract now covers constrained callsigns, validated submission, locked ranking, top-list reads and on-demand replay fetches. A Cloudflare Worker + D1 adapter is prepared with unique replay digests, ranked storage, origin/body limits and pre-validation rate limiting; it bundles successfully in a local Wrangler dry run. No external service, database or public board has been created, and production validation CPU remains a deployment gate.
 
 The locked target is deliberately small:
 
@@ -36,7 +36,9 @@ The locked target is deliberately small:
 - compact versioned replay recording — implemented;
 - independent replay validation and verified local results — implemented;
 - verified local replay viewing — implemented;
-- the smallest viable validated online service — next.
+- provider-neutral validated leaderboard service — implemented;
+- Cloudflare Worker + D1 production adapter — prepared locally, not deployed;
+- in-game callsign, score list and remote replay flow — next.
 
 See `DESIGN.md` for the complete rules and `JAM_PLAN.md` for implementation order.
 

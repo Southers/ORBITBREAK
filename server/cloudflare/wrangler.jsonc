@@ -1,0 +1,28 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "orbitbreak-leaderboard",
+  "main": "./worker.js",
+  "compatibility_date": "2026-08-14",
+  "workers_dev": true,
+  "vars": {
+    "ALLOWED_ORIGIN": "https://southers.github.io"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "orbitbreak-leaderboard",
+      // Add the account's database_id after the user approves `wrangler d1 create`.
+      "migrations_dir": "./migrations"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "SUBMISSION_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 6,
+        "period": 60
+      }
+    }
+  ]
+}

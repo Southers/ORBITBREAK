@@ -11,7 +11,30 @@
 
 The submit route discards any claimed score, validates and re-simulates the replay, then stores only the independently derived result. The public list omits replay payloads; a replay is fetched separately when a player chooses to watch it.
 
-## Required production adapter
+## Cloudflare production candidate
+
+`cloudflare/worker.js` is the prepared production adapter. It runs the same validator inside a Cloudflare Worker, persists independently derived results in D1 and adds the first abuse boundaries before validation:
+
+- GitHub Pages origin allow-listing;
+- a 12 KB declared and streamed request-body limit around the stricter 8 KB replay limit;
+- six submission attempts per source IP per minute through a Workers rate-limit binding;
+- SHA-256 replay digests backed by a D1 unique constraint;
+- a composite D1 index matching the locked ranking order.
+
+No Cloudflare account, database, endpoint or deployment has been created. `wrangler.jsonc` deliberately omits `database_id` until the user approves creating that external resource. Wrangler 4.123.0 successfully bundles the Worker in local `--dry-run` mode at 96.29 KB (19.27 KB gzip).
+
+For local adapter development, Wrangler 4.36 or later is required for rate-limit bindings:
+
+```bash
+npx --yes wrangler@4.123.0 d1 migrations apply orbitbreak-leaderboard --local --config server/cloudflare/wrangler.jsonc
+npx --yes wrangler@4.123.0 dev --config server/cloudflare/wrangler.jsonc
+```
+
+An approved production setup must first create the D1 database, add the returned `database_id` to `wrangler.jsonc`, apply the migration remotely, measure validation CPU against the Workers Free limit, and only then deploy. Those commands intentionally remain a user-controlled external step.
+
+Provider rationale and current limits: [Workers limits](https://developers.cloudflare.com/workers/platform/limits/), [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/), [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/) and [rate-limit bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/).
+
+## Production requirements
 
 A provider adapter must implement `hasReplay`, `insert`, `list` and `getById`. Production storage must also provide:
 
@@ -23,4 +46,4 @@ A provider adapter must implement `hasReplay`, `insert`, `list` and `getById`. P
 - retention and deletion controls for callsigns and replay payloads;
 - server-generated identifiers and timestamps.
 
-The in-memory adapter exists only for automated tests and local integration. It must never be presented as an online leaderboard.
+The in-memory adapter exists only for automated tests and local integration. It must never be presented as an online leaderboard. The Cloudflare adapter is still a deployment candidate until its CPU use is measured in the real runtime and the user explicitly approves creating the account resources.
