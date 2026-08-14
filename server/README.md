@@ -30,6 +30,8 @@ npx --yes wrangler@4.123.0 d1 migrations apply orbitbreak-leaderboard --local --
 npx --yes wrangler@4.123.0 dev --config server/cloudflare/wrangler.jsonc
 ```
 
+On `localhost` or `127.0.0.1` only, the game accepts `?leaderboardApi=http://127.0.0.1:8787` as a temporary endpoint override. Public builds ignore that query parameter and use only the committed meta configuration.
+
 An approved production setup must first create the D1 database, add the returned `database_id` to `wrangler.jsonc`, apply the migration remotely, measure validation CPU against the Workers Free limit, and only then deploy. Those commands intentionally remain a user-controlled external step.
 
 Provider rationale and current limits: [Workers limits](https://developers.cloudflare.com/workers/platform/limits/), [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/), [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/) and [rate-limit bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/).
@@ -47,3 +49,5 @@ A provider adapter must implement `hasReplay`, `insert`, `list` and `getById`. P
 - server-generated identifiers and timestamps.
 
 The in-memory adapter exists only for automated tests and local integration. It must never be presented as an online leaderboard. The Cloudflare adapter is still a deployment candidate until its CPU use is measured in the real runtime and the user explicitly approves creating the account resources.
+
+For an intentionally temporary in-memory browser smoke test, run `npm run leaderboard:dev` beside the static server, then add `?leaderboardApi=http://127.0.0.1:8787` to the local game URL. Scores disappear when that process stops.

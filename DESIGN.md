@@ -119,6 +119,8 @@ The online boundary is a Fetch-standard provider-neutral service with submit, ra
 
 Cloudflare Workers + D1 is the chosen first production candidate because it supports the existing ES-module validator, durable indexed storage and a small public endpoint without a continuously running server. The prepared adapter applies a strict Pages-origin policy, bounded request streaming, source-rate limiting before simulation, SHA-256 replay uniqueness and the locked ranking index. It is not deployed. The Free plan's CPU ceiling must be measured with production traces before enabling submissions; exceeding it is a stop condition, not permission to weaken validation.
 
+The result screen exposes the online contract through a focused Breakers Board dialog. A verified live run may attach a 3–12 character callsign and bank its replay; the list shows rank, callsign, score, launches and flight time; Watch fetches the selected input stream and sends it through local validation before live playback. A watched route cannot be resubmitted. When the endpoint is absent or unreachable, the dialog says so plainly while leaving local personal bests and replay intact.
+
 The most competitive format is a short system run. Campaign totals and identical daily challenges are later possibilities, not vertical-slice requirements.
 
 ## Story and presentation
