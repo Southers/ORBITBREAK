@@ -18,6 +18,8 @@ Completed runs now show exactly how many points came from slingshots, liberated 
 
 Occupied worlds now carry an unmistakable Stillness control grid and orbital cage. Landing breaks the cage under the spherical liberation wave, restores the world's colour and motion, and reveals a concise story memory. The Runner braces while aiming, flies under twin thrusters, celebrates a liberation and visibly tumbles on recovery; the animation never changes deterministic physics.
 
+The leaderboard foundation now records each attempt as a compact deterministic replay: versioned fixed-step launch timing, origin and exact velocity only. Completed payloads persist locally; they do not trust or contain the displayed score. Independent replay validation is the next development gate before any online service.
+
 The locked target is deliberately small:
 
 - one tiny astronaut controlled with drag and release — implemented;
@@ -29,7 +31,8 @@ The locked target is deliberately small:
 - one large authored vertical-slice system — implemented as Breaker's Reach;
 - transparent results and versioned local personal bests — implemented;
 - distinct occupation, Runner and liberation presentation — implemented;
-- validated online leaderboards only after replay recording.
+- compact versioned replay recording — implemented;
+- independent replay validation before any online leaderboard — next.
 
 See `DESIGN.md` for the complete rules and `JAM_PLAN.md` for implementation order.
 

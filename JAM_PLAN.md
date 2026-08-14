@@ -82,6 +82,8 @@ Checkpoint: implemented with a rigid luminous control grid and three-band Stilln
 
 Exit: online scores are reproducible and materially harder to falsify than client totals.
 
+Checkpoint A — replay capture: implemented as a versioned input-only wire format. Every released shot records its fixed-step index, launch origin and exact velocity; the header binds it to the system, content version, physics model and 120 Hz step. Completed runs persist the payload locally, failed runs remain observable until reset, and neither format contains a client-claimed score. Strict parsing rejects corrupt, oversized, non-monotonic or post-finish inputs. Eight representative shots serialize below 700 bytes. A real four-launch desktop completion produced a 308-byte payload with the expected four origins and retained the 7,000-point result; portrait mobile recorded one launch and cleared it on reset with no overflow or console errors. The independent validator remains the next gate before any service work.
+
 ## Milestone 7 — Authored expansion and release polish
 
 - Add systems only when each introduces a new spatial scoring problem.
