@@ -191,6 +191,17 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     if (!WorldDefinition.memory || typeof WorldDefinition.memory !== 'string') {
       Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} requires an awakening memory.`);
     }
+    if (
+      WorldDefinition.occupationScarAngles !== undefined
+      && (
+        !Array.isArray(WorldDefinition.occupationScarAngles)
+        || WorldDefinition.occupationScarAngles.length < 2
+        || WorldDefinition.occupationScarAngles.length > 6
+        || WorldDefinition.occupationScarAngles.some((Angle) => !Number.isFinite(Angle))
+      )
+    ) {
+      Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} has invalid occupation scar angles.`);
+    }
     if (!isColorValue(WorldDefinition.aliveColor)) {
       Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} requires an aliveColor integer.`);
     }
@@ -419,6 +430,9 @@ export function createAuthoredSystemRuntime(
     atmosphereColor: createColor(WorldDefinition.atmosphereColor),
     accentColor: Number.isInteger(WorldDefinition.accentColor)
       ? createColor(WorldDefinition.accentColor)
+      : undefined,
+    occupationScarAngles: WorldDefinition.occupationScarAngles
+      ? [...WorldDefinition.occupationScarAngles]
       : undefined,
     restored: WorldDefinition.initiallyRestored === true,
     isStartingWorld: WorldDefinition.id === SystemDefinition.startingWorldIdentifier,
@@ -689,27 +703,32 @@ export const BreakerReachSystemDefinition = {
     {
       ...FirstLightSystemDefinition.worlds[0],
       label: 'HAVEN', position: { x: -24, y: -10, z: 0 },
+      occupationScarAngles: [-2.62, -2.42, -2.22],
       memory: 'The Runner leaves the last free garden behind.',
     },
     {
       ...FirstLightSystemDefinition.worlds[1],
       position: { x: -10, y: -9, z: 0 },
+      occupationScarAngles: [2.28, 2.5, 2.72, 2.94],
       memory: 'The furnaces remember who they warmed.',
     },
     {
       ...FirstLightSystemDefinition.worlds[2],
       position: { x: 4, y: -6, z: 0 },
+      occupationScarAngles: [-0.58, -0.29, 0],
       memory: 'Roots split the perfect grid from below.',
     },
     {
       ...FirstLightSystemDefinition.worlds[4],
       position: { x: 18, y: -1, z: 0 },
+      occupationScarAngles: [1.18, 1.37, 1.56, 1.75],
       memory: 'The water refuses its ordered orbit.',
     },
     {
       ...FirstLightSystemDefinition.worlds[3],
       position: { x: -7, y: 10, z: 0 }, radius: 4.2, gravitationalParameter: 135,
       slingshotValue: 1000, liberationValue: 1400,
+      occupationScarAngles: [-2.08, -1.9, -1.72],
       memory: 'A giant ocean turns beneath the ice.',
     },
     {
@@ -718,6 +737,7 @@ export const BreakerReachSystemDefinition = {
       slingshotValue: 650, liberationValue: 1500,
       aliveColor: 0x746fa8, atmosphereColor: 0xb7b7ff, accentColor: 0xf2c1ff,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true,
+      occupationScarAngles: [0.08, 0.28, 0.48],
       disposition: 'hostile',
       hostileEncounter: {
         pylonOffsetRadians: Math.PI / 6,

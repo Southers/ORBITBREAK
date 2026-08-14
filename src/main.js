@@ -34,7 +34,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob22';
+} from './content.js?v=20260815-ob25';
 
 import {
   countRestoredWorlds,
@@ -248,7 +248,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob24';
+GameCanvas.dataset.build = '20260815-ob25';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -2633,6 +2633,110 @@ function createWorld(WorldDefinition) {
 
 for (const WorldDefinition of WorldDefinitions) {
   createWorld(WorldDefinition);
+}
+
+/** Two pooled meshes pin culture-specific occupation clamps across every silenced world. */
+const OccupationScarProfiles = {
+  meadow: { height: 0.9, width: 0.82, depth: 0.82 },
+  ember: { height: 1.25, width: 0.62, depth: 0.78 },
+  grove: { height: 0.58, width: 1.18, depth: 0.72 },
+  tide: { height: 0.66, width: 1.3, depth: 0.68 },
+  frost: { height: 1.08, width: 0.72, depth: 0.88 },
+  vault: { height: 1.35, width: 0.78, depth: 0.92 },
+};
+const OccupationScarInstances = WorldDefinitions.flatMap((WorldDefinition) => (
+  (WorldDefinition.occupationScarAngles ?? []).map((Angle, PatternIndex) => ({
+    worldDefinition: WorldDefinition,
+    angle: Angle,
+    patternIndex: PatternIndex,
+    profile: OccupationScarProfiles[WorldDefinition.visualKey]
+      ?? { height: 0.85, width: 0.8, depth: 0.8 },
+  }))
+));
+const OccupationScarCapacity = Math.max(1, OccupationScarInstances.length);
+const OccupationScarMaterial = new THREE.MeshStandardMaterial({
+  color: 0x321019,
+  emissive: 0xff342f,
+  emissiveIntensity: 0.82,
+  roughness: 0.4,
+  metalness: 0.82,
+});
+const OccupationSpikeMesh = new THREE.InstancedMesh(
+  new THREE.ConeGeometry(0.14, 0.82, 4),
+  OccupationScarMaterial,
+  OccupationScarCapacity,
+);
+const OccupationClampMesh = new THREE.InstancedMesh(
+  new THREE.BoxGeometry(0.68, 0.1, 0.16),
+  OccupationScarMaterial,
+  OccupationScarCapacity,
+);
+OccupationSpikeMesh.count = OccupationScarInstances.length;
+OccupationClampMesh.count = OccupationScarInstances.length;
+OccupationSpikeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+OccupationClampMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+OccupationSpikeMesh.frustumCulled = false;
+OccupationClampMesh.frustumCulled = false;
+Scene.add(OccupationSpikeMesh, OccupationClampMesh);
+const OccupationScarTransform = new THREE.Object3D();
+let VisibleOccupationScarCount = -1;
+GameCanvas.dataset.occupationScarCount = String(OccupationScarInstances.length);
+
+function updateOccupationScarVisuals(ElapsedTimeSeconds) {
+  let NextVisibleOccupationScarCount = 0;
+  for (let ScarIndex = 0; ScarIndex < OccupationScarInstances.length; ScarIndex += 1) {
+    const Scar = OccupationScarInstances[ScarIndex];
+    const WorldRuntime = WorldRuntimeByIdentifier.get(Scar.worldDefinition.id);
+    const RestorationProgress = WorldRuntime.restorationUniforms.restorationProgress.value;
+    const ScarStrength = Scar.worldDefinition.restored
+      ? 1 - THREE.MathUtils.smoothstep(RestorationProgress, 0, 0.68)
+      : 1;
+    if (ScarStrength > 0.01) NextVisibleOccupationScarCount += 1;
+    const RadialX = Math.cos(Scar.angle);
+    const RadialY = Math.sin(Scar.angle);
+    const Height = Scar.profile.height * (1 + ((Scar.patternIndex % 2) * 0.12));
+    OccupationScarTransform.position.set(
+      Scar.worldDefinition.position.x
+        + (RadialX * (Scar.worldDefinition.radius + (Height * 0.34))),
+      Scar.worldDefinition.position.y
+        + (RadialY * (Scar.worldDefinition.radius + (Height * 0.34))),
+      0.34 + ((Scar.patternIndex % 2) * 0.05),
+    );
+    OccupationScarTransform.rotation.set(0, 0, Scar.angle - (Math.PI * 0.5));
+    OccupationScarTransform.scale.set(
+      Scar.profile.depth * ScarStrength,
+      Height * ScarStrength,
+      Scar.profile.depth * ScarStrength,
+    );
+    OccupationScarTransform.updateMatrix();
+    OccupationSpikeMesh.setMatrixAt(ScarIndex, OccupationScarTransform.matrix);
+
+    OccupationScarTransform.position.set(
+      Scar.worldDefinition.position.x
+        + (RadialX * (Scar.worldDefinition.radius + (Height * 0.62))),
+      Scar.worldDefinition.position.y
+        + (RadialY * (Scar.worldDefinition.radius + (Height * 0.62))),
+      0.36 + ((Scar.patternIndex % 2) * 0.05),
+    );
+    OccupationScarTransform.rotation.set(0, 0, Scar.angle);
+    OccupationScarTransform.scale.set(
+      Scar.profile.width * ScarStrength,
+      Scar.profile.depth * ScarStrength,
+      Scar.profile.depth * ScarStrength,
+    );
+    OccupationScarTransform.updateMatrix();
+    OccupationClampMesh.setMatrixAt(ScarIndex, OccupationScarTransform.matrix);
+  }
+  if (OccupationScarInstances.length > 0) {
+    OccupationSpikeMesh.instanceMatrix.needsUpdate = true;
+    OccupationClampMesh.instanceMatrix.needsUpdate = true;
+  }
+  OccupationScarMaterial.emissiveIntensity = 0.72
+    + (Math.sin(ElapsedTimeSeconds * 3.4) * 0.16);
+  if (VisibleOccupationScarCount !== NextVisibleOccupationScarCount) {
+    VisibleOccupationScarCount = NextVisibleOccupationScarCount;
+    GameCanvas.dataset.visibleOccupationScarCount = String(VisibleOccupationScarCount);
+  }
 }
 
 /** A pooled line network and tiny courier fleet make every new connection persist visibly. */
@@ -7640,6 +7744,7 @@ function renderFrame() {
   }
 
   updateWorldRestorationVisuals(ElapsedTimeSeconds);
+  updateOccupationScarVisuals(ElapsedTimeSeconds);
   updateWorldBiomeMotion(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateFinaleRestorationVisuals(ElapsedTimeSeconds);
   updateRelayNetworkVisuals(ElapsedTimeSeconds);

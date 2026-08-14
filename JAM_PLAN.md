@@ -202,6 +202,18 @@ peak, preserved 44px controls and had no overflow or browser errors. Current jud
 Art remains the weakest category; the next highest-leverage checkpoint is distinct culture and
 occupation storytelling on the retained ordinary worlds. Milestone 5 remains in progress.
 
+Checkpoint B — 15 August 2026: occupation now changes the silhouette of each retained culture, not
+just its colour. Content-authored clamp patterns read as Haven fencing, Ember furnace teeth, Grove
+root staples, Frost drills, Tide gates and a Bastion watch battery. All 20 stakes and crossbars share
+two instanced meshes; the initially free Haven hides its three, and restoration progress collapses
+each captured world's pattern before revealing the existing cottage, caldera, roots, ice, tide and
+fortress landmarks beneath. Suppression restores the same non-destructive visual state. Desktop
+play proved Ember's visible count falling from 17 to 13; a portrait route through Grove reduced it
+to 10 while the revealed Warden and all controls remained live. That worst mobile scene peaked at
+182 of 190 draw calls, kept the 44px control row inside 390px and logged no browser errors. The art
+score remains **8/10**: occupation and liberation now communicate without prose, but inhabitants
+and culture-specific local motion remain the next highest-leverage gap. Milestone 5 remains open.
+
 ## Milestone 6 — Reliability and release readiness
 
 - Tune route fairness and score values through repeated fresh-player runs.

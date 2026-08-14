@@ -54,6 +54,14 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.equal(BreakerReachSystemDefinition.wardenVictoryValuePerStep, 1000);
   assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
   assert.ok(CommandDefinition.hostileEncounter.pulseRangeRadians > 0);
+  assert.ok(BreakerReachSystemDefinition.worlds.every(
+    (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2,
+  ));
+  const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition);
+  assert.notEqual(
+    Runtime.worlds[0].occupationScarAngles,
+    BreakerReachSystemDefinition.worlds[0].occupationScarAngles,
+  );
 });
 
 test('authored systems fail closed without a positive launch budget', () => {
@@ -96,6 +104,14 @@ test('hostile worlds fail closed without a bounded contextual encounter', () => 
   BastionDefinition.hostileEncounter.pulseRangeRadians = 0;
   assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
     'World bastion has invalid hostile encounter data.',
+  ));
+});
+
+test('occupation scar authoring stays finite and bounded', () => {
+  const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  InvalidSystemDefinition.worlds[1].occupationScarAngles = [0];
+  assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
+    'World ember has invalid occupation scar angles.',
   ));
 });
 
