@@ -4,6 +4,8 @@
 
 ORBITBREAK is a Three.js gravity score-attack game. Guide a tiny rebel astronaut across authored miniature systems, chain close planetary slingshots, liberate optional worlds for points and reach the Command World before a fixed launch budget expires.
 
+**[Play the public GitHub Pages build](https://southers.github.io/ORBITBREAK/)**
+
 The safe route completes the system. The dangerous route reaches the leaderboard.
 
 ## Current checkpoint

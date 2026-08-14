@@ -81,7 +81,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Known gated items
 
-- No public ORBITBREAK build URL has been approved or created.
+- The user-approved public playtest is live at `https://southers.github.io/ORBITBREAK/`; build `20260814-ob13` was verified from main commit `af7958a` on 14 August 2026.
 - The production leaderboard has not been deployed; production Worker CPU traces and D1 latency remain unmeasured.
 - Final screenshots, trailer footage and the Open Graph share image must be captured from the approved candidate commit.
 - Final platform rules, deadline, categories and page fields must be rechecked against the live submission site.
@@ -91,7 +91,7 @@ Suggested 40-second trailer beat sheet:
 
 Never perform these without the user explicitly confirming the exact action at that moment:
 
-- [ ] Create or update a public game deployment.
+- [x] Create the current GitHub Pages playtest (approved 14 August 2026). Any future deployment mutation still requires confirmation at that moment.
 - [ ] Create or deploy production leaderboard resources.
 - [ ] Press Submit, Publish, Enter or the platform-equivalent final action.
 - [ ] Publish a marketing post, trailer or announcement.
