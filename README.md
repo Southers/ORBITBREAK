@@ -53,6 +53,7 @@ The locked target is deliberately small:
 - provider-neutral validated leaderboard service — implemented;
 - Cloudflare Worker + D1 production adapter — prepared locally, not deployed;
 - in-game callsign, ranked list and remote replay flow — implemented against the optional endpoint;
+- adaptive desktop/mobile render-quality degradation and recovery — implemented and locally verified;
 - local validator CPU headroom — measured; production traces and user-approved service deployment remain gated.
 
 See `DESIGN.md` for the complete rules and `JAM_PLAN.md` for implementation order.
