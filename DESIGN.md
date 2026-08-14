@@ -117,6 +117,8 @@ Verified completed runs can be watched immediately from the result screen. Playb
 
 The online boundary is a Fetch-standard provider-neutral service with submit, ranked-list and replay-fetch routes. Submission accepts only a constrained callsign and replay, derives the result server-side, rejects duplicate payloads and returns its calculated rank. Public lists omit replay bytes until requested. The production adapter must add durable indexed storage, unique replay digests, request limits and rate limiting before validation; the repository's in-memory adapter is test-only and is never represented as an online board.
 
+Cloudflare Workers + D1 is the chosen first production candidate because it supports the existing ES-module validator, durable indexed storage and a small public endpoint without a continuously running server. The prepared adapter applies a strict Pages-origin policy, bounded request streaming, source-rate limiting before simulation, SHA-256 replay uniqueness and the locked ranking index. It is not deployed. The Free plan's CPU ceiling must be measured with production traces before enabling submissions; exceeding it is a stop condition, not permission to weaken validation.
+
 The most competitive format is a short system run. Campaign totals and identical daily challenges are later possibilities, not vertical-slice requirements.
 
 ## Story and presentation

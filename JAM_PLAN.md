@@ -90,6 +90,8 @@ Checkpoint C — local replay viewing: implemented with a Watch replay action on
 
 Checkpoint D — provider-neutral service contract: implemented without deploying an external service. The Fetch-standard boundary accepts callsign + replay only, independently derives stored results, rejects invalid and duplicate runs, ranks by the locked score/launch/time order, omits replay bytes from list responses and exposes them through a separate watch route. Callsigns are constrained and minimally blocked. HTTP/CORS, forged-total, duplicate, list and replay-fetch behaviour are covered with an in-memory test adapter. A production adapter still requires durable indexes, replay digests, request/rate limits and a chosen host; no account or endpoint has been created.
 
+Checkpoint E — Cloudflare production adapter: prepared locally without creating or deploying an external resource. A Worker wraps the provider-neutral service, rejects wrong origins and oversized declared or streamed bodies, rate-limits submissions before validation, and persists only derived results through a D1 adapter. The migration adds a unique SHA-256 replay digest and an index matching score → launches → flight-time ranking; duplicate races resolve to a safe conflict. Unit coverage exercises the D1 mapping, abuse boundaries and a complete accepted 7,000-point replay. Wrangler 4.123.0 bundles the Worker successfully in dry-run mode. Production CPU measurement, account/database creation, endpoint deployment and the in-game online UI remain separate gates controlled with the user.
+
 ## Milestone 7 — Authored expansion and release polish
 
 - Add systems only when each introduces a new spatial scoring problem.

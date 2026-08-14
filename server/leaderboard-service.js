@@ -94,7 +94,15 @@ export function createLeaderboardService({
         replay,
         createdAt: now().toISOString(),
       };
-      const SavedRecord = await store.insert(Record);
+      let SavedRecord;
+      try {
+        SavedRecord = await store.insert(Record);
+      } catch (CaughtError) {
+        if (CaughtError?.code === 'DUPLICATE_REPLAY') {
+          return { accepted: false, status: 409, error: 'Replay was already submitted.' };
+        }
+        throw CaughtError;
+      }
       const RankedRecords = await store.list(
         Result.systemIdentifier,
         Result.contentVersion,
