@@ -50,7 +50,7 @@ Surface movement, Scout camera and Breaker Burn are planned and are not represen
 
 - `AGENTS.md` defines the implementation charter, invariants and scope boundaries.
 - `DESIGN.md` locks the story, core loop, Warden, network, score and ending.
-- `JAM_PLAN.md` defines milestone order, exit gates and cut rules.
+- `JAM_PLAN.md` defines milestone order, exit gates, cut rules and the post-milestone judging gauntlet.
 - `RELEASE.md` contains current release evidence and approval boundaries.
 - `src/content.js` contains the authored-system data boundary.
 - `CREDITS.md` records dependencies, assets and source provenance.

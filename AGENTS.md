@@ -52,13 +52,13 @@ Replace it in small playable checkpoints. Preserve working physics, tests and us
 
 ## Priority order
 
-1. Prove walking/repositioning, transformation and Breaker Burn on one route.
+1. Prove Scout planning, walking/repositioning, transformation and Breaker Burn on one route.
 2. Prove relay links, visible trade and deterministic Warden pursuit.
 3. Prove that closed relay circuits create a meaningful defend-versus-expand choice.
 4. Build one short hostile-world encounter using the same surface and pulse vocabulary.
 5. Turn the Warden vessel into an orbital final encounter using established movement and gravity skills.
 6. Retune slingshot, liberation, network and victory scoring around the new complete run.
-7. Add Scout camera planning and a local personal-best ghost.
+7. Add a local personal-best ghost to the proven Scout and replay systems.
 8. Raise world detail, inhabitants, trade traffic, sound, story delivery and mobile polish.
 9. Prepare release evidence while leaving every external submission action user-controlled.
 
@@ -75,6 +75,21 @@ For every meaningful checkpoint:
 5. For ranked work, verify replay determinism, rollback, anti-farming and honest results.
 6. Update the existing design documents and credits when behaviour, story, scope or assets change.
 7. Commit one small coherent change while `main` remains playable.
+
+## Continuous judging gauntlet
+
+Milestone completion is not the end of development. After every playable milestone—and repeatedly after Milestone 6—run this loop:
+
+1. Play a complete desktop run and a portrait-mobile run as both a new player and a score chaser.
+2. Judge the current build honestly from 1–10 for **Art, Creativity, Gameplay, Polish and Theme**, citing observable evidence rather than intention.
+3. Identify the weakest category or the single change with the greatest likely total-score gain.
+4. Choose one bounded improvement that follows `DESIGN.md`, `JAM_PLAN.md` and the cut order. Prefer deepening an existing system over adding another.
+5. Implement it, run the full validation gate and compare the result with the previous checkpoint.
+6. Keep the change only when it materially improves the game without weakening another category or the core loop; then commit and repeat.
+
+Do not mark a durable improvement goal complete merely because the numbered milestones are finished. Continue the gauntlet until the user pauses it, a release freeze is required, an external approval boundary is reached, or no safe in-scope improvement remains. Never inflate a judging score to manufacture progress.
+
+During the final 12 hours before the jam deadline, add no new mechanics. Restrict work to reliability, onboarding, balance, performance, accessibility, authentic capture and user-approved deployment preparation. Submission remains user-controlled.
 
 ## Scope guardrails
 

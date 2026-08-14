@@ -90,7 +90,7 @@ Exit: safer completion and ambitious leaderboard play are both legitimate, visib
 
 Exit: screenshots communicate tiny societies, isolation, connection and authoritarian threat without explanatory text.
 
-## Milestone 6 — Reliability and release handoff
+## Milestone 6 — Reliability and release readiness
 
 - Tune route fairness and score values through repeated fresh-player runs.
 - Verify desktop, portrait mobile, resize, orientation, backgrounding, reduced motion and WebGL recovery.
@@ -99,7 +99,27 @@ Exit: screenshots communicate tiny societies, isolation, connection and authorit
 - Update the approved GitHub Pages playtest only with explicit approval.
 - Prepare the jam reply and hand it to the user; do not post it.
 
-Exit: the build is cohesive, reliable and ready for the user to decide whether and when to submit.
+Exit: the build is cohesive, reliable and ready for repeated judging passes and for the user to decide whether and when to submit.
+
+## Continuous judging gauntlet
+
+Run a concise judging check after every playable milestone. After Milestone 6, repeat the full gauntlet instead of treating the roadmap as finished:
+
+1. Capture and play a complete desktop run and portrait-mobile run.
+2. Score the build honestly from 1–10 in the jam's five categories using current evidence:
+   - **Art:** miniature-world detail, composition, animation, atmosphere and mobile readability.
+   - **Creativity:** distinctiveness of the orbital-network fantasy, story delivery and surprising use of existing verbs.
+   - **Gameplay:** comprehension, agency, jeopardy, skill ceiling, route choice and replay desire.
+   - **Polish:** controls, prediction trust, recovery, performance, accessibility and lack of bugs.
+   - **Theme:** whether tiny societies and their isolation, connection and collective resistance are inseparable from play.
+3. Record the weakest category, the evidence behind it and one improvement hypothesis.
+4. Implement one bounded, high-leverage pass; do not bundle unrelated features.
+5. Run the validation gate, replay the same scenarios and compare before/after evidence.
+6. Commit a proven improvement and repeat from step 1. If the hypothesis fails, fix or discard that pass before moving on.
+
+Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
+
+Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
 
 ## Validation gate
 
