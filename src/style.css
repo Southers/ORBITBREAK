@@ -187,6 +187,65 @@ button:focus-visible,
   letter-spacing: 0.12em;
 }
 
+.scanner-panel {
+  position: absolute;
+  z-index: 5;
+  top: 65px;
+  left: max(20px, env(safe-area-inset-left));
+  width: 150px;
+  padding: 7px 9px 8px;
+  border: 1px solid rgba(169, 233, 255, 0.15);
+  border-radius: 12px;
+  background: rgba(5, 12, 20, 0.5);
+  backdrop-filter: blur(10px);
+  color: rgba(194, 231, 243, 0.55);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  pointer-events: none;
+}
+
+.scanner-panel[hidden] {
+  display: none;
+}
+
+.scanner-panel svg {
+  display: block;
+  width: 100%;
+  height: 64px;
+  margin-top: 2px;
+  overflow: visible;
+}
+
+.scanner-world {
+  fill: rgba(192, 209, 216, 0.35);
+  stroke: rgba(226, 240, 245, 0.42);
+  stroke-width: 1;
+}
+
+.scanner-world.is-restored {
+  fill: #dff5a7;
+  stroke: rgba(223, 245, 167, 0.6);
+}
+
+.scanner-command {
+  fill: rgba(255, 214, 120, 0.25);
+  stroke: #ffd678;
+  stroke-width: 1.4;
+}
+
+.scanner-hazard {
+  fill: #ff766d;
+  opacity: 0.85;
+}
+
+.scanner-runner {
+  fill: #ffffff;
+  stroke: #72d9ff;
+  stroke-width: 1.6;
+  filter: drop-shadow(0 0 3px rgba(114, 217, 255, 0.8));
+}
+
 .objective-panel {
   position: absolute;
   z-index: 4;
@@ -610,6 +669,16 @@ button:focus-visible,
   .flight-score {
     top: 104px;
     right: max(14px, env(safe-area-inset-right));
+  }
+
+  .scanner-panel {
+    top: 104px;
+    left: max(14px, env(safe-area-inset-left));
+    width: 118px;
+  }
+
+  .scanner-panel svg {
+    height: 50px;
   }
 
   .objective-panel {

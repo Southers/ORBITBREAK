@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260814-ob2';
+import { WorldseedAudio } from './audio.js?v=20260814-ob3';
 
 import {
   DefaultAuthoredSystemIdentifier,
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-ob2';
+} from './content.js?v=20260814-ob3';
 
 import {
   countRestoredWorlds,
@@ -19,7 +19,7 @@ import {
   isSystemRestored,
   isWorldheartUnlocked,
   rollbackFlightPickups,
-} from './campaign.js?v=20260814-ob2';
+} from './campaign.js?v=20260814-ob3';
 
 import {
   calculateBodyPositionAtTime,
@@ -29,17 +29,17 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260814-ob2';
+} from './physics.js?v=20260814-ob3';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
   calculateStagedGrowthProgress,
-} from './restoration.js?v=20260814-ob2';
+} from './restoration.js?v=20260814-ob3';
 import {
   createRunState,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260814-ob2';
+} from './run.js?v=20260814-ob3';
 import {
   addCompletionBonus,
   bankFlightScore,
@@ -47,7 +47,7 @@ import {
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260814-ob2';
+} from './scoring.js?v=20260814-ob3';
 
 const RequestedSystemIdentifier = new URLSearchParams(window.location.search).get('system')
   ?? DefaultAuthoredSystemIdentifier;
@@ -94,6 +94,9 @@ const ScoreCounterElement = document.querySelector('#ScoreCounter');
 const FlightScoreElement = document.querySelector('#FlightScore');
 const FlightScoreValueElement = document.querySelector('#FlightScoreValue');
 const ChainValueElement = document.querySelector('#ChainValue');
+const ScannerPanelElement = document.querySelector('#ScannerPanel');
+const ScannerBodyLayerElement = document.querySelector('#ScannerBodyLayer');
+const ScannerRunnerElement = document.querySelector('#ScannerRunner');
 const StardustCounterElement = document.querySelector('#StardustCounter');
 const ObjectivePanelElement = document.querySelector('#ObjectivePanel');
 const ObjectiveStateElement = document.querySelector('#ObjectiveState');
@@ -121,7 +124,7 @@ const PlayAgainButtonElement = document.querySelector('#PlayAgainButton');
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob2';
+GameCanvas.dataset.build = '20260814-ob3';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.pageActive = String(!document.hidden);
 GameCanvas.dataset.webglAvailable = 'true';
@@ -136,7 +139,7 @@ const MinimumLaunchDragDistance = 0.22;
 const MaximumTrajectoryPredictionSteps = 520;
 const RankedPredictionVisibleSteps = 160;
 GameCanvas.dataset.rankedPredictionSteps = String(RankedPredictionVisibleSteps);
-const OutOfBoundsDistance = 34;
+const OutOfBoundsDistance = ActiveSystem.camera?.outOfBoundsDistance ?? 34;
 const StartingWorldIdentifier = ActiveSystem.startingWorldIdentifier;
 GameCanvas.dataset.currentNode = StartingWorldIdentifier;
 const MaximumDrawCallBudget = 190;
@@ -232,6 +235,10 @@ let SeedPhysicsState = {
 let RunState = createRunState(ActiveSystem.launchBudget);
 let ScoreState = createScoreState();
 const WorldseedSound = new WorldseedAudio();
+const ScannerWorldElements = new Map();
+let ScannerHazardElement = null;
+let ScannerProjection = null;
+configureScannerInterface();
 
 const WorldRuntimeByIdentifier = new Map();
 const WorldRuntimesByVisualKey = new Map();
@@ -291,6 +298,99 @@ function configureSystemInterface() {
   ConstellationNodeElements = [
     ...ConstellationSummaryElement.querySelectorAll('[data-world-id]'),
   ];
+}
+
+function projectScannerPosition(Position) {
+  const NormalizedX = (Position.x - ScannerProjection.minimumX) / ScannerProjection.width;
+  const NormalizedY = (Position.y - ScannerProjection.minimumY) / ScannerProjection.height;
+  return {
+    x: 8 + (NormalizedX * 144),
+    y: 82 - (NormalizedY * 74),
+  };
+}
+
+/** Builds a compact spatial map only for systems that intentionally span several views. */
+function configureScannerInterface() {
+  const UsesExplorationCamera = ActiveSystem.camera?.followPlayer === true;
+  ScannerPanelElement.hidden = !UsesExplorationCamera;
+  GameCanvas.dataset.scannerAvailable = String(UsesExplorationCamera);
+  if (!UsesExplorationCamera) {
+    return;
+  }
+
+  const BoundsPositions = [
+    ...WorldDefinitions.map((WorldDefinition) => WorldDefinition.position),
+    WorldheartDefinition.position,
+  ];
+  if (AsteroidDefinition.orbit) {
+    const Orbit = AsteroidDefinition.orbit;
+    BoundsPositions.push(
+      { x: Orbit.centre.x - Orbit.radius, y: Orbit.centre.y - Orbit.radius },
+      { x: Orbit.centre.x + Orbit.radius, y: Orbit.centre.y + Orbit.radius },
+    );
+  }
+  const Margin = 4;
+  const MinimumX = Math.min(...BoundsPositions.map((Position) => Position.x)) - Margin;
+  const MaximumX = Math.max(...BoundsPositions.map((Position) => Position.x)) + Margin;
+  const MinimumY = Math.min(...BoundsPositions.map((Position) => Position.y)) - Margin;
+  const MaximumY = Math.max(...BoundsPositions.map((Position) => Position.y)) + Margin;
+  ScannerProjection = {
+    minimumX: MinimumX,
+    minimumY: MinimumY,
+    width: MaximumX - MinimumX,
+    height: MaximumY - MinimumY,
+  };
+
+  const SvgNamespace = 'http://www.w3.org/2000/svg';
+  ScannerBodyLayerElement.replaceChildren();
+  ScannerWorldElements.clear();
+  for (const WorldDefinition of WorldDefinitions) {
+    const Marker = document.createElementNS(SvgNamespace, 'circle');
+    const MarkerPosition = projectScannerPosition(WorldDefinition.position);
+    Marker.setAttribute('cx', String(MarkerPosition.x));
+    Marker.setAttribute('cy', String(MarkerPosition.y));
+    Marker.setAttribute('r', String(Math.max(2.2, WorldDefinition.radius * 0.85)));
+    Marker.classList.add('scanner-world');
+    Marker.dataset.bodyIdentifier = WorldDefinition.id;
+    ScannerBodyLayerElement.append(Marker);
+    ScannerWorldElements.set(WorldDefinition.id, Marker);
+  }
+
+  const CommandMarker = document.createElementNS(SvgNamespace, 'circle');
+  const CommandPosition = projectScannerPosition(WorldheartDefinition.position);
+  CommandMarker.setAttribute('cx', String(CommandPosition.x));
+  CommandMarker.setAttribute('cy', String(CommandPosition.y));
+  CommandMarker.setAttribute('r', '4');
+  CommandMarker.classList.add('scanner-command');
+  ScannerBodyLayerElement.append(CommandMarker);
+
+  ScannerHazardElement = document.createElementNS(SvgNamespace, 'circle');
+  ScannerHazardElement.setAttribute('r', '2');
+  ScannerHazardElement.classList.add('scanner-hazard');
+  ScannerBodyLayerElement.append(ScannerHazardElement);
+}
+
+function updateScannerInterface() {
+  if (!ScannerProjection) {
+    return;
+  }
+  const RunnerPosition = projectScannerPosition(SeedPhysicsState.position);
+  ScannerRunnerElement.setAttribute('cx', String(RunnerPosition.x));
+  ScannerRunnerElement.setAttribute('cy', String(RunnerPosition.y));
+  for (const WorldDefinition of WorldDefinitions) {
+    ScannerWorldElements.get(WorldDefinition.id)?.classList.toggle(
+      'is-restored',
+      WorldDefinition.restored,
+    );
+  }
+  const HazardPosition = projectScannerPosition(calculateBodyPositionAtTime(
+    AsteroidDefinition,
+    PhysicsElapsedTimeSeconds,
+  ));
+  ScannerHazardElement.setAttribute('cx', String(HazardPosition.x));
+  ScannerHazardElement.setAttribute('cy', String(HazardPosition.y));
+  GameCanvas.dataset.scannerRunnerX = RunnerPosition.x.toFixed(1);
+  GameCanvas.dataset.scannerRunnerY = RunnerPosition.y.toFixed(1);
 }
 
 /**
@@ -2902,12 +3002,31 @@ function updateRouteLabels() {
       WorldDefinition.position.y + WorldDefinition.radius + 0.72,
       0,
     ).project(Camera);
-    RouteLabelElement.textContent = WorldDefinition.label;
+    const IsOffscreen = Math.abs(RouteLabelProjection.x) > 0.92
+      || Math.abs(RouteLabelProjection.y) > 0.86;
+    let DirectionPrefix = '';
+    if (IsOffscreen) {
+      DirectionPrefix = Math.abs(RouteLabelProjection.x) > Math.abs(RouteLabelProjection.y)
+        ? (RouteLabelProjection.x > 0 ? '→ ' : '← ')
+        : (RouteLabelProjection.y > 0 ? '↑ ' : '↓ ');
+    }
+    RouteLabelElement.textContent = DirectionPrefix + WorldDefinition.label;
+    const HorizontalMargin = window.innerWidth <= 640 ? 48 : 58;
+    const TopMargin = window.innerWidth <= 640 ? 172 : 78;
+    const BottomMargin = window.innerWidth <= 640 ? 112 : 82;
     RouteLabelElement.style.left = Math.round(
-      (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth,
+      THREE.MathUtils.clamp(
+        (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth,
+        HorizontalMargin,
+        window.innerWidth - HorizontalMargin,
+      ),
     ) + 'px';
     RouteLabelElement.style.top = Math.round(
-      (-RouteLabelProjection.y * 0.5 + 0.5) * window.innerHeight,
+      THREE.MathUtils.clamp(
+        (-RouteLabelProjection.y * 0.5 + 0.5) * window.innerHeight,
+        TopMargin,
+        window.innerHeight - BottomMargin,
+      ),
     ) + 'px';
   }
 }
@@ -4684,7 +4803,14 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
  * @param {number} DeltaTimeSeconds - Real frame delta.
  */
 function updateCamera(DeltaTimeSeconds) {
-  if (GamePhase === 'flying' && !PrefersReducedMotion) {
+  const UsesExplorationCamera = ActiveSystem.camera?.followPlayer === true;
+  if (UsesExplorationCamera) {
+    DesiredCameraLookTarget.set(
+      SeedPhysicsState.position.x,
+      SeedPhysicsState.position.y,
+      0,
+    );
+  } else if (GamePhase === 'flying' && !PrefersReducedMotion) {
     DesiredCameraLookTarget.set(
       THREE.MathUtils.clamp(SeedPhysicsState.position.x * 0.12, -1.8, 1.8),
       THREE.MathUtils.clamp(SeedPhysicsState.position.y * 0.12, -1.5, 1.5),
@@ -4694,20 +4820,25 @@ function updateCamera(DeltaTimeSeconds) {
     DesiredCameraLookTarget.set(0, 0, 0);
   }
 
-  const CameraFollowAlpha = 1 - Math.exp(-DeltaTimeSeconds * 2.6);
+  const CameraFollowAlpha = PrefersReducedMotion
+    ? 1
+    : 1 - Math.exp(-DeltaTimeSeconds * (UsesExplorationCamera ? 3.8 : 2.6));
   CameraLookTarget.lerp(DesiredCameraLookTarget, CameraFollowAlpha);
 
+  let CameraShakeX = 0;
+  let CameraShakeY = 0;
   if (CameraImpactLifeSeconds > 0 && !PrefersReducedMotion) {
     CameraImpactLifeSeconds = Math.max(0, CameraImpactLifeSeconds - DeltaTimeSeconds);
     const ShakeStrength = (CameraImpactLifeSeconds / 0.24) * 0.13;
-    Camera.position.x = Math.sin(GameElapsedTimeSeconds * 93) * ShakeStrength;
-    Camera.position.y = Math.cos(GameElapsedTimeSeconds * 77) * ShakeStrength;
+    CameraShakeX = Math.sin(GameElapsedTimeSeconds * 93) * ShakeStrength;
+    CameraShakeY = Math.cos(GameElapsedTimeSeconds * 77) * ShakeStrength;
   } else {
     CameraImpactLifeSeconds = 0;
-    Camera.position.x = 0;
-    Camera.position.y = 0;
   }
+  Camera.position.x = (UsesExplorationCamera ? CameraLookTarget.x : 0) + CameraShakeX;
+  Camera.position.y = (UsesExplorationCamera ? CameraLookTarget.y : 0) + CameraShakeY;
   Camera.lookAt(CameraLookTarget);
+  updateScannerInterface();
 }
 
 /**
@@ -4728,8 +4859,8 @@ function resizeRenderer() {
   GameCanvas.dataset.orientation = ViewportWidth >= ViewportHeight ? 'landscape' : 'portrait';
   Camera.aspect = ViewportAspectRatio;
 
-  const RequiredWorldHeight = 29;
-  const RequiredWorldWidth = 25;
+  const RequiredWorldHeight = ActiveSystem.camera?.viewportWorldHeight ?? 29;
+  const RequiredWorldWidth = ActiveSystem.camera?.viewportWorldWidth ?? 25;
   const HalfVerticalFieldOfViewRadians = THREE.MathUtils.degToRad(Camera.fov * 0.5);
   const DistanceForHeight = RequiredWorldHeight / (2 * Math.tan(HalfVerticalFieldOfViewRadians));
   const DistanceForWidth = RequiredWorldWidth / (
@@ -4918,6 +5049,13 @@ function resetGame() {
   };
   SeedGroup.position.set(StartingSeedPosition.x, StartingSeedPosition.y, 0);
   CurrentWorldIdentifier = StartingWorldIdentifier;
+  if (ActiveSystem.camera?.followPlayer === true) {
+    CameraLookTarget.set(StartingSeedPosition.x, StartingSeedPosition.y, 0);
+    DesiredCameraLookTarget.copy(CameraLookTarget);
+    Camera.position.x = StartingSeedPosition.x;
+    Camera.position.y = StartingSeedPosition.y;
+    Camera.lookAt(CameraLookTarget);
+  }
   publishAttachedSeedState(CurrentWorldIdentifier, StartingSeedPosition);
   LastSafeWorldIdentifier = StartingWorldIdentifier;
   LastSafeSeedPosition = createVector(
@@ -4955,6 +5093,7 @@ function resetGame() {
   PhysicsElapsedTimeSeconds = 0;
   GameElapsedTimeSeconds = 0;
   synchronizeSeedstonePosition();
+  updateScannerInterface();
 
   TemporaryThreeVector.set(
     StartingWorldDefinition.position.x - FirstTargetWorldDefinition.position.x,
@@ -5092,10 +5231,17 @@ ReducedMotionMediaQuery.addEventListener('change', (PreferenceEvent) => {
   GameCanvas.dataset.reducedMotion = String(PrefersReducedMotion);
   if (PrefersReducedMotion) {
     CameraImpactLifeSeconds = 0;
-    DesiredCameraLookTarget.set(0, 0, 0);
-    CameraLookTarget.set(0, 0, 0);
-    Camera.position.x = 0;
-    Camera.position.y = 0;
+    if (ActiveSystem.camera?.followPlayer === true) {
+      DesiredCameraLookTarget.set(SeedPhysicsState.position.x, SeedPhysicsState.position.y, 0);
+      CameraLookTarget.copy(DesiredCameraLookTarget);
+      Camera.position.x = CameraLookTarget.x;
+      Camera.position.y = CameraLookTarget.y;
+    } else {
+      DesiredCameraLookTarget.set(0, 0, 0);
+      CameraLookTarget.set(0, 0, 0);
+      Camera.position.x = 0;
+      Camera.position.y = 0;
+    }
     Camera.lookAt(CameraLookTarget);
   }
 });

@@ -69,6 +69,16 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
   if (!Number.isInteger(SystemDefinition.launchBudget) || SystemDefinition.launchBudget < 1) {
     Errors.push('Authored system requires a positive integer launchBudget.');
   }
+  if (SystemDefinition.camera) {
+    if (
+      SystemDefinition.camera.followPlayer !== true
+      || !(SystemDefinition.camera.viewportWorldHeight > 0)
+      || !(SystemDefinition.camera.viewportWorldWidth > 0)
+      || !(SystemDefinition.camera.outOfBoundsDistance > 0)
+    ) {
+      Errors.push('Authored exploration camera requires follow and positive viewport bounds.');
+    }
+  }
   if (SystemDefinition.environment) {
     for (const ColorField of [
       'backgroundColor', 'fogColor', 'hemisphereSkyColor', 'hemisphereGroundColor',
@@ -413,6 +423,7 @@ export function createAuthoredSystemRuntime(
     id: SystemDefinition.id,
     label: SystemDefinition.label,
     openingBody: SystemDefinition.openingBody,
+    camera: SystemDefinition.camera ? { ...SystemDefinition.camera } : null,
     environment: {
       ...EnvironmentDefinition,
       backgroundColor: createColor(EnvironmentDefinition.backgroundColor),
@@ -586,6 +597,118 @@ export const FirstLightSystemDefinition = {
     { id: 'first-light-arc-1', position: { x: -1.56, y: -2.72, z: 0 } },
     { id: 'first-light-arc-2', position: { x: -1.2, y: -0.45, z: 0 } },
     { id: 'first-light-arc-3', position: { x: -0.99, y: 1.45, z: 0 } },
+  ],
+};
+
+/** ORBITBREAK's first score-attack arena, spanning several camera views. */
+export const BreakerReachSystemDefinition = {
+  id: 'breaker-reach',
+  label: "BREAKER'S REACH",
+  launchBudget: 8,
+  openingBody: 'The Command World lies beyond the Reach. Take the low route, or risk the Frost giant for a bigger chain.',
+  camera: {
+    followPlayer: true,
+    viewportWorldHeight: 24,
+    viewportWorldWidth: 20,
+    outOfBoundsDistance: 55,
+  },
+  completion: {
+    eyebrow: "BREAKER'S REACH LIBERATED",
+    title: 'The first command signal is broken.',
+    perfectTitle: 'Every signal in the Reach is free.',
+    body: 'The Runner banks the route while the freed worlds answer one another.',
+    perfectBody: 'The entire Reach shines beyond the Stillness.',
+  },
+  constellation: {
+    nodes: [
+      { id: 'meadow', label: 'Haven', x: 18, y: 72 },
+      { id: 'ember', label: 'Ember', x: 58, y: 70 },
+      { id: 'grove', label: 'Grove', x: 104, y: 63 },
+      { id: 'tide', label: 'Tide', x: 164, y: 51 },
+      { id: 'frost', label: 'Frost', x: 68, y: 22 },
+      { id: 'bastion', label: 'Bastion', x: 130, y: 18 },
+      { id: 'worldheart', label: 'Command', x: 218, y: 30, isHeart: true },
+    ],
+    edges: [
+      ['meadow', 'ember'], ['ember', 'grove'], ['grove', 'tide'],
+      ['meadow', 'frost'], ['frost', 'bastion'], ['bastion', 'tide'],
+      ['tide', 'worldheart'], ['bastion', 'worldheart'],
+    ],
+  },
+  startingWorldIdentifier: 'meadow',
+  openingGuideTargetIdentifier: 'ember',
+  worldheartUnlockThreshold: 3,
+  routeSuggestions: {
+    meadow: ['ember', 'frost'],
+    ember: ['grove', 'frost'],
+    grove: ['tide', 'bastion'],
+    frost: ['bastion', 'grove'],
+    bastion: ['worldheart', 'tide'],
+    tide: ['worldheart', 'bastion'],
+    seedstone: ['bastion', 'grove'],
+  },
+  worlds: [
+    {
+      ...FirstLightSystemDefinition.worlds[0],
+      label: 'HAVEN', position: { x: -24, y: -10, z: 0 },
+      memory: 'The Runner leaves the last free garden behind.',
+    },
+    {
+      ...FirstLightSystemDefinition.worlds[1],
+      position: { x: -10, y: -9, z: 0 },
+      memory: 'The furnaces remember who they warmed.',
+    },
+    {
+      ...FirstLightSystemDefinition.worlds[2],
+      position: { x: 4, y: -6, z: 0 },
+      memory: 'Roots split the perfect grid from below.',
+    },
+    {
+      ...FirstLightSystemDefinition.worlds[4],
+      position: { x: 18, y: -1, z: 0 },
+      memory: 'The water refuses its ordered orbit.',
+    },
+    {
+      ...FirstLightSystemDefinition.worlds[3],
+      position: { x: -7, y: 10, z: 0 }, radius: 4.2, gravitationalParameter: 135,
+      slingshotValue: 1000, liberationValue: 1400,
+      memory: 'A giant ocean turns beneath the ice.',
+    },
+    {
+      id: 'bastion', label: 'BASTION', visualKey: 'vault',
+      position: { x: 11, y: 13, z: 0 }, radius: 2.8, gravitationalParameter: 74,
+      slingshotValue: 650, liberationValue: 1500,
+      aliveColor: 0x746fa8, atmosphereColor: 0xb7b7ff, accentColor: 0xf2c1ff,
+      initiallyRestored: false, usesMergedSurfaceLandmarks: true,
+      memory: 'The watchtowers turn their lights away from the Command World.',
+      restoration: {
+        durationSeconds: 2.25, waveWidth: 0.048, growthTrailWidth: 0.19,
+        waveColor: 0xf1d4ff, atmosphereOpacity: 0, rotationSpeed: 0.0008,
+        surfaceVariation: 0.055,
+      },
+    },
+  ],
+  tacticalBodies: [
+    {
+      ...FirstLightSystemDefinition.tacticalBodies[0],
+      position: { x: 2, y: 2.5, z: 0 },
+    },
+    {
+      ...FirstLightSystemDefinition.tacticalBodies[1],
+      orbit: {
+        centre: { x: 18, y: -1, z: 0 }, radius: 7,
+        phaseRadians: -1.05, angularSpeedRadiansPerSecond: 0.28,
+      },
+    },
+    {
+      ...FirstLightSystemDefinition.tacticalBodies[2],
+      position: { x: 28, y: 8, z: 0 },
+    },
+  ],
+  stardust: [
+    { id: 'breaker-arc-1', position: { x: -17, y: -3, z: 0 } },
+    { id: 'breaker-arc-2', position: { x: -11, y: 4, z: 0 } },
+    { id: 'breaker-arc-3', position: { x: -3, y: 9, z: 0 } },
   ],
 };
 
@@ -1203,9 +1326,10 @@ export const WorldheartSystemDefinition = {
   ],
 };
 
-export const DefaultAuthoredSystemIdentifier = FirstLightSystemDefinition.id;
+export const DefaultAuthoredSystemIdentifier = BreakerReachSystemDefinition.id;
 
 export const AuthoredSystemDefinitions = {
+  [BreakerReachSystemDefinition.id]: BreakerReachSystemDefinition,
   [FirstLightSystemDefinition.id]: FirstLightSystemDefinition,
   [BrokenBeltSystemDefinition.id]: BrokenBeltSystemDefinition,
   [WanderingGardenSystemDefinition.id]: WanderingGardenSystemDefinition,
@@ -1214,7 +1338,7 @@ export const AuthoredSystemDefinitions = {
 };
 
 export const AuthoredCampaignSystemIdentifiers = [
-  FirstLightSystemDefinition.id,
+  BreakerReachSystemDefinition.id,
   BrokenBeltSystemDefinition.id,
   WanderingGardenSystemDefinition.id,
   LongNightSystemDefinition.id,

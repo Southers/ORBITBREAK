@@ -91,7 +91,7 @@ Aim time is not a tiebreaker, preserving thoughtful and accessible play.
 
 ## Exploration canvas
 
-The first vertical slice is one authored system spanning multiple viewports with roughly six to eight meaningful bodies. Camera follow and a compact scanner reveal space without turning the game into a menu.
+The first vertical slice is Breaker's Reach, an authored six-world system spanning multiple viewports. The camera follows the Runner while a compact scanner preserves system context without turning navigation into a menu. Offscreen route labels stay clamped to the play area and point toward the next authored choices.
 
 The vocabulary stays small:
 
