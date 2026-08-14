@@ -2,173 +2,188 @@
 
 ## One-line pitch
 
-Slingshot a tiny rebel astronaut through dangerous gravity wells, free optional worlds for points and reach the Command World before eight launches run out to bank the run.
+Slingshot a tiny rebel astronaut between isolated miniature worlds, build a living relay network and defeat the Warden before it silences everything you connected.
 
 ## Player promise
 
-ORBITBREAK should be understandable in one attempt, tense by the final launch and replayable because the safest route is never the highest-scoring route.
+ORBITBREAK should make the player feel clever in flight, hopeful when worlds connect and anxious when the Warden enters the system. A complete ranked run should take roughly five to eight minutes and immediately invite a more daring route.
 
-## Fantasy
+## Fantasy and conflict
 
-The Stillness has locked miniature worlds into perfect obedience. The player is a tiny astronaut known as a Runner, carrying a stolen Break Pulse between occupied systems.
+The Warden maintains order by keeping every tiny world isolated. Travel is forbidden, relays are caged and each population has been taught that silence is safety. Without exchange, the worlds fade: lights go out, machines stop and communities survive without knowing who else remains.
 
-The Runner does not fight. Reaching an occupied world breaks its control signal. Its rigid shell fractures, colour and motion wrap around the sphere, and its inhabitants reappear. The final objective is the system's Command World: reach it before the launch budget expires and the uprising survives.
+The player is the Runner, a maintenance astronaut who steals the last impounded courier ship. The **Orbitbreaker** can cross the Warden's isolation shells and turn a hard landing into a relay link.
 
-## Locked system loop
+The first connections create small, specific signs of hope: two worlds answer one another, windows illuminate, music gains a voice and tiny trade ships begin moving along the route. An isolated breach resembles a fault; three active relays let the Warden triangulate a rebellion. It arrives, suppresses vulnerable frontier worlds and follows the network toward the Runner.
 
-1. Begin on a living world with eight launches.
-2. Inspect nearby worlds, distant signals and visible gravity wells across a large authored canvas.
-3. Drag backwards and release to launch.
-4. Read the exact short prediction, then judge the remaining gravity curve.
-5. Chain close slingshots, attempt an occupied world or take a safer landing.
-6. Spend one launch regardless of success.
-7. Reach the Command World before the budget reaches zero to bank the run.
-8. Replay to discover a route that frees more worlds, chains harder assists or uses fewer launches.
+The Runner wins by creating a network strong enough to expose the Warden's command vessel, then boarding and disabling it. The ending may reveal that this Warden was one node in a larger authority, but the sector is saved and the run is complete.
 
-There is no regression, real-time countdown, fuel economy, pursuit meter or upgrade tree.
+The Warden's ideology is concise and visible:
 
-## Jeopardy
+> CONNECTION IS DISORDER. MOVEMENT IS DISOBEDIENCE.
 
-The launch budget is the single constraint.
+## Core loop
 
-- A miss consumes a launch and returns the Runner to the last safe node.
-- A failed flight loses only the slingshot points accumulated during that flight.
-- At zero launches before reaching the Command World, the short system restarts and the score is unbanked.
-- Reaching the Command World ends the attempt and records the score.
+1. **Scout:** pan and zoom across a large authored sector; inspect worlds, routes, the ghost and the Warden's telegraphed move.
+2. **Choose:** balance a safe connection, a valuable occupied world, a scoring slingshot or a route that protects the existing network.
+3. **Reposition:** walk clockwise or counter-clockwise around the current world's orbital-plane circumference to choose a launch point or reach a local relay obstacle.
+4. **Launch:** pull away from the Runner and release. The astronaut folds into a launch craft, then a small ship, while retaining one deterministic physics body.
+5. **Fly:** read the exact partial prediction, judge the remaining gravity curve and optionally spend one Breaker Burn to thrust along the current heading.
+6. **Land:** unfold back into the Runner. A successful new landing breaks the local cage, activates its relay and establishes a visible link from the origin world. A first traversal between two active relays can also create a missing link.
+7. **Resolve:** bank the flight's score, animate life and trade along connected routes, then advance the Warden one predictable pursuit beat.
+8. **Continue:** expand, reinforce, recapture or attack. Complete resilient links to push the Warden back and open the final confrontation.
 
-The player can usually finish by following a conservative route. High scores require optional detours and difficult long-range shots that leave little recovery room.
+There is no wall-clock countdown during scouting or surface planning.
 
-## Skill
+## Controls and agency
 
-Ranked prediction displays an exact initial segment generated by the same fixed-step simulation as live flight. It fades before solving the entire route. A future full-preview assist may exist for practice, but assisted attempts are not ranked.
+The game remains one-pointer/touch accessible.
 
-Mastery comes from:
+- Drag tangentially around the landed world to walk along its visible circumference.
+- Drag radially away from the Runner to aim and release to launch. Gesture thresholds must make walking and aiming unambiguous.
+- Drag empty space to pan; wheel or pinch to zoom; use a clear control to snap back to the Runner.
+- Tap once during flight to use Breaker Burn. The preview must show whether it remains available, but cannot solve a future player-timed burn.
+- Use one contextual Breaker Pulse near a hostile pylon, barrier or drone. No manual weapon aiming or health bar is required.
+- Keyboard controls must reach the same deterministic actions as pointer controls.
 
-- extrapolating the gravity curve beyond the preview;
-- choosing launch positions that open more valuable routes;
-- passing close to massive bodies without collision;
-- chaining multiple distinct assists in one flight;
-- landing precisely on occupied targets;
-- completing the system within a strict launch budget;
-- deciding when to stop scoring and bank the run.
+Surface movement is deliberately one-dimensional. It creates launch-position choice, scale and character without turning ORBITBREAK into a platformer.
 
-## Slingshot scoring
+## Flight skill
 
-Every scoreable gravity body has a deterministic radius-derived influence band and an authored base value. Migration-fixture bodies without an authored value use a deterministic gravity-and-radius fallback until their content is replaced.
+The ranked prediction is an exact initial segment generated by the live fixed-step simulation. It ends before solving the full route.
 
-1. The Runner enters the band.
-2. The trajectory bends around the body.
-3. The Runner exits the band without collision.
-4. The assist becomes part of the current flight chain.
+Skill comes from:
 
-Pass depth determines the award:
+- choosing a useful launch point on the current planet;
+- extrapolating a gravity curve beyond the preview;
+- timing the single Breaker Burn before, during or after a close pass;
+- entering and exiting authored scoring bands without collision;
+- chaining distinct bodies in one flight;
+- landing on difficult or strategically important worlds;
+- choosing when a risky score route is worth giving the Warden another move.
 
-- **Assist:** safe outer pass.
-- **Deep Assist:** close pass with greater collision risk.
-- **Razor Assist:** narrow authored band near the surface.
+The same body scores once per flight. A safe landing banks the chain; a miss loses that flight's unbanked points and still advances pursuit.
 
-Successive distinct bodies in the same flight increase the chain multiplier. The same body scores once per flight, and repeated orbiting cannot farm points. Landing safely banks the chain; a miss discards it.
+## The living network
 
-Larger or harder-to-reach planets may carry higher authored values, but physical size alone never determines score. Value reflects the actual route, gravity and collision risk.
+The starting world already carries the Runner's illegal relay. Every first landing on an occupied world activates another. A successful traversal between two active relays creates their link if it does not already exist and, after a short delay, that luminous route carries messages and tiny trade ships. Repeating an existing link remains useful for travel but creates no new network reward.
 
-## Other scoring
+A world with only one live connection is a vulnerable frontier node. A world is resilient only while it belongs to an intact closed circuit; merely sitting in the middle of a chain is not enough. Closing a new circuit in the network:
 
-- Freeing an occupied planet adds a clear liberation bonus when the flight is banked.
-- Unused launches add a clear completion bonus.
-- The Command World banks the run but is not an endlessly farmable target.
+- protects the enclosed relay group from immediate suppression;
+- sends a visible resistance pulse through its routes;
+- pushes the Warden back one pursuit beat;
+- weakens one of the command vessel's two defence layers;
+- awards a clear network bonus.
 
-Landing precision is deliberately deferred until the large-system vertical slice proves that a readable target zone improves choices rather than adding noise.
+Each circuit grants its shield damage and score only the first time it closes in a run. If the Warden later breaks one of its links, traversing that missing connection repairs the circuit and restores protection without farming another reward.
 
-The results screen shows the score breakdown rather than hiding it behind an opaque formula.
+This is also why circuits can hurt the Warden: its system is designed to silence a chain by controlling one choke point. A closed route carries the signal around the break, synchronises several worlds at once and reflects the failed suppression back into the command vessel's shield.
 
-Ranked ordering is:
+This makes route topology understandable without a separate economy. A fast chain expands quickly but is fragile; a loop costs travel but protects progress and advances the endgame.
 
-1. highest banked score;
-2. fewest launches used;
-3. shortest accumulated flight time.
+Trade traffic is not background decoration. Its presence shows which links are alive; ships turn back or disappear when a route is threatened, and return when it is restored.
 
-Aim time is not a tiebreaker, preserving thoughtful and accessible play.
+## The Warden
 
-## Exploration canvas
+The opening allows enough safety for the player to witness connection working. When the third active relay triangulates the network, the Warden enters from the edge of the sector and the camera briefly reveals it without taking control away for long.
 
-The first vertical slice is Breaker's Reach, an authored six-world system spanning multiple viewports. The camera follows the Runner while a compact scanner preserves system context without turning navigation into a menu. Offscreen route labels stay clamped to the play area and point toward the next authored choices.
+Pursuit is deterministic and action-driven:
 
-Shatterbelt proves that another system must change the scoring problem, not merely rearrange planets. Its lower convoy is a readable four-launch completion route. Its upper line collects the Arc, then asks the player to delay the Loom launch until the deterministic Sentinel clears a long, partially hidden bend around high-value Shard. Both routes converge on Drift and Vault, so the risky decision is comparable rather than a separate ruleset: safe play banks 7,700; the timed Deep Assist route banks 10,400. The moving hazard's position, preview warning and live collision all use the same fixed-step clock.
+- The flight that activates the third relay spends the pursuit beat revealing the Warden at the sector edge; it does not also move.
+- After each later resolved flight, the Warden normally advances one step, including after a miss.
+- First closure of a unique circuit replaces that advance with a one-step retreat. Repairing a previously rewarded circuit restores protection but does not push it back again.
+- Its next target and route are visible before the player commits.
+- It prioritises vulnerable connected frontier worlds and follows a visible authored approach between them.
+- Reaching a vulnerable world suppresses its relay, stops its trade and restores its occupation cage; the world remains physically present and can be recaptured.
+- An intact circuit absorbs one arrival: the Warden visibly severs a forecast link instead of suppressing the world, opening that loop and creating a repair decision.
+- Reaching the Runner's current world without intact loop protection ends the ranked run.
+- Closing a resilient loop pushes the Warden back and damages its shield.
 
-Verdant Caravan makes a moving body the route rather than the obstruction. The four-launch lantern road is the dependable 7,400-point completion. The alternate opening collects the Arc at Canopy, then the player must read Pollen Moon's current orbit and intercept it as a one-use launch node. Launching from the moving surface toward Crown curves past Nest: a loose clearance still beats the road, while the authored Razor line reaches 9,900. There is no fixed memorised moon angle because its phase continues while the player aims; the exact preview and scanner expose enough information to make the changing shot fair.
+Surface walking, pausing, reading and camera scouting do not advance it. The threat is pressure to make good flights, not pressure to operate the interface quickly.
 
-Long Night turns the chain multiplier into the central commitment. The four-launch watchfire road is broad, fully previewable and worth 7,600. The alternate opening collects the Arc at Hollow, then asks for a lower-power 442-step curve whose destination is intentionally hidden beyond the ranked preview. The visible opening must line up a Razor exit from Lumen and a second exit from Beacon; only landing on Umbra banks the resulting 4,350-point chain. The enlarged Umbra landing basin accepts normal pointer variance without making the gravity clearances generous. A final Beacon-to-Heart assist brings the authored mastery run to 14,850.
+A representative successful rhythm is intentionally short: connect two new worlds, see the Warden arrive, return to close the first circuit, expand through two more worlds, close the second circuit and assault the exposed command vessel. Detours, recaptures, misses and score routes create the variation.
 
-Worldheart is the compact final exam rather than a sixth mechanic. Its four-launch road runs Confluence → Kindle → Chorus → Dawn → Worldheart, uses Starwell as a readable assist and banks 9,200. The alternate commitment reaches Memory while collecting the Arc, intercepts the one-use Memory Moon at its live orbital phase, then asks for a lower-power curve that exits Chorus at Razor depth and Starwell with the distinct-body multiplier before landing on Dawn. Returning through Starwell adds a Dawn deep pass on the final core approach; the robust authored line banks 14,600 in five launches. Three liberations open the core, so the player can bank a disciplined run without clearing the board; Bloom remains the optional all-worlds mastery emblem. Reconnecting the core breaks the Stillness and pays off the campaign story through the existing liberation language, score rules and deterministic route vocabulary.
+## Hostile worlds and combat boundary
 
-The vocabulary stays small:
+Worlds have authored dispositions rather than random encounters:
 
-- **Living worlds:** safe launch nodes and concise story moments.
-- **Occupied worlds:** optional liberation targets with visible score value.
-- **Gravity bodies:** route-shaping planets or asteroids that award assists.
-- **Void:** clearly legible lethal space or bodies that can bend a route but cannot be landed on.
-- **Command World:** the exit that banks the run.
+- **Occupied:** break the cage and connect the relay.
+- **Friendly:** safe launch node, story beat and visible community.
+- **Uncertain:** route value or local state is revealed by approaching or connecting it.
+- **Hostile:** a brief pylon, barrier or drone pattern blocks the best launch position or relay.
+- **Command:** the Warden's mobile final world.
 
-Distant signals encourage a first exploratory attempt. Repeat attempts turn that knowledge into route optimisation. Authored placement ensures discoveries, shortcuts and leaderboard routes are intentional.
+Hostile surface moments last seconds, use the same circumference movement and one contextual Breaker Pulse, and never introduce enemies with health pools, loot drops or a separate combat ruleset. Their purpose is to make some landings active and flavourful, not to compete with orbital flight.
 
-## Leaderboards
+## Final encounter
 
-The first leaderboard is implemented as local personal bests per system and content version. It records score, launches, deterministic airborne flight time and assist state. Results expose slingshot, liberation and remaining-launch contributions before offering an immediate replay.
+The Warden's command vessel is a hostile moving tiny world, not a conventional shooter boss.
 
-An online leaderboard comes only after compact replay recording exists. The service must rerun the deterministic inputs against the matching content version before accepting a score. Client-submitted totals alone are not trustworthy.
+The first two unique resilient circuits each remove one visible shield layer. Once the vessel is exposed, the Runner must use the established verbs—scouting, repositioning, slingshots and Breaker Burn—to pass its shield moons and land on the command core. A short surface approach and final Breaker Pulse disables the isolation lattice.
 
-The replay wire format records only the schema, system/content/physics versions, fixed-step frequency and an ordered list of launch step, origin and exact velocity. It deliberately contains no claimed score. Completed replays persist locally by system and content version; the validator must derive every landing, liberation, assist, loss and completion bonus from the inputs.
+The worlds then answer together: trade lanes converge, allied craft arrive through routes the player created and the Warden loses control because the network is no longer dependent on one rebel.
 
-The validator is a DOM-free module that creates a fresh authored-system runtime and replays every fixed step through the shared physics, collision, launch-budget and scoring helpers. It rejects impossible origins or timing, unavailable launch nodes, mismatched versions, routes that fail to settle, launch exhaustion and inputs after completion. Local results receive a Verified label and may update a personal best only when the independently derived score, breakdown, launch count and flight time exactly match live play. A future server must run this same contract before accepting an online result.
+## Score, results and ghosts
 
-Verified completed runs can be watched immediately from the result screen. Playback resets the authored system and injects each recorded velocity immediately before its recorded fixed step, so the normal camera, scoring, liberation and result presentation reconstruct the route. A persistent replay indicator distinguishes watching from playing, manual aiming is disabled, and Reset returns control at any moment.
+Ranked score has three readable sources:
 
-The online boundary is a Fetch-standard provider-neutral service with submit, ranked-list and replay-fetch routes. Submission accepts only a constrained callsign and replay, derives the result server-side, rejects duplicate payloads and returns its calculated rank. Public lists omit replay bytes until requested. The production adapter must add durable indexed storage, unique replay digests, request limits and rate limiting before validation; the repository's in-memory adapter is test-only and is never represented as an online board.
+1. **Flight:** Assist, Deep and Razor slingshots with distinct-body chain multipliers.
+2. **Network:** authored liberation values and first-closure bonuses for unique resilient circuits.
+3. **Victory:** remaining pursuit distance when the Warden is defeated.
 
-Cloudflare Workers + D1 is the chosen first production candidate because it supports the existing ES-module validator, durable indexed storage and a small public endpoint without a continuously running server. The prepared adapter applies a strict Pages-origin policy, bounded request streaming, source-rate limiting before simulation, SHA-256 replay uniqueness and the locked ranking index. It is not deployed. The Free plan's CPU ceiling must be measured with production traces before enabling submissions; exceeding it is a stop condition, not permission to weaken validation.
+Only a defeated Warden banks a ranked run. Ordering remains highest score, then fewer resolved flights, then shortest deterministic airborne time. Aim, scouting and surface-planning time are never tiebreakers.
 
-The result screen exposes the online contract through a focused Breakers Board dialog. A verified live run may attach a 3–12 character callsign and bank its replay; the list shows rank, callsign, score, launches and flight time; Watch fetches the selected input stream and sends it through local validation before live playback. A watched route cannot be resubmitted. When the endpoint is absent or unreachable, the dialog says so plainly while leaving local personal bests and replay intact.
+The local personal-best replay becomes a visible ghost in Scout view and during flight. It shows route ideas without solving aim. Global rankings and selectable top ghosts use the same server-validated replay contract only after a production service is deliberately approved and proven.
 
-The competitive format is a short authored-system run with versioned boards. Campaign totals and identical daily challenges are later possibilities, not current requirements.
+## Story delivery
 
-## Story and presentation
+Story is delivered through play, not exposition:
 
-The Stillness should be understood visually: occupied worlds are pale, rigid and geometrically constrained. Liberation cracks that order and restores asymmetry, colour, inhabitants, movement and another layer of sound.
+- one opening Warden broadcast;
+- one sentence when a world first answers;
+- inhabitants, lights and landmarks emerging through the liberation wave;
+- messages and trade craft travelling along live links;
+- a short Warden reaction when pursuit changes the map;
+- one line at the command vessel and one ending reveal.
 
-The vertical slice expresses that contrast with a luminous control grid and three orbital cage bands around every occupied world. On landing, the cage expands and fades while the existing spherical wave burns colour back around the planet. A short impact flash, camera response and rising procedural chord make the state change readable even when the target occupies little of a mobile screen.
+Anchor beats:
 
-The Runner supports the same readability. Braced limbs communicate aiming, tucked arms and twin thrusters communicate flight, a raised pose celebrates liberation, and a red splayed recovery pose makes a lost shot immediately distinct. These poses never alter collision geometry or deterministic physics.
+- Opening: **“Travel is forbidden. Silence keeps you safe.”**
+- First answer: **“Is someone there?”**
+- Second connection: **“We thought we were alone.”**
+- Warden arrival: **“Unauthorised network detected.”**
+- Recapture: **“Signal lost: [world].”**
+- Final resistance: **“A network cannot be imprisoned.”**
+- Ending: **“You did not save them alone. You reminded them they were never alone.”**
+- Expansion sting: **“WARDEN NODE DISCONNECTED. SECTOR WARDENS: 11.”**
 
-Story uses only:
+The exact identity behind the Warden remains intentionally unresolved. It may be a person, an autonomous governing machine or one face of a larger super-AI; the first game does not need a lore dump to answer that question.
 
-- one concise system introduction;
-- one short line when a world is freed;
-- environmental changes;
-- a brief completion line.
+## Tiny Worlds theme and art direction
 
-No dialogue trees, combat encounters or cutscenes are required.
+Every planet is a readable miniature society, not a coloured scoring ball. Close views show exaggerated terrain, homes, infrastructure and tiny inhabitants. Wide views show isolation becoming a connected constellation.
 
-## Controls and accessibility
+The visual arc is the theme:
 
-- Drag backwards from the Runner and release to launch.
-- Use the same gesture for mouse, pen and touch.
-- Provide an equivalent ranked keyboard path: left/right steer, up/down adjust power, Shift enables fine control, Enter/Space launches and Escape cancels.
-- Pointer and keyboard release must enter the same deterministic launch, replay and scoring path.
-- Keep controls readable at portrait-mobile scale.
-- Keep Reset, motion and audio controls keyboard and touch accessible.
-- Keep keyboard focus inside an open results or rankings dialog.
-- Offer System, Reduced and Full motion modes. System follows the operating-system preference;
-  explicit Reduced or Full choices persist locally and affect presentation only, never physics or scoring.
-- Adapt render resolution independently of fixed-step simulation: reduce one step after a slow visible
-  sample, then restore one step only after four clearly smooth samples to prevent quality oscillation.
-- Practice assists must be clearly labelled and must never silently submit a ranked score.
+> separate silent dioramas → first relay → living trade network → visible suppression → collective resistance
 
-## Vertical-slice success criteria
+The Runner, inhabitants and trade ships establish scale. The Warden's vessel is itself a corrupted tiny world, making the finale an inversion of everything the player has restored.
 
-- A new player understands “reach the Command World before launches run out.”
-- The safe route can be completed without advanced slingshots.
-- The best visible score route demands at least one deliberate multi-body or deep assist.
-- A miss materially changes what can still be achieved in the attempt.
-- Slingshot points are readable, deterministic and impossible to farm by circling one body.
-- The player wants an immediate replay after seeing the result.
-- Desktop and portrait-mobile runs remain reliable and responsive.
+## Scope
+
+The first complete target is one dense authored sector with approximately six to nine worlds, one Warden and one final confrontation. Existing campaign worlds are a content library and compatibility fixture; only the strongest silhouettes and encounters should survive the redesign.
+
+Additional sectors, selectable modules, more Wardens and the super-AI network are future expansion. Infinite procedural space, free-roaming planet surfaces, conventional combat, inventory and permanent numerical upgrades are outside the first complete version.
+
+## Success criteria
+
+- A new player understands that connection helps worlds and attracts the Warden.
+- Walking changes launch geometry without feeling like busywork.
+- Breaker Burn turns flight from waiting into a meaningful timing decision.
+- The Warden's next move is always understandable and creates a defend-versus-expand choice.
+- The first recapture feels sad but fair, reversible and mechanically useful.
+- At least two viable routes exist: a safer network and a harder high-score route.
+- The final encounter tests existing skills rather than introducing a new genre.
+- A completed run tells a coherent story without a cutscene.
+- Desktop and portrait-mobile play remain reliable, readable and replayable.
