@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260814-ob6';
+import { WorldseedAudio } from './audio.js?v=20260814-ob7';
 
 import {
   DefaultAuthoredSystemIdentifier,
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-ob6';
+} from './content.js?v=20260814-ob7';
 
 import {
   countRestoredWorlds,
@@ -19,7 +19,7 @@ import {
   isSystemRestored,
   isWorldheartUnlocked,
   rollbackFlightPickups,
-} from './campaign.js?v=20260814-ob6';
+} from './campaign.js?v=20260814-ob7';
 
 import {
   calculateBodyPositionAtTime,
@@ -29,18 +29,18 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260814-ob6';
+} from './physics.js?v=20260814-ob7';
 import {
   createRunResult,
   loadPersonalBest,
   savePersonalBest,
-} from './records.js?v=20260814-ob6';
+} from './records.js?v=20260814-ob7';
 import {
   getLiberationFlashOpacity,
   getRunnerAnimationState,
   getRunnerPose,
   getStillnessPresentation,
-} from './presentation.js?v=20260814-ob6';
+} from './presentation.js?v=20260814-ob7';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -48,17 +48,18 @@ import {
   getReplayStorageKey,
   recordReplayLaunch,
   serializeReplay,
-} from './replay.js?v=20260814-ob6';
+} from './replay.js?v=20260814-ob7';
+import { validateSerializedReplay } from './replay-validator.js?v=20260814-ob7';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
   calculateStagedGrowthProgress,
-} from './restoration.js?v=20260814-ob6';
+} from './restoration.js?v=20260814-ob7';
 import {
   createRunState,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260814-ob6';
+} from './run.js?v=20260814-ob7';
 import {
   addCompletionBonus,
   bankFlightScore,
@@ -66,7 +67,7 @@ import {
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260814-ob6';
+} from './scoring.js?v=20260814-ob7';
 
 const RequestedSystemIdentifier = new URLSearchParams(window.location.search).get('system')
   ?? DefaultAuthoredSystemIdentifier;
@@ -150,7 +151,7 @@ const ReplayButtonElement = document.querySelector('#ReplayButton');
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob6';
+GameCanvas.dataset.build = '20260814-ob7';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.pageActive = String(!document.hidden);
 GameCanvas.dataset.webglAvailable = 'true';
@@ -3350,13 +3351,27 @@ function updateVictorySummary() {
     launchesUsed: RunState.launchesUsed,
     flightTimeMilliseconds: Math.round(RunFlightTimeSeconds * 1000),
   });
-  const PersonalBestUpdate = updateStoredPersonalBest(RunResult);
+  const ReplayValidation = validateSerializedReplay(GameCanvas.dataset.replayPayload);
+  const IsReplayVerified = ReplayValidation.valid
+    && ReplayValidation.result.score === RunResult.score
+    && ReplayValidation.result.launchesUsed === RunResult.launchesUsed
+    && ReplayValidation.result.flightTimeMilliseconds === RunResult.flightTimeMilliseconds
+    && ReplayValidation.result.slingshotScore === ScoreState.bankedSlingshotScore
+    && ReplayValidation.result.liberationScore === ScoreState.liberationScore
+    && ReplayValidation.result.completionBonus === ScoreState.completionBonus;
+  GameCanvas.dataset.replayValidation = IsReplayVerified ? 'verified' : 'rejected';
+  GameCanvas.dataset.replayValidatedScore = ReplayValidation.valid
+    ? String(ReplayValidation.result.score)
+    : '';
+  const PersonalBestUpdate = IsReplayVerified ? updateStoredPersonalBest(RunResult) : null;
   const PersonalBestScore = PersonalBestUpdate?.personalBest.score ?? RunResult.score;
-  PersonalBestLabelElement.textContent = PersonalBestUpdate === null
+  PersonalBestLabelElement.textContent = !IsReplayVerified
+    ? 'UNVERIFIED REPLAY · LOCAL BEST NOT UPDATED'
+    : PersonalBestUpdate === null
     ? 'RANKED · LOCAL BEST UNAVAILABLE'
     : PersonalBestUpdate.isNewPersonalBest
-      ? `RANKED · NEW PERSONAL BEST · ${RunResult.score.toLocaleString('en-GB')}`
-      : `RANKED · PERSONAL BEST · ${PersonalBestScore.toLocaleString('en-GB')}`;
+      ? `VERIFIED · NEW PERSONAL BEST · ${RunResult.score.toLocaleString('en-GB')}`
+      : `VERIFIED · PERSONAL BEST · ${PersonalBestScore.toLocaleString('en-GB')}`;
   ResultSlingshotScoreElement.textContent = ScoreState.bankedSlingshotScore.toLocaleString('en-GB');
   ResultLiberationScoreElement.textContent = ScoreState.liberationScore.toLocaleString('en-GB');
   ResultCompletionBonusElement.textContent = ScoreState.completionBonus.toLocaleString('en-GB');
@@ -3366,7 +3381,7 @@ function updateVictorySummary() {
   GameCanvas.dataset.isNewPersonalBest = String(PersonalBestUpdate?.isNewPersonalBest === true);
   GameCanvas.dataset.flightTimeMilliseconds = String(RunResult.flightTimeMilliseconds);
   GameCanvas.dataset.contentVersion = ActiveSystem.contentVersion;
-  GameCanvas.dataset.assistState = RunResult.assistState;
+  GameCanvas.dataset.assistState = IsReplayVerified ? RunResult.assistState : 'unverified';
 
   for (const EmblemElement of EmblemElements) {
     const IsEarned = Emblems[EmblemElement.dataset.emblem] === true;
@@ -5241,6 +5256,8 @@ function resetGame() {
   GameCanvas.dataset.replayPhysicsVersion = PhysicsModelVersion;
   GameCanvas.dataset.replayLaunchCount = '0';
   GameCanvas.dataset.replayOutcome = 'recording';
+  GameCanvas.dataset.replayValidation = '';
+  GameCanvas.dataset.replayValidatedScore = '';
   GameCanvas.dataset.replayPayload = '';
   GameCanvas.dataset.replayBytes = '0';
   RunState = createRunState(ActiveSystem.launchBudget);

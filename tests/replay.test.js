@@ -70,6 +70,12 @@ test('replays reject non-monotonic time, invalid velocity and post-finish input'
     velocityX: Infinity,
     velocityY: 0,
   }), /velocity/);
+  assert.throws(() => recordReplayLaunch(createRecorder(), {
+    stepIndex: 10000001,
+    originIdentifier: 'meadow',
+    velocityX: 1,
+    velocityY: 1,
+  }), /step/);
   assert.throws(() => recordReplayLaunch(finishReplay(FirstLaunch, 'failed'), {
     stepIndex: 30,
     originIdentifier: 'ember',

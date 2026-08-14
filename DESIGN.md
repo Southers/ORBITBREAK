@@ -111,6 +111,8 @@ An online leaderboard comes only after compact replay recording exists. The serv
 
 The replay wire format records only the schema, system/content/physics versions, fixed-step frequency and an ordered list of launch step, origin and exact velocity. It deliberately contains no claimed score. Completed replays persist locally by system and content version; the validator must derive every landing, liberation, assist, loss and completion bonus from the inputs.
 
+The validator is a DOM-free module that creates a fresh authored-system runtime and replays every fixed step through the shared physics, collision, launch-budget and scoring helpers. It rejects impossible origins or timing, unavailable launch nodes, mismatched versions, routes that fail to settle, launch exhaustion and inputs after completion. Local results receive a Verified label and may update a personal best only when the independently derived score, breakdown, launch count and flight time exactly match live play. A future server must run this same contract before accepting an online result.
+
 The most competitive format is a short system run. Campaign totals and identical daily challenges are later possibilities, not vertical-slice requirements.
 
 ## Story and presentation
