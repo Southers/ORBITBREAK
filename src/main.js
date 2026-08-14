@@ -55,16 +55,20 @@ import {
 import { createLeaderboardClient } from './leaderboard-client.js?v=20260814-ob9';
 import {
   connectRelayWorlds,
+  countLiveRelayWorlds,
   createRelayNetworkState,
+  listLiveRelayLinks,
   listRelayLinks,
   listVulnerableRelayWorlds,
-} from './network.js?v=20260814-ob16';
+  suppressRelayWorld,
+} from './network.js?v=20260814-ob17';
 import {
   WardenPursuitEvents,
   chooseWardenTarget,
   createWardenPursuitState,
+  resetWardenAfterSuppression,
   resolveWardenPursuit,
-} from './warden.js?v=20260814-ob16';
+} from './warden.js?v=20260814-ob17';
 import {
   createRunResult,
   loadPersonalBest,
@@ -229,7 +233,7 @@ const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
 const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob16';
+GameCanvas.dataset.build = '20260814-ob17';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -2614,15 +2618,21 @@ Scene.add(TradeShipMesh);
 
 function publishRelayNetworkState() {
   const Links = listRelayLinks(RelayNetworkState);
+  const LiveLinks = listLiveRelayLinks(RelayNetworkState);
   GameCanvas.dataset.relayLinkCount = String(Links.length);
   GameCanvas.dataset.relayLinks = Links.map((Link) => Link.id).join(',');
+  GameCanvas.dataset.relayLiveLinkCount = String(LiveLinks.length);
+  GameCanvas.dataset.relayLiveLinks = LiveLinks.map((Link) => Link.id).join(',');
+  GameCanvas.dataset.relaySuppressedWorlds = [
+    ...RelayNetworkState.suppressedWorldIdentifiers,
+  ].sort().join(',');
   GameCanvas.dataset.relayActiveWorlds = [...RelayNetworkState.activeWorldIdentifiers]
     .sort()
     .join(',');
 }
 
 function synchronizeRelayNetworkVisuals() {
-  const Links = listRelayLinks(RelayNetworkState);
+  const Links = listLiveRelayLinks(RelayNetworkState);
   for (let LinkIndex = 0; LinkIndex < Links.length; LinkIndex += 1) {
     const Link = Links[LinkIndex];
     const Origin = getWorldDefinition(Link.originWorldIdentifier);
@@ -2642,7 +2652,7 @@ function synchronizeRelayNetworkVisuals() {
 }
 
 function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
-  const Links = listRelayLinks(RelayNetworkState);
+  const Links = listLiveRelayLinks(RelayNetworkState);
   RelayLinkMaterial.opacity = 0.64 + (Math.sin(ElapsedTimeSeconds * 2.4) * 0.12);
   for (let LinkIndex = 0; LinkIndex < Links.length; LinkIndex += 1) {
     const Link = Links[LinkIndex];
@@ -2722,6 +2732,7 @@ const WardenEntryPosition = new THREE.Vector3(
   WorldheartDefinition.position.y + 6,
   0.35,
 );
+const WardenApproachStartPosition = WardenEntryPosition.clone();
 WardenVisualGroup.position.copy(WardenEntryPosition);
 
 function publishWardenState() {
@@ -2754,9 +2765,35 @@ function resolveWardenAfterResolvedFlight() {
     listVulnerableRelayWorlds(RelayNetworkState),
   );
   WardenPursuitState = resolveWardenPursuit(WardenPursuitState, {
-    activeRelayCount: RelayNetworkState.activeWorldIdentifiers.size,
+    activeRelayCount: Math.max(1, countLiveRelayWorlds(RelayNetworkState)),
     targetWorldIdentifier: TargetWorldIdentifier,
   });
+  let SuppressedWorld = null;
+  if (WardenPursuitState.lastEvent === WardenPursuitEvents.arrived) {
+    SuppressedWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
+    if (SuppressedWorld && suppressRelayWorld(RelayNetworkState, SuppressedWorld.id)) {
+      WardenVisualGroup.position.set(
+        SuppressedWorld.position.x,
+        SuppressedWorld.position.y,
+        0.35,
+      );
+      WardenApproachStartPosition.copy(WardenVisualGroup.position);
+      suppressWorld(SuppressedWorld);
+      if (CurrentWorldIdentifier === SuppressedWorld.id && GamePhase === 'restoring') {
+        GamePhase = 'attached';
+      }
+      synchronizeRelayNetworkVisuals();
+      const NextTargetWorldIdentifier = chooseWardenTarget(
+        WorldDefinitions,
+        listVulnerableRelayWorlds(RelayNetworkState),
+      );
+      WardenPursuitState = resetWardenAfterSuppression(
+        WardenPursuitState,
+        NextTargetWorldIdentifier,
+      );
+      GameCanvas.dataset.lastSuppressedWorld = SuppressedWorld.id;
+    }
+  }
   publishWardenState();
   const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
   if (WardenPursuitState.lastEvent === WardenPursuitEvents.revealed) {
@@ -2769,9 +2806,14 @@ function resolveWardenAfterResolvedFlight() {
       `WARDEN → ${TargetWorld?.label ?? 'FRONTIER'} · ${WardenPursuitState.distance} FLIGHTS`,
       1250,
     );
-  } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.arrived) {
-    showStatusToast(`WARDEN ARRIVING AT ${TargetWorld?.label ?? 'THE FRONTIER'}`, 1500);
+  } else if (SuppressedWorld) {
+    showInstruction(
+      `Signal lost: ${SuppressedWorld.label}.`,
+      'Its route and courier are dark. Land there again to reconnect it.',
+    );
+    showStatusToast(`WARDEN SUPPRESSED ${SuppressedWorld.label}`, 1500);
   }
+  return SuppressedWorld;
 }
 
 function updateWardenVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
@@ -2782,8 +2824,16 @@ function updateWardenVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
     WardenPursuitState.distance / WardenPursuitState.maximumDistance
   );
   TemporaryThreeVector.set(
-    THREE.MathUtils.lerp(WardenEntryPosition.x, TargetWorld.position.x, ApproachProgress),
-    THREE.MathUtils.lerp(WardenEntryPosition.y, TargetWorld.position.y, ApproachProgress),
+    THREE.MathUtils.lerp(
+      WardenApproachStartPosition.x,
+      TargetWorld.position.x,
+      ApproachProgress,
+    ),
+    THREE.MathUtils.lerp(
+      WardenApproachStartPosition.y,
+      TargetWorld.position.y,
+      ApproachProgress,
+    ),
     0.35,
   );
   WardenVisualGroup.position.lerp(
@@ -4210,6 +4260,39 @@ function restoreWorld(WorldDefinition, ImpactPosition) {
   showStatusToast(`CONTROL SIGNAL BREAKING · ${WorldDefinition.label}`, 1450);
 }
 
+/** Returns an exposed relay world to its occupied presentation without erasing its route history. */
+function suppressWorld(WorldDefinition) {
+  if (!WorldDefinition.restored) {
+    return false;
+  }
+
+  WorldDefinition.restored = false;
+  const WorldRuntime = WorldRuntimeByIdentifier.get(WorldDefinition.id);
+  WorldRuntime.restorationStartedAtSeconds = null;
+  WorldRuntime.restorationCompleted = false;
+  WorldRuntime.restorationUniforms.restorationProgress.value = -0.1;
+  WorldRuntime.restorationWaveMesh.visible = false;
+  WorldRuntime.atmosphereMaterial.opacity = 0.025;
+  WorldRuntime.atmosphereMesh.scale.setScalar(0.96);
+  WorldRuntime.contourRingGroup.visible = false;
+  const StillnessPresentation = getStillnessPresentation(false);
+  WorldRuntime.stillnessCageGroup.visible = StillnessPresentation.visible;
+  WorldRuntime.stillnessCageGroup.scale.setScalar(StillnessPresentation.scale);
+  WorldRuntime.stillnessCageMaterial.opacity = StillnessPresentation.opacity;
+  WorldRuntime.group.scale.setScalar(1);
+  if (WorldRuntime.ambientMoteGroup) {
+    WorldRuntime.ambientMoteGroup.material.opacity = 0;
+  }
+  for (const SurfacePropObject of WorldRuntime.surfaceMarkerGroup.children) {
+    setSurfacePropRestorationProgress(SurfacePropObject, 0);
+    SurfacePropObject.scale.setScalar(SurfacePropObject.userData.baseScale * 0.05);
+  }
+  updateWorldCounter();
+  updateWorldheartObjective();
+  updateScannerInterface();
+  return true;
+}
+
 /**
  * Places the seed on a world and returns control to the player.
  *
@@ -4247,12 +4330,13 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
   LaunchIgnoredWorldIdentifier = null;
 
   const WasAlreadyRestored = WorldDefinition.restored;
+  const WasSuppressed = RelayNetworkState.suppressedWorldIdentifiers.has(WorldDefinition.id);
   const LandingAccolade = getCurrentLandingAccolade(
     WorldDefinition.id,
-    !WasAlreadyRestored,
+    !WasAlreadyRestored && !WasSuppressed,
   );
   const BankResult = bankCurrentFlight(
-    WasAlreadyRestored ? 0 : (WorldDefinition.liberationValue ?? 1000),
+    WasAlreadyRestored || WasSuppressed ? 0 : (WorldDefinition.liberationValue ?? 1000),
   );
   const RelayConnection = LandingOriginWorldIdentifier
     && LandingOriginWorldIdentifier !== WorldDefinition.id
@@ -4262,7 +4346,9 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
       WorldDefinition.id,
     )
     : null;
-  if (RelayConnection?.created) synchronizeRelayNetworkVisuals();
+  if (RelayConnection?.created || RelayConnection?.destinationReactivated) {
+    synchronizeRelayNetworkVisuals();
+  }
   GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
   commitFlightStardust();
   resetFlightFeedback();
@@ -4275,10 +4361,14 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
         ? '“We thought we were alone.”'
         : WorldDefinition.memory);
     showInstruction(
-      RelayConnection?.created
+      RelayConnection?.destinationReactivated
+        ? `Signal restored: ${WorldDefinition.label}`
+        : RelayConnection?.created
         ? `Relay linked: ${getWorldDefinition(LandingOriginWorldIdentifier).label} ↔ ${WorldDefinition.label}`
         : `Life is racing around ${WorldDefinition.label}`,
-      RelayConnection?.created ? AnswerLine : WorldDefinition.memory,
+      RelayConnection?.destinationReactivated
+        ? 'The original route and courier are live again.'
+        : RelayConnection?.created ? AnswerLine : WorldDefinition.memory,
     );
     if (LandingAccolade) {
       showStatusToast(
@@ -5305,7 +5395,7 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
   }
 
   RunState = settleRunFlight(RunState);
-  resolveWardenAfterResolvedFlight();
+  const SuppressedWorld = resolveWardenAfterResolvedFlight();
   updateLaunchCounter();
   const LostPoints = loseCurrentFlightScore();
   rollbackFlightStardust();
@@ -5353,7 +5443,14 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
     LaunchIgnoredBodyIdentifier = null;
     GamePhase = 'attached';
     updateBreakerBurnInterface();
-    showInstruction('Try another angle', 'Use the gold route rings and wait for a landing lock.');
+    if (SuppressedWorld) {
+      showInstruction(
+        `Signal lost: ${SuppressedWorld.label}.`,
+        'Its route and courier are dark. Land there again to reconnect it.',
+      );
+    } else {
+      showInstruction('Try another angle', 'Use the gold route rings and wait for a landing lock.');
+    }
     RecoveryTimeoutIdentifier = null;
   }, 420);
 }
@@ -6286,6 +6383,8 @@ function resetGame() {
   synchronizeRelayNetworkVisuals();
   WardenPursuitState = createWardenPursuitState();
   WardenVisualGroup.position.copy(WardenEntryPosition);
+  WardenApproachStartPosition.copy(WardenEntryPosition);
+  GameCanvas.dataset.lastSuppressedWorld = '';
   publishWardenState();
   RunFlightTimeSeconds = 0;
   try {

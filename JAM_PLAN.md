@@ -75,6 +75,12 @@ identify the vulnerable frontier target and exact resolved-flight distance on de
 mobile. Every later landing or miss advances one beat; Scout time, surface planning and waiting do
 not. Suppression remains the next checkpoint so arrival gains a fair, reversible consequence.
 
+Checkpoint C — 14 August 2026: Warden arrival now suppresses its exposed frontier world, restores
+the occupation cage and removes every affected live link and courier without deleting canonical
+route history. A later landing reawakens that world and resumes the same route without duplicating
+liberation value or relay rewards. The Warden then forecasts its next vulnerable frontier from the
+suppression point. The first resilient circuit and its one-time retreat remain the next checkpoint.
+
 ## Milestone 3 — One complete sector
 
 - Build a dense six-to-nine-world authored sector from the strongest existing content.

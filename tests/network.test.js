@@ -3,11 +3,14 @@ import test from 'node:test';
 
 import {
   connectRelayWorlds,
+  countLiveRelayWorlds,
   createRelayNetworkState,
   getRelayDegree,
   getRelayLinkIdentifier,
   listRelayLinks,
+  listLiveRelayLinks,
   listVulnerableRelayWorlds,
+  suppressRelayWorld,
 } from '../src/network.js';
 
 test('a resolved traversal activates its destination and creates one canonical relay link', () => {
@@ -41,4 +44,19 @@ test('only degree-zero and degree-one active relays are vulnerable frontier worl
 
   assert.equal(getRelayDegree(Network, 'ember'), 2);
   assert.deepEqual(listVulnerableRelayWorlds(Network).sort(), ['grove', 'haven']);
+});
+
+test('suppression stops live links and recapture restores the same non-farmable route', () => {
+  const Network = createRelayNetworkState('haven');
+  const Connection = connectRelayWorlds(Network, 'haven', 'ember');
+  assert.equal(suppressRelayWorld(Network, 'ember'), true);
+  assert.equal(countLiveRelayWorlds(Network), 1);
+  assert.deepEqual(listLiveRelayLinks(Network), []);
+
+  const Recapture = connectRelayWorlds(Network, 'haven', 'ember');
+  assert.equal(Recapture.created, false);
+  assert.equal(Recapture.destinationReactivated, true);
+  assert.equal(Recapture.link, Connection.link);
+  assert.equal(Network.links.size, 1);
+  assert.equal(listLiveRelayLinks(Network).length, 1);
 });

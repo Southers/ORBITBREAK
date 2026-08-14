@@ -5,6 +5,7 @@ import {
   WardenPursuitEvents,
   chooseWardenTarget,
   createWardenPursuitState,
+  resetWardenAfterSuppression,
   resolveWardenPursuit,
 } from '../src/warden.js';
 
@@ -41,6 +42,10 @@ test('later resolved flights advance once while a first circuit closure retreats
   State = resolveWardenPursuit(State, { activeRelayCount: 3, targetWorldIdentifier: 'grove' });
   assert.equal(State.distance, 0);
   assert.equal(State.lastEvent, WardenPursuitEvents.arrived);
+  State = resetWardenAfterSuppression(State, 'haven');
+  assert.equal(State.distance, 3);
+  assert.equal(State.targetWorldIdentifier, 'haven');
+  assert.equal(State.lastEvent, WardenPursuitEvents.suppressed);
 });
 
 test('the authored frontier nearest the command edge is targeted deterministically', () => {

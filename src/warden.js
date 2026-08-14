@@ -4,6 +4,7 @@ export const WardenPursuitEvents = Object.freeze({
   advanced: 'advanced',
   retreated: 'retreated',
   arrived: 'arrived',
+  suppressed: 'suppressed',
 });
 
 export function createWardenPursuitState({ startingDistance = 4 } = {}) {
@@ -71,4 +72,16 @@ export function chooseWardenTarget(WorldDefinitions, VulnerableWorldIdentifiers)
       Second.position.x - First.position.x
       || First.id.localeCompare(Second.id)
     ))[0]?.id ?? null;
+}
+
+export function resetWardenAfterSuppression(State, NextTargetWorldIdentifier) {
+  if (State.lastEvent !== WardenPursuitEvents.arrived) {
+    throw new Error('Warden suppression reset requires an arrival.');
+  }
+  return {
+    ...State,
+    distance: State.maximumDistance,
+    targetWorldIdentifier: NextTargetWorldIdentifier,
+    lastEvent: WardenPursuitEvents.suppressed,
+  };
 }
