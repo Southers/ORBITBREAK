@@ -51,3 +51,5 @@ A provider adapter must implement `hasReplay`, `insert`, `list` and `getById`. P
 The in-memory adapter exists only for automated tests and local integration. It must never be presented as an online leaderboard. The Cloudflare adapter is still a deployment candidate until its CPU use is measured in the real runtime and the user explicitly approves creating the account resources.
 
 For an intentionally temporary in-memory browser smoke test, run `npm run leaderboard:dev` beside the static server, then add `?leaderboardApi=http://127.0.0.1:8787` to the local game URL. Scores disappear when that process stops.
+
+`npm run leaderboard:benchmark` re-simulates the reference four-launch route 20 times for warmup and 200 measured times. On the development machine's Node V8 runtime it measured 0.17 ms mean and 0.28 ms p95 on 14 August 2026, leaving substantial local headroom beneath the Workers Free 10 ms request CPU allowance. This is a reproducible proxy, not a substitute for production Worker traces after an approved deployment.

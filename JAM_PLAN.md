@@ -94,6 +94,8 @@ Checkpoint E — Cloudflare production adapter: prepared locally without creatin
 
 Checkpoint F — in-game leaderboard flow: implemented against an optional endpoint without claiming that a public board exists. Verified live results can open the Breakers Board, enter a constrained callsign, submit the replay-only payload, read score → launches → flight-time rankings and fetch any listed route into the existing verified live playback. Remote routes cannot expose the submission form after playback. Without an endpoint the same panel explicitly reports offline and preserves the local best. A loopback-only in-memory server and local query override support browser testing without weakening production configuration. A real 7,000-point four-launch run banked, rendered two ranked rows at 390×844 and replayed a fetched route through all four launches back to a verified 7,000-point finish; desktop and mobile panels stayed within their viewports with clean diagnostics. Production CPU proof and user-approved resource creation/deployment remain the final Milestone 6 gates.
 
+Checkpoint G — local CPU gate: a reproducible Node V8 benchmark now warms the exact server validator 20 times and measures 200 complete four-launch re-simulations. The development machine recorded 0.17 ms mean, 0.28 ms p95 and 0.58 ms maximum against the Workers Free 10 ms allowance, while the bundled Worker remains 19.27 KB gzip. That is strong local headroom but not production proof: real Worker traces and D1 latency still require an approved external deployment. No account resource or endpoint was created.
+
 ## Milestone 7 — Authored expansion and release polish
 
 - Add systems only when each introduces a new spatial scoring problem.
