@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260814-ob5';
+import { WorldseedAudio } from './audio.js?v=20260814-ob6';
 
 import {
   DefaultAuthoredSystemIdentifier,
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-ob5';
+} from './content.js?v=20260814-ob6';
 
 import {
   countRestoredWorlds,
@@ -19,7 +19,7 @@ import {
   isSystemRestored,
   isWorldheartUnlocked,
   rollbackFlightPickups,
-} from './campaign.js?v=20260814-ob5';
+} from './campaign.js?v=20260814-ob6';
 
 import {
   calculateBodyPositionAtTime,
@@ -29,28 +29,36 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260814-ob5';
+} from './physics.js?v=20260814-ob6';
 import {
   createRunResult,
   loadPersonalBest,
   savePersonalBest,
-} from './records.js?v=20260814-ob5';
+} from './records.js?v=20260814-ob6';
 import {
   getLiberationFlashOpacity,
   getRunnerAnimationState,
   getRunnerPose,
   getStillnessPresentation,
-} from './presentation.js?v=20260814-ob5';
+} from './presentation.js?v=20260814-ob6';
+import {
+  PhysicsModelVersion,
+  createReplayRecorder,
+  finishReplay,
+  getReplayStorageKey,
+  recordReplayLaunch,
+  serializeReplay,
+} from './replay.js?v=20260814-ob6';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
   calculateStagedGrowthProgress,
-} from './restoration.js?v=20260814-ob5';
+} from './restoration.js?v=20260814-ob6';
 import {
   createRunState,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260814-ob5';
+} from './run.js?v=20260814-ob6';
 import {
   addCompletionBonus,
   bankFlightScore,
@@ -58,7 +66,7 @@ import {
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260814-ob5';
+} from './scoring.js?v=20260814-ob6';
 
 const RequestedSystemIdentifier = new URLSearchParams(window.location.search).get('system')
   ?? DefaultAuthoredSystemIdentifier;
@@ -142,13 +150,14 @@ const ReplayButtonElement = document.querySelector('#ReplayButton');
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob5';
+GameCanvas.dataset.build = '20260814-ob6';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.pageActive = String(!document.hidden);
 GameCanvas.dataset.webglAvailable = 'true';
 
 /** Fixed-step physics makes live movement and trajectory prediction agree across frame rates. */
-const FixedPhysicsStepSeconds = 1 / 120;
+const FixedPhysicsStepHertz = 120;
+const FixedPhysicsStepSeconds = 1 / FixedPhysicsStepHertz;
 const MaximumFrameDeltaSeconds = 0.05;
 const SeedRadius = 0.46;
 const MaximumDragDistance = 6.25;
@@ -254,6 +263,11 @@ let SeedPhysicsState = {
 };
 let RunState = createRunState(ActiveSystem.launchBudget);
 let ScoreState = createScoreState();
+let ReplayState = createReplayRecorder({
+  systemIdentifier: ActiveSystem.id,
+  contentVersion: ActiveSystem.contentVersion,
+  fixedStepHz: FixedPhysicsStepHertz,
+});
 const WorldseedSound = new WorldseedAudio();
 const ScannerWorldElements = new Map();
 let ScannerHazardElement = null;
@@ -3290,8 +3304,28 @@ function updateStoredPersonalBest(RunResult) {
   }
 }
 
+/** Finalizes the input-only replay and exposes its versioned compact payload. */
+function publishFinishedReplay(Outcome) {
+  ReplayState = finishReplay(ReplayState, Outcome);
+  const SerializedReplay = serializeReplay(ReplayState);
+  GameCanvas.dataset.replayOutcome = Outcome;
+  GameCanvas.dataset.replayPayload = SerializedReplay;
+  GameCanvas.dataset.replayBytes = String(SerializedReplay.length);
+  if (Outcome === 'complete') {
+    try {
+      window.localStorage.setItem(
+        getReplayStorageKey(ActiveSystem.id, ActiveSystem.contentVersion),
+        SerializedReplay,
+      );
+    } catch {
+      // Completion remains valid when private browsing or quota blocks local persistence.
+    }
+  }
+}
+
 /** Populates the non-blocking completion summary from the actual run state. */
 function updateVictorySummary() {
+  publishFinishedReplay('complete');
   const CollectedStardustCount = StardustDefinitions.filter(
     (StardustDefinition) => StardustDefinition.collected,
   ).length;
@@ -3547,6 +3581,7 @@ function scheduleRunFailure(Reason = 'OUT OF LAUNCHES') {
   }
 
   RunFailurePending = false;
+  publishFinishedReplay('failed');
   GamePhase = 'runFailed';
   GameCanvas.dataset.runStatus = 'failed';
   SeedPhysicsState.velocity = createVector();
@@ -4411,6 +4446,13 @@ function handlePointerUp(PointerEventData) {
     AimLaunchVelocity.y,
     0,
   );
+  ReplayState = recordReplayLaunch(ReplayState, {
+    stepIndex: Math.round(PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz),
+    originIdentifier: CurrentWorldIdentifier,
+    velocityX: AimLaunchVelocity.x,
+    velocityY: AimLaunchVelocity.y,
+  });
+  GameCanvas.dataset.replayLaunchCount = String(ReplayState.launches.length);
   GameCanvas.dataset.lastLaunchVelocityX = AimLaunchVelocity.x.toFixed(3);
   GameCanvas.dataset.lastLaunchVelocityY = AimLaunchVelocity.y.toFixed(3);
   GameCanvas.dataset.lastLaunchTime = PhysicsElapsedTimeSeconds.toFixed(3);
@@ -5196,8 +5238,18 @@ function resetGame() {
   GameCanvas.dataset.isNewPersonalBest = 'false';
   GameCanvas.dataset.contentVersion = ActiveSystem.contentVersion;
   GameCanvas.dataset.assistState = 'ranked';
+  GameCanvas.dataset.replayPhysicsVersion = PhysicsModelVersion;
+  GameCanvas.dataset.replayLaunchCount = '0';
+  GameCanvas.dataset.replayOutcome = 'recording';
+  GameCanvas.dataset.replayPayload = '';
+  GameCanvas.dataset.replayBytes = '0';
   RunState = createRunState(ActiveSystem.launchBudget);
   ScoreState = createScoreState();
+  ReplayState = createReplayRecorder({
+    systemIdentifier: ActiveSystem.id,
+    contentVersion: ActiveSystem.contentVersion,
+    fixedStepHz: FixedPhysicsStepHertz,
+  });
   RunFlightTimeSeconds = 0;
   try {
     const PersonalBest = loadPersonalBest(

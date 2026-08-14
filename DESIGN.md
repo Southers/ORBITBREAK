@@ -109,6 +109,8 @@ The first leaderboard is implemented as local personal bests per system and cont
 
 An online leaderboard comes only after compact replay recording exists. The service must rerun the deterministic inputs against the matching content version before accepting a score. Client-submitted totals alone are not trustworthy.
 
+The replay wire format records only the schema, system/content/physics versions, fixed-step frequency and an ordered list of launch step, origin and exact velocity. It deliberately contains no claimed score. Completed replays persist locally by system and content version; the validator must derive every landing, liberation, assist, loss and completion bonus from the inputs.
+
 The most competitive format is a short system run. Campaign totals and identical daily challenges are later possibilities, not vertical-slice requirements.
 
 ## Story and presentation
