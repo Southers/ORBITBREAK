@@ -64,6 +64,11 @@ Exit: a three-to-four-world slice creates an understandable expand-versus-reinfo
 
 Stop condition: do not add hostile worlds, abilities or more map content until a new player can predict the Warden and explain why the loop protected them.
 
+Checkpoint A — 14 August 2026: resolved world-to-world landings now derive one canonical,
+non-farmable relay link, show the first hopeful answer and launch a pooled tiny courier that travels
+both directions along the persistent route. Reset removes the derived network cleanly. Warden
+entrance and pursuit remain deliberately deferred until this hopeful consequence is readable.
+
 ## Milestone 3 — One complete sector
 
 - Build a dense six-to-nine-world authored sector from the strongest existing content.

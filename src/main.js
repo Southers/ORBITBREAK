@@ -54,6 +54,11 @@ import {
 } from './physics.js?v=20260814-ob14';
 import { createLeaderboardClient } from './leaderboard-client.js?v=20260814-ob9';
 import {
+  connectRelayWorlds,
+  createRelayNetworkState,
+  listRelayLinks,
+} from './network.js?v=20260814-ob15';
+import {
   createRunResult,
   loadPersonalBest,
   savePersonalBest,
@@ -213,7 +218,7 @@ const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
 const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob14';
+GameCanvas.dataset.build = '20260814-ob15';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -360,6 +365,7 @@ let ReplayState = createReplayRecorder({
   fixedStepHz: FixedPhysicsStepHertz,
 });
 let ReplayPlaybackState = null;
+let RelayNetworkState = createRelayNetworkState(StartingWorldIdentifier);
 const WorldseedSound = new WorldseedAudio();
 const ScannerWorldElements = new Map();
 let ScannerHazardElement = null;
@@ -2562,6 +2568,101 @@ for (const WorldDefinition of WorldDefinitions) {
   createWorld(WorldDefinition);
 }
 
+/** A pooled line network and tiny courier fleet make every new connection persist visibly. */
+const MaximumRelayLinkCount = ActiveSystem.launchBudget;
+const RelayLinkPositionValues = new Float32Array(MaximumRelayLinkCount * 6);
+const RelayLinkGeometry = new THREE.BufferGeometry();
+const RelayLinkPositionAttribute = new THREE.BufferAttribute(RelayLinkPositionValues, 3);
+RelayLinkPositionAttribute.setUsage(THREE.DynamicDrawUsage);
+RelayLinkGeometry.setAttribute('position', RelayLinkPositionAttribute);
+RelayLinkGeometry.setDrawRange(0, 0);
+const RelayLinkMaterial = new THREE.LineBasicMaterial({
+  color: 0x72e8ff,
+  transparent: true,
+  opacity: 0.72,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+const RelayLinkMesh = new THREE.LineSegments(RelayLinkGeometry, RelayLinkMaterial);
+RelayLinkMesh.frustumCulled = false;
+Scene.add(RelayLinkMesh);
+
+const TradeShipGeometry = new THREE.ConeGeometry(0.13, 0.38, 6);
+const TradeShipMaterial = new THREE.MeshBasicMaterial({ color: 0xffd98a });
+const TradeShipMesh = new THREE.InstancedMesh(
+  TradeShipGeometry,
+  TradeShipMaterial,
+  MaximumRelayLinkCount,
+);
+const TradeShipTransform = new THREE.Object3D();
+TradeShipMesh.count = 0;
+TradeShipMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+TradeShipMesh.frustumCulled = false;
+Scene.add(TradeShipMesh);
+
+function publishRelayNetworkState() {
+  const Links = listRelayLinks(RelayNetworkState);
+  GameCanvas.dataset.relayLinkCount = String(Links.length);
+  GameCanvas.dataset.relayLinks = Links.map((Link) => Link.id).join(',');
+  GameCanvas.dataset.relayActiveWorlds = [...RelayNetworkState.activeWorldIdentifiers]
+    .sort()
+    .join(',');
+}
+
+function synchronizeRelayNetworkVisuals() {
+  const Links = listRelayLinks(RelayNetworkState);
+  for (let LinkIndex = 0; LinkIndex < Links.length; LinkIndex += 1) {
+    const Link = Links[LinkIndex];
+    const Origin = getWorldDefinition(Link.originWorldIdentifier);
+    const Destination = getWorldDefinition(Link.destinationWorldIdentifier);
+    const ValueOffset = LinkIndex * 6;
+    RelayLinkPositionValues[ValueOffset] = Origin.position.x;
+    RelayLinkPositionValues[ValueOffset + 1] = Origin.position.y;
+    RelayLinkPositionValues[ValueOffset + 2] = 0.16;
+    RelayLinkPositionValues[ValueOffset + 3] = Destination.position.x;
+    RelayLinkPositionValues[ValueOffset + 4] = Destination.position.y;
+    RelayLinkPositionValues[ValueOffset + 5] = 0.16;
+  }
+  RelayLinkGeometry.setDrawRange(0, Links.length * 2);
+  RelayLinkPositionAttribute.needsUpdate = true;
+  TradeShipMesh.count = Links.length;
+  publishRelayNetworkState();
+}
+
+function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
+  const Links = listRelayLinks(RelayNetworkState);
+  RelayLinkMaterial.opacity = 0.64 + (Math.sin(ElapsedTimeSeconds * 2.4) * 0.12);
+  for (let LinkIndex = 0; LinkIndex < Links.length; LinkIndex += 1) {
+    const Link = Links[LinkIndex];
+    const Origin = getWorldDefinition(Link.originWorldIdentifier);
+    const Destination = getWorldDefinition(Link.destinationWorldIdentifier);
+    const TravelCycleProgress = (
+      (ElapsedTimeSeconds * 0.11) + (Link.sequenceIndex * 0.37)
+    ) % 2;
+    const IsReturning = TravelCycleProgress > 1;
+    const TravelProgress = IsReturning
+      ? 2 - TravelCycleProgress
+      : TravelCycleProgress;
+    TradeShipTransform.position.set(
+      THREE.MathUtils.lerp(Origin.position.x, Destination.position.x, TravelProgress),
+      THREE.MathUtils.lerp(Origin.position.y, Destination.position.y, TravelProgress),
+      0.3 + (Math.sin(TravelProgress * Math.PI) * 0.75),
+    );
+    TradeShipTransform.rotation.set(
+      0,
+      0,
+      Math.atan2(
+        Destination.position.y - Origin.position.y,
+        Destination.position.x - Origin.position.x,
+      ) - (Math.PI * 0.5) + (IsReturning ? Math.PI : 0),
+    );
+    TradeShipTransform.scale.setScalar(1);
+    TradeShipTransform.updateMatrix();
+    TradeShipMesh.setMatrixAt(LinkIndex, TradeShipTransform.matrix);
+  }
+  if (Links.length > 0) TradeShipMesh.instanceMatrix.needsUpdate = true;
+}
+
 /** Two instanced beacons reveal suggested branches without turning choice into a menu. */
 const TargetBeaconGeometry = new THREE.RingGeometry(1, 1.04, 72);
 const TargetBeaconMaterial = new THREE.MeshBasicMaterial({
@@ -3974,6 +4075,7 @@ function restoreWorld(WorldDefinition, ImpactPosition) {
 function attachSeedToWorld(WorldDefinition, ImpactPosition) {
   IsBreakerBurnAvailable = false;
   IsBreakerBurnPending = false;
+  const LandingOriginWorldIdentifier = FlightOriginWorldIdentifier;
   const SurfaceRestPosition = calculateSurfaceRestPosition(WorldDefinition, ImpactPosition);
 
   ImpactPulseMesh.material.color.set(0xfff2bc);
@@ -4008,15 +4110,31 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
   const BankResult = bankCurrentFlight(
     WasAlreadyRestored ? 0 : (WorldDefinition.liberationValue ?? 1000),
   );
+  const RelayConnection = LandingOriginWorldIdentifier
+    && LandingOriginWorldIdentifier !== WorldDefinition.id
+    ? connectRelayWorlds(
+      RelayNetworkState,
+      LandingOriginWorldIdentifier,
+      WorldDefinition.id,
+    )
+    : null;
+  if (RelayConnection?.created) synchronizeRelayNetworkVisuals();
   GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
   commitFlightStardust();
   resetFlightFeedback();
   restoreWorld(WorldDefinition, ImpactPosition);
 
   if (GamePhase === 'restoring') {
+    const AnswerLine = RelayNetworkState.links.size === 1
+      ? '“Is someone there?”'
+      : (RelayNetworkState.links.size === 2
+        ? '“We thought we were alone.”'
+        : WorldDefinition.memory);
     showInstruction(
-      `Life is racing around ${WorldDefinition.label}`,
-      WorldDefinition.memory,
+      RelayConnection?.created
+        ? `Relay linked: ${getWorldDefinition(LandingOriginWorldIdentifier).label} ↔ ${WorldDefinition.label}`
+        : `Life is racing around ${WorldDefinition.label}`,
+      RelayConnection?.created ? AnswerLine : WorldDefinition.memory,
     );
     if (LandingAccolade) {
       showStatusToast(
@@ -6019,6 +6137,8 @@ function resetGame() {
     contentVersion: ActiveSystem.contentVersion,
     fixedStepHz: FixedPhysicsStepHertz,
   });
+  RelayNetworkState = createRelayNetworkState(StartingWorldIdentifier);
+  synchronizeRelayNetworkVisuals();
   RunFlightTimeSeconds = 0;
   try {
     const PersonalBest = loadPersonalBest(
@@ -6432,6 +6552,7 @@ function renderFrame() {
   updateWorldRestorationVisuals(ElapsedTimeSeconds);
   updateWorldBiomeMotion(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateFinaleRestorationVisuals(ElapsedTimeSeconds);
+  updateRelayNetworkVisuals(ElapsedTimeSeconds);
   updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateCamera(DeltaTimeSeconds);
   updateTacticalBodies(ElapsedTimeSeconds);
