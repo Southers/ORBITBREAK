@@ -23,7 +23,7 @@ Each chapter changes the spatial problem without changing the rules: choose a ri
 
 - Five authored planetary systems with distinct routing challenges.
 - Deterministic 120 Hz gravity shared by live flight and trajectory prediction.
-- Eight-launch score attacks with fast miss recovery and transparent banking.
+- Bonus-fuel score attacks with fast miss recovery, transparent banking and Warden-arrival failure.
 - Assist, Deep and Razor slingshots plus distinct-body chain multipliers.
 - Mouse, pen, touch and complete keyboard play using the same ranked rules.
 - Versioned replays that independently re-simulate every verified result.

@@ -18,13 +18,30 @@ import {
   parseReplay,
 } from './replay.js';
 import {
-  addCompletionBonus,
+  addCircuitBonus,
+  addVictoryBonus,
   bankFlightScore,
   createScoreState,
   rollbackFlightScore,
   sampleSlingshotBodies,
 } from './scoring.js';
 import { createRunState, releaseRunLaunch, settleRunFlight } from './run.js';
+import {
+  connectRelayWorlds,
+  countLiveRelayWorlds,
+  createRelayNetworkState,
+  listProtectedRelayWorlds,
+  listVulnerableRelayWorlds,
+  suppressRelayWorld,
+} from './network.js';
+import {
+  WardenPursuitEvents,
+  chooseWardenTarget,
+  createWardenPursuitState,
+  resetWardenAfterSuppression,
+  resolveWardenPursuit,
+  shouldWardenCatchRunner,
+} from './warden.js';
 
 const RunnerRadius = 0.46;
 const StardustRadius = 0.22;
@@ -133,6 +150,8 @@ export function validateReplay(Replay) {
   let IsWorldheartOpen = Worldheart.routeAvailableInitially === true;
   let RunState = createRunState(Runtime.launchBudget);
   const ScoreState = createScoreState();
+  const RelayNetworkState = createRelayNetworkState(Runtime.startingWorldIdentifier);
+  let WardenState = createWardenPursuitState();
   let CurrentNodeIdentifier = Runtime.startingWorldIdentifier;
   let CurrentPosition = createStartingPosition(Runtime);
   let LastSafeNodeIdentifier = CurrentNodeIdentifier;
@@ -212,6 +231,8 @@ export function validateReplay(Replay) {
     const FlightCollectedStardust = new Set();
     let FlightSettled = false;
     let BurnApplied = false;
+    let CircuitClosedThisFlight = false;
+    let ReachedCommandThisFlight = false;
 
     for (let FlightStepIndex = 0; FlightStepIndex < MaximumValidatedFlightSteps; FlightStepIndex += 1) {
       CurrentStepIndex += 1;
@@ -281,13 +302,36 @@ export function validateReplay(Replay) {
         RunState = settleRunFlight(RunState);
         FlightSettled = true;
       } else if (CollisionBody?.definition.kind === 'worldheart') {
+        if (
+          Runtime.commandWorldRequiresShieldBreaks
+          && WardenState.status !== 'exposed'
+        ) {
+          return invalid('Replay reaches the Command World before breaking both shields.');
+        }
         bankFlightScore(ScoreState);
         RunState = settleRunFlight(RunState, { reachedCommandWorld: true });
-        addCompletionBonus(ScoreState, RunState.remainingLaunches);
+        addVictoryBonus(
+          ScoreState,
+          WardenState.distance,
+          Runtime.wardenVictoryValuePerStep,
+        );
         CurrentNodeIdentifier = Worldheart.id;
+        ReachedCommandThisFlight = true;
         FlightSettled = true;
       } else if (CollisionWorld) {
         const WasRestored = CollisionWorld.restored;
+        const WasSuppressed = RelayNetworkState.suppressedWorldIdentifiers.has(
+          CollisionWorld.id,
+        );
+        const RelayConnection = FlightOriginWorldIdentifier
+          && FlightOriginWorldIdentifier !== CollisionWorld.id
+          ? connectRelayWorlds(
+            RelayNetworkState,
+            FlightOriginWorldIdentifier,
+            CollisionWorld.id,
+          )
+          : null;
+        CircuitClosedThisFlight = RelayConnection?.circuitClosed === true;
         CollisionWorld.restored = true;
         CurrentPosition = calculateSurfaceRestPosition(
           CollisionWorld,
@@ -298,13 +342,12 @@ export function validateReplay(Replay) {
         LastSafeNodeIdentifier = CollisionWorld.id;
         LastSafePosition = createVector(CurrentPosition.x, CurrentPosition.y, CurrentPosition.z);
         bankFlightScore(ScoreState, {
-          landingBonus: WasRestored ? 0 : (CollisionWorld.liberationValue ?? 1000),
+          landingBonus: WasRestored || WasSuppressed
+            ? 0
+            : (CollisionWorld.liberationValue ?? 1000),
         });
-        if (!IsWorldheartOpen) {
-          IsWorldheartOpen = isWorldheartUnlocked(
-            Runtime.worlds,
-            Runtime.worldheartUnlockThreshold,
-          );
+        if (CircuitClosedThisFlight) {
+          addCircuitBonus(ScoreState, Runtime.circuitBonusValue);
         }
         RunState = settleRunFlight(RunState);
         FlightSettled = true;
@@ -327,6 +370,50 @@ export function validateReplay(Replay) {
 
     if (!FlightSettled) {
       return invalid(`Launch ${LaunchIndex + 1} did not settle within the validation limit.`);
+    }
+    if (!ReachedCommandThisFlight) {
+      const TargetWorldIdentifier = chooseWardenTarget(
+        Runtime.worlds,
+        listVulnerableRelayWorlds(RelayNetworkState),
+      );
+      WardenState = resolveWardenPursuit(WardenState, {
+        activeRelayCount: Math.max(1, countLiveRelayWorlds(RelayNetworkState)),
+        targetWorldIdentifier: TargetWorldIdentifier,
+        firstCircuitClosed: CircuitClosedThisFlight,
+      });
+      if (WardenState.lastEvent === WardenPursuitEvents.arrived) {
+        const SuppressedWorldIdentifier = WardenState.targetWorldIdentifier;
+        if (shouldWardenCatchRunner(
+          WardenState,
+          CurrentNodeIdentifier,
+          listProtectedRelayWorlds(RelayNetworkState),
+        )) {
+          return invalid('Replay is caught by the Warden before completion.');
+        }
+        if (SuppressedWorldIdentifier) {
+          suppressRelayWorld(RelayNetworkState, SuppressedWorldIdentifier);
+          const SuppressedWorld = Runtime.worlds.find(
+            (World) => World.id === SuppressedWorldIdentifier,
+          );
+          if (SuppressedWorld) SuppressedWorld.restored = false;
+        }
+        WardenState = resetWardenAfterSuppression(
+          WardenState,
+          chooseWardenTarget(
+            Runtime.worlds,
+            listVulnerableRelayWorlds(RelayNetworkState),
+          ),
+        );
+      }
+      if (!IsWorldheartOpen) {
+        IsWorldheartOpen = isWorldheartUnlocked(
+          Runtime.worlds,
+          Runtime.worldheartUnlockThreshold,
+        ) && (
+          !Runtime.commandWorldRequiresShieldBreaks
+          || WardenState.status === 'exposed'
+        );
+      }
     }
     if (Launch.burnStepIndex !== undefined && Launch.burnStepIndex !== null && !BurnApplied) {
       return invalid(`Launch ${LaunchIndex + 1} records a Burn outside its flight.`);
@@ -352,7 +439,10 @@ export function validateReplay(Replay) {
       launchesUsed: RunState.launchesUsed,
       flightTimeMilliseconds: Math.round((FlightStepCount / Replay.fixedStepHz) * 1000),
       slingshotScore: ScoreState.bankedSlingshotScore,
+      networkScore: ScoreState.networkScore,
       liberationScore: ScoreState.liberationScore,
+      circuitScore: ScoreState.circuitScore,
+      victoryScore: ScoreState.victoryScore,
       completionBonus: ScoreState.completionBonus,
       collectedStardustCount: Runtime.stardust.filter((Stardust) => Stardust.collected).length,
     },

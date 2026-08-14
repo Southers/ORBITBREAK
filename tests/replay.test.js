@@ -15,7 +15,7 @@ import {
 function createRecorder() {
   return createReplayRecorder({
     systemIdentifier: 'breakers-reach',
-    contentVersion: 'breaker-reach-3',
+    contentVersion: 'breaker-reach-4',
     fixedStepHz: 120,
   });
 }
@@ -110,7 +110,7 @@ test('legacy launch-only replays remain parseable for existing verified runs', (
   const Legacy = JSON.stringify({
     v: 1,
     s: 'breakers-reach',
-    c: 'breaker-reach-3',
+    c: 'breaker-reach-4',
     p: PhysicsModelVersion,
     h: 120,
     o: 1,
@@ -129,7 +129,7 @@ test('parser fails closed on corrupt, oversized and unsupported payloads', () =>
 
 test('replay storage is isolated by system and content version', () => {
   assert.equal(
-    getReplayStorageKey('breakers-reach', 'breaker-reach-3'),
-    'orbitbreak.last-replay.breakers-reach.breaker-reach-3',
+    getReplayStorageKey('breakers-reach', 'breaker-reach-4'),
+    'orbitbreak.last-replay.breakers-reach.breaker-reach-4',
   );
 });

@@ -34,7 +34,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-ob21';
+} from './content.js?v=20260815-ob22';
 
 import {
   countRestoredWorlds,
@@ -78,7 +78,7 @@ import {
   resetWardenAfterSuppression,
   resolveWardenPursuit,
   shouldWardenCatchRunner,
-} from './warden.js?v=20260814-ob21';
+} from './warden.js?v=20260815-ob22';
 import {
   createRunResult,
   loadPersonalBest,
@@ -106,7 +106,7 @@ import {
   consumeDueReplayLaunch,
   createReplayPlaybackState,
 } from './replay-playback.js?v=20260814-ob14';
-import { validateSerializedReplay } from './replay-validator.js?v=20260814-ob21';
+import { validateSerializedReplay } from './replay-validator.js?v=20260815-ob22';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
@@ -117,15 +117,16 @@ import {
   failRunToWarden,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260814-ob21';
+} from './run.js?v=20260815-ob22';
 import {
-  addCompletionBonus,
+  addCircuitBonus,
+  addVictoryBonus,
   bankFlightScore,
   createScoreState,
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260814-ob8';
+} from './scoring.js?v=20260815-ob22';
 
 const PageSearchParameters = new URLSearchParams(window.location.search);
 const RequestedSystemIdentifier = PageSearchParameters.get('system')
@@ -244,7 +245,7 @@ const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
 const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob21';
+GameCanvas.dataset.build = '20260815-ob22';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -4063,8 +4064,9 @@ function updateVictorySummary() {
     && ReplayValidation.result.launchesUsed === RunResult.launchesUsed
     && ReplayValidation.result.flightTimeMilliseconds === RunResult.flightTimeMilliseconds
     && ReplayValidation.result.slingshotScore === ScoreState.bankedSlingshotScore
-    && ReplayValidation.result.liberationScore === ScoreState.liberationScore
-    && ReplayValidation.result.completionBonus === ScoreState.completionBonus;
+    && ReplayValidation.result.networkScore === ScoreState.networkScore
+    && ReplayValidation.result.circuitScore === ScoreState.circuitScore
+    && ReplayValidation.result.victoryScore === ScoreState.victoryScore;
   WatchReplayButtonElement.hidden = !IsReplayVerified;
   if (ReplayPlaybackState) {
     ReplayPlaybackState = { ...ReplayPlaybackState, status: 'complete' };
@@ -4085,8 +4087,8 @@ function updateVictorySummary() {
       ? `VERIFIED · NEW PERSONAL BEST · ${RunResult.score.toLocaleString('en-GB')}`
       : `VERIFIED · PERSONAL BEST · ${PersonalBestScore.toLocaleString('en-GB')}`;
   ResultSlingshotScoreElement.textContent = ScoreState.bankedSlingshotScore.toLocaleString('en-GB');
-  ResultLiberationScoreElement.textContent = ScoreState.liberationScore.toLocaleString('en-GB');
-  ResultCompletionBonusElement.textContent = ScoreState.completionBonus.toLocaleString('en-GB');
+  ResultLiberationScoreElement.textContent = ScoreState.networkScore.toLocaleString('en-GB');
+  ResultCompletionBonusElement.textContent = ScoreState.victoryScore.toLocaleString('en-GB');
   ResultFlightTimeElement.textContent = formatFlightTime(RunResult.flightTimeMilliseconds);
   VictoryBodyElement.textContent = `${CompletionBody} ${RunState.launchesUsed} / ${RunState.maximumLaunches} launches · ${formatFlightTime(RunResult.flightTimeMilliseconds)} flight time.`;
   GameCanvas.dataset.personalBest = String(PersonalBestScore);
@@ -4393,6 +4395,8 @@ function updateScoreInterface() {
   GameCanvas.dataset.score = String(ScoreState.bankedScore);
   GameCanvas.dataset.flightScore = String(ScoreState.flightScore);
   GameCanvas.dataset.chainCount = String(ScoreState.chainCount);
+  GameCanvas.dataset.networkScore = String(ScoreState.networkScore);
+  GameCanvas.dataset.victoryScore = String(ScoreState.victoryScore);
 }
 
 /**
@@ -4682,6 +4686,14 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
       WorldDefinition.id,
     )
     : null;
+  const CircuitBonus = RelayConnection?.circuitClosed
+    ? addCircuitBonus(ScoreState, ActiveSystem.circuitBonusValue)
+    : 0;
+  const TotalBankedPoints = BankResult.bankedPoints + CircuitBonus;
+  if (CircuitBonus > 0) {
+    GameCanvas.dataset.lastCircuitBonus = String(CircuitBonus);
+    updateScoreInterface();
+  }
   if (RelayConnection?.created || RelayConnection?.destinationReactivated) {
     synchronizeRelayNetworkVisuals();
   }
@@ -4708,15 +4720,15 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
     );
     if (LandingAccolade) {
       showStatusToast(
-        `${LandingAccolade} · +${BankResult.bankedPoints.toLocaleString('en-GB')} BANKED`,
+        `${LandingAccolade} · +${TotalBankedPoints.toLocaleString('en-GB')} BANKED`,
         1450,
       );
     }
   } else if (WasAlreadyRestored && GamePhase !== 'victory' && GamePhase !== 'victoryPending') {
     GamePhase = 'attached';
     showStatusToast(
-      BankResult.bankedPoints > 0
-        ? `+${BankResult.bankedPoints.toLocaleString('en-GB')} BANKED`
+      TotalBankedPoints > 0
+        ? `+${TotalBankedPoints.toLocaleString('en-GB')} BANKED`
         : (LandingAccolade ?? 'CLEAN LANDING'),
       850,
     );
@@ -4795,7 +4807,11 @@ function completeWorldheartLiberation() {
   HostilePylonGroup.visible = false;
   publishHostileEncounterState();
   WorldheartDefinition.restored = true;
-  const CompletionBonus = addCompletionBonus(ScoreState, RunState.remainingLaunches);
+  const CompletionBonus = addVictoryBonus(
+    ScoreState,
+    WardenPursuitState.distance,
+    ActiveSystem.wardenVictoryValuePerStep,
+  );
   updateScoreInterface();
   GameCanvas.dataset.completionBonus = String(CompletionBonus);
   GameCanvas.dataset.commandPulse = 'fired';
@@ -6803,6 +6819,7 @@ function resetGame() {
   GameCanvas.dataset.hostilePylonAngle = '';
   GameCanvas.dataset.lastHostileWorld = '';
   GameCanvas.dataset.commandPulse = '';
+  GameCanvas.dataset.lastCircuitBonus = '';
   GameCanvas.dataset.lastBank = '';
   GameCanvas.dataset.lastScoreLost = '';
   GameCanvas.dataset.completionBonus = '';

@@ -3,6 +3,8 @@ import test from 'node:test';
 
 import {
   addCompletionBonus,
+  addCircuitBonus,
+  addVictoryBonus,
   bankFlightScore,
   createScoreState,
   getSlingshotBand,
@@ -129,6 +131,7 @@ test('landing banks a flight and a miss rolls its unbanked value back', () => {
   assert.equal(ScoreState.bankedScore, 2200);
   assert.equal(ScoreState.bankedSlingshotScore, 1200);
   assert.equal(ScoreState.liberationScore, 1000);
+  assert.equal(ScoreState.networkScore, 1000);
   assert.equal(addCompletionBonus(ScoreState, 3), 3000);
   assert.equal(ScoreState.bankedScore, 5200);
   assert.equal(ScoreState.completionBonus, 3000);
@@ -138,6 +141,19 @@ test('landing banks a flight and a miss rolls its unbanked value back', () => {
       + ScoreState.completionBonus,
     ScoreState.bankedScore,
   );
+});
+
+test('network circuits and remaining pursuit distance form distinct ranked categories', () => {
+  const ScoreState = createScoreState();
+  bankFlightScore(ScoreState, { landingBonus: 1400 });
+  assert.equal(addCircuitBonus(ScoreState, 1250), 1250);
+  assert.equal(addVictoryBonus(ScoreState, 3), 3000);
+
+  assert.equal(ScoreState.networkScore, 2650);
+  assert.equal(ScoreState.liberationScore, 1400);
+  assert.equal(ScoreState.circuitScore, 1250);
+  assert.equal(ScoreState.victoryScore, 3000);
+  assert.equal(ScoreState.bankedScore, 5650);
 });
 
 test('prediction uses the same pass sampling contract as live fixed steps', () => {

@@ -50,6 +50,8 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     (BodyDefinition) => BodyDefinition.kind === 'worldheart',
   );
   assert.equal(BreakerReachSystemDefinition.commandWorldRequiresShieldBreaks, true);
+  assert.equal(BreakerReachSystemDefinition.circuitBonusValue, 1250);
+  assert.equal(BreakerReachSystemDefinition.wardenVictoryValuePerStep, 1000);
   assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
   assert.ok(CommandDefinition.hostileEncounter.pulseRangeRadians > 0);
 });
@@ -76,10 +78,14 @@ test('authored scoring values fail closed when present but invalid', () => {
   const InvalidSystemDefinition = structuredClone(FirstLightSystemDefinition);
   InvalidSystemDefinition.worlds[0].slingshotValue = 0;
   InvalidSystemDefinition.worlds[1].liberationValue = 2.5;
+  InvalidSystemDefinition.circuitBonusValue = 0;
 
   const Errors = validateAuthoredSystemDefinition(InvalidSystemDefinition);
   assert.ok(Errors.includes('World meadow has an invalid slingshotValue.'));
   assert.ok(Errors.includes('World ember has an invalid liberationValue.'));
+  assert.ok(Errors.includes(
+    'Authored system circuitBonusValue must be a positive integer when present.',
+  ));
 });
 
 test('hostile worlds fail closed without a bounded contextual encounter', () => {

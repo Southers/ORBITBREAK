@@ -22,7 +22,10 @@ export function createScoreState() {
   return {
     bankedScore: 0,
     bankedSlingshotScore: 0,
+    networkScore: 0,
     liberationScore: 0,
+    circuitScore: 0,
+    victoryScore: 0,
     completionBonus: 0,
     flightScore: 0,
     chainCount: 0,
@@ -127,6 +130,7 @@ export function bankFlightScore(ScoreState, { landingBonus = 0 } = {}) {
   const BankedPoints = FlightPoints + landingBonus;
   ScoreState.bankedScore += BankedPoints;
   ScoreState.bankedSlingshotScore += FlightPoints;
+  ScoreState.networkScore += landingBonus;
   ScoreState.liberationScore += landingBonus;
   resetFlightState(ScoreState);
   return {
@@ -137,6 +141,24 @@ export function bankFlightScore(ScoreState, { landingBonus = 0 } = {}) {
   };
 }
 
+/** Awards one already-canonical first circuit closure without making repairs farmable. */
+export function addCircuitBonus(ScoreState, CircuitValue) {
+  const Bonus = Math.max(0, Number.isFinite(CircuitValue) ? Math.round(CircuitValue) : 0);
+  ScoreState.bankedScore += Bonus;
+  ScoreState.networkScore += Bonus;
+  ScoreState.circuitScore += Bonus;
+  return Bonus;
+}
+
+/** Converts deterministic remaining pursuit distance into the only ranked victory bonus. */
+export function addVictoryBonus(ScoreState, RemainingPursuitDistance, ValuePerStep = 1000) {
+  const Bonus = Math.max(0, RemainingPursuitDistance) * ValuePerStep;
+  ScoreState.bankedScore += Bonus;
+  ScoreState.victoryScore += Bonus;
+  ScoreState.completionBonus += Bonus;
+  return Bonus;
+}
+
 export function rollbackFlightScore(ScoreState) {
   const LostPoints = ScoreState.flightScore;
   resetFlightState(ScoreState);
@@ -144,10 +166,7 @@ export function rollbackFlightScore(ScoreState) {
 }
 
 export function addCompletionBonus(ScoreState, RemainingLaunches, ValuePerLaunch = 1000) {
-  const Bonus = Math.max(0, RemainingLaunches) * ValuePerLaunch;
-  ScoreState.bankedScore += Bonus;
-  ScoreState.completionBonus += Bonus;
-  return Bonus;
+  return addVictoryBonus(ScoreState, RemainingLaunches, ValuePerLaunch);
 }
 
 export function predictSlingshotEvents(

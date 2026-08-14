@@ -5,13 +5,15 @@ import { createD1LeaderboardStore } from '../server/cloudflare/d1-store.js';
 import Worker from '../server/cloudflare/worker.js';
 
 const VerifiedReplay = JSON.stringify({
-  v: 1, s: 'breaker-reach', c: 'breaker-reach-3',
+  v: 2, s: 'breaker-reach', c: 'breaker-reach-4',
   p: 'orbitbreak-fixed-step-v1', h: 120, o: 1,
   l: [
-    [108, 'meadow', 18.288242289175088, 0.6416927119009118],
-    [450, 'ember', 18.289101298583088, 0.6417249200732145],
-    [790, 'grove', 18.18743573681574, 2.5679869775427595],
-    [1130, 'tide', 10.368391466289856, 15.018620389428841],
+    [0, 'meadow', -20.169758592649977, -9.726411328046426, 17.089583142026537, 0.5967813936127666, 5],
+    [45, 'ember', -13.45741319496786, -9.475808784347384, 18.2388825930985, 0.6369158148206426, null],
+    [144, 'grove', 2.172876907139826, -4.235567739034147, -18.205543917241794, -1.2730556458302782, null],
+    [301, 'meadow', -20.8933747416002, -7.742904631196904, 11.235821924693264, 14.381196253322678, null],
+    [422, 'frost', -5.550710296381496, 5.539544938575729, 11.235821924693267, -14.381196253322672, null],
+    [507, 'grove', 1.4600000000000004, -6, 14.478698460315043, 11.109896079409152, null],
   ],
 });
 
@@ -85,9 +87,9 @@ class FakeD1Database {
 
 const ExampleRecord = {
   id: 'record-1', callsign: 'ACE', systemIdentifier: 'breaker-reach',
-  contentVersion: 'breaker-reach-3', score: 7000, launchesUsed: 4,
-  flightTimeMilliseconds: 2975, slingshotScore: 0, liberationScore: 3000,
-  completionBonus: 4000, collectedStardustCount: 0, replay: VerifiedReplay,
+  contentVersion: 'breaker-reach-4', score: 11650, launchesUsed: 6,
+  flightTimeMilliseconds: 5892, slingshotScore: 1750, networkScore: 5900,
+  victoryScore: 4000, collectedStardustCount: 2, replay: VerifiedReplay,
   createdAt: '2026-08-14T12:00:00.000Z',
 };
 
@@ -99,7 +101,7 @@ test('D1 adapter stores a replay digest and maps durable records', async () => {
 
   assert.equal(await Store.hasReplay(VerifiedReplay), true);
   assert.equal(Database.records[0].replay_digest.length, 64);
-  assert.deepEqual((await Store.list('breaker-reach', 'breaker-reach-3', 20))[0], {
+  assert.deepEqual((await Store.list('breaker-reach', 'breaker-reach-4', 20))[0], {
     ...ExampleRecord,
     replay: undefined,
   });
@@ -173,8 +175,8 @@ test('Worker accepts a valid replay through the D1 service boundary', async () =
 
   assert.equal(ResponseData.status, 201);
   const Result = await ResponseData.json();
-  assert.equal(Result.entry.score, 7000);
-  assert.equal(Result.entry.launchesUsed, 4);
+  assert.equal(Result.entry.score, 11650);
+  assert.equal(Result.entry.launchesUsed, 6);
   assert.equal(Result.entry.replay, undefined);
   assert.equal(Database.records.length, 1);
   assert.equal(Database.records[0].callsign, 'ACE');

@@ -72,6 +72,14 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
   if (!Number.isInteger(SystemDefinition.launchBudget) || SystemDefinition.launchBudget < 1) {
     Errors.push('Authored system requires a positive integer launchBudget.');
   }
+  for (const ScoreField of ['circuitBonusValue', 'wardenVictoryValuePerStep']) {
+    if (
+      SystemDefinition[ScoreField] !== undefined
+      && (!Number.isInteger(SystemDefinition[ScoreField]) || SystemDefinition[ScoreField] < 1)
+    ) {
+      Errors.push(`Authored system ${ScoreField} must be a positive integer when present.`);
+    }
+  }
   if (SystemDefinition.camera) {
     if (
       SystemDefinition.camera.followPlayer !== true
@@ -476,6 +484,8 @@ export function createAuthoredSystemRuntime(
     startingWorldIdentifier: SystemDefinition.startingWorldIdentifier,
     openingGuideTargetIdentifier: SystemDefinition.openingGuideTargetIdentifier,
     launchBudget: SystemDefinition.launchBudget,
+    circuitBonusValue: SystemDefinition.circuitBonusValue ?? 1000,
+    wardenVictoryValuePerStep: SystemDefinition.wardenVictoryValuePerStep ?? 1000,
     worldheartUnlockThreshold: SystemDefinition.worldheartUnlockThreshold,
     commandWorldRequiresShieldBreaks:
       SystemDefinition.commandWorldRequiresShieldBreaks === true,
@@ -627,9 +637,11 @@ export const FirstLightSystemDefinition = {
 /** ORBITBREAK's first score-attack arena, spanning several camera views. */
 export const BreakerReachSystemDefinition = {
   id: 'breaker-reach',
-  contentVersion: 'breaker-reach-3',
+  contentVersion: 'breaker-reach-4',
   label: "BREAKER'S REACH",
   launchBudget: 8,
+  circuitBonusValue: 1250,
+  wardenVictoryValuePerStep: 1000,
   openingBody: 'The Command World lies beyond the Reach. Take the low route, or trace to Haven\'s dark rim and Burn through the relay arc toward Frost.',
   camera: {
     followPlayer: true,

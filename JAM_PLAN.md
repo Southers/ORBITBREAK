@@ -154,6 +154,17 @@ final hostile miniature world). Art remains the weakest, highest-leverage area f
 
 Exit: safer completion and ambitious leaderboard play are both legitimate, visibly different routes through the same authored sector.
 
+Checkpoint A — 15 August 2026: the ranked breakdown now uses the designed **Flight**, **Network**
+and **Victory** categories. Authored liberation values and 1,250-point first closures feed Network;
+repairs and repeated traversals remain non-farmable. Defeating the exposed Warden awards 1,000
+points per deterministic pursuit step still remaining instead of rewarding unused bonus fuel. The
+independent validator now reconstructs canonical relay links, unique circuits, suppression,
+recapture, Warden reveal/advance/retreat/catch and the shield gate entirely from schema-v2 launch,
+surface-origin and Burn inputs. The server fixture therefore requires the real two-circuit route;
+a launch-only Command shortcut cannot rank. Desktop browser completion produced a verified 12,250
+result with 1,350 Flight, 6,900 Network and 4,000 Victory, and no browser errors. The public
+leaderboard remains offline and no external release action was taken.
+
 ## Milestone 5 — Tiny Worlds story and art pass
 
 - Give every retained planet a distinct miniature culture, terrain silhouette and occupation scar.

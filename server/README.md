@@ -5,11 +5,11 @@
 ## Routes
 
 - `POST /api/leaderboard` with `{ "callsign": "RUNNER_7", "replay": "..." }`
-- `GET /api/leaderboard?system=breaker-reach&content=breaker-reach-3&limit=20`
+- `GET /api/leaderboard?system=breaker-reach&content=breaker-reach-4&limit=20`
 - `GET /api/replays/:id`
 - `OPTIONS` for the configured GitHub Pages origin
 
-The submit route discards any claimed score, validates and re-simulates the replay, then stores only the independently derived result. The public list omits replay payloads; a replay is fetched separately when a player chooses to watch it.
+The submit route discards any claimed score, validates and re-simulates the replay, reconstructs its relay circuits and Warden pursuit state, then stores only the independently derived Flight, Network, Victory and ranking result. The public list omits replay payloads; a replay is fetched separately when a player chooses to watch it.
 
 ## Cloudflare production candidate
 
