@@ -57,6 +57,16 @@ export function auditReleaseReadiness() {
     MainBuildVersion === MainAssetVersion && MainBuildVersion === StyleAssetVersion,
     'HTML, CSS and published canvas build identifiers must match.',
   );
+  requireCondition(
+    /id="MotionButton"/.test(IndexHtml)
+      && MainSource.includes("window.localStorage.setItem('orbitbreak.motion'")
+      && MainSource.includes("PageSearchParameters.get('diagnostics') === '1'"),
+    'The candidate must retain persistent motion control and its explicit diagnostics gate.',
+  );
+  requireCondition(
+    /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),
+    'Release diagnostics must remain restricted to local development hosts.',
+  );
 
   const RequiredMetadataPatterns = [
     ['English document language', /<html lang="en">/],

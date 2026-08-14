@@ -33,7 +33,7 @@ Each chapter changes the spatial problem without changing the rules: choose a ri
 
 - Pointer/touch: drag backwards from the Runner and release.
 - Keyboard: left/right or A/D steer; up/down or W/S set power; Shift enables fine control; Enter/Space launches; Escape cancels.
-- R resets the attempt. M toggles audio. Footer buttons provide both actions on touch screens.
+- R resets the attempt. M toggles audio. P cycles System, Reduced and Full motion. Footer buttons provide the same actions on touch screens.
 
 ## Media capture plan
 
@@ -70,7 +70,9 @@ Suggested 40-second trailer beat sheet:
 - Complete the safe and mastery route for every authored system on the candidate commit.
 - Verify pointer, touch and keyboard aim; landing; hazard/void recovery; eight-launch failure; Reset; audio and replay.
 - Verify desktop, 390×844 portrait and 844×390 landscape without overflow.
-- Verify OS reduced-motion mode, tab background/foreground recovery and a forced WebGL context restoration.
+- Verify System, Reduced and Full motion modes, including local persistence and unchanged ranked state.
+- On a local `?diagnostics=1` build, start aiming and press Shift+B; confirm the aim cancels without launching and play resumes.
+- On the same local diagnostic build, press Shift+G; confirm WebGL loss is reported, restored and rendering resumes.
 - Confirm draw calls remain under the 190-call ceiling and adaptive pixel ratio can recover a slow device.
 - Confirm the Breakers Board says offline when no endpoint is configured.
 - Re-run credits review after every asset, font, shader, sound or capture is added.
@@ -82,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 - The production leaderboard has not been deployed; production Worker CPU traces and D1 latency remain unmeasured.
 - Final screenshots, trailer footage and the Open Graph share image must be captured from the approved candidate commit.
 - Final platform rules, deadline, categories and page fields must be rechecked against the live submission site.
-- Final browser/device coverage and the manual reduced-motion/WebGL tests remain release-candidate gates.
+- Final physical-device coverage remains a release-candidate gate; desktop and emulated mobile resilience checks are recorded in `JAM_PLAN.md`.
 
 ## External-action approval boundary
 

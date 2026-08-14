@@ -10,8 +10,8 @@
   <meta property="og:description" content="Chain planetary slingshots, free tiny worlds and bank the run before your launches expire." />
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
-  <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260814-ob11" />
-  <link rel="stylesheet" href="./src/style.css?v=20260814-ob11" />
+  <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260814-ob12" />
+  <link rel="stylesheet" href="./src/style.css?v=20260814-ob12" />
 
   <!--
     Buildless release import map. Three.js is pinned and vendored so startup
@@ -37,7 +37,7 @@
     <p id="KeyboardHelp" class="visually-hidden">
       Keyboard controls: focus the game, use left and right or A and D to steer, use up and
       down or W and S to change power, hold Shift for fine adjustments, and press Enter or
-      Space to launch. Escape cancels keyboard aiming. R resets and M toggles audio.
+      Space to launch. Escape cancels keyboard aiming. R resets, M toggles audio, and P changes motion.
     </p>
     <div id="LiberationFlash" class="liberation-flash" aria-hidden="true"></div>
 
@@ -180,12 +180,13 @@
     <footer class="hud hud--bottom">
       <span>Drag + release · arrows + Enter</span>
       <div class="hud__actions">
+        <button id="MotionButton" type="button" aria-pressed="mixed" aria-keyshortcuts="P">Motion system [P]</button>
         <button id="AudioButton" type="button" aria-pressed="false" aria-keyshortcuts="M">Audio on [M]</button>
         <button id="ResetButton" type="button" aria-keyshortcuts="R">Reset [R]</button>
       </div>
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260814-ob11"></script>
+  <script type="module" src="./src/main.js?v=20260814-ob12"></script>
 </body>
 </html>
