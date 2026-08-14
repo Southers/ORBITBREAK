@@ -324,7 +324,9 @@ export function validateReplay(Replay) {
 export function validateSerializedReplay(SerializedReplay) {
   try {
     return validateReplay(parseReplay(SerializedReplay));
-  } catch (Error) {
-    return invalid(Error instanceof Error ? Error.message : 'Replay parsing failed.');
+  } catch (CaughtError) {
+    return invalid(
+      CaughtError instanceof Error ? CaughtError.message : 'Replay parsing failed.',
+    );
   }
 }

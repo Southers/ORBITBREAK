@@ -20,6 +20,8 @@ Occupied worlds now carry an unmistakable Stillness control grid and orbital cag
 
 The leaderboard foundation now records each attempt as a compact deterministic replay: versioned fixed-step launch timing, origin and exact velocity only. Completed payloads persist locally; they do not trust or contain the displayed score. A DOM-free validator rebuilds the authored system, re-simulates those inputs and derives every result field independently. Only an exact match receives Verified and may update the local personal best. Verified routes can be watched immediately through the live simulation from the result screen. The same validation contract must run server-side before any future online score is accepted.
 
+A provider-neutral leaderboard service contract now covers constrained callsigns, validated submission, locked ranking, top-list reads and on-demand replay fetches. Its in-memory store is test-only: no external service or public board exists until a durable provider, abuse limits and deployment are deliberately configured.
+
 The locked target is deliberately small:
 
 - one tiny astronaut controlled with drag and release — implemented;

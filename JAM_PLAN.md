@@ -88,6 +88,8 @@ Checkpoint B — offline validation: implemented as a DOM-free re-simulation mod
 
 Checkpoint C — local replay viewing: implemented with a Watch replay action on verified results. Playback resets the system and injects the captured inputs at their original fixed-step times through the live game rather than approximating the path. A visible shot counter distinguishes playback, aiming stays disabled and Reset exits immediately. The browser-captured four-shot route automatically reconstructed every liberation, returned to the Command World at 7,000 and independently verified again; 390×844 results fit all three actions without overflow. Pure tests cover timing, ordered consumption and origin mismatch. Online transport and callsigns remain intentionally unstarted.
 
+Checkpoint D — provider-neutral service contract: implemented without deploying an external service. The Fetch-standard boundary accepts callsign + replay only, independently derives stored results, rejects invalid and duplicate runs, ranks by the locked score/launch/time order, omits replay bytes from list responses and exposes them through a separate watch route. Callsigns are constrained and minimally blocked. HTTP/CORS, forged-total, duplicate, list and replay-fetch behaviour are covered with an in-memory test adapter. A production adapter still requires durable indexes, replay digests, request/rate limits and a chosen host; no account or endpoint has been created.
+
 ## Milestone 7 — Authored expansion and release polish
 
 - Add systems only when each introduces a new spatial scoring problem.
