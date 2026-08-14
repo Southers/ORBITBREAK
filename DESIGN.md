@@ -152,8 +152,11 @@ No dialogue trees, combat encounters or cutscenes are required.
 
 - Drag backwards from the Runner and release to launch.
 - Use the same gesture for mouse, pen and touch.
+- Provide an equivalent ranked keyboard path: left/right steer, up/down adjust power, Shift enables fine control, Enter/Space launches and Escape cancels.
+- Pointer and keyboard release must enter the same deterministic launch, replay and scoring path.
 - Keep controls readable at portrait-mobile scale.
 - Keep Reset and audio controls keyboard and touch accessible.
+- Keep keyboard focus inside an open results or rankings dialog.
 - Reduced motion may remove camera shake and extended celebration without changing physics or scoring.
 - Practice assists must be clearly labelled and must never silently submit a ranked score.
 

@@ -26,6 +26,8 @@ Completed runs now show exactly how many points came from slingshots, liberated 
 
 Occupied worlds now carry an unmistakable Stillness control grid and orbital cage. Landing breaks the cage under the spherical liberation wave, restores the world's colour and motion, and reveals a concise story memory. The Runner braces while aiming, flies under twin thrusters, celebrates a liberation and visibly tumbles on recovery; the animation never changes deterministic physics.
 
+Every ranked shot is now playable by pointer, touch or keyboard. Focus the canvas and use left/right to steer, up/down to set power, Shift for 0.5°/1% fine adjustments and Enter or Space to launch; WASD mirrors the arrow keys and Escape cancels without spending a launch. Keyboard and pointer releases share the same prediction, fixed-step launch, replay and scoring path. Results and rankings keep focus contained inside their active dialog.
+
 The leaderboard foundation now records each attempt as a compact deterministic replay: versioned fixed-step launch timing, origin and exact velocity only. Completed payloads persist locally; they do not trust or contain the displayed score. A DOM-free validator rebuilds the authored system, re-simulates those inputs and derives every result field independently. Only an exact match receives Verified and may update the local personal best. Verified routes can be watched immediately through the live simulation from the result screen. The same validation contract must run server-side before any future online score is accepted.
 
 A provider-neutral leaderboard service contract now covers constrained callsigns, validated submission, locked ranking, top-list reads and on-demand replay fetches. A Cloudflare Worker + D1 adapter is prepared with unique replay digests, ranked storage, origin/body limits and pre-validation rate limiting; it bundles successfully in a local Wrangler dry run. The result screen now opens a compact Breakers Board: a configured build can bank a verified callsign, read the locked ranking and fetch any route into the live replay system. An unconfigured build explicitly stays offline and never presents local scores as global. No external service, database or public board has been created, and production validation CPU remains a deployment gate.
@@ -75,6 +77,9 @@ npm run check
 ## Controls
 
 - Drag backwards from the glowing player marker and release to launch.
+- Focus the game and use left/right or `A`/`D` to steer.
+- Use up/down or `W`/`S` to adjust power; hold `Shift` for fine control.
+- Press `Enter` or `Space` to launch; `Escape` cancels keyboard aiming.
 - `R` resets the run.
 - `M` toggles audio.
 - The footer buttons provide the same actions on touch devices.
