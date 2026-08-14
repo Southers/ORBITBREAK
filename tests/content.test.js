@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { getRouteChoices } from '../src/campaign.js';
 import {
   DefaultAuthoredSystemIdentifier,
+  BreakerReachSystemDefinition,
   BrokenBeltSystemDefinition,
   FirstLightSystemDefinition,
   LongNightSystemDefinition,
@@ -26,6 +27,20 @@ test('First Light satisfies the authored-system content contract', () => {
     (WorldDefinition) => WorldDefinition.id === 'grove',
   );
   assert.ok(FrostDefinition.slingshotValue > GroveDefinition.slingshotValue);
+});
+
+test("Breaker\'s Reach is the large-system score-attack entry", () => {
+  assert.deepEqual(validateAuthoredSystemDefinition(BreakerReachSystemDefinition), []);
+  assert.equal(BreakerReachSystemDefinition.worlds.length, 6);
+  assert.equal(BreakerReachSystemDefinition.camera.followPlayer, true);
+  const WorldXs = BreakerReachSystemDefinition.worlds.map(
+    (WorldDefinition) => WorldDefinition.position.x,
+  );
+  assert.ok(Math.max(...WorldXs) - Math.min(...WorldXs) > 35);
+  assert.deepEqual(
+    BreakerReachSystemDefinition.routeSuggestions.meadow,
+    ['ember', 'frost'],
+  );
 });
 
 test('authored systems fail closed without a positive launch budget', () => {
@@ -152,7 +167,7 @@ test('content validation rejects malformed authored environment palettes', () =>
 });
 
 test('system selection falls back to the authored campaign entry', () => {
-  assert.equal(DefaultAuthoredSystemIdentifier, 'first-light');
+  assert.equal(DefaultAuthoredSystemIdentifier, 'breaker-reach');
   assert.equal(getAuthoredSystemDefinition('first-light'), FirstLightSystemDefinition);
   assert.equal(getAuthoredSystemDefinition('broken-belt'), BrokenBeltSystemDefinition);
   assert.equal(
@@ -161,15 +176,15 @@ test('system selection falls back to the authored campaign entry', () => {
   );
   assert.equal(getAuthoredSystemDefinition('long-night'), LongNightSystemDefinition);
   assert.equal(getAuthoredSystemDefinition('worldheart'), WorldheartSystemDefinition);
-  assert.equal(getAuthoredSystemDefinition('missing-system'), FirstLightSystemDefinition);
+  assert.equal(getAuthoredSystemDefinition('missing-system'), BreakerReachSystemDefinition);
 });
 
 test('campaign order advances through Long Night into the Worldheart finale', () => {
   assert.deepEqual(
     AuthoredCampaignSystemIdentifiers,
-    ['first-light', 'broken-belt', 'wandering-garden', 'long-night', 'worldheart'],
+    ['breaker-reach', 'broken-belt', 'wandering-garden', 'long-night', 'worldheart'],
   );
-  assert.equal(getNextAuthoredSystemIdentifier('first-light'), 'broken-belt');
+  assert.equal(getNextAuthoredSystemIdentifier('breaker-reach'), 'broken-belt');
   assert.equal(getNextAuthoredSystemIdentifier('broken-belt'), 'wandering-garden');
   assert.equal(getNextAuthoredSystemIdentifier('wandering-garden'), 'long-night');
   assert.equal(getNextAuthoredSystemIdentifier('long-night'), 'worldheart');

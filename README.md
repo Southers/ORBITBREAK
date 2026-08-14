@@ -12,7 +12,7 @@ This repository has separated from WORLDSEED. Its deterministic fixed-step physi
 
 Milestones 1 and 2 now establish the competitive loop. A procedural tiny astronaut has eight launches; every release spends one, including misses, and the eighth flight is allowed to finish. The exact ranked prediction ends after 1.33 seconds, so longer routes demand judgement. Passing into and back out of a planet's influence band earns Assist, Deep or Razor points, distinct planets build a chain and the same body scores only once per flight. A safe landing banks the visible at-risk score; a miss or asteroid impact loses it. Liberating an optional world and reaching the Command World add clear bonuses.
 
-The planets and most chapter content remain the inherited WORLDSEED migration fixture while ORBITBREAK's slingshot scoring and first large system replace them. They should not be mistaken for the finished score-attack loop.
+Breaker's Reach is now the default ORBITBREAK vertical slice: six worlds span several camera views, a compact scanner keeps distant routes readable, and offscreen labels point toward authored choices. A four-launch low route reaches the Command World with room for recovery; the high opening bends around Ember and Grove before Tide for a much larger bank. The later campaign chapters remain inherited WORLDSEED migration fixtures and should not be mistaken for finished ORBITBREAK content.
 
 The locked target is deliberately small:
 
@@ -20,9 +20,9 @@ The locked target is deliberately small:
 - eight launches to reach the Command World — implemented;
 - accurate but partial ranked trajectory prediction — implemented;
 - deterministic slingshot points, close-pass tiers and multi-body chains — implemented;
-- optional high-value occupied planets;
+- optional high-value occupied planets — implemented in Breaker's Reach;
 - safe-landing banking with miss rollback — implemented;
-- one large authored vertical-slice system;
+- one large authored vertical-slice system — implemented as Breaker's Reach;
 - local personal bests before any validated online leaderboard.
 
 See `DESIGN.md` for the complete rules and `JAM_PLAN.md` for implementation order.

@@ -9,7 +9,7 @@
   <meta property="og:description" content="Chain planetary slingshots, free tiny worlds and bank the run before your launches expire." />
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
-  <link rel="stylesheet" href="./src/style.css?v=20260814-ob2" />
+  <link rel="stylesheet" href="./src/style.css?v=20260814-ob3" />
 
   <!--
     Buildless import map for the five-day jam. Three.js is pinned and vendored so startup
@@ -55,6 +55,14 @@
       <span>UNBANKED</span>
       <strong id="FlightScoreValue">+0</strong>
       <small id="ChainValue">CHAIN ×1</small>
+    </section>
+
+    <section id="ScannerPanel" class="scanner-panel" aria-label="System scanner" hidden>
+      <span>SCANNER</span>
+      <svg id="ScannerMap" viewBox="0 0 160 90" aria-hidden="true">
+        <g id="ScannerBodyLayer"></g>
+        <circle id="ScannerRunner" class="scanner-runner" r="3"></circle>
+      </svg>
     </section>
 
     <section id="ObjectivePanel" class="objective-panel" aria-live="polite">
@@ -118,6 +126,6 @@
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260814-ob2"></script>
+  <script type="module" src="./src/main.js?v=20260814-ob3"></script>
 </body>
 </html>

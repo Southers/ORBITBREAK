@@ -47,6 +47,8 @@ Checkpoint: implemented with a 1.33-second exact ranked preview, deterministic e
 
 Exit: a playtester can explore, complete, understand why they lost and identify a route worth replaying.
 
+Checkpoint: implemented as Breaker's Reach, the new default arena. Six worlds span more than 35 world units and are framed through a Runner-following exploration camera, compact live scanner and clamped offscreen route labels. The low route has a deterministic four-launch completion and an opening Haven→Ember shot that resolves inside the ranked preview. The high opening stays deliberately unresolved, threads authored Ember and Grove assists, and can bank 2,550 slingshot points plus Tide's 1,000 liberation bonus. Deterministic tests cover the safe opening, high-score chain and complete four-launch route. A full desktop browser run completed Haven → Ember → Grove → Tide → Command in four launches for 7,000 points, including the 4,000 unused-launch bonus. Portrait mobile verified a real exact-preview landing. Both aspect ratios verify camera tracking, scanner movement, edge labels, HUD separation, render budget and clean consoles.
+
 ## Milestone 4 — Results and local competition
 
 - Show a transparent score breakdown.
