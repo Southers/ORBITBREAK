@@ -22,6 +22,8 @@ Exit: ORBITBREAK has an independent repository, coherent scope and a passing pla
 
 Exit: failure has an immediate, understandable cost and the system has a clear end.
 
+Checkpoint: implemented with a procedural helmeted Runner that preserves the proven collision radius, an authored eight-launch budget across all five migration systems, one-launch-per-release consumption, last-flight settlement, Command World completion and a clear exhausted-run reset. Pure run-state tests cover launch use, ordinary settlement, exhaustion, final-launch completion and invalid transitions. Desktop and portrait-mobile browser passes verify the Runner/HUD, successful landing, miss recovery, eight-shot failure and automatic fresh-run reset with clean consoles.
+
 ## Milestone 2 — Skill and scoring
 
 - Limit ranked prediction to an accurate initial segment.
@@ -95,4 +97,3 @@ For every milestone:
 ## Cut order
 
 Cut campaign breadth, additional systems, online services, daily challenges, secondary story and cosmetic rewards before cutting launch pressure, slingshot skill, score clarity, deterministic physics, mobile reliability or the liberation payoff.
-

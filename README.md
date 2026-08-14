@@ -8,14 +8,16 @@ The safe route completes the system. The dangerous route reaches the leaderboard
 
 ## Current checkpoint
 
-This repository has just separated from WORLDSEED. Its deterministic fixed-step physics, authored-content pipeline, miniature rendering, one-pointer controls and 52-test baseline are preserved while the new game is built in small playable checkpoints.
+This repository has separated from WORLDSEED. Its deterministic fixed-step physics, authored-content pipeline, miniature rendering and one-pointer controls are preserved while the new game is built in small playable checkpoints.
 
-The current runnable content is still the inherited WORLDSEED campaign and uses its seed, restoration and Worldheart language. It is intentionally retained as a migration fixture while ORBITBREAK's Runner, launch budget, slingshot scoring and first large system replace it. It should not be mistaken for the finished ORBITBREAK loop.
+Milestone 1 now replaces the seed marker with a procedural tiny astronaut and gives every authored system an eight-launch run budget. Every released shot spends one launch, including misses; the eighth shot is allowed to finish, succeeds at the Command World and otherwise triggers a short, automatic system restart. The default shell, objective and completion copy now establish the Runner and Stillness premise.
+
+The planets and most chapter content remain the inherited WORLDSEED migration fixture while ORBITBREAK's slingshot scoring and first large system replace them. They should not be mistaken for the finished score-attack loop.
 
 The locked target is deliberately small:
 
-- one tiny astronaut controlled with drag and release;
-- eight launches to reach the Command World;
+- one tiny astronaut controlled with drag and release — implemented;
+- eight launches to reach the Command World — implemented;
 - accurate but partial ranked trajectory prediction;
 - deterministic slingshot points, close-pass tiers and multi-body chains;
 - optional high-value occupied planets;
@@ -64,4 +66,3 @@ ORBITBREAK began from the deterministic gameplay and rendering foundation of [WO
 ## External-action boundary
 
 Development and playtest builds may be prepared normally. No final external submission, publication, entry or marketing announcement may be performed without the user's explicit confirmation at that moment.
-

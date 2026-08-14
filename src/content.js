@@ -66,6 +66,9 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
   if (!SystemDefinition.openingBody || typeof SystemDefinition.openingBody !== 'string') {
     Errors.push('Authored system requires openingBody story copy.');
   }
+  if (!Number.isInteger(SystemDefinition.launchBudget) || SystemDefinition.launchBudget < 1) {
+    Errors.push('Authored system requires a positive integer launchBudget.');
+  }
   if (SystemDefinition.environment) {
     for (const ColorField of [
       'backgroundColor', 'fogColor', 'hemisphereSkyColor', 'hemisphereGroundColor',
@@ -428,6 +431,7 @@ export function createAuthoredSystemRuntime(
     },
     startingWorldIdentifier: SystemDefinition.startingWorldIdentifier,
     openingGuideTargetIdentifier: SystemDefinition.openingGuideTargetIdentifier,
+    launchBudget: SystemDefinition.launchBudget,
     worldheartUnlockThreshold: SystemDefinition.worldheartUnlockThreshold,
     routeSuggestions: Object.fromEntries(Object.entries(SystemDefinition.routeSuggestions ?? {}).map(
       ([SourceIdentifier, TargetIdentifiers]) => [SourceIdentifier, [...TargetIdentifiers]],
@@ -446,13 +450,14 @@ export function createAuthoredSystemRuntime(
 export const FirstLightSystemDefinition = {
   id: 'first-light',
   label: 'FIRST LIGHT',
-  openingBody: 'Carry the last living seed onward. Pull away from a gold ring, then release.',
+  launchBudget: 8,
+  openingBody: 'The Runner has eight launches. Pull away from a gold ring, then release.',
   completion: {
-    eyebrow: 'FIRST LIGHT RECONNECTED',
-    title: 'The Worldheart hears you.',
-    perfectTitle: 'First Light blooms perfectly.',
-    body: 'A living path reaches onward. Return for the dim emblems whenever you like.',
-    perfectBody: 'Every world and every arc now shines in the living constellation.',
+    eyebrow: 'FIRST LIGHT LIBERATED',
+    title: 'The command signal is broken.',
+    perfectTitle: 'First Light is completely free.',
+    body: 'The Runner banks this route. Return to free more worlds whenever you like.',
+    perfectBody: 'Every world and every arc now shines outside the Stillness.',
   },
   constellation: {
     nodes: [
@@ -461,7 +466,7 @@ export const FirstLightSystemDefinition = {
       { id: 'frost', label: 'Frost', x: 120, y: 18 },
       { id: 'tide', label: 'Tide', x: 184, y: 30 },
       { id: 'ember', label: 'Ember', x: 118, y: 70 },
-      { id: 'worldheart', label: 'Worldheart', x: 214, y: 68, isHeart: true },
+      { id: 'worldheart', label: 'Command', x: 214, y: 68, isHeart: true },
     ],
     edges: [
       ['meadow', 'grove'], ['grove', 'frost'], ['frost', 'tide'],
@@ -485,7 +490,7 @@ export const FirstLightSystemDefinition = {
       id: 'meadow', label: 'MEADOW', visualKey: 'meadow',
       position: { x: -8, y: -6.4, z: 0 }, radius: 3.35, gravitationalParameter: 92,
       aliveColor: 0x5f9b63, atmosphereColor: 0x9bcfb4, initiallyRestored: true,
-      memory: 'The seed remembered rain.',
+      memory: 'The first free signal crosses the rain.',
       restoration: {
         durationSeconds: 2.2, waveWidth: 0.045, growthTrailWidth: 0.18,
         waveColor: 0xe8ffc5, atmosphereOpacity: 0.15, rotationSpeed: 0.00035,
@@ -496,7 +501,7 @@ export const FirstLightSystemDefinition = {
       id: 'ember', label: 'EMBER', visualKey: 'ember',
       position: { x: 7.8, y: -3.3, z: 0 }, radius: 3, gravitationalParameter: 82,
       aliveColor: 0xc47a46, atmosphereColor: 0xffbe78, initiallyRestored: false,
-      memory: 'One spark had waited beneath the stone.',
+      memory: 'One hidden spark answers the Runner.',
       restoration: {
         durationSeconds: 2.35, waveWidth: 0.05, growthTrailWidth: 0.18,
         waveColor: 0xffdfa1, atmosphereOpacity: 0.16, rotationSpeed: 0.00125,
@@ -554,7 +559,7 @@ export const FirstLightSystemDefinition = {
       },
     },
     {
-      id: 'worldheart', label: 'WORLDHEART', kind: 'worldheart',
+      id: 'worldheart', label: 'COMMAND WORLD', kind: 'worldheart',
       position: { x: -4.35, y: 8.75, z: 0 }, radius: 0.9,
       initiallyRestored: false, countsTowardRestoration: false,
       isRouteDestination: true, routeAvailableInitially: false,
@@ -571,6 +576,7 @@ export const FirstLightSystemDefinition = {
 export const BrokenBeltSystemDefinition = {
   id: 'broken-belt',
   label: 'BROKEN BELT',
+  launchBudget: 8,
   openingBody: 'The Belt is coming apart. Choose which lost signal to wake first.',
   completion: {
     eyebrow: 'THE BROKEN BELT HOLDS',
@@ -714,6 +720,7 @@ export const BrokenBeltSystemDefinition = {
 export const WanderingGardenSystemDefinition = {
   id: 'wandering-garden',
   label: 'WANDERING GARDEN',
+  launchBudget: 8,
   openingBody: 'The Garden is still turning. Wake a path, then ride its little moon into bloom.',
   completion: {
     eyebrow: 'THE GARDEN TURNS AGAIN',
@@ -862,6 +869,7 @@ export const WanderingGardenSystemDefinition = {
 export const LongNightSystemDefinition = {
   id: 'long-night',
   label: 'THE LONG NIGHT',
+  launchBudget: 8,
   openingBody: 'Dawn is gone here. Carry the Garden\'s green pulse through the longest dark.',
   environment: {
     backgroundColor: 0x02030b,
@@ -1016,6 +1024,7 @@ export const LongNightSystemDefinition = {
 export const WorldheartSystemDefinition = {
   id: 'worldheart',
   label: 'WORLDHEART',
+  launchBudget: 8,
   openingBody: 'Every restored system is behind you. Choose how the last living seed comes home.',
   environment: {
     backgroundColor: 0x070616,
