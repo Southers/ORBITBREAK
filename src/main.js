@@ -57,18 +57,21 @@ import {
   connectRelayWorlds,
   countLiveRelayWorlds,
   createRelayNetworkState,
+  listLiveRelayCircuits,
   listLiveRelayLinks,
+  listProtectedRelayWorlds,
   listRelayLinks,
   listVulnerableRelayWorlds,
   suppressRelayWorld,
-} from './network.js?v=20260814-ob17';
+  wouldCloseRelayCircuit,
+} from './network.js?v=20260814-ob18';
 import {
   WardenPursuitEvents,
   chooseWardenTarget,
   createWardenPursuitState,
   resetWardenAfterSuppression,
   resolveWardenPursuit,
-} from './warden.js?v=20260814-ob17';
+} from './warden.js?v=20260814-ob18';
 import {
   createRunResult,
   loadPersonalBest,
@@ -233,7 +236,7 @@ const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
 const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob17';
+GameCanvas.dataset.build = '20260814-ob18';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -2619,6 +2622,7 @@ Scene.add(TradeShipMesh);
 function publishRelayNetworkState() {
   const Links = listRelayLinks(RelayNetworkState);
   const LiveLinks = listLiveRelayLinks(RelayNetworkState);
+  const LiveCircuits = listLiveRelayCircuits(RelayNetworkState);
   GameCanvas.dataset.relayLinkCount = String(Links.length);
   GameCanvas.dataset.relayLinks = Links.map((Link) => Link.id).join(',');
   GameCanvas.dataset.relayLiveLinkCount = String(LiveLinks.length);
@@ -2626,6 +2630,11 @@ function publishRelayNetworkState() {
   GameCanvas.dataset.relaySuppressedWorlds = [
     ...RelayNetworkState.suppressedWorldIdentifiers,
   ].sort().join(',');
+  GameCanvas.dataset.relayCircuitCount = String(RelayNetworkState.circuits.size);
+  GameCanvas.dataset.relayLiveCircuitCount = String(LiveCircuits.length);
+  GameCanvas.dataset.relayProtectedWorlds = listProtectedRelayWorlds(
+    RelayNetworkState,
+  ).join(',');
   GameCanvas.dataset.relayActiveWorlds = [...RelayNetworkState.activeWorldIdentifiers]
     .sort()
     .join(',');
@@ -2633,6 +2642,9 @@ function publishRelayNetworkState() {
 
 function synchronizeRelayNetworkVisuals() {
   const Links = listLiveRelayLinks(RelayNetworkState);
+  const HasLiveCircuit = listLiveRelayCircuits(RelayNetworkState).length > 0;
+  RelayLinkMaterial.color.setHex(HasLiveCircuit ? 0xffd98a : 0x72e8ff);
+  TradeShipMaterial.color.setHex(HasLiveCircuit ? 0xffffff : 0xffd98a);
   for (let LinkIndex = 0; LinkIndex < Links.length; LinkIndex += 1) {
     const Link = Links[LinkIndex];
     const Origin = getWorldDefinition(Link.originWorldIdentifier);
@@ -2699,6 +2711,7 @@ const WardenCoreMesh = new THREE.Mesh(
   WardenCoreMaterial,
 );
 WardenVisualGroup.add(WardenCoreMesh);
+const WardenShieldRings = [];
 for (const RingRotation of [0, Math.PI * 0.5]) {
   const Ring = new THREE.Mesh(
     new THREE.TorusGeometry(1.38, 0.06, 8, 40),
@@ -2706,6 +2719,7 @@ for (const RingRotation of [0, Math.PI * 0.5]) {
   );
   Ring.rotation.x = RingRotation;
   WardenVisualGroup.add(Ring);
+  WardenShieldRings.push(Ring);
 }
 WardenVisualGroup.visible = false;
 Scene.add(WardenVisualGroup);
@@ -2745,21 +2759,27 @@ function publishWardenState() {
     ScannerWardenElement.setAttribute('hidden', '');
   }
   WardenVisualGroup.visible = IsVisible;
+  for (let RingIndex = 0; RingIndex < WardenShieldRings.length; RingIndex += 1) {
+    WardenShieldRings[RingIndex].visible = RingIndex < WardenPursuitState.shieldLayers;
+  }
   WardenForecastLine.visible = IsVisible && Boolean(TargetWorld);
   WardenDistanceElement.textContent = WardenPursuitState.distance === 0
     ? 'ARRIVING NOW'
     : `${WardenPursuitState.distance} FLIGHT${WardenPursuitState.distance === 1 ? '' : 'S'}`;
   WardenTargetElement.textContent = TargetWorld
     ? `NEXT: ${TargetWorld.label}`
-    : 'TARGET UNKNOWN';
+    : listLiveRelayCircuits(RelayNetworkState).length > 0
+      ? 'NETWORK BLOCKED'
+      : 'TARGET UNKNOWN';
   GameCanvas.dataset.wardenStatus = WardenPursuitState.status;
   GameCanvas.dataset.wardenDistance = String(WardenPursuitState.distance);
   GameCanvas.dataset.wardenTarget = WardenPursuitState.targetWorldIdentifier ?? '';
   GameCanvas.dataset.wardenEvent = WardenPursuitState.lastEvent;
   GameCanvas.dataset.wardenResolvedFlights = String(WardenPursuitState.resolvedFlightCount);
+  GameCanvas.dataset.wardenShieldLayers = String(WardenPursuitState.shieldLayers);
 }
 
-function resolveWardenAfterResolvedFlight() {
+function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit = null } = {}) {
   const TargetWorldIdentifier = chooseWardenTarget(
     WorldDefinitions,
     listVulnerableRelayWorlds(RelayNetworkState),
@@ -2767,6 +2787,7 @@ function resolveWardenAfterResolvedFlight() {
   WardenPursuitState = resolveWardenPursuit(WardenPursuitState, {
     activeRelayCount: Math.max(1, countLiveRelayWorlds(RelayNetworkState)),
     targetWorldIdentifier: TargetWorldIdentifier,
+    firstCircuitClosed,
   });
   let SuppressedWorld = null;
   if (WardenPursuitState.lastEvent === WardenPursuitEvents.arrived) {
@@ -2805,6 +2826,19 @@ function resolveWardenAfterResolvedFlight() {
     showStatusToast(
       `WARDEN → ${TargetWorld?.label ?? 'FRONTIER'} · ${WardenPursuitState.distance} FLIGHTS`,
       1250,
+    );
+  } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.retreated) {
+    const CircuitWorldLabels = circuit?.worldIdentifiers
+      .map((WorldIdentifier) => getWorldDefinition(WorldIdentifier)?.label)
+      .filter(Boolean)
+      .join(' · ');
+    showInstruction(
+      'Resilient circuit online.',
+      `${CircuitWorldLabels || 'The relay loop'} pushed the Warden back and broke one shield.`,
+    );
+    showStatusToast(
+      `CIRCUIT CLOSED · WARDEN SHIELD ${WardenPursuitState.shieldLayers}/2`,
+      1600,
     );
   } else if (SuppressedWorld) {
     showInstruction(
@@ -3452,17 +3486,67 @@ function getActiveTacticalBodyDefinitions() {
 
 /** Applies authored route emphasis while leaving every physical destination valid. */
 function getCurrentRouteChoices(MaximumChoiceCount = 2) {
-  return getRouteChoices(
+  const ExpansionChoices = getRouteChoices(
     CampaignNodeDefinitions,
     CurrentWorldIdentifier,
     MaximumChoiceCount,
     ActiveSystem.routeSuggestions[CurrentWorldIdentifier] ?? [],
   );
+  if (
+    WardenPursuitState.status === 'hidden'
+    || listLiveRelayCircuits(RelayNetworkState).length > 0
+  ) {
+    return ExpansionChoices;
+  }
+  const CircuitChoices = WorldDefinitions
+    .filter((WorldDefinition) => (
+      WorldDefinition.id !== CurrentWorldIdentifier
+      && WorldDefinition.restored
+      && wouldCloseRelayCircuit(
+        RelayNetworkState,
+        CurrentWorldIdentifier,
+        WorldDefinition.id,
+      )
+    ))
+    .sort((FirstWorld, SecondWorld) => {
+      const CurrentWorld = getWorldDefinition(CurrentWorldIdentifier);
+      const FirstDistance = Math.hypot(
+        FirstWorld.position.x - CurrentWorld.position.x,
+        FirstWorld.position.y - CurrentWorld.position.y,
+      );
+      const SecondDistance = Math.hypot(
+        SecondWorld.position.x - CurrentWorld.position.x,
+        SecondWorld.position.y - CurrentWorld.position.y,
+      );
+      return FirstDistance - SecondDistance || FirstWorld.id.localeCompare(SecondWorld.id);
+    });
+  return [...CircuitChoices, ...ExpansionChoices]
+    .filter((Choice, ChoiceIndex, Choices) => (
+      Choices.findIndex((Candidate) => Candidate.id === Choice.id) === ChoiceIndex
+    ))
+    .slice(0, MaximumChoiceCount);
 }
 
 /** Reveals the nearest useful routes while leaving every physical destination valid. */
 function showRouteChoiceInstruction() {
   const RouteChoices = getCurrentRouteChoices(2);
+  const CircuitChoice = RouteChoices.find((RouteChoice) => (
+    wouldCloseRelayCircuit(
+      RelayNetworkState,
+      CurrentWorldIdentifier,
+      RouteChoice.id,
+    )
+  ));
+  if (CircuitChoice) {
+    const ExpansionChoice = RouteChoices.find((RouteChoice) => RouteChoice !== CircuitChoice);
+    showInstruction(
+      ExpansionChoice
+        ? `Reinforce ${CircuitChoice.label} or expand to ${ExpansionChoice.label}`
+        : `Reinforce the route to ${CircuitChoice.label}`,
+      'Close the gold relay loop to protect its worlds and push the Warden back.',
+    );
+    return;
+  }
   const HasWorldheartChoice = RouteChoices.some(
     (RouteChoice) => RouteChoice.id === WorldheartDefinition.id,
   );
@@ -4104,8 +4188,11 @@ function scheduleRunFailure(Reason = 'OUT OF LAUNCHES') {
 }
 
 /** Settles a non-command landing and defers failure until a new world's reveal completes. */
-function settleNonCommandFlight(Reason = 'FINAL LAUNCH SPENT') {
-  resolveWardenAfterResolvedFlight();
+function settleNonCommandFlight(
+  Reason = 'FINAL LAUNCH SPENT',
+  { firstCircuitClosed = false, circuit = null } = {},
+) {
+  resolveWardenAfterResolvedFlight({ firstCircuitClosed, circuit });
   RunState = settleRunFlight(RunState);
   updateLaunchCounter();
   if (RunState.status !== 'failed') {
@@ -4386,7 +4473,13 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
     );
     showRouteChoiceInstruction();
   }
-  settleNonCommandFlight(`${WorldDefinition.label} WAS NOT THE COMMAND WORLD`);
+  settleNonCommandFlight(
+    `${WorldDefinition.label} WAS NOT THE COMMAND WORLD`,
+    {
+      firstCircuitClosed: RelayConnection?.circuitClosed === true,
+      circuit: RelayConnection?.circuit ?? null,
+    },
+  );
   updateBreakerBurnInterface();
 }
 

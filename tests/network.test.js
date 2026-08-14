@@ -9,8 +9,11 @@ import {
   getRelayLinkIdentifier,
   listRelayLinks,
   listLiveRelayLinks,
+  listLiveRelayCircuits,
+  listProtectedRelayWorlds,
   listVulnerableRelayWorlds,
   suppressRelayWorld,
+  wouldCloseRelayCircuit,
 } from '../src/network.js';
 
 test('a resolved traversal activates its destination and creates one canonical relay link', () => {
@@ -59,4 +62,26 @@ test('suppression stops live links and recapture restores the same non-farmable 
   assert.equal(Recapture.link, Connection.link);
   assert.equal(Network.links.size, 1);
   assert.equal(listLiveRelayLinks(Network).length, 1);
+});
+
+test('a unique circuit protects its worlds once and repairs without closing again', () => {
+  const Network = createRelayNetworkState('haven');
+  connectRelayWorlds(Network, 'haven', 'ember');
+  connectRelayWorlds(Network, 'ember', 'grove');
+  assert.equal(wouldCloseRelayCircuit(Network, 'grove', 'haven'), true);
+  const Closure = connectRelayWorlds(Network, 'grove', 'haven');
+
+  assert.equal(Closure.circuitClosed, true);
+  assert.equal(wouldCloseRelayCircuit(Network, 'grove', 'haven'), false);
+  assert.deepEqual(Closure.circuit.worldIdentifiers, ['ember', 'grove', 'haven']);
+  assert.equal(listLiveRelayCircuits(Network).length, 1);
+  assert.deepEqual(listProtectedRelayWorlds(Network), ['ember', 'grove', 'haven']);
+  assert.deepEqual(listVulnerableRelayWorlds(Network), []);
+
+  suppressRelayWorld(Network, 'grove');
+  assert.equal(listLiveRelayCircuits(Network).length, 0);
+  const Repair = connectRelayWorlds(Network, 'ember', 'grove');
+  assert.equal(Repair.destinationReactivated, true);
+  assert.equal(Repair.circuitClosed, false);
+  assert.equal(listLiveRelayCircuits(Network).length, 1);
 });

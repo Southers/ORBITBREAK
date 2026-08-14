@@ -81,6 +81,12 @@ route history. A later landing reawakens that world and resumes the same route w
 liberation value or relay rewards. The Warden then forecasts its next vulnerable frontier from the
 suppression point. The first resilient circuit and its one-time retreat remain the next checkpoint.
 
+Checkpoint D — 14 August 2026: the route guide now exposes a deliberate reinforce-versus-expand
+choice after pursuit begins. A new edge that closes a unique live loop turns the network gold,
+protects every circuit world from frontier targeting, replaces that flight's pursuit advance with a
+retreat and removes one of the Warden's two visible shield rings. Circuit identity is canonical;
+repairing a suppressed member restores protection without repeating the closure or shield effect.
+
 ## Milestone 3 — One complete sector
 
 - Build a dense six-to-nine-world authored sector from the strongest existing content.

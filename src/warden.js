@@ -15,6 +15,7 @@ export function createWardenPursuitState({ startingDistance = 4 } = {}) {
     status: 'hidden',
     distance: startingDistance,
     maximumDistance: startingDistance,
+    shieldLayers: 2,
     targetWorldIdentifier: null,
     resolvedFlightCount: 0,
     lastEvent: WardenPursuitEvents.dormant,
@@ -47,6 +48,7 @@ export function resolveWardenPursuit(State, {
     return {
       ...State,
       distance: Math.min(State.maximumDistance, State.distance + 1),
+      shieldLayers: Math.max(0, State.shieldLayers - 1),
       targetWorldIdentifier,
       resolvedFlightCount: NextFlightCount,
       lastEvent: WardenPursuitEvents.retreated,

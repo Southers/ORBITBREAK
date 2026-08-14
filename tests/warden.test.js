@@ -35,6 +35,7 @@ test('later resolved flights advance once while a first circuit closure retreats
     firstCircuitClosed: true,
   });
   assert.equal(State.distance, 3);
+  assert.equal(State.shieldLayers, 1);
   assert.equal(State.lastEvent, WardenPursuitEvents.retreated);
 
   State = resolveWardenPursuit(State, { activeRelayCount: 3, targetWorldIdentifier: 'grove' });

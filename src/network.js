@@ -19,7 +19,51 @@ export function createRelayNetworkState(StartingWorldIdentifier) {
     activeWorldIdentifiers: new Set([StartingWorldIdentifier]),
     suppressedWorldIdentifiers: new Set(),
     links: new Map(),
+    circuits: new Map(),
   };
+}
+
+function findLiveRelayPath(NetworkState, OriginWorldIdentifier, DestinationWorldIdentifier) {
+  const Queue = [[OriginWorldIdentifier]];
+  const VisitedWorldIdentifiers = new Set([OriginWorldIdentifier]);
+  const LiveLinks = listLiveRelayLinks(NetworkState).sort(
+    (FirstLink, SecondLink) => FirstLink.id.localeCompare(SecondLink.id),
+  );
+  while (Queue.length > 0) {
+    const Path = Queue.shift();
+    const CurrentWorldIdentifier = Path.at(-1);
+    if (CurrentWorldIdentifier === DestinationWorldIdentifier) return Path;
+    for (const Link of LiveLinks) {
+      const NeighborWorldIdentifier = Link.originWorldIdentifier === CurrentWorldIdentifier
+        ? Link.destinationWorldIdentifier
+        : Link.destinationWorldIdentifier === CurrentWorldIdentifier
+          ? Link.originWorldIdentifier
+          : null;
+      if (!NeighborWorldIdentifier || VisitedWorldIdentifiers.has(NeighborWorldIdentifier)) {
+        continue;
+      }
+      VisitedWorldIdentifiers.add(NeighborWorldIdentifier);
+      Queue.push([...Path, NeighborWorldIdentifier]);
+    }
+  }
+  return null;
+}
+
+export function wouldCloseRelayCircuit(
+  NetworkState,
+  OriginWorldIdentifier,
+  DestinationWorldIdentifier,
+) {
+  const LinkIdentifier = getRelayLinkIdentifier(
+    OriginWorldIdentifier,
+    DestinationWorldIdentifier,
+  );
+  return !NetworkState.links.has(LinkIdentifier)
+    && Boolean(findLiveRelayPath(
+      NetworkState,
+      OriginWorldIdentifier,
+      DestinationWorldIdentifier,
+    ));
 }
 
 /** Derives permanent relay state only from a resolved world-to-world traversal. */
@@ -43,12 +87,19 @@ export function connectRelayWorlds(
   const ExistingLink = NetworkState.links.get(LinkIdentifier);
   if (ExistingLink) {
     return {
+      circuit: null,
+      circuitClosed: false,
       created: false,
       destinationActivated: false,
       destinationReactivated: DestinationReactivated,
       link: ExistingLink,
     };
   }
+  const ExistingPath = findLiveRelayPath(
+    NetworkState,
+    OriginWorldIdentifier,
+    DestinationWorldIdentifier,
+  );
   const Link = Object.freeze({
     id: LinkIdentifier,
     originWorldIdentifier: OriginWorldIdentifier,
@@ -56,7 +107,27 @@ export function connectRelayWorlds(
     sequenceIndex: NetworkState.links.size,
   });
   NetworkState.links.set(LinkIdentifier, Link);
+  let Circuit = null;
+  if (ExistingPath) {
+    const CircuitLinkIdentifiers = [LinkIdentifier];
+    for (let PathIndex = 1; PathIndex < ExistingPath.length; PathIndex += 1) {
+      CircuitLinkIdentifiers.push(getRelayLinkIdentifier(
+        ExistingPath[PathIndex - 1],
+        ExistingPath[PathIndex],
+      ));
+    }
+    CircuitLinkIdentifiers.sort();
+    const CircuitIdentifier = CircuitLinkIdentifiers.join('|');
+    Circuit = NetworkState.circuits.get(CircuitIdentifier) ?? Object.freeze({
+      id: CircuitIdentifier,
+      linkIdentifiers: Object.freeze(CircuitLinkIdentifiers),
+      worldIdentifiers: Object.freeze([...new Set(ExistingPath)].sort()),
+    });
+    NetworkState.circuits.set(CircuitIdentifier, Circuit);
+  }
   return {
+    circuit: Circuit,
+    circuitClosed: Boolean(Circuit),
     created: true,
     destinationActivated: DestinationActivated,
     destinationReactivated: DestinationReactivated,
@@ -66,6 +137,10 @@ export function connectRelayWorlds(
 
 export function listRelayLinks(NetworkState) {
   return [...NetworkState.links.values()];
+}
+
+export function listRelayCircuits(NetworkState) {
+  return [...NetworkState.circuits.values()];
 }
 
 export function isRelayWorldLive(NetworkState, WorldIdentifier) {
@@ -80,6 +155,19 @@ export function isRelayLinkLive(NetworkState, Link) {
 
 export function listLiveRelayLinks(NetworkState) {
   return listRelayLinks(NetworkState).filter((Link) => isRelayLinkLive(NetworkState, Link));
+}
+
+export function listLiveRelayCircuits(NetworkState) {
+  const LiveLinkIdentifiers = new Set(listLiveRelayLinks(NetworkState).map((Link) => Link.id));
+  return listRelayCircuits(NetworkState).filter((Circuit) => (
+    Circuit.linkIdentifiers.every((LinkIdentifier) => LiveLinkIdentifiers.has(LinkIdentifier))
+  ));
+}
+
+export function listProtectedRelayWorlds(NetworkState) {
+  return [...new Set(listLiveRelayCircuits(NetworkState).flatMap(
+    (Circuit) => Circuit.worldIdentifiers,
+  ))].sort();
 }
 
 export function suppressRelayWorld(NetworkState, WorldIdentifier) {
