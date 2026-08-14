@@ -284,6 +284,13 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     if (BodyDefinition.kind === 'seedstone' && !(BodyDefinition.uses > 0)) {
       Errors.push(`Seedstone ${BodyDefinition.id ?? '<unknown>'} requires at least one use.`);
     }
+    if (BodyDefinition.hostileEncounter && (
+      !Number.isFinite(BodyDefinition.hostileEncounter.pylonOffsetRadians)
+      || !(BodyDefinition.hostileEncounter.pulseRangeRadians > 0)
+      || BodyDefinition.hostileEncounter.pulseRangeRadians > Math.PI
+    )) {
+      Errors.push(`Tactical body ${BodyDefinition.id ?? '<unknown>'} has invalid encounter data.`);
+    }
   }
 
   const RouteNodeIdentifiers = new Set([
@@ -470,6 +477,8 @@ export function createAuthoredSystemRuntime(
     openingGuideTargetIdentifier: SystemDefinition.openingGuideTargetIdentifier,
     launchBudget: SystemDefinition.launchBudget,
     worldheartUnlockThreshold: SystemDefinition.worldheartUnlockThreshold,
+    commandWorldRequiresShieldBreaks:
+      SystemDefinition.commandWorldRequiresShieldBreaks === true,
     routeSuggestions: Object.fromEntries(Object.entries(SystemDefinition.routeSuggestions ?? {}).map(
       ([SourceIdentifier, TargetIdentifiers]) => [SourceIdentifier, [...TargetIdentifiers]],
     )),
@@ -618,7 +627,7 @@ export const FirstLightSystemDefinition = {
 /** ORBITBREAK's first score-attack arena, spanning several camera views. */
 export const BreakerReachSystemDefinition = {
   id: 'breaker-reach',
-  contentVersion: 'breaker-reach-2',
+  contentVersion: 'breaker-reach-3',
   label: "BREAKER'S REACH",
   launchBudget: 8,
   openingBody: 'The Command World lies beyond the Reach. Take the low route, or trace to Haven\'s dark rim and Burn through the relay arc toward Frost.',
@@ -654,6 +663,7 @@ export const BreakerReachSystemDefinition = {
   startingWorldIdentifier: 'meadow',
   openingGuideTargetIdentifier: 'ember',
   worldheartUnlockThreshold: 3,
+  commandWorldRequiresShieldBreaks: true,
   routeSuggestions: {
     meadow: ['ember', 'frost'],
     ember: ['grove', 'frost'],
@@ -724,6 +734,14 @@ export const BreakerReachSystemDefinition = {
     {
       ...FirstLightSystemDefinition.tacticalBodies[2],
       position: { x: 28, y: 8, z: 0 },
+      orbit: {
+        centre: { x: 24, y: 8, z: 0 }, radius: 4,
+        phaseRadians: 0, angularSpeedRadiansPerSecond: 0.08,
+      },
+      hostileEncounter: {
+        pylonOffsetRadians: Math.PI / 5,
+        pulseRangeRadians: 8 * (Math.PI / 180),
+      },
     },
   ],
   stardust: [

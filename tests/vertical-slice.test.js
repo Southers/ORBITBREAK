@@ -213,7 +213,7 @@ test("Breaker\'s Reach has a deterministic four-launch completion route", () => 
     { source: 'meadow', target: 'ember', angle: 2 },
     { source: 'ember', target: 'grove', angle: 2 },
     { source: 'grove', target: 'tide', angle: 8 },
-    { source: 'tide', target: 'worldheart', angle: 49 },
+    { source: 'tide', target: 'worldheart', angle: 49.2 },
   ];
   let Position = createOpeningPosition(Runtime.worlds);
   let SimulationTimeSeconds = 0;

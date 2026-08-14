@@ -34,7 +34,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-ob19';
+} from './content.js?v=20260814-ob21';
 
 import {
   countRestoredWorlds,
@@ -78,7 +78,7 @@ import {
   resetWardenAfterSuppression,
   resolveWardenPursuit,
   shouldWardenCatchRunner,
-} from './warden.js?v=20260814-ob20';
+} from './warden.js?v=20260814-ob21';
 import {
   createRunResult,
   loadPersonalBest,
@@ -106,7 +106,7 @@ import {
   consumeDueReplayLaunch,
   createReplayPlaybackState,
 } from './replay-playback.js?v=20260814-ob14';
-import { validateSerializedReplay } from './replay-validator.js?v=20260814-ob20';
+import { validateSerializedReplay } from './replay-validator.js?v=20260814-ob21';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
@@ -117,7 +117,7 @@ import {
   failRunToWarden,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260814-ob20';
+} from './run.js?v=20260814-ob21';
 import {
   addCompletionBonus,
   bankFlightScore,
@@ -244,7 +244,7 @@ const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
 const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob20';
+GameCanvas.dataset.build = '20260814-ob21';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -371,6 +371,8 @@ let LiberationFlashLifeSeconds = 0;
 let SeedstoneUsesRemaining = SeedstoneDefinition.uses;
 let SeedstoneCrumbleStartedAtSeconds = null;
 let AttachedSeedstoneSurfaceOffset = null;
+let AttachedWorldheartSurfaceAngle = null;
+let PendingWorldheartBankedPoints = 0;
 let WorldheartJustUnlocked = false;
 let FinaleRestorationStartedAtSeconds = null;
 let PredictedStardustIdentifiers = new Set();
@@ -397,6 +399,7 @@ const CompletedHostileEncounterWorldIdentifiers = new Set();
 const WorldseedSound = new WorldseedAudio();
 const ScannerWorldElements = new Map();
 let ScannerHazardElement = null;
+let ScannerCommandElement = null;
 let ScannerProjection = null;
 configureScannerInterface();
 
@@ -490,6 +493,13 @@ function configureScannerInterface() {
       { x: Orbit.centre.x + Orbit.radius, y: Orbit.centre.y + Orbit.radius },
     );
   }
+  if (WorldheartDefinition.orbit) {
+    const Orbit = WorldheartDefinition.orbit;
+    BoundsPositions.push(
+      { x: Orbit.centre.x - Orbit.radius, y: Orbit.centre.y - Orbit.radius },
+      { x: Orbit.centre.x + Orbit.radius, y: Orbit.centre.y + Orbit.radius },
+    );
+  }
   const Margin = 4;
   const MinimumX = Math.min(...BoundsPositions.map((Position) => Position.x)) - Margin;
   const MaximumX = Math.max(...BoundsPositions.map((Position) => Position.x)) + Margin;
@@ -524,6 +534,7 @@ function configureScannerInterface() {
   CommandMarker.setAttribute('r', '4');
   CommandMarker.classList.add('scanner-command');
   ScannerBodyLayerElement.append(CommandMarker);
+  ScannerCommandElement = CommandMarker;
 
   ScannerHazardElement = document.createElementNS(SvgNamespace, 'circle');
   ScannerHazardElement.setAttribute('r', '2');
@@ -550,6 +561,9 @@ function updateScannerInterface() {
   ));
   ScannerHazardElement.setAttribute('cx', String(HazardPosition.x));
   ScannerHazardElement.setAttribute('cy', String(HazardPosition.y));
+  const CommandPosition = projectScannerPosition(WorldheartDefinition.position);
+  ScannerCommandElement?.setAttribute('cx', String(CommandPosition.x));
+  ScannerCommandElement?.setAttribute('cy', String(CommandPosition.y));
   GameCanvas.dataset.scannerRunnerX = RunnerPosition.x.toFixed(1);
   GameCanvas.dataset.scannerRunnerY = RunnerPosition.y.toFixed(1);
 }
@@ -2792,9 +2806,31 @@ const WardenEntryPosition = new THREE.Vector3(
 const WardenApproachStartPosition = WardenEntryPosition.clone();
 WardenVisualGroup.position.copy(WardenEntryPosition);
 
+/** Opens the command route only after both authored progress gates are satisfied. */
+function updateCommandWorldAvailability() {
+  const HasRestorationSignal = isWorldheartUnlocked(
+    WorldDefinitions,
+    WorldheartUnlockThreshold,
+  );
+  const HasBrokenCommandShields = !ActiveSystem.commandWorldRequiresShieldBreaks
+    || WardenPursuitState.status === 'exposed';
+  if (
+    !WorldheartDefinition.routeAvailable
+    && HasRestorationSignal
+    && HasBrokenCommandShields
+  ) {
+    WorldheartDefinition.routeAvailable = true;
+    WorldheartJustUnlocked = true;
+    updateWorldheartObjective();
+    return true;
+  }
+  return false;
+}
+
 function publishWardenState() {
   const IsVisible = WardenPursuitState.status !== 'hidden';
   const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
+  const IsCommandExposed = WardenPursuitState.status === 'exposed';
   WardenPanelElement.hidden = !IsVisible;
   if (IsVisible) {
     ScannerWardenElement.removeAttribute('hidden');
@@ -2805,11 +2841,15 @@ function publishWardenState() {
   for (let RingIndex = 0; RingIndex < WardenShieldRings.length; RingIndex += 1) {
     WardenShieldRings[RingIndex].visible = RingIndex < WardenPursuitState.shieldLayers;
   }
-  WardenForecastLine.visible = IsVisible && Boolean(TargetWorld);
-  WardenDistanceElement.textContent = WardenPursuitState.distance === 0
+  WardenForecastLine.visible = IsVisible && Boolean(TargetWorld) && !IsCommandExposed;
+  WardenDistanceElement.textContent = IsCommandExposed
+    ? 'EXPOSED'
+    : WardenPursuitState.distance === 0
     ? 'ARRIVING NOW'
     : `${WardenPursuitState.distance} FLIGHT${WardenPursuitState.distance === 1 ? '' : 'S'}`;
-  WardenTargetElement.textContent = TargetWorld
+  WardenTargetElement.textContent = IsCommandExposed
+    ? 'COMMAND WORLD'
+    : TargetWorld
     ? `NEXT: ${TargetWorld.label}`
     : listLiveRelayCircuits(RelayNetworkState).length > 0
       ? 'NETWORK BLOCKED'
@@ -2832,6 +2872,7 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
     targetWorldIdentifier: TargetWorldIdentifier,
     firstCircuitClosed,
   });
+  const CommandWorldJustExposed = updateCommandWorldAvailability();
   let SuppressedWorld = null;
   if (WardenPursuitState.lastEvent === WardenPursuitEvents.arrived) {
     SuppressedWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
@@ -2892,13 +2933,23 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
       .filter(Boolean)
       .join(' · ');
     showInstruction(
-      'Resilient circuit online.',
-      `${CircuitWorldLabels || 'The relay loop'} pushed the Warden back and broke one shield.`,
+      WardenPursuitState.status === 'exposed'
+        ? 'Command World exposed.'
+        : 'Resilient circuit online.',
+      WardenPursuitState.status === 'exposed'
+        ? `${CircuitWorldLabels || 'The second relay loop'} broke the final shield. Track the moving command and land.`
+        : `${CircuitWorldLabels || 'The relay loop'} pushed the Warden back and broke one shield.`,
     );
     showStatusToast(
-      `CIRCUIT CLOSED · WARDEN SHIELD ${WardenPursuitState.shieldLayers}/2`,
+      WardenPursuitState.status === 'exposed'
+        ? 'SECOND CIRCUIT CLOSED · COMMAND EXPOSED'
+        : `CIRCUIT CLOSED · WARDEN SHIELD ${WardenPursuitState.shieldLayers}/2`,
       1600,
     );
+    if (CommandWorldJustExposed) {
+      WorldheartJustUnlocked = false;
+      WorldseedSound.worldheartOpen();
+    }
   } else if (SuppressedWorld) {
     showInstruction(
       `Signal lost: ${SuppressedWorld.label}.`,
@@ -2912,36 +2963,51 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
 function updateWardenVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   if (WardenPursuitState.status === 'hidden') return;
   const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
-  if (!TargetWorld) return;
+  const IsCommandExposed = WardenPursuitState.status === 'exposed';
+  if (!TargetWorld && !IsCommandExposed) return;
   const ApproachProgress = 1 - (
     WardenPursuitState.distance / WardenPursuitState.maximumDistance
   );
-  TemporaryThreeVector.set(
-    THREE.MathUtils.lerp(
-      WardenApproachStartPosition.x,
-      TargetWorld.position.x,
-      ApproachProgress,
-    ),
-    THREE.MathUtils.lerp(
-      WardenApproachStartPosition.y,
-      TargetWorld.position.y,
-      ApproachProgress,
-    ),
-    0.35,
-  );
-  WardenVisualGroup.position.lerp(
-    TemporaryThreeVector,
-    1 - Math.exp(-DeltaTimeSeconds * 2.8),
-  );
+  if (IsCommandExposed) {
+    TemporaryThreeVector.set(
+      WorldheartDefinition.position.x,
+      WorldheartDefinition.position.y,
+      0.35,
+    );
+  } else {
+    TemporaryThreeVector.set(
+      THREE.MathUtils.lerp(
+        WardenApproachStartPosition.x,
+        TargetWorld.position.x,
+        ApproachProgress,
+      ),
+      THREE.MathUtils.lerp(
+        WardenApproachStartPosition.y,
+        TargetWorld.position.y,
+        ApproachProgress,
+      ),
+      0.35,
+    );
+  }
+  if (IsCommandExposed) {
+    WardenVisualGroup.position.copy(TemporaryThreeVector);
+  } else {
+    WardenVisualGroup.position.lerp(
+      TemporaryThreeVector,
+      1 - Math.exp(-DeltaTimeSeconds * 2.8),
+    );
+  }
   WardenVisualGroup.rotation.y += DeltaTimeSeconds * 0.32;
   WardenVisualGroup.rotation.z = Math.sin(ElapsedTimeSeconds * 0.7) * 0.08;
   WardenCoreMaterial.emissiveIntensity = 0.72 + (Math.sin(ElapsedTimeSeconds * 4) * 0.16);
-  WardenForecastPositions.set([
-    WardenVisualGroup.position.x, WardenVisualGroup.position.y, 0.18,
-    TargetWorld.position.x, TargetWorld.position.y, 0.18,
-  ]);
-  WardenForecastAttribute.needsUpdate = true;
-  WardenForecastLine.computeLineDistances();
+  if (TargetWorld) {
+    WardenForecastPositions.set([
+      WardenVisualGroup.position.x, WardenVisualGroup.position.y, 0.18,
+      TargetWorld.position.x, TargetWorld.position.y, 0.18,
+    ]);
+    WardenForecastAttribute.needsUpdate = true;
+    WardenForecastLine.computeLineDistances();
+  }
   if (ScannerProjection) {
     const Marker = projectScannerPosition(WardenVisualGroup.position);
     ScannerWardenElement.setAttribute('cx', String(Marker.x));
@@ -3534,6 +3600,42 @@ function synchronizeSeedstonePosition() {
   return SeedstoneDefinition.position;
 }
 
+/** Keeps the exposed Command World, its landed Runner, and barrier on one fixed-step orbit. */
+function synchronizeWorldheartPosition() {
+  const WorldheartPosition = calculateBodyPositionAtTime(
+    WorldheartDefinition,
+    PhysicsElapsedTimeSeconds,
+  );
+  WorldheartDefinition.position.x = WorldheartPosition.x;
+  WorldheartDefinition.position.y = WorldheartPosition.y;
+  WorldheartDefinition.position.z = WorldheartPosition.z;
+
+  if (
+    CurrentWorldIdentifier === WorldheartDefinition.id
+    && AttachedWorldheartSurfaceAngle !== null
+    && GamePhase !== 'runFailed'
+  ) {
+    const SurfacePosition = getSurfacePosition(
+      WorldheartDefinition.position,
+      WorldheartDefinition.radius + SeedRadius + 0.03,
+      AttachedWorldheartSurfaceAngle,
+    );
+    SeedPhysicsState.position.x = SurfacePosition.x;
+    SeedPhysicsState.position.y = SurfacePosition.y;
+    SeedPhysicsState.position.z = SurfacePosition.z;
+    SeedGroup.position.set(SurfacePosition.x, SurfacePosition.y, SurfacePosition.z);
+    publishAttachedSeedState(CurrentWorldIdentifier, SurfacePosition);
+    if (ActiveHostileEncounterState) {
+      positionHostilePylons(
+        WorldheartDefinition,
+        ActiveHostileEncounterState.pylonSurfaceAngle,
+      );
+    }
+  }
+
+  return WorldheartDefinition.position;
+}
+
 /** Returns the collision bodies that are active at the current campaign state. */
 function getActiveTacticalBodyDefinitions() {
   return TacticalBodyDefinitions.filter((BodyDefinition) => (
@@ -3551,6 +3653,16 @@ function getCurrentRouteChoices(MaximumChoiceCount = 2) {
     MaximumChoiceCount,
     ActiveSystem.routeSuggestions[CurrentWorldIdentifier] ?? [],
   );
+  if (
+    WorldheartDefinition.routeAvailable
+    && !WorldheartDefinition.restored
+    && CurrentWorldIdentifier !== WorldheartDefinition.id
+  ) {
+    return [
+      WorldheartDefinition,
+      ...ExpansionChoices.filter((Choice) => Choice.id !== WorldheartDefinition.id),
+    ].slice(0, MaximumChoiceCount);
+  }
   if (
     WardenPursuitState.status === 'hidden'
     || listLiveRelayCircuits(RelayNetworkState).length > 0
@@ -3730,6 +3842,7 @@ function updateTacticalBodies(ElapsedTimeSeconds) {
     PhysicsElapsedTimeSeconds,
   );
   const SeedstonePosition = synchronizeSeedstonePosition();
+  const WorldheartPosition = synchronizeWorldheartPosition();
   const SeedstoneScale = SeedstoneUsesRemaining > 0
     ? 1 + (Math.sin(ElapsedTimeSeconds * 4.4) * 0.045)
     : Math.max(
@@ -3765,8 +3878,8 @@ function updateTacticalBodies(ElapsedTimeSeconds) {
     ? 1 + (Math.sin(ElapsedTimeSeconds * 3.2) * 0.1)
     : 0.36 + (Math.sin(ElapsedTimeSeconds * 1.4) * 0.018);
   TacticalBodyTransform.position.set(
-    WorldheartDefinition.position.x,
-    WorldheartDefinition.position.y,
+    WorldheartPosition.x,
+    WorldheartPosition.y,
     0.1,
   );
   TacticalBodyTransform.rotation.set(
@@ -3808,7 +3921,15 @@ function updateTacticalBodies(ElapsedTimeSeconds) {
       position: AsteroidPosition,
       text: `${AsteroidDefinition.label} · MOVING`,
     },
-    null,
+    WorldheartDefinition.routeAvailable
+      ? {
+        definition: WorldheartDefinition,
+        position: WorldheartPosition,
+        text: WorldheartDefinition.orbit
+          ? `${WorldheartDefinition.label} · EXPOSED · MOVING`
+          : `${WorldheartDefinition.label} · EXPOSED`,
+      }
+      : null,
   ];
   for (let LabelIndex = 0; LabelIndex < TacticalLabelElements.length; LabelIndex += 1) {
     const TacticalLabelElement = TacticalLabelElements[LabelIndex];
@@ -3865,8 +3986,10 @@ function updateWorldheartObjective() {
   ObjectivePanelElement.classList.toggle('is-open', IsWorldheartOpen);
   ObjectiveStateElement.textContent = WorldheartDefinition.restored
     ? 'LIBERATED'
+    : CurrentWorldIdentifier === WorldheartDefinition.id && ActiveHostileEncounterState
+      ? 'CORE LOCKED'
     : IsWorldheartOpen
-      ? 'ROUTE OPEN'
+      ? 'COMMAND EXPOSED'
     : `${Math.min(RestoredWorldCount, WorldheartUnlockThreshold)} / ${WorldheartUnlockThreshold}`;
   for (let PipIndex = 0; PipIndex < ObjectivePipElements.length; PipIndex += 1) {
     ObjectivePipElements[PipIndex].classList.toggle(
@@ -4112,7 +4235,10 @@ function calculateSurfaceRestPosition(WorldDefinition, ImpactPosition) {
 }
 
 function getCurrentAttachedWorld() {
-  return GamePhase === 'attached' ? getWorldDefinition(CurrentWorldIdentifier) : null;
+  if (GamePhase !== 'attached') return null;
+  return CurrentWorldIdentifier === WorldheartDefinition.id
+    ? WorldheartDefinition
+    : getWorldDefinition(CurrentWorldIdentifier);
 }
 
 function getRunnerSurfaceAngle(WorldDefinition) {
@@ -4145,7 +4271,7 @@ function showHostileEncounterInstruction() {
   const RunnerSurfaceAngle = getRunnerSurfaceAngle(AttachedWorld);
   if (isHostilePulseReady(ActiveHostileEncounterState, RunnerSurfaceAngle)) {
     showInstruction(
-      'Pylon in range.',
+      AttachedWorld.kind === 'worldheart' ? 'Command core in range.' : 'Pylon in range.',
       'Press Space or tap BREAKER PULSE to disable the barrier without spending a launch.',
     );
   } else {
@@ -4153,7 +4279,9 @@ function showHostileEncounterInstruction() {
       getHostileEncounterAngularDistance(ActiveHostileEncounterState, RunnerSurfaceAngle),
     ));
     showInstruction(
-      `${AttachedWorld.label} blocks the relay.`,
+      AttachedWorld.kind === 'worldheart'
+        ? 'Circle the moving Command World.'
+        : `${AttachedWorld.label} blocks the relay.`,
       `Walk the rim with Q/E or trace toward the red pylons · ${DistanceDegrees}° away.`,
     );
   }
@@ -4207,6 +4335,9 @@ function setRunnerSurfaceAngle(AngleRadians, InputKind = 'pointer') {
   SeedGroup.position.set(SurfacePosition.x, SurfacePosition.y, SurfacePosition.z);
   LastSafeWorldIdentifier = CurrentWorldIdentifier;
   LastSafeSeedPosition = createVector(SurfacePosition.x, SurfacePosition.y, SurfacePosition.z);
+  if (CurrentWorldIdentifier === WorldheartDefinition.id) {
+    AttachedWorldheartSurfaceAngle = AngleRadians;
+  }
   publishAttachedSeedState(CurrentWorldIdentifier, SurfacePosition);
   GameCanvas.dataset.surfaceAngle = AngleRadians.toFixed(4);
   GameCanvas.dataset.surfaceInput = InputKind;
@@ -4459,13 +4590,7 @@ function restoreWorld(WorldDefinition, ImpactPosition) {
 
   updateWorldCounter();
   const RestoredWorldCount = countRestoredWorlds(WorldDefinitions);
-  if (
-    !WorldheartDefinition.routeAvailable
-    && isWorldheartUnlocked(WorldDefinitions, WorldheartUnlockThreshold)
-  ) {
-    WorldheartDefinition.routeAvailable = true;
-    WorldheartJustUnlocked = true;
-  }
+  updateCommandWorldAvailability();
   updateWorldheartObjective();
   WorldseedSound.restore(WorldDefinition.id, RestoredWorldCount);
   showStatusToast(`CONTROL SIGNAL BREAKING · ${WorldDefinition.label}`, 1450);
@@ -4662,13 +4787,55 @@ function revealVictoryPanel() {
   ReplayButtonElement.focus({ preventScroll: true });
 }
 
-/** Completes the system only when the player physically carries the seed into the exit. */
-function attachSeedToWorldheart(ImpactPosition) {
+/** Completes the command landing only after its surface lattice receives a Breaker Pulse. */
+function completeWorldheartLiberation() {
+  if (WorldheartDefinition.restored) return false;
+  CompletedHostileEncounterWorldIdentifiers.add(WorldheartDefinition.id);
+  ActiveHostileEncounterState = null;
+  HostilePylonGroup.visible = false;
+  publishHostileEncounterState();
+  WorldheartDefinition.restored = true;
+  const CompletionBonus = addCompletionBonus(ScoreState, RunState.remainingLaunches);
+  updateScoreInterface();
+  GameCanvas.dataset.completionBonus = String(CompletionBonus);
+  GameCanvas.dataset.commandPulse = 'fired';
+  GamePhase = 'victoryPending';
+  updateWorldheartObjective();
+  updateVictorySummary();
+  hideInstruction();
+  if (IsCampaignFinale) {
+    beginFinaleRestoration();
+    showStatusToast('THE WORLDHEART IS AWAKENING', 2200, 'memory');
+  } else {
+    showStatusToast(
+      `COMMAND BROKEN · +${(PendingWorldheartBankedPoints + CompletionBonus).toLocaleString('en-GB')} BANKED`,
+      1600,
+    );
+  }
+
+  const VictoryDelaySeconds = PrefersReducedMotion
+    ? 0.85
+    : ActiveSystem.finale?.victoryDelaySeconds ?? 0.85;
+  WorldheartCompletionTimeoutIdentifier = window.setTimeout(() => {
+    revealVictoryPanel();
+    GamePhase = 'victory';
+    WorldseedSound.victory();
+    WorldheartCompletionTimeoutIdentifier = null;
+  }, VictoryDelaySeconds * 1000);
+  updateBreakerBurnInterface();
+  return true;
+}
+
+/** Lands on the exposed mobile command body and starts its final surface approach. */
+function attachSeedToWorldheart(ImpactPosition, BodyPosition) {
   if (!WorldheartDefinition.routeAvailable || WorldheartDefinition.restored) {
     return;
   }
   IsBreakerBurnAvailable = false;
   IsBreakerBurnPending = false;
+  WorldheartDefinition.position.x = BodyPosition.x;
+  WorldheartDefinition.position.y = BodyPosition.y;
+  WorldheartDefinition.position.z = BodyPosition.z;
 
   const SurfaceRestPosition = calculateSurfaceRestPosition(WorldheartDefinition, ImpactPosition);
   const LandingAccolade = getCurrentLandingAccolade(WorldheartDefinition.id, true);
@@ -4684,45 +4851,34 @@ function attachSeedToWorldheart(ImpactPosition) {
   SeedGroup.position.set(SurfaceRestPosition.x, SurfaceRestPosition.y, SurfaceRestPosition.z);
   CurrentWorldIdentifier = WorldheartDefinition.id;
   publishAttachedSeedState(CurrentWorldIdentifier, SurfaceRestPosition);
-  WorldheartDefinition.restored = true;
+  AttachedWorldheartSurfaceAngle = getRunnerSurfaceAngle(WorldheartDefinition);
   RunState = settleRunFlight(RunState, { reachedCommandWorld: true });
   updateLaunchCounter();
   const BankResult = bankCurrentFlight();
-  const CompletionBonus = addCompletionBonus(ScoreState, RunState.remainingLaunches);
-  updateScoreInterface();
-  GameCanvas.dataset.completionBonus = String(CompletionBonus);
+  PendingWorldheartBankedPoints = BankResult.bankedPoints;
   GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
+  GameCanvas.dataset.commandPulse = 'required';
   commitFlightStardust();
   resetFlightFeedback();
-  GamePhase = 'victoryPending';
+  GamePhase = 'attached';
   updateWorldheartObjective();
-  updateVictorySummary();
-  hideInstruction();
-  if (IsCampaignFinale) {
-    beginFinaleRestoration();
-    showStatusToast('THE WORLDHEART IS AWAKENING', 2200, 'memory');
+  const HasSurfaceApproach = beginHostileEncounter(WorldheartDefinition);
+  if (ReplayPlaybackState !== null || !HasSurfaceApproach) {
+    completeWorldheartLiberation();
   } else {
-    showStatusToast(
-      `${WorldheartDefinition.label} · +${(BankResult.bankedPoints + CompletionBonus).toLocaleString('en-GB')} BANKED`,
-      1400,
-    );
+    showStatusToast('COMMAND LANDED · CORE LATTICE ACTIVE', 1500);
   }
-
-  const VictoryDelaySeconds = PrefersReducedMotion
-    ? 0.85
-    : ActiveSystem.finale?.victoryDelaySeconds ?? 0.85;
-  WorldheartCompletionTimeoutIdentifier = window.setTimeout(() => {
-    revealVictoryPanel();
-    GamePhase = 'victory';
-    WorldseedSound.victory();
-    WorldheartCompletionTimeoutIdentifier = null;
-  }, VictoryDelaySeconds * 1000);
   updateBreakerBurnInterface();
 }
 
 /** Starts the final system-scale pulse only after the seed physically lands in the core. */
 function beginFinaleRestoration() {
   FinaleRestorationStartedAtSeconds = GameElapsedTimeSeconds;
+  FinaleCoreMesh.position.set(
+    WorldheartDefinition.position.x,
+    WorldheartDefinition.position.y,
+    0.1,
+  );
   FinaleCoreMesh.visible = true;
   FinaleLinkMesh.visible = true;
   FinalePulseMesh.visible = true;
@@ -4756,6 +4912,11 @@ function updateFinaleRestorationVisuals(ElapsedTimeSeconds) {
   );
   const PulseArrivalProgress = THREE.MathUtils.smoothstep(FinaleElapsedSeconds, 0.18, 2.25);
 
+  FinaleCoreMesh.position.set(
+    WorldheartDefinition.position.x,
+    WorldheartDefinition.position.y,
+    0.1,
+  );
   FinaleCoreMesh.rotation.x = FinaleElapsedSeconds * 0.38;
   FinaleCoreMesh.rotation.y = FinaleElapsedSeconds * 0.62;
   FinaleCoreMesh.scale.setScalar(
@@ -5536,6 +5697,9 @@ function requestBreakerPulse() {
   ImpactPulseMesh.visible = true;
   ImpactPulseLifeSeconds = 0.58;
   WorldseedSound.impact(AttachedWorld.id);
+  if (AttachedWorld.kind === 'worldheart') {
+    return completeWorldheartLiberation();
+  }
   updateBreakerBurnInterface();
   showStatusToast('BREAKER PULSE · BARRIER DISABLED', 1350);
   showInstruction(
@@ -5834,6 +5998,7 @@ function simulateSeedFixedStep() {
   advanceReplayPlayback();
   PhysicsElapsedTimeSeconds += FixedPhysicsStepSeconds;
   synchronizeSeedstonePosition();
+  synchronizeWorldheartPosition();
   if (IsPointerAiming && GamePhase === 'attached') {
     updateAimPreview(LastAimPointerWorldPosition);
   } else if (IsKeyboardAiming && GamePhase === 'attached') {
@@ -5946,7 +6111,7 @@ function simulateSeedFixedStep() {
   }
 
   if (CollisionBody?.definition.kind === 'worldheart') {
-    attachSeedToWorldheart(SeedPhysicsState.position);
+    attachSeedToWorldheart(SeedPhysicsState.position, CollisionBody.position);
     return;
   }
 
@@ -6637,6 +6802,7 @@ function resetGame() {
   GameCanvas.dataset.hostilePulseReady = 'false';
   GameCanvas.dataset.hostilePylonAngle = '';
   GameCanvas.dataset.lastHostileWorld = '';
+  GameCanvas.dataset.commandPulse = '';
   GameCanvas.dataset.lastBank = '';
   GameCanvas.dataset.lastScoreLost = '';
   GameCanvas.dataset.completionBonus = '';
@@ -6772,6 +6938,8 @@ function resetGame() {
   SeedstoneUsesRemaining = SeedstoneDefinition.uses;
   SeedstoneCrumbleStartedAtSeconds = null;
   AttachedSeedstoneSurfaceOffset = null;
+  AttachedWorldheartSurfaceAngle = null;
+  PendingWorldheartBankedPoints = 0;
   WorldheartDefinition.routeAvailable = WorldheartDefinition.routeAvailableInitially === true;
   WorldheartDefinition.restored = WorldheartDefinition.initiallyRestored === true;
   WorldheartJustUnlocked = false;
@@ -6801,6 +6969,7 @@ function resetGame() {
   PhysicsElapsedTimeSeconds = 0;
   GameElapsedTimeSeconds = 0;
   synchronizeSeedstonePosition();
+  synchronizeWorldheartPosition();
   updateScannerInterface();
 
   TemporaryThreeVector.set(

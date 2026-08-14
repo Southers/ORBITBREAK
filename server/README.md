@@ -5,7 +5,7 @@
 ## Routes
 
 - `POST /api/leaderboard` with `{ "callsign": "RUNNER_7", "replay": "..." }`
-- `GET /api/leaderboard?system=breaker-reach&content=breaker-reach-2&limit=20`
+- `GET /api/leaderboard?system=breaker-reach&content=breaker-reach-3&limit=20`
 - `GET /api/replays/:id`
 - `OPTIONS` for the configured GitHub Pages origin
 

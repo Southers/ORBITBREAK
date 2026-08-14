@@ -126,6 +126,22 @@ unprotected target world now ends the ranked run with a brief readable reset, wh
 circuit still prevents that world from being targeted. Flight simulation and fixed-step timing are
 unchanged.
 
+Checkpoint C — 14 August 2026: the second unique resilient circuit now breaks the final shield,
+freezes pursuit and exposes the Warden as the moving Command World. Its orbit is sampled from the
+same fixed simulation clock by prediction, live collision and replay validation; the scanner,
+route guide and corrupted-world presentation follow that authoritative position. A physical landing
+banks the final flight but does not grant victory: the Runner remains attached to the moving surface,
+walks a short deterministic arc to the isolation pylons and fires one accessible contextual Pulse.
+Input-only replay playback auto-resolves this unrecorded surface beat and the independent validator
+still derives the same ranked result. Desktop keyboard and 390×844 portrait mobile tap paths both
+completed with verified replays, a 148×52 Pulse control, no document overflow and no browser errors.
+Current judging evidence: **Art 7/10** (the moving corrupted-world silhouette reads, but the Command
+World needs a stronger authored boss landmark), **Creativity 9/10** (network topology physically
+turns pursuit into a boardable tiny world), **Gameplay 9/10** (two loops, moving interception and a
+surface finish form a complete escalation), **Polish 9/10** (prediction/live/replay agreement and
+desktop/mobile completion gates are verified), **Tiny Worlds Theme 9/10** (the boss is itself the
+final hostile miniature world). Art remains the weakest, highest-leverage area for the next pass.
+
 ## Milestone 4 — Score attack and ghosts
 
 - Retune the existing score into Flight, Network and Victory categories.

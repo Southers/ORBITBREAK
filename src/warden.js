@@ -3,6 +3,7 @@ export const WardenPursuitEvents = Object.freeze({
   revealed: 'revealed',
   advanced: 'advanced',
   retreated: 'retreated',
+  exposed: 'exposed',
   arrived: 'arrived',
   suppressed: 'suppressed',
 });
@@ -32,6 +33,13 @@ export function resolveWardenPursuit(State, {
     throw new Error('Warden pursuit requires an active relay count.');
   }
   const NextFlightCount = State.resolvedFlightCount + 1;
+  if (State.status === 'exposed') {
+    return {
+      ...State,
+      resolvedFlightCount: NextFlightCount,
+      lastEvent: WardenPursuitEvents.exposed,
+    };
+  }
   if (State.status === 'hidden') {
     if (activeRelayCount < 3) {
       return { ...State, resolvedFlightCount: NextFlightCount };
@@ -45,11 +53,13 @@ export function resolveWardenPursuit(State, {
     };
   }
   if (firstCircuitClosed) {
+    const NextShieldLayers = Math.max(0, State.shieldLayers - 1);
     return {
       ...State,
+      status: NextShieldLayers === 0 ? 'exposed' : State.status,
       distance: Math.min(State.maximumDistance, State.distance + 1),
-      shieldLayers: Math.max(0, State.shieldLayers - 1),
-      targetWorldIdentifier,
+      shieldLayers: NextShieldLayers,
+      targetWorldIdentifier: NextShieldLayers === 0 ? null : targetWorldIdentifier,
       resolvedFlightCount: NextFlightCount,
       lastEvent: WardenPursuitEvents.retreated,
     };

@@ -46,6 +46,12 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   );
   assert.equal(BastionDefinition.disposition, 'hostile');
   assert.ok(BastionDefinition.hostileEncounter.pulseRangeRadians > 0);
+  const CommandDefinition = BreakerReachSystemDefinition.tacticalBodies.find(
+    (BodyDefinition) => BodyDefinition.kind === 'worldheart',
+  );
+  assert.equal(BreakerReachSystemDefinition.commandWorldRequiresShieldBreaks, true);
+  assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
+  assert.ok(CommandDefinition.hostileEncounter.pulseRangeRadians > 0);
 });
 
 test('authored systems fail closed without a positive launch budget', () => {
@@ -84,6 +90,17 @@ test('hostile worlds fail closed without a bounded contextual encounter', () => 
   BastionDefinition.hostileEncounter.pulseRangeRadians = 0;
   assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
     'World bastion has invalid hostile encounter data.',
+  ));
+});
+
+test('tactical surface encounters fail closed without a bounded Pulse range', () => {
+  const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  const CommandDefinition = InvalidSystemDefinition.tacticalBodies.find(
+    (BodyDefinition) => BodyDefinition.kind === 'worldheart',
+  );
+  CommandDefinition.hostileEncounter.pulseRangeRadians = 0;
+  assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
+    'Tactical body worldheart has invalid encounter data.',
   ));
 });
 

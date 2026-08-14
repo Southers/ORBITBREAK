@@ -50,6 +50,37 @@ test('later resolved flights advance once while a first circuit closure retreats
   assert.equal(State.lastEvent, WardenPursuitEvents.suppressed);
 });
 
+test('breaking the second shield exposes the command and freezes pursuit', () => {
+  let State = createWardenPursuitState({ startingDistance: 3 });
+  State = resolveWardenPursuit(State, {
+    activeRelayCount: 3,
+    targetWorldIdentifier: 'grove',
+  });
+  State = resolveWardenPursuit(State, {
+    activeRelayCount: 3,
+    targetWorldIdentifier: 'grove',
+    firstCircuitClosed: true,
+  });
+  State = resolveWardenPursuit(State, {
+    activeRelayCount: 4,
+    targetWorldIdentifier: 'frost',
+    firstCircuitClosed: true,
+  });
+
+  assert.equal(State.status, 'exposed');
+  assert.equal(State.shieldLayers, 0);
+  assert.equal(State.targetWorldIdentifier, null);
+
+  const ExposedState = resolveWardenPursuit(State, {
+    activeRelayCount: 4,
+    targetWorldIdentifier: 'bastion',
+  });
+  assert.equal(ExposedState.status, 'exposed');
+  assert.equal(ExposedState.distance, State.distance);
+  assert.equal(ExposedState.targetWorldIdentifier, null);
+  assert.equal(ExposedState.lastEvent, WardenPursuitEvents.exposed);
+});
+
 test('the authored frontier nearest the command edge is targeted deterministically', () => {
   const Worlds = [
     { id: 'haven', position: { x: -24, y: -10 } },

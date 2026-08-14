@@ -9,7 +9,7 @@ quality gates and external-action approvals separate from implementation work.
 
 **Tagline:** Break orbit. Break the Stillness. Bank the run.
 
-**Short description:** Guide a tiny rebel astronaut through handcrafted planetary systems. Bend through gravity, chain dangerous slingshots, free occupied worlds and reach the Command World before eight launches run out.
+**Short description:** Guide a tiny rebel astronaut through handcrafted planetary systems. Bend through gravity, chain dangerous slingshots, build two resilient circuits and break the Warden's moving Command World.
 
 **Long description:**
 

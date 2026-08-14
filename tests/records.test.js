@@ -24,7 +24,7 @@ class MemoryStorage {
 function result(Overrides = {}) {
   return createRunResult({
     systemIdentifier: 'breaker-reach',
-    contentVersion: 'breaker-reach-2',
+    contentVersion: 'breaker-reach-3',
     score: 7000,
     launchesUsed: 4,
     flightTimeMilliseconds: 3200,
@@ -48,7 +48,7 @@ test('a worse run never replaces the stored personal best', () => {
   assert.equal(WorseUpdate.isNewPersonalBest, false);
   assert.deepEqual(WorseUpdate.personalBest, result());
   assert.deepEqual(
-    loadPersonalBest(Storage, 'breaker-reach', 'breaker-reach-2'),
+    loadPersonalBest(Storage, 'breaker-reach', 'breaker-reach-3'),
     result(),
   );
 });
