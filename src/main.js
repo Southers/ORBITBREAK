@@ -185,7 +185,7 @@ const CloseLeaderboardButtonElement = document.querySelector('#CloseLeaderboardB
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob10';
+GameCanvas.dataset.build = '20260814-ob11';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);

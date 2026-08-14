@@ -12,7 +12,7 @@
 
 None. The imported geometry, materials, particles, interface, music and sound effects are generated in code. Procedural audio uses the browser Web Audio API and contains no sampled or third-party source material.
 
-The ORBITBREAK Runner model, Stillness cages, liberation effects and all animation are built entirely from procedural Three.js primitives, shaders and CSS and introduce no external asset.
+The ORBITBREAK Runner model, Stillness cages, liberation effects, orbit-mark SVG and all animation are built entirely from procedural Three.js primitives, shaders, SVG and CSS and introduce no external asset.
 
 Add the creator, asset title, source URL and licence here before committing any external art, audio, font, shader or sound.
 

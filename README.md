@@ -2,15 +2,15 @@
 
 **Break orbit. Break the Stillness. Bank the run.**
 
-ORBITBREAK is a developing Three.js gravity score-attack game. Guide a tiny rebel astronaut across authored miniature systems, chain close planetary slingshots, liberate optional worlds for points and reach the Command World before a fixed launch budget expires.
+ORBITBREAK is a Three.js gravity score-attack game. Guide a tiny rebel astronaut across authored miniature systems, chain close planetary slingshots, liberate optional worlds for points and reach the Command World before a fixed launch budget expires.
 
 The safe route completes the system. The dangerous route reaches the leaderboard.
 
 ## Current checkpoint
 
-This repository has separated from WORLDSEED. Its deterministic fixed-step physics, authored-content pipeline, miniature rendering and one-pointer controls are preserved while the new game is built in small playable checkpoints.
+This repository has separated from WORLDSEED. Its deterministic fixed-step physics, authored-content pipeline, miniature rendering and one-pointer controls now support a complete five-system ORBITBREAK campaign.
 
-Milestones 1–5 now establish the complete vertical-slice loop. A procedural tiny astronaut has eight launches; every release spends one, including misses, and the eighth flight is allowed to finish. The exact ranked prediction ends after 1.33 seconds, so longer routes demand judgement. Passing into and back out of a planet's influence band earns Assist, Deep or Razor points, distinct planets build a chain and the same body scores only once per flight. A safe landing banks the visible at-risk score; a miss or asteroid impact loses it. Liberating an optional world and reaching the Command World add clear bonuses.
+A procedural tiny astronaut has eight launches; every release spends one, including misses, and the eighth flight is allowed to finish. The exact ranked prediction ends after 1.33 seconds, so longer routes demand judgement. Passing into and back out of a planet's influence band earns Assist, Deep or Razor points, distinct planets build a chain and the same body scores only once per flight. A safe landing banks the visible at-risk score; a miss or asteroid impact loses it. Liberating an optional world and reaching the Command World add clear bonuses.
 
 Breaker's Reach is the default ORBITBREAK vertical slice: six worlds span several camera views, a compact scanner keeps distant routes readable, and offscreen labels point toward authored choices. A four-launch low route reaches the Command World with room for recovery; the high opening bends around Ember and Grove before Tide for a much larger bank.
 
@@ -72,6 +72,7 @@ Then open `http://localhost:8080`.
 ```bash
 npm test
 npm run check
+npm run release:audit
 ```
 
 ## Controls
@@ -89,6 +90,7 @@ npm run check
 - `AGENTS.md` defines scope, priorities and quality gates.
 - `DESIGN.md` locks the gameplay loop, scoring and leaderboard contract.
 - `JAM_PLAN.md` defines milestone order and cut rules.
+- `RELEASE.md` contains canonical release copy, capture beats, quality gates and approval boundaries.
 - `src/content.js` contains the authored campaign-system data boundary.
 - `CREDITS.md` records dependencies, assets and source provenance.
 
