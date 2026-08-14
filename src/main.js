@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 
 import { WorldseedAudio } from './audio.js?v=20260814-ob8';
+import {
+  adjustKeyboardAimState,
+  createKeyboardAimState,
+  getKeyboardAimDragVector,
+} from './controls.js?v=20260814-ob10';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -180,7 +185,7 @@ const CloseLeaderboardButtonElement = document.querySelector('#CloseLeaderboardB
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob9';
+GameCanvas.dataset.build = '20260814-ob10';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -265,7 +270,9 @@ let CurrentWorldIdentifier = StartingWorldIdentifier;
 let LaunchIgnoredWorldIdentifier = null;
 let LaunchIgnoredBodyIdentifier = null;
 let IsPointerAiming = false;
+let IsKeyboardAiming = false;
 let ActivePointerIdentifier = null;
+let KeyboardAimState = createKeyboardAimState();
 let LastSafeSeedPosition = createVector();
 let LastSafeWorldIdentifier = StartingWorldIdentifier;
 let RecoveryTimeoutIdentifier = null;
@@ -4410,6 +4417,119 @@ function updateAimPreview(CurrentPointerWorldPosition) {
   );
 }
 
+/** Rebuilds the virtual pull point used by keyboard aiming through the pointer preview path. */
+function updateKeyboardAimPreview() {
+  const DragVector = getKeyboardAimDragVector(KeyboardAimState, MaximumDragDistance);
+  LastAimPointerWorldPosition.set(
+    SeedPhysicsState.position.x - DragVector.x,
+    SeedPhysicsState.position.y - DragVector.y,
+    0,
+  );
+  updateAimPreview(LastAimPointerWorldPosition);
+  GameCanvas.dataset.keyboardAimAngle = String(Math.round(
+    THREE.MathUtils.radToDeg(KeyboardAimState.angleRadians) * 10,
+  ) / 10);
+  GameCanvas.dataset.keyboardAimPower = String(Math.round(KeyboardAimState.powerRatio * 100));
+}
+
+/** Opens keyboard aim toward the first authored route while retaining free steering. */
+function beginKeyboardAim() {
+  if (
+    GamePhase !== 'attached'
+    || RunState.status !== 'active'
+    || ReplayPlaybackState !== null
+    || IsPointerAiming
+    || IsKeyboardAiming
+  ) {
+    return false;
+  }
+
+  const SuggestedTarget = getCurrentRouteChoices(1)[0];
+  const SuggestedTargetPosition = SuggestedTarget?.position ?? {
+    x: SeedPhysicsState.position.x + 1,
+    y: SeedPhysicsState.position.y,
+  };
+  KeyboardAimState = createKeyboardAimState({
+    directionX: SuggestedTargetPosition.x - SeedPhysicsState.position.x,
+    directionY: SuggestedTargetPosition.y - SeedPhysicsState.position.y,
+    powerRatio: 1,
+  });
+  IsKeyboardAiming = true;
+  WorldseedSound.beginAim();
+  GameCanvas.classList.add('is-aiming');
+  PullGuideLine.visible = false;
+  AimPanelElement.hidden = false;
+  updateKeyboardAimPreview();
+  showInstruction(
+    'Keyboard aim ready',
+    'Left/right steer · up/down set power · Shift makes fine adjustments · Enter launches.',
+  );
+  return true;
+}
+
+/** Cancels keyboard aiming without spending a launch. */
+function cancelKeyboardAim() {
+  if (!IsKeyboardAiming) {
+    return;
+  }
+  IsKeyboardAiming = false;
+  GameCanvas.classList.remove('is-aiming');
+  AimPanelElement.hidden = true;
+  GameCanvas.dataset.keyboardAimAngle = '';
+  GameCanvas.dataset.keyboardAimPower = '';
+  clearTrajectoryPreview();
+  WorldseedSound.endAim();
+  showRouteChoiceInstruction();
+}
+
+/** Routes focused canvas keys into the same aim and launch state as a pointer gesture. */
+function handleKeyboardAimKey(KeyboardEventData) {
+  if (document.activeElement !== GameCanvas) {
+    return false;
+  }
+
+  const PressedKey = KeyboardEventData.key.toLowerCase();
+  const IsLaunchKey = PressedKey === 'enter' || PressedKey === ' ';
+  const RotationDirection = PressedKey === 'arrowleft' || PressedKey === 'a'
+    ? 1
+    : (PressedKey === 'arrowright' || PressedKey === 'd' ? -1 : 0);
+  const PowerDirection = PressedKey === 'arrowup' || PressedKey === 'w'
+    ? 1
+    : (PressedKey === 'arrowdown' || PressedKey === 's' ? -1 : 0);
+
+  if (PressedKey === 'escape' && IsKeyboardAiming) {
+    KeyboardEventData.preventDefault();
+    cancelKeyboardAim();
+    return true;
+  }
+  if (!IsLaunchKey && RotationDirection === 0 && PowerDirection === 0) {
+    return false;
+  }
+  if (IsLaunchKey && KeyboardEventData.repeat) {
+    KeyboardEventData.preventDefault();
+    return true;
+  }
+  if (!IsKeyboardAiming && !beginKeyboardAim()) {
+    return false;
+  }
+
+  KeyboardEventData.preventDefault();
+  if (IsLaunchKey) {
+    if (IsKeyboardAiming) {
+      releaseAimedLaunch();
+    }
+    return true;
+  }
+
+  KeyboardAimState = adjustKeyboardAimState(KeyboardAimState, {
+    rotationDirection: RotationDirection,
+    powerDirection: PowerDirection,
+    fine: KeyboardEventData.shiftKey,
+  });
+  updateKeyboardAimPreview();
+  return true;
+}
+
 /**
  * Begins a slingshot drag when the seed is attached and the pointer acquired it.
  *
@@ -4426,6 +4546,7 @@ function handlePointerDown(PointerEventData) {
     return;
   }
 
+  cancelKeyboardAim();
   const CurrentPointerWorldPosition = getPointerWorldPosition(PointerEventData);
   if (!CurrentPointerWorldPosition) {
     return;
@@ -4464,23 +4585,10 @@ function handlePointerMove(PointerEventData) {
   PointerEventData.preventDefault();
 }
 
-/**
- * Converts the final drag vector into launch velocity, or cancels if the gesture was tiny.
- *
- * @param {PointerEvent} PointerEventData - Browser pointer event.
- */
-function handlePointerUp(PointerEventData) {
-  if (!IsPointerAiming || PointerEventData.pointerId !== ActivePointerIdentifier) {
-    return;
-  }
-
-  const CurrentPointerWorldPosition = getPointerWorldPosition(PointerEventData);
-  if (CurrentPointerWorldPosition) {
-    LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
-    updateAimPreview(CurrentPointerWorldPosition);
-  }
-
+/** Launches the current pointer or keyboard aim through the shared deterministic path. */
+function releaseAimedLaunch() {
   IsPointerAiming = false;
+  IsKeyboardAiming = false;
   ActivePointerIdentifier = null;
   GameCanvas.classList.remove('is-aiming');
   AimPanelElement.hidden = true;
@@ -4488,8 +4596,8 @@ function handlePointerUp(PointerEventData) {
 
   if (AimDragVector.length() < MinimumLaunchDragDistance) {
     WorldseedSound.endAim();
-    showInstruction('Grab the Runner', 'Pull away from your target, then release.');
-    return;
+    showInstruction('Aim the Runner', 'Drag, or use the arrow keys and press Enter to launch.');
+    return false;
   }
 
   RunState = releaseRunLaunch(RunState);
@@ -4536,7 +4644,26 @@ function handlePointerUp(PointerEventData) {
     1,
   ));
   hideInstruction();
+  return true;
+}
 
+/**
+ * Converts the final drag vector into launch velocity, or cancels if the gesture was tiny.
+ *
+ * @param {PointerEvent} PointerEventData - Browser pointer event.
+ */
+function handlePointerUp(PointerEventData) {
+  if (!IsPointerAiming || PointerEventData.pointerId !== ActivePointerIdentifier) {
+    return;
+  }
+
+  const CurrentPointerWorldPosition = getPointerWorldPosition(PointerEventData);
+  if (CurrentPointerWorldPosition) {
+    LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
+    updateAimPreview(CurrentPointerWorldPosition);
+  }
+
+  releaseAimedLaunch();
   PointerEventData.preventDefault();
 }
 
@@ -4675,6 +4802,8 @@ function simulateSeedFixedStep() {
   synchronizeSeedstonePosition();
   if (IsPointerAiming && GamePhase === 'attached') {
     updateAimPreview(LastAimPointerWorldPosition);
+  } else if (IsKeyboardAiming && GamePhase === 'attached') {
+    updateKeyboardAimPreview();
   }
   if (GamePhase !== 'flying') {
     return;
@@ -5045,7 +5174,10 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   GameCanvas.dataset.runnerScreenX = GameCanvas.dataset.seedScreenX;
   GameCanvas.dataset.runnerScreenY = GameCanvas.dataset.seedScreenY;
 
-  const RunnerAnimationState = getRunnerAnimationState(GamePhase, IsPointerAiming);
+  const RunnerAnimationState = getRunnerAnimationState(
+    GamePhase,
+    IsPointerAiming || IsKeyboardAiming,
+  );
   const RunnerPose = getRunnerPose(RunnerAnimationState);
   const PoseBlend = PrefersReducedMotion
     ? 1
@@ -5320,6 +5452,7 @@ function resetGame() {
   }
 
   IsPointerAiming = false;
+  IsKeyboardAiming = false;
   ReplayPlaybackState = null;
   ReplayIndicatorElement.hidden = true;
   WatchReplayButtonElement.hidden = true;
@@ -5331,6 +5464,7 @@ function resetGame() {
   LeaderboardFormElement.hidden = true;
   SubmitScoreButtonElement.disabled = false;
   ActivePointerIdentifier = null;
+  KeyboardAimState = createKeyboardAimState();
   HasLaunchedOnce = false;
   RunFailurePending = false;
   LaunchPulseLifeSeconds = 0;
@@ -5363,6 +5497,8 @@ function resetGame() {
   GameCanvas.dataset.lastPredictionVisiblePoints = '';
   GameCanvas.dataset.lastPredictionTotalPoints = '';
   GameCanvas.dataset.lastPredictionOutcomeVisible = '';
+  GameCanvas.dataset.keyboardAimAngle = '';
+  GameCanvas.dataset.keyboardAimPower = '';
   GameCanvas.dataset.runnerAnimation = 'ready';
   GameCanvas.dataset.lastBank = '';
   GameCanvas.dataset.lastScoreLost = '';
@@ -5826,10 +5962,13 @@ document.addEventListener('visibilitychange', () => {
   if (IsPageActive) {
     Clock.getDelta();
     resizeRenderer();
-  } else if (IsPointerAiming) {
+  } else if (IsPointerAiming || IsKeyboardAiming) {
     const CanceledPointerIdentifier = ActivePointerIdentifier;
     IsPointerAiming = false;
+    IsKeyboardAiming = false;
     ActivePointerIdentifier = null;
+    GameCanvas.dataset.keyboardAimAngle = '';
+    GameCanvas.dataset.keyboardAimPower = '';
     if (
       CanceledPointerIdentifier !== null
       && GameCanvas.hasPointerCapture(CanceledPointerIdentifier)
@@ -5884,8 +6023,11 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     closeLeaderboardPanel();
     return;
   }
-  if (KeyboardEventData.key === 'Tab' && !LeaderboardPanelElement.hidden) {
-    const FocusableElements = [...LeaderboardPanelElement.querySelectorAll('input, button')]
+  const ActiveModalElement = !LeaderboardPanelElement.hidden
+    ? LeaderboardPanelElement
+    : (!VictoryPanelElement.hidden ? VictoryPanelElement : null);
+  if (KeyboardEventData.key === 'Tab' && ActiveModalElement) {
+    const FocusableElements = [...ActiveModalElement.querySelectorAll('input, button')]
       .filter((Element) => !Element.disabled && !Element.hidden && Element.offsetParent !== null);
     const FirstFocusableElement = FocusableElements[0];
     const LastFocusableElement = FocusableElements.at(-1);
@@ -5902,6 +6044,9 @@ window.addEventListener('keydown', (KeyboardEventData) => {
       KeyboardEventData.preventDefault();
       FirstFocusableElement?.focus();
     }
+    return;
+  }
+  if (handleKeyboardAimKey(KeyboardEventData)) {
     return;
   }
   if (
@@ -5923,6 +6068,16 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     AudioButtonElement.textContent = IsMuted ? 'Audio off [M]' : 'Audio on [M]';
     AudioButtonElement.setAttribute('aria-pressed', String(IsMuted));
   }
+});
+document.addEventListener('focusin', (FocusEventData) => {
+  const ActiveModalElement = !LeaderboardPanelElement.hidden
+    ? LeaderboardPanelElement
+    : (!VictoryPanelElement.hidden ? VictoryPanelElement : null);
+  if (!ActiveModalElement || ActiveModalElement.contains(FocusEventData.target)) {
+    return;
+  }
+  ActiveModalElement.querySelector('input:not([disabled]), button:not([disabled])')
+    ?.focus({ preventScroll: true });
 });
 ResetButtonElement.addEventListener('click', resetGame);
 ReplayButtonElement.addEventListener('click', resetGame);

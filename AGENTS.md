@@ -40,7 +40,7 @@ Do not break the fixture while replacing it in small checkpoints.
 
 - Keep `main` playable at every checkpoint.
 - Preserve deterministic fixed-step physics and use the same simulation for live flight and the visible prediction segment.
-- Retain one-pointer/touch controls, keyboard reset/mute and fast failure recovery.
+- Retain one-pointer/touch controls, equivalent ranked keyboard aiming and fast failure recovery.
 - Make scoring events deterministic, legible and reproducible from a compact replay.
 - Keep hazards deterministic and clearly represented by trustworthy feedback.
 - Prefer large authored systems and deliberate routes over an infinite procedural universe.
@@ -78,4 +78,3 @@ For every meaningful checkpoint:
 ## Scope guardrails
 
 Do not add regression, pursuit meters, fuel systems, walking, combat, inventory, crafting, multiplayer, random infinite worlds, upgrade trees, complex dialogue or sprawling menus before the first score-attack system is proven fun.
-
