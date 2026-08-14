@@ -4,12 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#07111d" />
+  <meta name="orbitbreak-leaderboard-api" content="" />
   <meta name="description" content="ORBITBREAK — a tiny astronaut gravity score-attack game." />
   <meta property="og:title" content="ORBITBREAK" />
   <meta property="og:description" content="Chain planetary slingshots, free tiny worlds and bank the run before your launches expire." />
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
-  <link rel="stylesheet" href="./src/style.css?v=20260814-ob8" />
+  <link rel="stylesheet" href="./src/style.css?v=20260814-ob9" />
 
   <!--
     Buildless import map for the five-day jam. Three.js is pinned and vendored so startup
@@ -128,8 +129,45 @@
       <div class="result-actions">
         <button id="ReplayButton" type="button">Run again</button>
         <button id="WatchReplayButton" class="is-secondary" type="button" hidden>Watch replay</button>
+        <button id="LeaderboardButton" class="is-secondary" type="button">Rankings</button>
         <button id="PlayAgainButton" class="is-secondary" type="button">Continue</button>
       </div>
+    </section>
+
+    <section
+      id="LeaderboardPanel"
+      class="leaderboard-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="LeaderboardTitle"
+      hidden
+    >
+      <span class="leaderboard-panel__eyebrow">BREAKERS BOARD</span>
+      <h2 id="LeaderboardTitle">Breaker's Reach rankings</h2>
+      <p id="LeaderboardStatus" class="leaderboard-panel__status" aria-live="polite">
+        Loading verified routes…
+      </p>
+      <form id="LeaderboardForm" class="leaderboard-form" hidden>
+        <label for="CallsignInput">CALLSIGN</label>
+        <div>
+          <input
+            id="CallsignInput"
+            name="callsign"
+            type="text"
+            minlength="3"
+            maxlength="12"
+            pattern="[A-Za-z0-9][A-Za-z0-9_-]{2,11}"
+            autocomplete="nickname"
+            autocapitalize="characters"
+            spellcheck="false"
+            placeholder="RUNNER_7"
+            required
+          />
+          <button id="SubmitScoreButton" type="submit">Bank online</button>
+        </div>
+      </form>
+      <ol id="LeaderboardList" class="leaderboard-list" aria-label="Verified online rankings"></ol>
+      <button id="CloseLeaderboardButton" class="is-secondary" type="button">Back to results</button>
     </section>
 
     <footer class="hud hud--bottom">
@@ -141,6 +179,6 @@
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260814-ob8"></script>
+  <script type="module" src="./src/main.js?v=20260814-ob9"></script>
 </body>
 </html>

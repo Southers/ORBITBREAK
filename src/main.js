@@ -30,6 +30,7 @@ import {
   predictTrajectory,
   simulatePhysicsStep,
 } from './physics.js?v=20260814-ob8';
+import { createLeaderboardClient } from './leaderboard-client.js?v=20260814-ob9';
 import {
   createRunResult,
   loadPersonalBest,
@@ -76,6 +77,19 @@ import {
 
 const RequestedSystemIdentifier = new URLSearchParams(window.location.search).get('system')
   ?? DefaultAuthoredSystemIdentifier;
+const ConfiguredLeaderboardApiBaseUrl = document.querySelector(
+  'meta[name="orbitbreak-leaderboard-api"]',
+)?.content.trim() ?? '';
+const IsLocalDevelopmentHost = window.location.hostname === 'localhost'
+  || window.location.hostname === '127.0.0.1';
+const LeaderboardApiBaseUrl = IsLocalDevelopmentHost
+  ? new URLSearchParams(window.location.search).get('leaderboardApi')
+    ?? ConfiguredLeaderboardApiBaseUrl
+  : ConfiguredLeaderboardApiBaseUrl;
+const LeaderboardClient = createLeaderboardClient({
+  baseUrl: LeaderboardApiBaseUrl,
+  fetch: window.fetch.bind(window),
+});
 const ActiveSystem = createAuthoredSystemRuntime(
   getAuthoredSystemDefinition(RequestedSystemIdentifier),
   {
@@ -155,11 +169,20 @@ let ConstellationNodeElements = [];
 const PlayAgainButtonElement = document.querySelector('#PlayAgainButton');
 const ReplayButtonElement = document.querySelector('#ReplayButton');
 const WatchReplayButtonElement = document.querySelector('#WatchReplayButton');
+const LeaderboardButtonElement = document.querySelector('#LeaderboardButton');
+const LeaderboardPanelElement = document.querySelector('#LeaderboardPanel');
+const LeaderboardStatusElement = document.querySelector('#LeaderboardStatus');
+const LeaderboardFormElement = document.querySelector('#LeaderboardForm');
+const CallsignInputElement = document.querySelector('#CallsignInput');
+const SubmitScoreButtonElement = document.querySelector('#SubmitScoreButton');
+const LeaderboardListElement = document.querySelector('#LeaderboardList');
+const CloseLeaderboardButtonElement = document.querySelector('#CloseLeaderboardButton');
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob8';
+GameCanvas.dataset.build = '20260814-ob9';
 GameCanvas.dataset.system = ActiveSystem.id;
+GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
 GameCanvas.dataset.webglAvailable = 'true';
 
@@ -249,6 +272,7 @@ let RecoveryTimeoutIdentifier = null;
 let RunFailureTimeoutIdentifier = null;
 let StatusToastTimeoutIdentifier = null;
 let WorldheartCompletionTimeoutIdentifier = null;
+let LeaderboardLoadSequence = 0;
 let HasLaunchedOnce = false;
 let LaunchPulseLifeSeconds = 0;
 let ImpactPulseLifeSeconds = 0;
@@ -5299,6 +5323,13 @@ function resetGame() {
   ReplayPlaybackState = null;
   ReplayIndicatorElement.hidden = true;
   WatchReplayButtonElement.hidden = true;
+  LeaderboardLoadSequence += 1;
+  LeaderboardPanelElement.hidden = true;
+  VictoryPanelElement.inert = false;
+  VictoryPanelElement.removeAttribute('inert');
+  VictoryPanelElement.removeAttribute('aria-hidden');
+  LeaderboardFormElement.hidden = true;
+  SubmitScoreButtonElement.disabled = false;
   ActivePointerIdentifier = null;
   HasLaunchedOnce = false;
   RunFailurePending = false;
@@ -5347,6 +5378,7 @@ function resetGame() {
   GameCanvas.dataset.replayPlayedLaunchCount = '0';
   GameCanvas.dataset.replayValidation = '';
   GameCanvas.dataset.replayValidatedScore = '';
+  GameCanvas.dataset.onlineSubmission = '';
   GameCanvas.dataset.replayPayload = '';
   GameCanvas.dataset.replayBytes = '0';
   RunState = createRunState(ActiveSystem.launchBudget);
@@ -5538,21 +5570,195 @@ function continueCampaignOrReplay() {
   window.location.assign(NextSystemUrl);
 }
 
-/** Resets the system, then replays the verified input stream through live simulation. */
-function watchCompletedReplay() {
-  const SerializedReplay = GameCanvas.dataset.replayPayload;
-  const Validation = validateSerializedReplay(SerializedReplay);
-  if (!Validation.valid) {
-    showStatusToast('REPLAY IS NOT VERIFIED', 1200);
+function setLeaderboardStatus(Message) {
+  LeaderboardStatusElement.textContent = Message;
+}
+
+function renderLeaderboardEntries(Entries) {
+  LeaderboardListElement.replaceChildren();
+  if (Entries.length === 0) {
+    const EmptyElement = document.createElement('li');
+    EmptyElement.className = 'leaderboard-list__empty';
+    EmptyElement.textContent = 'No verified routes yet. The first clean run takes the board.';
+    LeaderboardListElement.append(EmptyElement);
     return;
+  }
+  Entries.forEach((Entry, EntryIndex) => {
+    const RowElement = document.createElement('li');
+    const RankElement = document.createElement('span');
+    RankElement.className = 'leaderboard-list__rank';
+    RankElement.textContent = `#${EntryIndex + 1}`;
+
+    const RunnerElement = document.createElement('span');
+    RunnerElement.className = 'leaderboard-list__runner';
+    const CallsignElement = document.createElement('strong');
+    CallsignElement.textContent = typeof Entry.callsign === 'string' ? Entry.callsign : 'RUNNER';
+    const DetailElement = document.createElement('small');
+    const LaunchesUsed = Number.isInteger(Entry.launchesUsed) ? Entry.launchesUsed : '—';
+    const FlightTime = Number.isInteger(Entry.flightTimeMilliseconds)
+      ? formatFlightTime(Entry.flightTimeMilliseconds)
+      : '—';
+    DetailElement.textContent = `${LaunchesUsed} launches · ${FlightTime}`;
+    RunnerElement.append(CallsignElement, DetailElement);
+
+    const ScoreElement = document.createElement('strong');
+    ScoreElement.className = 'leaderboard-list__score';
+    ScoreElement.textContent = Number.isInteger(Entry.score)
+      ? Entry.score.toLocaleString('en-GB')
+      : '—';
+
+    const WatchButtonElement = document.createElement('button');
+    WatchButtonElement.type = 'button';
+    WatchButtonElement.textContent = 'Watch';
+    WatchButtonElement.disabled = typeof Entry.id !== 'string';
+    WatchButtonElement.addEventListener('click', async () => {
+      WatchButtonElement.disabled = true;
+      setLeaderboardStatus(`Loading ${CallsignElement.textContent}'s verified route…`);
+      try {
+        const ReplayRecord = await LeaderboardClient.getReplay(Entry.id);
+        if (!watchSerializedReplay(
+          ReplayRecord.replay,
+          `${ReplayRecord.callsign ?? CallsignElement.textContent}'s verified route`,
+        )) {
+          throw new Error('Remote replay did not validate for this system.');
+        }
+      } catch (CaughtError) {
+        setLeaderboardStatus(CaughtError instanceof Error
+          ? CaughtError.message
+          : 'Replay could not load.');
+        WatchButtonElement.disabled = false;
+      }
+    });
+    RowElement.append(RankElement, RunnerElement, ScoreElement, WatchButtonElement);
+    LeaderboardListElement.append(RowElement);
+  });
+}
+
+async function refreshLeaderboard(LoadSequence) {
+  try {
+    const Entries = await LeaderboardClient.list({
+      systemIdentifier: ActiveSystem.id,
+      contentVersion: ActiveSystem.contentVersion,
+      limit: 10,
+    });
+    if (LoadSequence !== LeaderboardLoadSequence || LeaderboardPanelElement.hidden) {
+      return;
+    }
+    renderLeaderboardEntries(Entries);
+    setLeaderboardStatus(`${Entries.length} verified route${Entries.length === 1 ? '' : 's'} · score, launches, flight time`);
+  } catch (CaughtError) {
+    if (LoadSequence !== LeaderboardLoadSequence || LeaderboardPanelElement.hidden) {
+      return;
+    }
+    renderLeaderboardEntries([]);
+    setLeaderboardStatus(CaughtError instanceof Error
+      ? CaughtError.message
+      : 'Leaderboard could not load.');
+  }
+}
+
+function openLeaderboardPanel() {
+  LeaderboardLoadSequence += 1;
+  const LoadSequence = LeaderboardLoadSequence;
+  LeaderboardPanelElement.hidden = false;
+  VictoryPanelElement.inert = true;
+  VictoryPanelElement.setAttribute('inert', '');
+  VictoryPanelElement.setAttribute('aria-hidden', 'true');
+  const HasVerifiedRun = GameCanvas.dataset.replayValidation === 'verified'
+    && GameCanvas.dataset.replayPayload !== ''
+    && GameCanvas.dataset.replayMode !== 'complete'
+    && GameCanvas.dataset.onlineSubmission !== 'banked';
+  LeaderboardFormElement.hidden = !LeaderboardClient.configured || !HasVerifiedRun;
+  LeaderboardListElement.replaceChildren();
+  try {
+    CallsignInputElement.value = window.localStorage.getItem('orbitbreak.callsign') ?? '';
+  } catch {
+    CallsignInputElement.value = '';
+  }
+  if (!LeaderboardClient.configured) {
+    setLeaderboardStatus('Online board is not connected in this build. Your verified local best is safe.');
+    const OfflineElement = document.createElement('li');
+    OfflineElement.className = 'leaderboard-list__empty';
+    OfflineElement.textContent = 'No endpoint is configured. The game never pretends a local score is online.';
+    LeaderboardListElement.append(OfflineElement);
+  } else {
+    setLeaderboardStatus('Loading verified routes…');
+    void refreshLeaderboard(LoadSequence);
+  }
+  (LeaderboardFormElement.hidden ? CloseLeaderboardButtonElement : CallsignInputElement)
+    .focus({ preventScroll: true });
+}
+
+function closeLeaderboardPanel(RestoreFocus = true) {
+  LeaderboardLoadSequence += 1;
+  LeaderboardPanelElement.hidden = true;
+  VictoryPanelElement.inert = false;
+  VictoryPanelElement.removeAttribute('inert');
+  VictoryPanelElement.removeAttribute('aria-hidden');
+  if (RestoreFocus && !VictoryPanelElement.hidden) {
+    LeaderboardButtonElement.focus({ preventScroll: true });
+  }
+}
+
+async function submitVerifiedScore(SubmitEvent) {
+  SubmitEvent.preventDefault();
+  if (
+    !LeaderboardClient.configured
+    || GameCanvas.dataset.replayValidation !== 'verified'
+    || GameCanvas.dataset.replayMode === 'complete'
+    || GameCanvas.dataset.onlineSubmission === 'banked'
+  ) {
+    setLeaderboardStatus('Only a verified completed route can be banked online.');
+    return;
+  }
+  SubmitScoreButtonElement.disabled = true;
+  setLeaderboardStatus('Re-simulating route on the leaderboard…');
+  try {
+    const Submission = await LeaderboardClient.submit({
+      callsign: CallsignInputElement.value,
+      replay: GameCanvas.dataset.replayPayload,
+    });
+    try {
+      window.localStorage.setItem('orbitbreak.callsign', Submission.entry.callsign);
+    } catch {
+      // The online result remains valid if callsign convenience storage is unavailable.
+    }
+    GameCanvas.dataset.onlineSubmission = 'banked';
+    LeaderboardFormElement.hidden = true;
+    const SuccessMessage = Submission.rank
+      ? `Verified and banked at rank #${Submission.rank}.`
+      : 'Verified and banked online.';
+    setLeaderboardStatus(SuccessMessage);
+    const LoadSequence = ++LeaderboardLoadSequence;
+    await refreshLeaderboard(LoadSequence);
+    if (LoadSequence === LeaderboardLoadSequence && !LeaderboardPanelElement.hidden) {
+      setLeaderboardStatus(SuccessMessage);
+    }
+  } catch (CaughtError) {
+    setLeaderboardStatus(CaughtError instanceof Error
+      ? CaughtError.message
+      : 'Score could not be submitted.');
+    SubmitScoreButtonElement.disabled = false;
+  }
+}
+
+/** Resets the system, then replays a server- or locally-verified input stream. */
+function watchSerializedReplay(SerializedReplay, ReplayLabel) {
+  const Validation = validateSerializedReplay(SerializedReplay);
+  if (
+    !Validation.valid
+    || Validation.result.systemIdentifier !== ActiveSystem.id
+    || Validation.result.contentVersion !== ActiveSystem.contentVersion
+  ) {
+    return false;
   }
   let CompletedReplay;
   try {
     CompletedReplay = parseReplay(SerializedReplay);
   } catch {
-    showStatusToast('REPLAY COULD NOT LOAD', 1200);
-    return;
+    return false;
   }
+  closeLeaderboardPanel(false);
   resetGame();
   ReplayState = CompletedReplay;
   ReplayPlaybackState = createReplayPlaybackState(CompletedReplay);
@@ -5564,7 +5770,14 @@ function watchCompletedReplay() {
     `WATCHING VERIFIED REPLAY · 0 / ${CompletedReplay.launches.length}`
   );
   ReplayIndicatorElement.hidden = false;
-  showInstruction('Verified route replay', 'Reset at any time to take control.');
+  showInstruction(ReplayLabel, 'Reset at any time to take control.');
+  return true;
+}
+
+function watchCompletedReplay() {
+  if (!watchSerializedReplay(GameCanvas.dataset.replayPayload, 'Verified route replay')) {
+    showStatusToast('REPLAY IS NOT VERIFIED', 1200);
+  }
 }
 
 /** Main frame loop. */
@@ -5666,6 +5879,31 @@ ReducedMotionMediaQuery.addEventListener('change', (PreferenceEvent) => {
   }
 });
 window.addEventListener('keydown', (KeyboardEventData) => {
+  if (KeyboardEventData.key === 'Escape' && !LeaderboardPanelElement.hidden) {
+    KeyboardEventData.preventDefault();
+    closeLeaderboardPanel();
+    return;
+  }
+  if (KeyboardEventData.key === 'Tab' && !LeaderboardPanelElement.hidden) {
+    const FocusableElements = [...LeaderboardPanelElement.querySelectorAll('input, button')]
+      .filter((Element) => !Element.disabled && !Element.hidden && Element.offsetParent !== null);
+    const FirstFocusableElement = FocusableElements[0];
+    const LastFocusableElement = FocusableElements.at(-1);
+    if (
+      KeyboardEventData.shiftKey
+      && document.activeElement === FirstFocusableElement
+    ) {
+      KeyboardEventData.preventDefault();
+      LastFocusableElement?.focus();
+    } else if (
+      !KeyboardEventData.shiftKey
+      && document.activeElement === LastFocusableElement
+    ) {
+      KeyboardEventData.preventDefault();
+      FirstFocusableElement?.focus();
+    }
+    return;
+  }
   if (
     KeyboardEventData.repeat
     || KeyboardEventData.ctrlKey
@@ -5689,6 +5927,9 @@ window.addEventListener('keydown', (KeyboardEventData) => {
 ResetButtonElement.addEventListener('click', resetGame);
 ReplayButtonElement.addEventListener('click', resetGame);
 WatchReplayButtonElement.addEventListener('click', watchCompletedReplay);
+LeaderboardButtonElement.addEventListener('click', openLeaderboardPanel);
+LeaderboardFormElement.addEventListener('submit', submitVerifiedScore);
+CloseLeaderboardButtonElement.addEventListener('click', () => closeLeaderboardPanel());
 PlayAgainButtonElement.addEventListener('click', continueCampaignOrReplay);
 AudioButtonElement.addEventListener('click', () => {
   const IsMuted = WorldseedSound.toggleMute();
