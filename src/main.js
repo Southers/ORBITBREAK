@@ -11,6 +11,12 @@ import {
   getSurfacePosition,
 } from './controls.js?v=20260814-ob14';
 import {
+  createHostileEncounterState,
+  getHostileEncounterAngularDistance,
+  isHostilePulseReady,
+  resolveHostilePulse,
+} from './encounter.js?v=20260814-ob19';
+import {
   MotionPreferences,
   cycleMotionPreference,
   getMotionPreferencePresentation,
@@ -28,7 +34,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-ob14';
+} from './content.js?v=20260814-ob19';
 
 import {
   countRestoredWorlds,
@@ -236,7 +242,7 @@ const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
 const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob18';
+GameCanvas.dataset.build = '20260814-ob19';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -385,6 +391,8 @@ let ReplayState = createReplayRecorder({
 let ReplayPlaybackState = null;
 let RelayNetworkState = createRelayNetworkState(StartingWorldIdentifier);
 let WardenPursuitState = createWardenPursuitState();
+let ActiveHostileEncounterState = null;
+const CompletedHostileEncounterWorldIdentifiers = new Set();
 const WorldseedSound = new WorldseedAudio();
 const ScannerWorldElements = new Map();
 let ScannerHazardElement = null;
@@ -2697,6 +2705,40 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
   if (Links.length > 0) TradeShipMesh.instanceMatrix.needsUpdate = true;
 }
 
+/** One compact pylon barrier turns a hostile landing into a short circumference challenge. */
+const HostilePylonGroup = new THREE.Group();
+const HostilePylonMaterial = new THREE.MeshStandardMaterial({
+  color: 0x5b1d29,
+  emissive: 0xff493f,
+  emissiveIntensity: 1.2,
+  roughness: 0.48,
+  metalness: 0.62,
+});
+for (const PylonOffset of [-0.16, 0, 0.16]) {
+  const PylonMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.18, 0.72, 0.18),
+    HostilePylonMaterial,
+  );
+  PylonMesh.userData.angleOffset = PylonOffset;
+  HostilePylonGroup.add(PylonMesh);
+}
+HostilePylonGroup.visible = false;
+Scene.add(HostilePylonGroup);
+
+function positionHostilePylons(WorldDefinition, SurfaceAngle) {
+  for (const PylonMesh of HostilePylonGroup.children) {
+    const PylonAngle = SurfaceAngle + PylonMesh.userData.angleOffset;
+    const PylonDistance = WorldDefinition.radius + 0.3;
+    PylonMesh.position.set(
+      WorldDefinition.position.x + (Math.cos(PylonAngle) * PylonDistance),
+      WorldDefinition.position.y + (Math.sin(PylonAngle) * PylonDistance),
+      0.34,
+    );
+    PylonMesh.rotation.z = PylonAngle - (Math.PI * 0.5);
+  }
+  HostilePylonGroup.visible = true;
+}
+
 /** The pursuing command vessel is a corrupted miniature world, not a timer overlay. */
 const WardenVisualGroup = new THREE.Group();
 const WardenCoreMaterial = new THREE.MeshStandardMaterial({
@@ -4056,6 +4098,80 @@ function getCurrentAttachedWorld() {
   return GamePhase === 'attached' ? getWorldDefinition(CurrentWorldIdentifier) : null;
 }
 
+function getRunnerSurfaceAngle(WorldDefinition) {
+  return Math.atan2(
+    SeedPhysicsState.position.y - WorldDefinition.position.y,
+    SeedPhysicsState.position.x - WorldDefinition.position.x,
+  );
+}
+
+function publishHostileEncounterState() {
+  const AttachedWorld = getCurrentAttachedWorld();
+  const RunnerSurfaceAngle = AttachedWorld
+    ? getRunnerSurfaceAngle(AttachedWorld)
+    : 0;
+  const PulseReady = Boolean(
+    ActiveHostileEncounterState
+    && isHostilePulseReady(ActiveHostileEncounterState, RunnerSurfaceAngle)
+  );
+  GameCanvas.dataset.hostileEncounter = ActiveHostileEncounterState?.worldIdentifier ?? '';
+  GameCanvas.dataset.hostilePulseReady = String(PulseReady);
+  GameCanvas.dataset.hostilePylonAngle = ActiveHostileEncounterState
+    ? ActiveHostileEncounterState.pylonSurfaceAngle.toFixed(4)
+    : '';
+  return PulseReady;
+}
+
+function showHostileEncounterInstruction() {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld || !ActiveHostileEncounterState) return false;
+  const RunnerSurfaceAngle = getRunnerSurfaceAngle(AttachedWorld);
+  if (isHostilePulseReady(ActiveHostileEncounterState, RunnerSurfaceAngle)) {
+    showInstruction(
+      'Pylon in range.',
+      'Press Space or tap BREAKER PULSE to disable the barrier without spending a launch.',
+    );
+  } else {
+    const DistanceDegrees = Math.round(THREE.MathUtils.radToDeg(
+      getHostileEncounterAngularDistance(ActiveHostileEncounterState, RunnerSurfaceAngle),
+    ));
+    showInstruction(
+      `${AttachedWorld.label} blocks the relay.`,
+      `Walk the rim with Q/E or trace toward the red pylons · ${DistanceDegrees}° away.`,
+    );
+  }
+  return true;
+}
+
+function beginHostileEncounter(WorldDefinition) {
+  if (
+    !WorldDefinition.hostileEncounter
+    || CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id)
+  ) {
+    return false;
+  }
+  ActiveHostileEncounterState = createHostileEncounterState({
+    worldIdentifier: WorldDefinition.id,
+    runnerSurfaceAngle: getRunnerSurfaceAngle(WorldDefinition),
+    ...WorldDefinition.hostileEncounter,
+  });
+  IsKeyboardAiming = false;
+  IsPointerAiming = false;
+  GameCanvas.classList.remove('is-aiming');
+  AimPanelElement.hidden = true;
+  GameCanvas.dataset.keyboardAimAngle = '';
+  GameCanvas.dataset.keyboardAimPower = '';
+  clearTrajectoryPreview();
+  positionHostilePylons(
+    WorldDefinition,
+    ActiveHostileEncounterState.pylonSurfaceAngle,
+  );
+  publishHostileEncounterState();
+  updateBreakerBurnInterface();
+  showHostileEncounterInstruction();
+  return true;
+}
+
 /** Repositions the Runner around a world's playable great-circle without spending a launch. */
 function setRunnerSurfaceAngle(AngleRadians, InputKind = 'pointer') {
   const AttachedWorld = getCurrentAttachedWorld();
@@ -4077,6 +4193,11 @@ function setRunnerSurfaceAngle(AngleRadians, InputKind = 'pointer') {
   publishAttachedSeedState(CurrentWorldIdentifier, SurfacePosition);
   GameCanvas.dataset.surfaceAngle = AngleRadians.toFixed(4);
   GameCanvas.dataset.surfaceInput = InputKind;
+  if (ActiveHostileEncounterState) {
+    publishHostileEncounterState();
+    updateBreakerBurnInterface();
+    showHostileEncounterInstruction();
+  }
   return true;
 }
 
@@ -5041,6 +5162,7 @@ function updateKeyboardAimPreview() {
 function beginKeyboardAim() {
   if (
     GamePhase !== 'attached'
+    || ActiveHostileEncounterState !== null
     || RunState.status !== 'active'
     || ReplayPlaybackState !== null
     || IsPointerAiming
@@ -5106,7 +5228,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
       PressedKey === 'q' ? 1 : -1,
       KeyboardEventData.shiftKey,
     );
-    if (DidMove) {
+    if (DidMove && !ActiveHostileEncounterState) {
       showInstruction(
         'Launch point moved',
         'Q/E walk · Shift makes fine steps · arrows aim · Enter launches.',
@@ -5249,6 +5371,12 @@ function handlePointerMove(PointerEventData) {
         bodyPosition: AttachedWorld.position,
       })
       : SurfaceGestureModes.aim;
+    if (
+      ActiveHostileEncounterState
+      && PointerGestureMode !== SurfaceGestureModes.pending
+    ) {
+      PointerGestureMode = SurfaceGestureModes.walk;
+    }
     if (PointerGestureMode === SurfaceGestureModes.walk) {
       IsPointerWalking = true;
       GameCanvas.classList.add('is-walking');
@@ -5358,15 +5486,69 @@ function releaseAimedLaunch() {
 }
 
 function updateBreakerBurnInterface() {
-  BurnButtonElement.hidden = GamePhase !== 'flying';
-  BurnButtonElement.classList.toggle('is-spent', !IsBreakerBurnAvailable);
-  BurnButtonElement.disabled = !IsBreakerBurnAvailable;
-  BurnButtonElement.querySelector('strong').textContent = IsBreakerBurnAvailable
-    ? (IsBreakerBurnPending ? 'ARMED' : 'READY')
-    : 'SPENT';
+  const IsHostilePulse = Boolean(ActiveHostileEncounterState);
+  const IsPulseReady = IsHostilePulse && publishHostileEncounterState();
+  BurnButtonElement.hidden = GamePhase !== 'flying' && !IsHostilePulse;
+  BurnButtonElement.classList.toggle(
+    'is-spent',
+    IsHostilePulse ? !IsPulseReady : !IsBreakerBurnAvailable,
+  );
+  BurnButtonElement.disabled = IsHostilePulse ? !IsPulseReady : !IsBreakerBurnAvailable;
+  BurnButtonElement.querySelector('span').textContent = IsHostilePulse
+    ? 'BREAKER PULSE'
+    : 'BREAKER BURN';
+  BurnButtonElement.querySelector('strong').textContent = IsHostilePulse
+    ? (IsPulseReady ? 'IN RANGE' : 'MOVE Q / E')
+    : IsBreakerBurnAvailable
+      ? (IsBreakerBurnPending ? 'ARMED' : 'READY')
+      : 'SPENT';
+  BurnButtonElement.setAttribute(
+    'aria-label',
+    IsHostilePulse
+      ? `Breaker Pulse ${IsPulseReady ? 'ready' : 'out of range'}`
+      : `Breaker Burn ${IsBreakerBurnAvailable ? 'ready' : 'spent'}`,
+  );
   GameCanvas.dataset.breakerBurn = GamePhase !== 'flying'
     ? 'stowed'
     : (IsBreakerBurnAvailable ? (IsBreakerBurnPending ? 'armed' : 'ready') : 'spent');
+}
+
+function requestBreakerPulse() {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld || !ActiveHostileEncounterState || ReplayPlaybackState !== null) {
+    return false;
+  }
+  const RunnerSurfaceAngle = getRunnerSurfaceAngle(AttachedWorld);
+  const ResolvedEncounterState = resolveHostilePulse(
+    ActiveHostileEncounterState,
+    RunnerSurfaceAngle,
+  );
+  if (ResolvedEncounterState === ActiveHostileEncounterState) return false;
+
+  CompletedHostileEncounterWorldIdentifiers.add(AttachedWorld.id);
+  ActiveHostileEncounterState = null;
+  HostilePylonGroup.visible = false;
+  GameCanvas.dataset.lastHostileWorld = AttachedWorld.id;
+  publishHostileEncounterState();
+  ImpactPulseMesh.material.color.set(0xff675f);
+  ImpactPulseMesh.position.copy(SeedGroup.position);
+  ImpactPulseMesh.scale.setScalar(1.2);
+  ImpactPulseMesh.visible = true;
+  ImpactPulseLifeSeconds = 0.58;
+  WorldseedSound.impact(AttachedWorld.id);
+  updateBreakerBurnInterface();
+  showStatusToast('BREAKER PULSE · BARRIER DISABLED', 1350);
+  showInstruction(
+    `${AttachedWorld.label} relay secured.`,
+    'The hostile surface beat is over. Choose the next orbital route.',
+  );
+  return true;
+}
+
+function requestBreakerAction() {
+  return ActiveHostileEncounterState
+    ? requestBreakerPulse()
+    : requestBreakerBurn();
 }
 
 /** Queues input for the next authoritative fixed step rather than mutating between frames. */
@@ -5437,7 +5619,7 @@ function handlePointerUp(PointerEventData) {
     ActivePointerIdentifier = null;
     PointerGestureMode = SurfaceGestureModes.pending;
     GameCanvas.classList.remove('is-walking');
-    showRouteChoiceInstruction();
+    if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
     PointerEventData.preventDefault();
     return;
   }
@@ -5550,6 +5732,14 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
 
 /** Releases one recorded input through the same live flight state as a player shot. */
 function beginReplayLaunch(Launch) {
+  if (ActiveHostileEncounterState) {
+    CompletedHostileEncounterWorldIdentifiers.add(
+      ActiveHostileEncounterState.worldIdentifier,
+    );
+    ActiveHostileEncounterState = null;
+    HostilePylonGroup.visible = false;
+    publishHostileEncounterState();
+  }
   RunState = releaseRunLaunch(RunState);
   updateLaunchCounter();
   if (Number.isFinite(Launch.originX) && Number.isFinite(Launch.originY)) {
@@ -5866,7 +6056,7 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
             hideInstruction();
           } else if (GamePhase === 'restoring') {
             GamePhase = 'attached';
-            showRouteChoiceInstruction();
+            if (!beginHostileEncounter(WorldDefinition)) showRouteChoiceInstruction();
           }
         }
       }
@@ -6448,6 +6638,10 @@ function resetGame() {
   GameCanvas.dataset.scoutZoom = '1.00';
   GameCanvas.dataset.breakerBurnStep = '';
   GameCanvas.dataset.breakerBurnSpeed = '';
+  GameCanvas.dataset.hostileEncounter = '';
+  GameCanvas.dataset.hostilePulseReady = 'false';
+  GameCanvas.dataset.hostilePylonAngle = '';
+  GameCanvas.dataset.lastHostileWorld = '';
   GameCanvas.dataset.lastBank = '';
   GameCanvas.dataset.lastScoreLost = '';
   GameCanvas.dataset.completionBonus = '';
@@ -6602,6 +6796,9 @@ function resetGame() {
   }
   PredictedStardustIdentifiers.clear();
   FlightCollectedStardustIdentifiers.clear();
+  ActiveHostileEncounterState = null;
+  CompletedHostileEncounterWorldIdentifiers.clear();
+  HostilePylonGroup.visible = false;
   GamePhase = 'attached';
   updateBreakerBurnInterface();
   PhysicsAccumulatorSeconds = 0;
@@ -7108,6 +7305,11 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     return;
   }
   const PressedKey = KeyboardEventData.key.toLowerCase();
+  if (PressedKey === ' ' && ActiveHostileEncounterState) {
+    KeyboardEventData.preventDefault();
+    requestBreakerPulse();
+    return;
+  }
   if (PressedKey === ' ' && GamePhase === 'flying') {
     KeyboardEventData.preventDefault();
     requestBreakerBurn();
@@ -7187,7 +7389,7 @@ ScoutButtonElement.addEventListener('click', () => {
 });
 ScoutZoomOutButtonElement.addEventListener('click', () => adjustScoutZoom(1));
 ScoutZoomInButtonElement.addEventListener('click', () => adjustScoutZoom(-1));
-BurnButtonElement.addEventListener('click', requestBreakerBurn);
+BurnButtonElement.addEventListener('click', requestBreakerAction);
 
 createLighting();
 createStarField();

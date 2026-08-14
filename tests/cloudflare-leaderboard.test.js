@@ -5,7 +5,7 @@ import { createD1LeaderboardStore } from '../server/cloudflare/d1-store.js';
 import Worker from '../server/cloudflare/worker.js';
 
 const VerifiedReplay = JSON.stringify({
-  v: 1, s: 'breaker-reach', c: 'breaker-reach-1',
+  v: 1, s: 'breaker-reach', c: 'breaker-reach-2',
   p: 'orbitbreak-fixed-step-v1', h: 120, o: 1,
   l: [
     [108, 'meadow', 18.288242289175088, 0.6416927119009118],
@@ -85,7 +85,7 @@ class FakeD1Database {
 
 const ExampleRecord = {
   id: 'record-1', callsign: 'ACE', systemIdentifier: 'breaker-reach',
-  contentVersion: 'breaker-reach-1', score: 7000, launchesUsed: 4,
+  contentVersion: 'breaker-reach-2', score: 7000, launchesUsed: 4,
   flightTimeMilliseconds: 2842, slingshotScore: 0, liberationScore: 3000,
   completionBonus: 4000, collectedStardustCount: 0, replay: VerifiedReplay,
   createdAt: '2026-08-14T12:00:00.000Z',
@@ -99,7 +99,7 @@ test('D1 adapter stores a replay digest and maps durable records', async () => {
 
   assert.equal(await Store.hasReplay(VerifiedReplay), true);
   assert.equal(Database.records[0].replay_digest.length, 64);
-  assert.deepEqual((await Store.list('breaker-reach', 'breaker-reach-1', 20))[0], {
+  assert.deepEqual((await Store.list('breaker-reach', 'breaker-reach-2', 20))[0], {
     ...ExampleRecord,
     replay: undefined,
   });

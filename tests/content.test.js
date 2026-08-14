@@ -41,6 +41,11 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     BreakerReachSystemDefinition.routeSuggestions.meadow,
     ['ember', 'frost'],
   );
+  const BastionDefinition = BreakerReachSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'bastion',
+  );
+  assert.equal(BastionDefinition.disposition, 'hostile');
+  assert.ok(BastionDefinition.hostileEncounter.pulseRangeRadians > 0);
 });
 
 test('authored systems fail closed without a positive launch budget', () => {
@@ -69,6 +74,17 @@ test('authored scoring values fail closed when present but invalid', () => {
   const Errors = validateAuthoredSystemDefinition(InvalidSystemDefinition);
   assert.ok(Errors.includes('World meadow has an invalid slingshotValue.'));
   assert.ok(Errors.includes('World ember has an invalid liberationValue.'));
+});
+
+test('hostile worlds fail closed without a bounded contextual encounter', () => {
+  const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  const BastionDefinition = InvalidSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'bastion',
+  );
+  BastionDefinition.hostileEncounter.pulseRangeRadians = 0;
+  assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
+    'World bastion has invalid hostile encounter data.',
+  ));
 });
 
 test('Broken Belt satisfies the authored-system content contract', () => {

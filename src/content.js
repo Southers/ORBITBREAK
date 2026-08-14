@@ -189,6 +189,16 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     if (!isColorValue(WorldDefinition.atmosphereColor)) {
       Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} requires an atmosphereColor integer.`);
     }
+    if (
+      WorldDefinition.disposition === 'hostile'
+      && (
+        !Number.isFinite(WorldDefinition.hostileEncounter?.pylonOffsetRadians)
+        || !(WorldDefinition.hostileEncounter?.pulseRangeRadians > 0)
+        || WorldDefinition.hostileEncounter.pulseRangeRadians > Math.PI
+      )
+    ) {
+      Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} has invalid hostile encounter data.`);
+    }
     const RestorationDefinition = WorldDefinition.restoration;
     if (!RestorationDefinition || !isColorValue(RestorationDefinition.waveColor)) {
       Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} requires restoration colour data.`);
@@ -608,7 +618,7 @@ export const FirstLightSystemDefinition = {
 /** ORBITBREAK's first score-attack arena, spanning several camera views. */
 export const BreakerReachSystemDefinition = {
   id: 'breaker-reach',
-  contentVersion: 'breaker-reach-1',
+  contentVersion: 'breaker-reach-2',
   label: "BREAKER'S REACH",
   launchBudget: 8,
   openingBody: 'The Command World lies beyond the Reach. Take the low route, or trace to Haven\'s dark rim and Burn through the relay arc toward Frost.',
@@ -686,6 +696,11 @@ export const BreakerReachSystemDefinition = {
       slingshotValue: 650, liberationValue: 1500,
       aliveColor: 0x746fa8, atmosphereColor: 0xb7b7ff, accentColor: 0xf2c1ff,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true,
+      disposition: 'hostile',
+      hostileEncounter: {
+        pylonOffsetRadians: Math.PI / 6,
+        pulseRangeRadians: 8 * (Math.PI / 180),
+      },
       memory: 'The watchtowers turn their lights away from the Command World.',
       restoration: {
         durationSeconds: 2.25, waveWidth: 0.048, growthTrailWidth: 0.19,

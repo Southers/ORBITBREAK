@@ -112,6 +112,13 @@ Exit: the game has a beginning, escalation, reversible setback, final confrontat
 
 Stop condition: one polished hostile encounter and one boss are sufficient. Do not add weapons, health bars, random encounters or another Warden.
 
+Checkpoint A — 14 August 2026: Breaker's Reach is now the selected dense six-world sector because
+it already owns the validated conservative completion route, a fragile long opening and the
+surface-position-plus-Burn mastery line. Bastion alone is hostile: after liberation, three red
+pylons appear a short deterministic circumference walk ahead, orbital aiming stays locked, and one
+in-range Breaker Pulse clears the barrier without health, loot, a timer or a spent launch. The
+encounter is one-use, keyboard/touch accessible and replay playback remains compatible.
+
 ## Milestone 4 — Score attack and ghosts
 
 - Retune the existing score into Flight, Network and Victory categories.

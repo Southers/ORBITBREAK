@@ -10,7 +10,7 @@ import {
 } from '../server/leaderboard-service.js';
 
 const VerifiedReplay = JSON.stringify({
-  v: 1, s: 'breaker-reach', c: 'breaker-reach-1',
+  v: 1, s: 'breaker-reach', c: 'breaker-reach-2',
   p: 'orbitbreak-fixed-step-v1', h: 120, o: 1,
   l: [
     [108, 'meadow', 18.288242289175088, 0.6416927119009118],
@@ -91,7 +91,7 @@ test('HTTP contract supports submit, ranked list, replay fetch and CORS', async 
   assert.equal(SubmitResponse.headers.get('access-control-allow-origin'), 'https://southers.github.io');
 
   const ListResponse = await Handler(new Request(
-    'https://scores.example/api/leaderboard?system=breaker-reach&content=breaker-reach-1',
+    'https://scores.example/api/leaderboard?system=breaker-reach&content=breaker-reach-2',
   ));
   assert.equal((await ListResponse.json()).entries[0].score, 7000);
 

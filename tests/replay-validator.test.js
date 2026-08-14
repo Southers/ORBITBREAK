@@ -6,7 +6,7 @@ import { validateSerializedReplay } from '../src/replay-validator.js';
 const CompletedBreakerReachReplay = JSON.stringify({
   v: 1,
   s: 'breaker-reach',
-  c: 'breaker-reach-1',
+  c: 'breaker-reach-2',
   p: 'orbitbreak-fixed-step-v1',
   h: 120,
   o: 1,
@@ -21,7 +21,7 @@ const CompletedBreakerReachReplay = JSON.stringify({
 const CompletedSchemaV2BurnRouteReplay = JSON.stringify({
   v: 2,
   s: 'breaker-reach',
-  c: 'breaker-reach-1',
+  c: 'breaker-reach-2',
   p: 'orbitbreak-fixed-step-v1',
   h: 120,
   o: 1,
@@ -51,7 +51,7 @@ test('validator derives the browser-completed route and score from input alone',
   assert.equal(Validation.valid, true);
   assert.deepEqual(Validation.result, {
     systemIdentifier: 'breaker-reach',
-    contentVersion: 'breaker-reach-1',
+    contentVersion: 'breaker-reach-2',
     score: 7000,
     launchesUsed: 4,
     flightTimeMilliseconds: 2842,
@@ -110,7 +110,7 @@ test('schema-v2 validator derives the repositioned route and its fixed-step Burn
   assert.equal(Validation.valid, true);
   assert.deepEqual(Validation.result, {
     systemIdentifier: 'breaker-reach',
-    contentVersion: 'breaker-reach-1',
+    contentVersion: 'breaker-reach-2',
     score: 7900,
     launchesUsed: 4,
     flightTimeMilliseconds: 3825,

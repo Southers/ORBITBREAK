@@ -24,7 +24,7 @@ class MemoryStorage {
 function result(Overrides = {}) {
   return createRunResult({
     systemIdentifier: 'breaker-reach',
-    contentVersion: 'breaker-reach-1',
+    contentVersion: 'breaker-reach-2',
     score: 7000,
     launchesUsed: 4,
     flightTimeMilliseconds: 3200,
@@ -48,7 +48,7 @@ test('a worse run never replaces the stored personal best', () => {
   assert.equal(WorseUpdate.isNewPersonalBest, false);
   assert.deepEqual(WorseUpdate.personalBest, result());
   assert.deepEqual(
-    loadPersonalBest(Storage, 'breaker-reach', 'breaker-reach-1'),
+    loadPersonalBest(Storage, 'breaker-reach', 'breaker-reach-2'),
     result(),
   );
 });
@@ -56,7 +56,7 @@ test('a worse run never replaces the stored personal best', () => {
 test('personal bests are isolated by system content version and ignore corrupt data', () => {
   const Storage = new MemoryStorage();
   savePersonalBest(Storage, result());
-  assert.equal(loadPersonalBest(Storage, 'breaker-reach', 'breaker-reach-2'), null);
+  assert.equal(loadPersonalBest(Storage, 'breaker-reach', 'breaker-reach-1'), null);
 
   const CorruptKey = getPersonalBestStorageKey('broken-belt', 'migration-1');
   Storage.setItem(CorruptKey, '{not json');

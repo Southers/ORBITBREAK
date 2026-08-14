@@ -5,7 +5,7 @@ import { validateSerializedReplay } from '../src/replay-validator.js';
 const ReferenceReplay = JSON.stringify({
   v: 1,
   s: 'breaker-reach',
-  c: 'breaker-reach-1',
+  c: 'breaker-reach-2',
   p: 'orbitbreak-fixed-step-v1',
   h: 120,
   o: 1,
