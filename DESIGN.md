@@ -159,6 +159,8 @@ No dialogue trees, combat encounters or cutscenes are required.
 - Keep keyboard focus inside an open results or rankings dialog.
 - Offer System, Reduced and Full motion modes. System follows the operating-system preference;
   explicit Reduced or Full choices persist locally and affect presentation only, never physics or scoring.
+- Adapt render resolution independently of fixed-step simulation: reduce one step after a slow visible
+  sample, then restore one step only after four clearly smooth samples to prevent quality oscillation.
 - Practice assists must be clearly labelled and must never silently submit a ranked score.
 
 ## Vertical-slice success criteria

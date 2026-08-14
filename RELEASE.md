@@ -73,7 +73,8 @@ Suggested 40-second trailer beat sheet:
 - Verify System, Reduced and Full motion modes, including local persistence and unchanged ranked state.
 - On a local `?diagnostics=1` build, start aiming and press Shift+B; confirm the aim cancels without launching and play resumes.
 - On the same local diagnostic build, press Shift+G; confirm WebGL loss is reported, restored and rendering resumes.
-- Confirm draw calls remain under the 190-call ceiling and adaptive pixel ratio can recover a slow device.
+- Press Shift+F on that local build; confirm the pixel-ratio cap degrades one step and restores one step without changing score or launches.
+- Confirm draw calls remain under the 190-call ceiling.
 - Confirm the Breakers Board says offline when no endpoint is configured.
 - Re-run credits review after every asset, font, shader, sound or capture is added.
 - Record the final commit SHA, public build URL, leaderboard endpoint status and rules/version used for release.

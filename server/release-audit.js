@@ -67,6 +67,12 @@ export function auditReleaseReadiness() {
     /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),
     'Release diagnostics must remain restricted to local development hosts.',
   );
+  requireCondition(
+    existsSync(resolve(RepositoryRoot, 'src/performance.js'))
+      && MainSource.includes('advanceAdaptivePixelRatio')
+      && MainSource.includes("DiagnosticKind === 'performance'"),
+    'The candidate must retain testable adaptive render quality and local diagnostics.',
+  );
 
   const RequiredMetadataPatterns = [
     ['English document language', /<html lang="en">/],

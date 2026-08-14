@@ -13,6 +13,11 @@ import {
   parseMotionPreference,
   resolveReducedMotion,
 } from './preferences.js?v=20260814-ob12';
+import {
+  SmoothSamplesBeforeUpgrade,
+  advanceAdaptivePixelRatio,
+  getViewportPixelRatioCap,
+} from './performance.js?v=20260814-ob13';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -196,7 +201,7 @@ const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 const MotionButtonElement = document.querySelector('#MotionButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob12';
+GameCanvas.dataset.build = '20260814-ob13';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -220,7 +225,6 @@ const MaximumDrawCallBudget = 190;
 const WorldheartUnlockThreshold = ActiveSystem.worldheartUnlockThreshold;
 const StardustPickupRadius = 0.22;
 const StardustCollectionRadius = SeedRadius + StardustPickupRadius;
-const MinimumAdaptivePixelRatio = 1;
 const WorldClosePassClearance = 1.35;
 const AsteroidClosePassClearance = 1.05;
 const ReducedMotionMediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -283,6 +287,7 @@ let RunFlightTimeSeconds = 0;
 let IsPageActive = !document.hidden;
 let IsWebGLContextAvailable = true;
 let AdaptivePixelRatioCap = 2;
+let SmoothPerformanceSampleCount = 0;
 let PerformanceSampleElapsedSeconds = 0;
 let PerformanceSampleFrameCount = 0;
 let PerformanceSampleDeltaSeconds = 0;
@@ -5377,10 +5382,9 @@ function resizeRenderer() {
   const ViewportHeight = window.innerHeight;
   const ViewportAspectRatio = ViewportWidth / Math.max(ViewportHeight, 1);
 
-  const SmallestViewportDimension = Math.min(ViewportWidth, ViewportHeight);
-  const DevicePixelRatioCap = SmallestViewportDimension <= 640 ? 1.5 : 2;
+  const DevicePixelRatioCap = getViewportPixelRatioCap(ViewportWidth, ViewportHeight);
   AdaptivePixelRatioCap = Math.min(AdaptivePixelRatioCap, DevicePixelRatioCap);
-  Renderer.setPixelRatio(Math.min(window.devicePixelRatio, AdaptivePixelRatioCap));
+  applyAdaptivePixelRatio();
   Renderer.setSize(ViewportWidth, ViewportHeight, false);
   GameCanvas.dataset.viewport = `${ViewportWidth}x${ViewportHeight}`;
   GameCanvas.dataset.orientation = ViewportWidth >= ViewportHeight ? 'landscape' : 'portrait';
@@ -5395,6 +5399,26 @@ function resizeRenderer() {
   );
   Camera.position.z = Math.max(DistanceForHeight, DistanceForWidth, 34);
   Camera.updateProjectionMatrix();
+}
+
+/** Applies presentation-only render quality and publishes it for release diagnostics. */
+function applyAdaptivePixelRatio() {
+  const RenderedPixelRatio = Math.min(window.devicePixelRatio, AdaptivePixelRatioCap);
+  Renderer.setPixelRatio(RenderedPixelRatio);
+  GameCanvas.dataset.pixelRatioCap = AdaptivePixelRatioCap.toFixed(2);
+  GameCanvas.dataset.pixelRatio = RenderedPixelRatio.toFixed(2);
+}
+
+/** Commits one pure adaptive-quality transition without touching game simulation. */
+function applyAdaptiveQualityState(QualityState) {
+  const DidCapChange = QualityState.cap !== AdaptivePixelRatioCap;
+  AdaptivePixelRatioCap = QualityState.cap;
+  SmoothPerformanceSampleCount = QualityState.smoothSamples;
+  GameCanvas.dataset.adaptiveQuality = QualityState.action;
+  GameCanvas.dataset.smoothPerformanceSamples = String(SmoothPerformanceSampleCount);
+  if (!DidCapChange) return;
+  applyAdaptivePixelRatio();
+  Renderer.setSize(window.innerWidth, window.innerHeight, false);
 }
 
 /**
@@ -5431,18 +5455,17 @@ function updatePerformanceBudget(DeltaTimeSeconds) {
     MaximumObservedDrawCalls <= MaximumDrawCallBudget,
   );
 
-  if (
-    AverageFrameSeconds > (1 / 34)
-    && AdaptivePixelRatioCap > MinimumAdaptivePixelRatio
-    && document.visibilityState === 'visible'
-  ) {
-    AdaptivePixelRatioCap = Math.max(
-      MinimumAdaptivePixelRatio,
-      AdaptivePixelRatioCap - 0.25,
-    );
-    Renderer.setPixelRatio(Math.min(window.devicePixelRatio, AdaptivePixelRatioCap));
-    Renderer.setSize(window.innerWidth, window.innerHeight, false);
-  }
+  applyAdaptiveQualityState(advanceAdaptivePixelRatio(
+    {
+      cap: AdaptivePixelRatioCap,
+      smoothSamples: SmoothPerformanceSampleCount,
+    },
+    {
+      averageFrameSeconds: AverageFrameSeconds,
+      deviceCap: getViewportPixelRatioCap(window.innerWidth, window.innerHeight),
+      isVisible: document.visibilityState === 'visible',
+    },
+  ));
 
   PerformanceSampleElapsedSeconds = 0;
   PerformanceSampleDeltaSeconds = 0;
@@ -6085,6 +6108,33 @@ function runReleaseDiagnostic(DiagnosticKind) {
     window.setTimeout(() => LoseContextExtension.restoreContext(), 420);
     return true;
   }
+  if (DiagnosticKind === 'performance') {
+    const DevicePixelRatioCap = getViewportPixelRatioCap(
+      window.innerWidth,
+      window.innerHeight,
+    );
+    let DiagnosticQualityState = advanceAdaptivePixelRatio(
+      { cap: AdaptivePixelRatioCap, smoothSamples: 0 },
+      { averageFrameSeconds: 1 / 20, deviceCap: DevicePixelRatioCap, isVisible: true },
+    );
+    applyAdaptiveQualityState(DiagnosticQualityState);
+    GameCanvas.dataset.performanceDiagnostic = DiagnosticQualityState.action;
+    window.setTimeout(() => {
+      for (
+        let SampleIndex = 0;
+        SampleIndex < SmoothSamplesBeforeUpgrade;
+        SampleIndex += 1
+      ) {
+        DiagnosticQualityState = advanceAdaptivePixelRatio(
+          DiagnosticQualityState,
+          { averageFrameSeconds: 1 / 60, deviceCap: DevicePixelRatioCap, isVisible: true },
+        );
+      }
+      applyAdaptiveQualityState(DiagnosticQualityState);
+      GameCanvas.dataset.performanceDiagnostic = DiagnosticQualityState.action;
+    }, 420);
+    return true;
+  }
   return false;
 }
 
@@ -6143,9 +6193,13 @@ window.addEventListener('keydown', (KeyboardEventData) => {
   }
   const PressedKey = KeyboardEventData.key.toLowerCase();
   if (IsReleaseDiagnosticsEnabled && KeyboardEventData.shiftKey) {
-    if (PressedKey === 'b' || PressedKey === 'g') {
+    if (PressedKey === 'b' || PressedKey === 'g' || PressedKey === 'f') {
       KeyboardEventData.preventDefault();
-      runReleaseDiagnostic(PressedKey === 'b' ? 'background' : 'graphics');
+      runReleaseDiagnostic(
+        PressedKey === 'b'
+          ? 'background'
+          : (PressedKey === 'g' ? 'graphics' : 'performance'),
+      );
       return;
     }
   }
