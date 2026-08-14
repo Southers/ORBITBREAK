@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260814-ob7';
+import { WorldseedAudio } from './audio.js?v=20260814-ob8';
 
 import {
   DefaultAuthoredSystemIdentifier,
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-ob7';
+} from './content.js?v=20260814-ob8';
 
 import {
   countRestoredWorlds,
@@ -19,7 +19,7 @@ import {
   isSystemRestored,
   isWorldheartUnlocked,
   rollbackFlightPickups,
-} from './campaign.js?v=20260814-ob7';
+} from './campaign.js?v=20260814-ob8';
 
 import {
   calculateBodyPositionAtTime,
@@ -29,37 +29,42 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260814-ob7';
+} from './physics.js?v=20260814-ob8';
 import {
   createRunResult,
   loadPersonalBest,
   savePersonalBest,
-} from './records.js?v=20260814-ob7';
+} from './records.js?v=20260814-ob8';
 import {
   getLiberationFlashOpacity,
   getRunnerAnimationState,
   getRunnerPose,
   getStillnessPresentation,
-} from './presentation.js?v=20260814-ob7';
+} from './presentation.js?v=20260814-ob8';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
   finishReplay,
   getReplayStorageKey,
+  parseReplay,
   recordReplayLaunch,
   serializeReplay,
-} from './replay.js?v=20260814-ob7';
-import { validateSerializedReplay } from './replay-validator.js?v=20260814-ob7';
+} from './replay.js?v=20260814-ob8';
+import {
+  consumeDueReplayLaunch,
+  createReplayPlaybackState,
+} from './replay-playback.js?v=20260814-ob8';
+import { validateSerializedReplay } from './replay-validator.js?v=20260814-ob8';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
   calculateStagedGrowthProgress,
-} from './restoration.js?v=20260814-ob7';
+} from './restoration.js?v=20260814-ob8';
 import {
   createRunState,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260814-ob7';
+} from './run.js?v=20260814-ob8';
 import {
   addCompletionBonus,
   bankFlightScore,
@@ -67,7 +72,7 @@ import {
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260814-ob7';
+} from './scoring.js?v=20260814-ob8';
 
 const RequestedSystemIdentifier = new URLSearchParams(window.location.search).get('system')
   ?? DefaultAuthoredSystemIdentifier;
@@ -131,6 +136,7 @@ const AimLabelElement = document.querySelector('#AimLabel');
 const AimPowerFillElement = document.querySelector('#AimPowerFill');
 const AimPowerValueElement = document.querySelector('#AimPowerValue');
 const StatusToastElement = document.querySelector('#StatusToast');
+const ReplayIndicatorElement = document.querySelector('#ReplayIndicator');
 const RouteLabelElements = [...document.querySelectorAll('.route-label')];
 const TacticalLabelElements = [...document.querySelectorAll('.tactical-label')];
 const VictoryPanelElement = document.querySelector('#VictoryPanel');
@@ -148,10 +154,11 @@ const EmblemElements = [...document.querySelectorAll('[data-emblem]')];
 let ConstellationNodeElements = [];
 const PlayAgainButtonElement = document.querySelector('#PlayAgainButton');
 const ReplayButtonElement = document.querySelector('#ReplayButton');
+const WatchReplayButtonElement = document.querySelector('#WatchReplayButton');
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob7';
+GameCanvas.dataset.build = '20260814-ob8';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.pageActive = String(!document.hidden);
 GameCanvas.dataset.webglAvailable = 'true';
@@ -269,6 +276,7 @@ let ReplayState = createReplayRecorder({
   contentVersion: ActiveSystem.contentVersion,
   fixedStepHz: FixedPhysicsStepHertz,
 });
+let ReplayPlaybackState = null;
 const WorldseedSound = new WorldseedAudio();
 const ScannerWorldElements = new Map();
 let ScannerHazardElement = null;
@@ -3359,6 +3367,12 @@ function updateVictorySummary() {
     && ReplayValidation.result.slingshotScore === ScoreState.bankedSlingshotScore
     && ReplayValidation.result.liberationScore === ScoreState.liberationScore
     && ReplayValidation.result.completionBonus === ScoreState.completionBonus;
+  WatchReplayButtonElement.hidden = !IsReplayVerified;
+  if (ReplayPlaybackState) {
+    ReplayPlaybackState = { ...ReplayPlaybackState, status: 'complete' };
+    ReplayIndicatorElement.hidden = true;
+    GameCanvas.dataset.replayMode = 'complete';
+  }
   GameCanvas.dataset.replayValidation = IsReplayVerified ? 'verified' : 'rejected';
   GameCanvas.dataset.replayValidatedScore = ReplayValidation.valid
     ? String(ReplayValidation.result.score)
@@ -4381,6 +4395,7 @@ function handlePointerDown(PointerEventData) {
   if (
     GamePhase !== 'attached'
     || RunState.status !== 'active'
+    || ReplayPlaybackState !== null
     || IsPointerAiming
     || !isPointerOverSeed(PointerEventData)
   ) {
@@ -4559,10 +4574,79 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
   }, 420);
 }
 
+/** Releases one recorded input through the same live flight state as a player shot. */
+function beginReplayLaunch(Launch) {
+  RunState = releaseRunLaunch(RunState);
+  updateLaunchCounter();
+  SeedPhysicsState.velocity = createVector(Launch.velocityX, Launch.velocityY, 0);
+  GameCanvas.dataset.lastLaunchVelocityX = Launch.velocityX.toFixed(3);
+  GameCanvas.dataset.lastLaunchVelocityY = Launch.velocityY.toFixed(3);
+  GameCanvas.dataset.lastLaunchTime = PhysicsElapsedTimeSeconds.toFixed(3);
+  const IsLaunchingFromSeedstone = CurrentWorldIdentifier === SeedstoneDefinition.id;
+  FlightOriginWorldIdentifier = IsLaunchingFromSeedstone ? null : CurrentWorldIdentifier;
+  FlightCollectedStardustIdentifiers.clear();
+  FlightHadAsteroidClosePass = false;
+  FlightClosePassWorldIdentifiers.clear();
+  LaunchIgnoredWorldIdentifier = IsLaunchingFromSeedstone ? null : CurrentWorldIdentifier;
+  LaunchIgnoredBodyIdentifier = IsLaunchingFromSeedstone ? SeedstoneDefinition.id : null;
+  if (IsLaunchingFromSeedstone) {
+    AttachedSeedstoneSurfaceOffset = null;
+    SeedstoneUsesRemaining = 0;
+    SeedstoneCrumbleStartedAtSeconds = GameElapsedTimeSeconds;
+  }
+  GamePhase = 'flying';
+  HasLaunchedOnce = true;
+  LaunchPulseMesh.position.copy(SeedGroup.position);
+  LaunchPulseMesh.scale.setScalar(1);
+  LaunchPulseMesh.visible = true;
+  LaunchPulseLifeSeconds = 0.42;
+  TrailEmissionAccumulatorSeconds = 0;
+  const LaunchSpeed = Math.hypot(Launch.velocityX, Launch.velocityY);
+  WorldseedSound.launch(THREE.MathUtils.clamp(
+    LaunchSpeed / (MaximumDragDistance * LaunchVelocityPerDragUnit),
+    0,
+    1,
+  ));
+  hideInstruction();
+}
+
+/** Injects a replay input immediately before its recorded fixed simulation step. */
+function advanceReplayPlayback() {
+  if (!ReplayPlaybackState || GamePhase !== 'attached') {
+    return;
+  }
+  const CurrentStepIndex = Math.round(PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz);
+  try {
+    const PlaybackUpdate = consumeDueReplayLaunch(
+      ReplayPlaybackState,
+      CurrentStepIndex,
+      CurrentWorldIdentifier,
+    );
+    ReplayPlaybackState = PlaybackUpdate.playbackState;
+    if (!PlaybackUpdate.launch) {
+      return;
+    }
+    GameCanvas.dataset.replayPlayedLaunchCount = String(
+      ReplayPlaybackState.nextLaunchIndex,
+    );
+    ReplayIndicatorElement.textContent = (
+      `WATCHING VERIFIED REPLAY · ${ReplayPlaybackState.nextLaunchIndex}`
+      + ` / ${ReplayPlaybackState.replay.launches.length}`
+    );
+    beginReplayLaunch(PlaybackUpdate.launch);
+  } catch (Error) {
+    ReplayPlaybackState = null;
+    ReplayIndicatorElement.hidden = true;
+    GameCanvas.dataset.replayMode = 'rejected';
+    showStatusToast('REPLAY COULD NOT CONTINUE', 1400);
+  }
+}
+
 /**
  * Advances live seed physics by one fixed step.
  */
 function simulateSeedFixedStep() {
+  advanceReplayPlayback();
   PhysicsElapsedTimeSeconds += FixedPhysicsStepSeconds;
   synchronizeSeedstonePosition();
   if (IsPointerAiming && GamePhase === 'attached') {
@@ -5212,6 +5296,9 @@ function resetGame() {
   }
 
   IsPointerAiming = false;
+  ReplayPlaybackState = null;
+  ReplayIndicatorElement.hidden = true;
+  WatchReplayButtonElement.hidden = true;
   ActivePointerIdentifier = null;
   HasLaunchedOnce = false;
   RunFailurePending = false;
@@ -5256,6 +5343,8 @@ function resetGame() {
   GameCanvas.dataset.replayPhysicsVersion = PhysicsModelVersion;
   GameCanvas.dataset.replayLaunchCount = '0';
   GameCanvas.dataset.replayOutcome = 'recording';
+  GameCanvas.dataset.replayMode = '';
+  GameCanvas.dataset.replayPlayedLaunchCount = '0';
   GameCanvas.dataset.replayValidation = '';
   GameCanvas.dataset.replayValidatedScore = '';
   GameCanvas.dataset.replayPayload = '';
@@ -5449,6 +5538,35 @@ function continueCampaignOrReplay() {
   window.location.assign(NextSystemUrl);
 }
 
+/** Resets the system, then replays the verified input stream through live simulation. */
+function watchCompletedReplay() {
+  const SerializedReplay = GameCanvas.dataset.replayPayload;
+  const Validation = validateSerializedReplay(SerializedReplay);
+  if (!Validation.valid) {
+    showStatusToast('REPLAY IS NOT VERIFIED', 1200);
+    return;
+  }
+  let CompletedReplay;
+  try {
+    CompletedReplay = parseReplay(SerializedReplay);
+  } catch {
+    showStatusToast('REPLAY COULD NOT LOAD', 1200);
+    return;
+  }
+  resetGame();
+  ReplayState = CompletedReplay;
+  ReplayPlaybackState = createReplayPlaybackState(CompletedReplay);
+  GameCanvas.dataset.replayPayload = SerializedReplay;
+  GameCanvas.dataset.replayLaunchCount = String(CompletedReplay.launches.length);
+  GameCanvas.dataset.replayOutcome = 'playback';
+  GameCanvas.dataset.replayMode = 'playing';
+  ReplayIndicatorElement.textContent = (
+    `WATCHING VERIFIED REPLAY · 0 / ${CompletedReplay.launches.length}`
+  );
+  ReplayIndicatorElement.hidden = false;
+  showInstruction('Verified route replay', 'Reset at any time to take control.');
+}
+
 /** Main frame loop. */
 function renderFrame() {
   window.requestAnimationFrame(renderFrame);
@@ -5570,6 +5688,7 @@ window.addEventListener('keydown', (KeyboardEventData) => {
 });
 ResetButtonElement.addEventListener('click', resetGame);
 ReplayButtonElement.addEventListener('click', resetGame);
+WatchReplayButtonElement.addEventListener('click', watchCompletedReplay);
 PlayAgainButtonElement.addEventListener('click', continueCampaignOrReplay);
 AudioButtonElement.addEventListener('click', () => {
   const IsMuted = WorldseedSound.toggleMute();

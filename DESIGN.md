@@ -113,6 +113,8 @@ The replay wire format records only the schema, system/content/physics versions,
 
 The validator is a DOM-free module that creates a fresh authored-system runtime and replays every fixed step through the shared physics, collision, launch-budget and scoring helpers. It rejects impossible origins or timing, unavailable launch nodes, mismatched versions, routes that fail to settle, launch exhaustion and inputs after completion. Local results receive a Verified label and may update a personal best only when the independently derived score, breakdown, launch count and flight time exactly match live play. A future server must run this same contract before accepting an online result.
 
+Verified completed runs can be watched immediately from the result screen. Playback resets the authored system and injects each recorded velocity immediately before its recorded fixed step, so the normal camera, scoring, liberation and result presentation reconstruct the route. A persistent replay indicator distinguishes watching from playing, manual aiming is disabled, and Reset returns control at any moment.
+
 The most competitive format is a short system run. Campaign totals and identical daily challenges are later possibilities, not vertical-slice requirements.
 
 ## Story and presentation
