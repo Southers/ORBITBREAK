@@ -248,7 +248,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob25';
+GameCanvas.dataset.build = '20260815-ob26';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -2736,6 +2736,124 @@ function updateOccupationScarVisuals(ElapsedTimeSeconds) {
   if (VisibleOccupationScarCount !== NextVisibleOccupationScarCount) {
     VisibleOccupationScarCount = NextVisibleOccupationScarCount;
     GameCanvas.dataset.visibleOccupationScarCount = String(VisibleOccupationScarCount);
+  }
+}
+
+/** Tiny restored-world inhabitants share one draw call and culture-specific walking rhythms. */
+const InhabitantProfiles = {
+  meadow: { speed: 0.42, stride: 0.11 },
+  ember: { speed: 0.72, stride: 0.075 },
+  grove: { speed: 0.34, stride: 0.14 },
+  tide: { speed: 0.88, stride: 0.095 },
+  frost: { speed: 0.3, stride: 0.065 },
+  vault: { speed: 0.24, stride: 0.055 },
+};
+const InhabitantInstances = WorldDefinitions.flatMap((WorldDefinition, WorldIndex) => (
+  WorldDefinition.occupationScarAngles
+    ? Array.from({ length: 3 }, (_, InhabitantIndex) => ({
+      worldDefinition: WorldDefinition,
+      baseAngle: (1.1 + (WorldIndex * 1.37) + (InhabitantIndex * 0.3)) % (Math.PI * 2),
+      phase: (WorldIndex * 0.73) + (InhabitantIndex * 1.91),
+      profile: InhabitantProfiles[WorldDefinition.visualKey]
+        ?? { speed: 0.4, stride: 0.08 },
+    }))
+    : []
+));
+const InhabitantCapacity = Math.max(1, InhabitantInstances.length);
+const InhabitantMaterial = new THREE.MeshBasicMaterial({
+  vertexColors: true,
+  toneMapped: false,
+});
+const InhabitantMesh = new THREE.InstancedMesh(
+  new THREE.CapsuleGeometry(0.09, 0.18, 2, 5),
+  InhabitantMaterial,
+  InhabitantCapacity,
+);
+const InhabitantHeadMesh = new THREE.InstancedMesh(
+  new THREE.IcosahedronGeometry(0.105, 1),
+  InhabitantMaterial,
+  InhabitantCapacity,
+);
+InhabitantMesh.count = InhabitantInstances.length;
+InhabitantHeadMesh.count = InhabitantInstances.length;
+InhabitantMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+InhabitantHeadMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+InhabitantMesh.frustumCulled = false;
+InhabitantHeadMesh.frustumCulled = false;
+Scene.add(InhabitantMesh, InhabitantHeadMesh);
+const InhabitantTransform = new THREE.Object3D();
+let VisibleInhabitantCount = -1;
+for (let InhabitantIndex = 0; InhabitantIndex < InhabitantInstances.length; InhabitantIndex += 1) {
+  const Inhabitant = InhabitantInstances[InhabitantIndex];
+  InhabitantMesh.setColorAt(
+    InhabitantIndex,
+    Inhabitant.worldDefinition.restoration.waveColor,
+  );
+  InhabitantHeadMesh.setColorAt(
+    InhabitantIndex,
+    Inhabitant.worldDefinition.restoration.waveColor,
+  );
+}
+if (InhabitantMesh.instanceColor) InhabitantMesh.instanceColor.needsUpdate = true;
+if (InhabitantHeadMesh.instanceColor) InhabitantHeadMesh.instanceColor.needsUpdate = true;
+GameCanvas.dataset.inhabitantCount = String(InhabitantInstances.length);
+
+function updateInhabitantVisuals(ElapsedTimeSeconds) {
+  let NextVisibleInhabitantCount = 0;
+  for (let InhabitantIndex = 0; InhabitantIndex < InhabitantInstances.length; InhabitantIndex += 1) {
+    const Inhabitant = InhabitantInstances[InhabitantIndex];
+    const WorldRuntime = WorldRuntimeByIdentifier.get(Inhabitant.worldDefinition.id);
+    const RestorationProgress = WorldRuntime.restorationUniforms.restorationProgress.value;
+    const EmergenceProgress = Inhabitant.worldDefinition.restored
+      ? THREE.MathUtils.smoothstep(RestorationProgress, 0.54, 0.96)
+      : 0;
+    if (EmergenceProgress > 0.08) NextVisibleInhabitantCount += 1;
+    const WalkingOffset = PrefersReducedMotion
+      ? 0
+      : Math.sin(
+        (ElapsedTimeSeconds * Inhabitant.profile.speed) + Inhabitant.phase,
+      ) * Inhabitant.profile.stride;
+    const SurfaceAngle = Inhabitant.baseAngle + WalkingOffset;
+    const RadialX = Math.cos(SurfaceAngle);
+    const RadialY = Math.sin(SurfaceAngle);
+    InhabitantTransform.position.set(
+      Inhabitant.worldDefinition.position.x
+        + (RadialX * (Inhabitant.worldDefinition.radius + 0.16)),
+      Inhabitant.worldDefinition.position.y
+        + (RadialY * (Inhabitant.worldDefinition.radius + 0.16)),
+      0.5 + ((InhabitantIndex % 2) * 0.035),
+    );
+    InhabitantTransform.rotation.set(0, 0, SurfaceAngle - (Math.PI * 0.5));
+    const BobScale = PrefersReducedMotion
+      ? 1
+      : 1 + (Math.sin((ElapsedTimeSeconds * 3.2) + Inhabitant.phase) * 0.08);
+    InhabitantTransform.scale.set(
+      EmergenceProgress,
+      EmergenceProgress * BobScale,
+      EmergenceProgress,
+    );
+    InhabitantTransform.updateMatrix();
+    InhabitantMesh.setMatrixAt(InhabitantIndex, InhabitantTransform.matrix);
+
+    InhabitantTransform.position.set(
+      Inhabitant.worldDefinition.position.x
+        + (RadialX * (Inhabitant.worldDefinition.radius + 0.43)),
+      Inhabitant.worldDefinition.position.y
+        + (RadialY * (Inhabitant.worldDefinition.radius + 0.43)),
+      0.51 + ((InhabitantIndex % 2) * 0.035),
+    );
+    InhabitantTransform.rotation.set(0, 0, 0);
+    InhabitantTransform.scale.setScalar(EmergenceProgress);
+    InhabitantTransform.updateMatrix();
+    InhabitantHeadMesh.setMatrixAt(InhabitantIndex, InhabitantTransform.matrix);
+  }
+  if (InhabitantInstances.length > 0) {
+    InhabitantMesh.instanceMatrix.needsUpdate = true;
+    InhabitantHeadMesh.instanceMatrix.needsUpdate = true;
+  }
+  if (VisibleInhabitantCount !== NextVisibleInhabitantCount) {
+    VisibleInhabitantCount = NextVisibleInhabitantCount;
+    GameCanvas.dataset.visibleInhabitantCount = String(VisibleInhabitantCount);
   }
 }
 
@@ -7745,6 +7863,7 @@ function renderFrame() {
 
   updateWorldRestorationVisuals(ElapsedTimeSeconds);
   updateOccupationScarVisuals(ElapsedTimeSeconds);
+  updateInhabitantVisuals(ElapsedTimeSeconds);
   updateWorldBiomeMotion(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateFinaleRestorationVisuals(ElapsedTimeSeconds);
   updateRelayNetworkVisuals(ElapsedTimeSeconds);

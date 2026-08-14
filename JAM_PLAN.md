@@ -214,6 +214,16 @@ to 10 while the revealed Warden and all controls remained live. That worst mobil
 score remains **8/10**: occupation and liberation now communicate without prose, but inhabitants
 and culture-specific local motion remain the next highest-leverage gap. Milestone 5 remains open.
 
+Checkpoint C — 15 August 2026: restored societies are visibly inhabited. Eighteen two-part figures
+share only two instanced meshes; three per retained culture emerge late in its liberation wave,
+follow short culture-specific surface patrol rhythms and disappear immediately under suppression.
+Reduced motion preserves the figures but removes stride and bob. Browser evidence showed three
+people on free Haven, six after Ember and nine after Grove, matching the machine-readable population
+state. The worst 390×844 scene combined those nine inhabitants, remaining occupation clamps and the
+revealed iron-crown Warden at a 184/190 draw-call peak, with no overflow or browser errors. This
+closes the inhabitants/local-motion gap without touching gameplay or replay state. Art remains
+**8/10** pending a verified final collective-response/defeat presentation; Milestone 5 remains open.
+
 ## Milestone 6 — Reliability and release readiness
 
 - Tune route fairness and score values through repeated fresh-player runs.
