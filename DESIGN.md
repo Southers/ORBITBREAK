@@ -115,6 +115,8 @@ The validator is a DOM-free module that creates a fresh authored-system runtime 
 
 Verified completed runs can be watched immediately from the result screen. Playback resets the authored system and injects each recorded velocity immediately before its recorded fixed step, so the normal camera, scoring, liberation and result presentation reconstruct the route. A persistent replay indicator distinguishes watching from playing, manual aiming is disabled, and Reset returns control at any moment.
 
+The online boundary is a Fetch-standard provider-neutral service with submit, ranked-list and replay-fetch routes. Submission accepts only a constrained callsign and replay, derives the result server-side, rejects duplicate payloads and returns its calculated rank. Public lists omit replay bytes until requested. The production adapter must add durable indexed storage, unique replay digests, request limits and rate limiting before validation; the repository's in-memory adapter is test-only and is never represented as an online board.
+
 The most competitive format is a short system run. Campaign totals and identical daily challenges are later possibilities, not vertical-slice requirements.
 
 ## Story and presentation
