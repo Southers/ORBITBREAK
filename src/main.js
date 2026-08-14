@@ -6,6 +6,13 @@ import {
   createKeyboardAimState,
   getKeyboardAimDragVector,
 } from './controls.js?v=20260814-ob10';
+import {
+  MotionPreferences,
+  cycleMotionPreference,
+  getMotionPreferencePresentation,
+  parseMotionPreference,
+  resolveReducedMotion,
+} from './preferences.js?v=20260814-ob12';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -80,15 +87,18 @@ import {
   sampleSlingshotBodies,
 } from './scoring.js?v=20260814-ob8';
 
-const RequestedSystemIdentifier = new URLSearchParams(window.location.search).get('system')
+const PageSearchParameters = new URLSearchParams(window.location.search);
+const RequestedSystemIdentifier = PageSearchParameters.get('system')
   ?? DefaultAuthoredSystemIdentifier;
 const ConfiguredLeaderboardApiBaseUrl = document.querySelector(
   'meta[name="orbitbreak-leaderboard-api"]',
 )?.content.trim() ?? '';
 const IsLocalDevelopmentHost = window.location.hostname === 'localhost'
   || window.location.hostname === '127.0.0.1';
+const IsReleaseDiagnosticsEnabled = IsLocalDevelopmentHost
+  && PageSearchParameters.get('diagnostics') === '1';
 const LeaderboardApiBaseUrl = IsLocalDevelopmentHost
-  ? new URLSearchParams(window.location.search).get('leaderboardApi')
+  ? PageSearchParameters.get('leaderboardApi')
     ?? ConfiguredLeaderboardApiBaseUrl
   : ConfiguredLeaderboardApiBaseUrl;
 const LeaderboardClient = createLeaderboardClient({
@@ -184,8 +194,9 @@ const LeaderboardListElement = document.querySelector('#LeaderboardList');
 const CloseLeaderboardButtonElement = document.querySelector('#CloseLeaderboardButton');
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
+const MotionButtonElement = document.querySelector('#MotionButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob11';
+GameCanvas.dataset.build = '20260814-ob12';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -213,8 +224,19 @@ const MinimumAdaptivePixelRatio = 1;
 const WorldClosePassClearance = 1.35;
 const AsteroidClosePassClearance = 1.05;
 const ReducedMotionMediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-let PrefersReducedMotion = ReducedMotionMediaQuery.matches;
+let MotionPreference = MotionPreferences.system;
+try {
+  MotionPreference = parseMotionPreference(window.localStorage.getItem('orbitbreak.motion'));
+} catch {
+  MotionPreference = MotionPreferences.system;
+}
+let PrefersReducedMotion = resolveReducedMotion(
+  MotionPreference,
+  ReducedMotionMediaQuery.matches,
+);
+GameCanvas.dataset.motionPreference = MotionPreference;
 GameCanvas.dataset.reducedMotion = String(PrefersReducedMotion);
+GameCanvas.dataset.releaseDiagnostics = String(IsReleaseDiagnosticsEnabled);
 
 const Scene = new THREE.Scene();
 Scene.background = ActiveSystem.environment.backgroundColor;
@@ -5955,10 +5977,12 @@ window.addEventListener('resize', resizeRenderer);
 window.addEventListener('orientationchange', () => {
   window.setTimeout(resizeRenderer, 120);
 });
-document.addEventListener('visibilitychange', () => {
-  IsPageActive = !document.hidden;
+
+/** Pauses or resumes frame/audio work and safely cancels any half-finished aim. */
+function setPageActivity(IsActive) {
+  IsPageActive = IsActive;
   GameCanvas.dataset.pageActive = String(IsPageActive);
-  WorldseedSound.setPageActive(IsPageActive);
+  WorldseedSound.setPageActive(IsPageActive && IsWebGLContextAvailable);
   if (IsPageActive) {
     Clock.getDelta();
     resizeRenderer();
@@ -5981,41 +6005,112 @@ document.addEventListener('visibilitychange', () => {
     WorldseedSound.endAim();
     showInstruction('Aim again', 'Your shot was canceled while the game was in the background.');
   }
+}
+
+/** Applies a user or OS motion preference to presentation only. */
+function applyMotionPreference({ persist = false } = {}) {
+  PrefersReducedMotion = resolveReducedMotion(
+    MotionPreference,
+    ReducedMotionMediaQuery.matches,
+  );
+  GameCanvas.dataset.motionPreference = MotionPreference;
+  GameCanvas.dataset.reducedMotion = String(PrefersReducedMotion);
+  const MotionPresentation = getMotionPreferencePresentation(
+    MotionPreference,
+    PrefersReducedMotion,
+  );
+  MotionButtonElement.textContent = MotionPresentation.label;
+  MotionButtonElement.setAttribute('aria-pressed', MotionPresentation.ariaPressed);
+  MotionButtonElement.setAttribute(
+    'aria-label',
+    `Motion preference: ${MotionPreference}. Activate to choose the next mode.`,
+  );
+
+  if (persist) {
+    try {
+      window.localStorage.setItem('orbitbreak.motion', MotionPreference);
+    } catch {
+      // The active preference still works when storage is unavailable.
+    }
+  }
+  if (!PrefersReducedMotion) return;
+
+  CameraImpactLifeSeconds = 0;
+  if (ActiveSystem.camera?.followPlayer === true) {
+    DesiredCameraLookTarget.set(SeedPhysicsState.position.x, SeedPhysicsState.position.y, 0);
+    CameraLookTarget.copy(DesiredCameraLookTarget);
+    Camera.position.x = CameraLookTarget.x;
+    Camera.position.y = CameraLookTarget.y;
+  } else {
+    DesiredCameraLookTarget.set(0, 0, 0);
+    CameraLookTarget.set(0, 0, 0);
+    Camera.position.x = 0;
+    Camera.position.y = 0;
+  }
+  Camera.lookAt(CameraLookTarget);
+}
+
+function selectNextMotionPreference() {
+  MotionPreference = cycleMotionPreference(MotionPreference);
+  applyMotionPreference({ persist: true });
+  showStatusToast(
+    MotionPreference === MotionPreferences.system
+      ? 'MOTION FOLLOWS SYSTEM'
+      : `MOTION ${MotionPreference.toUpperCase()}`,
+    850,
+  );
+}
+
+/** Localhost-only hooks make browser release diagnostics reproducible and non-public. */
+function runReleaseDiagnostic(DiagnosticKind) {
+  if (!IsReleaseDiagnosticsEnabled) return false;
+  if (DiagnosticKind === 'background') {
+    GameCanvas.dataset.backgroundDiagnostic = 'inactive';
+    setPageActivity(false);
+    window.setTimeout(() => {
+      setPageActivity(true);
+      GameCanvas.dataset.backgroundDiagnostic = 'restored';
+    }, 320);
+    return true;
+  }
+  if (DiagnosticKind === 'graphics') {
+    const LoseContextExtension = Renderer.getContext().getExtension('WEBGL_lose_context');
+    if (!LoseContextExtension) {
+      GameCanvas.dataset.graphicsDiagnostic = 'unsupported';
+      showStatusToast('GRAPHICS DIAGNOSTIC UNSUPPORTED', 1100);
+      return true;
+    }
+    GameCanvas.dataset.graphicsDiagnostic = 'losing';
+    LoseContextExtension.loseContext();
+    window.setTimeout(() => LoseContextExtension.restoreContext(), 420);
+    return true;
+  }
+  return false;
+}
+
+document.addEventListener('visibilitychange', () => {
+  setPageActivity(!document.hidden);
 });
 GameCanvas.addEventListener('webglcontextlost', (ContextEvent) => {
   ContextEvent.preventDefault();
   IsWebGLContextAvailable = false;
   GameCanvas.dataset.webglAvailable = 'false';
+  if (IsReleaseDiagnosticsEnabled) GameCanvas.dataset.graphicsDiagnostic = 'lost';
   WorldseedSound.setPageActive(false);
   showStatusToast('RESTORING GRAPHICS', 1800);
 });
 GameCanvas.addEventListener('webglcontextrestored', () => {
   IsWebGLContextAvailable = true;
   GameCanvas.dataset.webglAvailable = 'true';
+  if (IsReleaseDiagnosticsEnabled) GameCanvas.dataset.graphicsDiagnostic = 'restored';
   Clock.getDelta();
   Renderer.resetState();
   resizeRenderer();
   WorldseedSound.setPageActive(IsPageActive);
   showStatusToast('GRAPHICS RESTORED', 900);
 });
-ReducedMotionMediaQuery.addEventListener('change', (PreferenceEvent) => {
-  PrefersReducedMotion = PreferenceEvent.matches;
-  GameCanvas.dataset.reducedMotion = String(PrefersReducedMotion);
-  if (PrefersReducedMotion) {
-    CameraImpactLifeSeconds = 0;
-    if (ActiveSystem.camera?.followPlayer === true) {
-      DesiredCameraLookTarget.set(SeedPhysicsState.position.x, SeedPhysicsState.position.y, 0);
-      CameraLookTarget.copy(DesiredCameraLookTarget);
-      Camera.position.x = CameraLookTarget.x;
-      Camera.position.y = CameraLookTarget.y;
-    } else {
-      DesiredCameraLookTarget.set(0, 0, 0);
-      CameraLookTarget.set(0, 0, 0);
-      Camera.position.x = 0;
-      Camera.position.y = 0;
-    }
-    Camera.lookAt(CameraLookTarget);
-  }
+ReducedMotionMediaQuery.addEventListener('change', () => {
+  applyMotionPreference();
 });
 window.addEventListener('keydown', (KeyboardEventData) => {
   if (KeyboardEventData.key === 'Escape' && !LeaderboardPanelElement.hidden) {
@@ -6046,6 +6141,14 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     }
     return;
   }
+  const PressedKey = KeyboardEventData.key.toLowerCase();
+  if (IsReleaseDiagnosticsEnabled && KeyboardEventData.shiftKey) {
+    if (PressedKey === 'b' || PressedKey === 'g') {
+      KeyboardEventData.preventDefault();
+      runReleaseDiagnostic(PressedKey === 'b' ? 'background' : 'graphics');
+      return;
+    }
+  }
   if (handleKeyboardAimKey(KeyboardEventData)) {
     return;
   }
@@ -6058,7 +6161,6 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     return;
   }
 
-  const PressedKey = KeyboardEventData.key.toLowerCase();
   if (PressedKey === 'r') {
     KeyboardEventData.preventDefault();
     resetGame();
@@ -6067,6 +6169,9 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     const IsMuted = WorldseedSound.toggleMute();
     AudioButtonElement.textContent = IsMuted ? 'Audio off [M]' : 'Audio on [M]';
     AudioButtonElement.setAttribute('aria-pressed', String(IsMuted));
+  } else if (PressedKey === 'p') {
+    KeyboardEventData.preventDefault();
+    selectNextMotionPreference();
   }
 });
 document.addEventListener('focusin', (FocusEventData) => {
@@ -6091,9 +6196,11 @@ AudioButtonElement.addEventListener('click', () => {
   AudioButtonElement.textContent = IsMuted ? 'Audio off [M]' : 'Audio on [M]';
   AudioButtonElement.setAttribute('aria-pressed', String(IsMuted));
 });
+MotionButtonElement.addEventListener('click', selectNextMotionPreference);
 
 createLighting();
 createStarField();
 resizeRenderer();
 resetGame();
+applyMotionPreference();
 renderFrame();

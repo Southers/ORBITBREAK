@@ -155,9 +155,10 @@ No dialogue trees, combat encounters or cutscenes are required.
 - Provide an equivalent ranked keyboard path: left/right steer, up/down adjust power, Shift enables fine control, Enter/Space launches and Escape cancels.
 - Pointer and keyboard release must enter the same deterministic launch, replay and scoring path.
 - Keep controls readable at portrait-mobile scale.
-- Keep Reset and audio controls keyboard and touch accessible.
+- Keep Reset, motion and audio controls keyboard and touch accessible.
 - Keep keyboard focus inside an open results or rankings dialog.
-- Reduced motion may remove camera shake and extended celebration without changing physics or scoring.
+- Offer System, Reduced and Full motion modes. System follows the operating-system preference;
+  explicit Reduced or Full choices persist locally and affect presentation only, never physics or scoring.
 - Practice assists must be clearly labelled and must never silently submit a ranked score.
 
 ## Vertical-slice success criteria

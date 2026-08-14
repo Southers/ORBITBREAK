@@ -83,6 +83,7 @@ npm run release:audit
 - Press `Enter` or `Space` to launch; `Escape` cancels keyboard aiming.
 - `R` resets the run.
 - `M` toggles audio.
+- `P` cycles motion between System, Reduced and Full; the choice is remembered locally.
 - The footer buttons provide the same actions on touch devices.
 
 ## Project guide
