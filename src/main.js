@@ -57,7 +57,14 @@ import {
   connectRelayWorlds,
   createRelayNetworkState,
   listRelayLinks,
-} from './network.js?v=20260814-ob15';
+  listVulnerableRelayWorlds,
+} from './network.js?v=20260814-ob16';
+import {
+  WardenPursuitEvents,
+  chooseWardenTarget,
+  createWardenPursuitState,
+  resolveWardenPursuit,
+} from './warden.js?v=20260814-ob16';
 import {
   createRunResult,
   loadPersonalBest,
@@ -169,11 +176,15 @@ const FlightScoreValueElement = document.querySelector('#FlightScoreValue');
 const ChainValueElement = document.querySelector('#ChainValue');
 const ScannerPanelElement = document.querySelector('#ScannerPanel');
 const ScannerBodyLayerElement = document.querySelector('#ScannerBodyLayer');
+const ScannerWardenElement = document.querySelector('#ScannerWarden');
 const ScannerRunnerElement = document.querySelector('#ScannerRunner');
 const StardustCounterElement = document.querySelector('#StardustCounter');
 const ObjectivePanelElement = document.querySelector('#ObjectivePanel');
 const ObjectiveStateElement = document.querySelector('#ObjectiveState');
 const ObjectivePipsElement = document.querySelector('#ObjectivePips');
+const WardenPanelElement = document.querySelector('#WardenPanel');
+const WardenDistanceElement = document.querySelector('#WardenDistance');
+const WardenTargetElement = document.querySelector('#WardenTarget');
 let ObjectivePipElements = [];
 const InstructionPanelElement = document.querySelector('#InstructionPanel');
 const InstructionTitleElement = document.querySelector('#InstructionTitle');
@@ -218,7 +229,7 @@ const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
 const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob15';
+GameCanvas.dataset.build = '20260814-ob16';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -366,6 +377,7 @@ let ReplayState = createReplayRecorder({
 });
 let ReplayPlaybackState = null;
 let RelayNetworkState = createRelayNetworkState(StartingWorldIdentifier);
+let WardenPursuitState = createWardenPursuitState();
 const WorldseedSound = new WorldseedAudio();
 const ScannerWorldElements = new Map();
 let ScannerHazardElement = null;
@@ -2663,6 +2675,137 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
   if (Links.length > 0) TradeShipMesh.instanceMatrix.needsUpdate = true;
 }
 
+/** The pursuing command vessel is a corrupted miniature world, not a timer overlay. */
+const WardenVisualGroup = new THREE.Group();
+const WardenCoreMaterial = new THREE.MeshStandardMaterial({
+  color: 0x35191f,
+  emissive: 0xff3b33,
+  emissiveIntensity: 0.75,
+  roughness: 0.7,
+  metalness: 0.42,
+});
+const WardenCoreMesh = new THREE.Mesh(
+  new THREE.IcosahedronGeometry(1.05, 2),
+  WardenCoreMaterial,
+);
+WardenVisualGroup.add(WardenCoreMesh);
+for (const RingRotation of [0, Math.PI * 0.5]) {
+  const Ring = new THREE.Mesh(
+    new THREE.TorusGeometry(1.38, 0.06, 8, 40),
+    new THREE.MeshBasicMaterial({ color: 0xff675f }),
+  );
+  Ring.rotation.x = RingRotation;
+  WardenVisualGroup.add(Ring);
+}
+WardenVisualGroup.visible = false;
+Scene.add(WardenVisualGroup);
+
+const WardenForecastPositions = new Float32Array(6);
+const WardenForecastGeometry = new THREE.BufferGeometry();
+const WardenForecastAttribute = new THREE.BufferAttribute(WardenForecastPositions, 3);
+WardenForecastAttribute.setUsage(THREE.DynamicDrawUsage);
+WardenForecastGeometry.setAttribute('position', WardenForecastAttribute);
+const WardenForecastMaterial = new THREE.LineDashedMaterial({
+  color: 0xff675f,
+  transparent: true,
+  opacity: 0.58,
+  dashSize: 0.45,
+  gapSize: 0.3,
+  depthWrite: false,
+});
+const WardenForecastLine = new THREE.Line(WardenForecastGeometry, WardenForecastMaterial);
+WardenForecastLine.visible = false;
+WardenForecastLine.frustumCulled = false;
+Scene.add(WardenForecastLine);
+const WardenEntryPosition = new THREE.Vector3(
+  WorldheartDefinition.position.x + 8,
+  WorldheartDefinition.position.y + 6,
+  0.35,
+);
+WardenVisualGroup.position.copy(WardenEntryPosition);
+
+function publishWardenState() {
+  const IsVisible = WardenPursuitState.status !== 'hidden';
+  const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
+  WardenPanelElement.hidden = !IsVisible;
+  if (IsVisible) {
+    ScannerWardenElement.removeAttribute('hidden');
+  } else {
+    ScannerWardenElement.setAttribute('hidden', '');
+  }
+  WardenVisualGroup.visible = IsVisible;
+  WardenForecastLine.visible = IsVisible && Boolean(TargetWorld);
+  WardenDistanceElement.textContent = WardenPursuitState.distance === 0
+    ? 'ARRIVING NOW'
+    : `${WardenPursuitState.distance} FLIGHT${WardenPursuitState.distance === 1 ? '' : 'S'}`;
+  WardenTargetElement.textContent = TargetWorld
+    ? `NEXT: ${TargetWorld.label}`
+    : 'TARGET UNKNOWN';
+  GameCanvas.dataset.wardenStatus = WardenPursuitState.status;
+  GameCanvas.dataset.wardenDistance = String(WardenPursuitState.distance);
+  GameCanvas.dataset.wardenTarget = WardenPursuitState.targetWorldIdentifier ?? '';
+  GameCanvas.dataset.wardenEvent = WardenPursuitState.lastEvent;
+  GameCanvas.dataset.wardenResolvedFlights = String(WardenPursuitState.resolvedFlightCount);
+}
+
+function resolveWardenAfterResolvedFlight() {
+  const TargetWorldIdentifier = chooseWardenTarget(
+    WorldDefinitions,
+    listVulnerableRelayWorlds(RelayNetworkState),
+  );
+  WardenPursuitState = resolveWardenPursuit(WardenPursuitState, {
+    activeRelayCount: RelayNetworkState.activeWorldIdentifiers.size,
+    targetWorldIdentifier: TargetWorldIdentifier,
+  });
+  publishWardenState();
+  const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
+  if (WardenPursuitState.lastEvent === WardenPursuitEvents.revealed) {
+    showInstruction(
+      'Unauthorised network detected.',
+      `The Warden is targeting ${TargetWorld?.label ?? 'the frontier'} · ${WardenPursuitState.distance} resolved flights away.`,
+    );
+  } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.advanced) {
+    showStatusToast(
+      `WARDEN → ${TargetWorld?.label ?? 'FRONTIER'} · ${WardenPursuitState.distance} FLIGHTS`,
+      1250,
+    );
+  } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.arrived) {
+    showStatusToast(`WARDEN ARRIVING AT ${TargetWorld?.label ?? 'THE FRONTIER'}`, 1500);
+  }
+}
+
+function updateWardenVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
+  if (WardenPursuitState.status === 'hidden') return;
+  const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
+  if (!TargetWorld) return;
+  const ApproachProgress = 1 - (
+    WardenPursuitState.distance / WardenPursuitState.maximumDistance
+  );
+  TemporaryThreeVector.set(
+    THREE.MathUtils.lerp(WardenEntryPosition.x, TargetWorld.position.x, ApproachProgress),
+    THREE.MathUtils.lerp(WardenEntryPosition.y, TargetWorld.position.y, ApproachProgress),
+    0.35,
+  );
+  WardenVisualGroup.position.lerp(
+    TemporaryThreeVector,
+    1 - Math.exp(-DeltaTimeSeconds * 2.8),
+  );
+  WardenVisualGroup.rotation.y += DeltaTimeSeconds * 0.32;
+  WardenVisualGroup.rotation.z = Math.sin(ElapsedTimeSeconds * 0.7) * 0.08;
+  WardenCoreMaterial.emissiveIntensity = 0.72 + (Math.sin(ElapsedTimeSeconds * 4) * 0.16);
+  WardenForecastPositions.set([
+    WardenVisualGroup.position.x, WardenVisualGroup.position.y, 0.18,
+    TargetWorld.position.x, TargetWorld.position.y, 0.18,
+  ]);
+  WardenForecastAttribute.needsUpdate = true;
+  WardenForecastLine.computeLineDistances();
+  if (ScannerProjection) {
+    const Marker = projectScannerPosition(WardenVisualGroup.position);
+    ScannerWardenElement.setAttribute('cx', String(Marker.x));
+    ScannerWardenElement.setAttribute('cy', String(Marker.y));
+  }
+}
+
 /** Two instanced beacons reveal suggested branches without turning choice into a menu. */
 const TargetBeaconGeometry = new THREE.RingGeometry(1, 1.04, 72);
 const TargetBeaconMaterial = new THREE.MeshBasicMaterial({
@@ -3912,6 +4055,7 @@ function scheduleRunFailure(Reason = 'OUT OF LAUNCHES') {
 
 /** Settles a non-command landing and defers failure until a new world's reveal completes. */
 function settleNonCommandFlight(Reason = 'FINAL LAUNCH SPENT') {
+  resolveWardenAfterResolvedFlight();
   RunState = settleRunFlight(RunState);
   updateLaunchCounter();
   if (RunState.status !== 'failed') {
@@ -5161,6 +5305,7 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
   }
 
   RunState = settleRunFlight(RunState);
+  resolveWardenAfterResolvedFlight();
   updateLaunchCounter();
   const LostPoints = loseCurrentFlightScore();
   rollbackFlightStardust();
@@ -6139,6 +6284,9 @@ function resetGame() {
   });
   RelayNetworkState = createRelayNetworkState(StartingWorldIdentifier);
   synchronizeRelayNetworkVisuals();
+  WardenPursuitState = createWardenPursuitState();
+  WardenVisualGroup.position.copy(WardenEntryPosition);
+  publishWardenState();
   RunFlightTimeSeconds = 0;
   try {
     const PersonalBest = loadPersonalBest(
@@ -6553,6 +6701,7 @@ function renderFrame() {
   updateWorldBiomeMotion(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateFinaleRestorationVisuals(ElapsedTimeSeconds);
   updateRelayNetworkVisuals(ElapsedTimeSeconds);
+  updateWardenVisuals(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateCamera(DeltaTimeSeconds);
   updateTacticalBodies(ElapsedTimeSeconds);

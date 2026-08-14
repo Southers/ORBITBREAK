@@ -4,8 +4,10 @@ import test from 'node:test';
 import {
   connectRelayWorlds,
   createRelayNetworkState,
+  getRelayDegree,
   getRelayLinkIdentifier,
   listRelayLinks,
+  listVulnerableRelayWorlds,
 } from '../src/network.js';
 
 test('a resolved traversal activates its destination and creates one canonical relay link', () => {
@@ -30,4 +32,13 @@ test('reverse and repeated traversal preserve one permanent non-farmable link', 
   assert.equal(Network.links.size, 1);
   assert.equal(getRelayLinkIdentifier('haven', 'ember'), 'ember::haven');
   assert.throws(() => getRelayLinkIdentifier('haven', 'haven'), /distinct worlds/);
+});
+
+test('only degree-zero and degree-one active relays are vulnerable frontier worlds', () => {
+  const Network = createRelayNetworkState('haven');
+  connectRelayWorlds(Network, 'haven', 'ember');
+  connectRelayWorlds(Network, 'ember', 'grove');
+
+  assert.equal(getRelayDegree(Network, 'ember'), 2);
+  assert.deepEqual(listVulnerableRelayWorlds(Network).sort(), ['grove', 'haven']);
 });

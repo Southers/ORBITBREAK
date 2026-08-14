@@ -10,7 +10,7 @@ ORBITBREAK is a Three.js orbital adventure and score attack. You are a tiny rebe
 
 The public build is the proven score-attack foundation, not yet the locked Warden redesign. It currently offers five authored systems, eight-launch runs, deterministic slingshot scoring, occupied-world liberation, local personal bests and verified replay playback.
 
-The current development slice keeps the proven gravity and scoring loop while adding limited surface repositioning, a planning camera and one deterministic mid-flight Breaker Burn. Successful world-to-world landings now leave a luminous relay link, an answering message and a tiny courier travelling between the connected societies. The next checkpoints replace the arbitrary launch budget with visible Warden pursuit, resilient circuits, reversible recapture and one orbital final encounter.
+The current development slice keeps the proven gravity and scoring loop while adding limited surface repositioning, a planning camera and one deterministic mid-flight Breaker Burn. Successful world-to-world landings now leave a luminous relay link, an answering message and a tiny courier travelling between the connected societies. The third active relay reveals the Warden at the sector edge; its vulnerable target and remaining resolved-flight distance stay visible while scouting remains safe. The next checkpoints add suppression, resilient circuits, reversible recapture and one orbital final encounter.
 
 The target is deliberately one dense authored sector rather than an infinite universe or a larger but shallower campaign. See `DESIGN.md` for the locked game and `JAM_PLAN.md` for the gated implementation order.
 

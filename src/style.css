@@ -281,6 +281,51 @@ button:focus-visible,
   filter: drop-shadow(0 0 3px rgba(114, 217, 255, 0.8));
 }
 
+.scanner-warden {
+  fill: #ff635c;
+  stroke: #ffd0c8;
+  stroke-width: 1.4;
+  filter: drop-shadow(0 0 4px rgba(255, 79, 70, 0.9));
+}
+
+.warden-panel {
+  position: absolute;
+  z-index: 5;
+  top: 66px;
+  right: max(20px, env(safe-area-inset-right));
+  min-width: 174px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 99, 92, 0.42);
+  border-radius: 10px;
+  background: rgba(38, 8, 12, 0.82);
+  box-shadow: 0 0 24px rgba(255, 64, 54, 0.12);
+  color: #ffd7d1;
+  pointer-events: none;
+}
+
+.warden-panel[hidden] {
+  display: none;
+}
+
+.warden-panel span,
+.warden-panel strong,
+.warden-panel small {
+  display: block;
+}
+
+.warden-panel span,
+.warden-panel small {
+  font-size: 8px;
+  letter-spacing: 0.13em;
+}
+
+.warden-panel strong {
+  margin: 3px 0;
+  color: #ff7c73;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
 .burn-button {
   position: absolute;
   z-index: 7;
@@ -1041,6 +1086,13 @@ button:focus-visible,
     top: 62px;
     min-width: 168px;
     padding: 7px 11px;
+  }
+
+  .warden-panel {
+    top: 104px;
+    right: max(14px, env(safe-area-inset-right));
+    min-width: 142px;
+    padding: 7px 9px;
   }
 
   .victory-panel {

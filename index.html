@@ -11,7 +11,7 @@
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
   <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260814-ob13" />
-  <link rel="stylesheet" href="./src/style.css?v=20260814-ob15" />
+  <link rel="stylesheet" href="./src/style.css?v=20260814-ob16" />
 
   <!--
     Buildless release import map. Three.js is pinned and vendored so startup
@@ -72,8 +72,15 @@
       <span>SCANNER</span>
       <svg id="ScannerMap" viewBox="0 0 160 90" aria-hidden="true">
         <g id="ScannerBodyLayer"></g>
+        <circle id="ScannerWarden" class="scanner-warden" r="4" hidden></circle>
         <circle id="ScannerRunner" class="scanner-runner" r="3"></circle>
       </svg>
+    </section>
+
+    <section id="WardenPanel" class="warden-panel" aria-live="polite" hidden>
+      <span>WARDEN APPROACH</span>
+      <strong id="WardenDistance">4 FLIGHTS</strong>
+      <small id="WardenTarget">TARGET UNKNOWN</small>
     </section>
 
     <section id="ObjectivePanel" class="objective-panel" aria-live="polite">
@@ -195,6 +202,6 @@
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260814-ob15"></script>
+  <script type="module" src="./src/main.js?v=20260814-ob16"></script>
 </body>
 </html>

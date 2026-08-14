@@ -69,6 +69,12 @@ non-farmable relay link, show the first hopeful answer and launch a pooled tiny 
 both directions along the persistent route. Reset removes the derived network cleanly. Warden
 entrance and pursuit remain deliberately deferred until this hopeful consequence is readable.
 
+Checkpoint B — 14 August 2026: the third active relay now reveals a corrupted miniature Warden
+world without also moving it. A dashed authored approach, scanner marker and persistent forecast
+identify the vulnerable frontier target and exact resolved-flight distance on desktop and portrait
+mobile. Every later landing or miss advances one beat; Scout time, surface planning and waiting do
+not. Suppression remains the next checkpoint so arrival gains a fair, reversible consequence.
+
 ## Milestone 3 — One complete sector
 
 - Build a dense six-to-nine-world authored sector from the strongest existing content.

@@ -53,3 +53,16 @@ export function connectRelayWorlds(
 export function listRelayLinks(NetworkState) {
   return [...NetworkState.links.values()];
 }
+
+export function getRelayDegree(NetworkState, WorldIdentifier) {
+  return listRelayLinks(NetworkState).filter((Link) => (
+    Link.originWorldIdentifier === WorldIdentifier
+    || Link.destinationWorldIdentifier === WorldIdentifier
+  )).length;
+}
+
+export function listVulnerableRelayWorlds(NetworkState) {
+  return [...NetworkState.activeWorldIdentifiers].filter(
+    (WorldIdentifier) => getRelayDegree(NetworkState, WorldIdentifier) <= 1,
+  );
+}
