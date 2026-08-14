@@ -440,6 +440,25 @@ button:focus-visible,
   line-height: 1.35;
 }
 
+.replay-indicator {
+  position: absolute;
+  z-index: 7;
+  top: max(18px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  border: 1px solid rgba(126, 230, 255, 0.32);
+  border-radius: 999px;
+  background: rgba(5, 17, 27, 0.78);
+  color: #b8efff;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(9px);
+}
+
 .route-labels {
   position: absolute;
   z-index: 3;
@@ -653,9 +672,13 @@ button:focus-visible,
 }
 
 .result-actions {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+#PlayAgainButton {
+  grid-column: 1 / -1;
 }
 
 .victory-panel button.is-secondary {
@@ -755,6 +778,11 @@ button:focus-visible,
 
   .victory-panel {
     padding: 24px 22px;
+  }
+
+  .replay-indicator {
+    top: auto;
+    bottom: max(150px, calc(env(safe-area-inset-bottom) + 144px));
   }
 
   .result-breakdown {

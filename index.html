@@ -9,7 +9,7 @@
   <meta property="og:description" content="Chain planetary slingshots, free tiny worlds and bank the run before your launches expire." />
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
-  <link rel="stylesheet" href="./src/style.css?v=20260814-ob7" />
+  <link rel="stylesheet" href="./src/style.css?v=20260814-ob8" />
 
   <!--
     Buildless import map for the five-day jam. Three.js is pinned and vendored so startup
@@ -88,6 +88,9 @@
     </section>
 
     <section id="StatusToast" class="status-toast" aria-live="polite"></section>
+    <div id="ReplayIndicator" class="replay-indicator" aria-live="polite" hidden>
+      WATCHING VERIFIED REPLAY
+    </div>
 
     <div id="RouteLabels" class="route-labels" aria-hidden="true">
       <span class="route-label"></span>
@@ -124,6 +127,7 @@
       </div>
       <div class="result-actions">
         <button id="ReplayButton" type="button">Run again</button>
+        <button id="WatchReplayButton" class="is-secondary" type="button" hidden>Watch replay</button>
         <button id="PlayAgainButton" class="is-secondary" type="button">Continue</button>
       </div>
     </section>
@@ -137,6 +141,6 @@
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260814-ob7"></script>
+  <script type="module" src="./src/main.js?v=20260814-ob8"></script>
 </body>
 </html>
