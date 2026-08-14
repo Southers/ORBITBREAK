@@ -46,7 +46,7 @@ export function recordReplayLaunch(Replay, {
   if (Replay.outcome !== 'recording') {
     throw new Error('A finished replay cannot accept another launch.');
   }
-  if (!Number.isInteger(stepIndex) || stepIndex < 0) {
+  if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex > 10000000) {
     throw new Error('Replay launch step is invalid.');
   }
   const PreviousLaunch = Replay.launches[Replay.launches.length - 1];
