@@ -248,7 +248,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob23';
+GameCanvas.dataset.build = '20260815-ob24';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -2793,18 +2793,126 @@ const WardenCoreMesh = new THREE.Mesh(
   WardenCoreMaterial,
 );
 WardenVisualGroup.add(WardenCoreMesh);
+const WardenArmorMaterial = new THREE.MeshStandardMaterial({
+  color: 0x160f18,
+  emissive: 0x6e1018,
+  emissiveIntensity: 0.38,
+  roughness: 0.38,
+  metalness: 0.86,
+});
+const WardenArmorPanelCount = 8;
+const WardenArmorMesh = new THREE.InstancedMesh(
+  new THREE.BoxGeometry(0.58, 0.16, 0.42),
+  WardenArmorMaterial,
+  WardenArmorPanelCount,
+);
+const WardenArmorTransform = new THREE.Object3D();
+WardenArmorMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+WardenVisualGroup.add(WardenArmorMesh);
+
+const WardenCitadelGroup = new THREE.Group();
+const WardenCitadelMaterial = new THREE.MeshStandardMaterial({
+  color: 0x25131b,
+  emissive: 0xb51f25,
+  emissiveIntensity: 0.54,
+  roughness: 0.42,
+  metalness: 0.8,
+});
+const WardenCitadelMesh = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.2, 0.38, 0.78, 6),
+  WardenCitadelMaterial,
+);
+WardenCitadelMesh.position.y = 1.06;
+WardenCitadelGroup.add(WardenCitadelMesh);
+const WardenBeaconMaterial = new THREE.MeshBasicMaterial({ color: 0xff5148 });
+const WardenBeaconMesh = new THREE.Mesh(
+  new THREE.OctahedronGeometry(0.16, 0),
+  WardenBeaconMaterial,
+);
+WardenBeaconMesh.position.y = 1.53;
+WardenCitadelGroup.add(WardenBeaconMesh);
+WardenVisualGroup.add(WardenCitadelGroup);
+
+const WardenShieldMoonMaterial = new THREE.MeshStandardMaterial({
+  color: 0x2a161d,
+  emissive: 0xff4138,
+  emissiveIntensity: 1.15,
+  roughness: 0.5,
+  metalness: 0.7,
+});
+const WardenShieldMoonMesh = new THREE.InstancedMesh(
+  new THREE.IcosahedronGeometry(0.24, 1),
+  WardenShieldMoonMaterial,
+  2,
+);
+const WardenShieldMoonTransform = new THREE.Object3D();
+WardenShieldMoonMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+WardenVisualGroup.add(WardenShieldMoonMesh);
+
+const WardenExposureLatticeGroup = new THREE.Group();
+const WardenExposureLatticeMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffd678,
+  transparent: true,
+  opacity: 0.68,
+  depthWrite: false,
+});
+for (const LatticeRotation of [0, Math.PI / 3, -Math.PI / 3]) {
+  const LatticeArc = new THREE.Mesh(
+    new THREE.TorusGeometry(1.12, 0.025, 6, 36),
+    WardenExposureLatticeMaterial,
+  );
+  LatticeArc.rotation.y = LatticeRotation;
+  WardenExposureLatticeGroup.add(LatticeArc);
+}
+WardenExposureLatticeGroup.visible = false;
+WardenVisualGroup.add(WardenExposureLatticeGroup);
+
 const WardenShieldRings = [];
+const WardenShieldRingMaterials = [];
 for (const RingRotation of [0, Math.PI * 0.5]) {
+  const RingMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff675f,
+    transparent: true,
+    opacity: 0.82,
+  });
   const Ring = new THREE.Mesh(
     new THREE.TorusGeometry(1.38, 0.06, 8, 40),
-    new THREE.MeshBasicMaterial({ color: 0xff675f }),
+    RingMaterial,
   );
   Ring.rotation.x = RingRotation;
   WardenVisualGroup.add(Ring);
   WardenShieldRings.push(Ring);
+  WardenShieldRingMaterials.push(RingMaterial);
 }
 WardenVisualGroup.visible = false;
 Scene.add(WardenVisualGroup);
+
+const WardenEventPulseMaterial = new THREE.MeshBasicMaterial({
+  color: 0xff5148,
+  transparent: true,
+  opacity: 0,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+const WardenEventPulseMesh = new THREE.Mesh(
+  new THREE.RingGeometry(0.82, 0.9, 64),
+  WardenEventPulseMaterial,
+);
+WardenEventPulseMesh.visible = false;
+Scene.add(WardenEventPulseMesh);
+let WardenEventPulseStartedAtSeconds = null;
+let CommandDefeatStartedAtSeconds = null;
+
+function startWardenEventPulse(Position, Color, Beat) {
+  WardenEventPulseMesh.position.set(Position.x, Position.y, 0.42);
+  WardenEventPulseMesh.scale.setScalar(1);
+  WardenEventPulseMaterial.color.setHex(Color);
+  WardenEventPulseMaterial.opacity = 0.88;
+  WardenEventPulseMesh.visible = true;
+  WardenEventPulseStartedAtSeconds = GameElapsedTimeSeconds;
+  GameCanvas.dataset.wardenVisualBeat = Beat;
+}
 
 const WardenForecastPositions = new Float32Array(6);
 const WardenForecastGeometry = new THREE.BufferGeometry();
@@ -2866,6 +2974,15 @@ function publishWardenState() {
   for (let RingIndex = 0; RingIndex < WardenShieldRings.length; RingIndex += 1) {
     WardenShieldRings[RingIndex].visible = RingIndex < WardenPursuitState.shieldLayers;
   }
+  WardenShieldMoonMesh.count = WardenPursuitState.shieldLayers;
+  WardenExposureLatticeGroup.visible = IsCommandExposed;
+  WardenExposureLatticeMaterial.opacity = 0.68;
+  WardenVisualGroup.scale.setScalar(1);
+  WardenCoreMaterial.color.setHex(IsCommandExposed ? 0x55401b : 0x35191f);
+  WardenCoreMaterial.emissive.setHex(IsCommandExposed ? 0xffb23f : 0xff3b33);
+  WardenArmorMaterial.emissive.setHex(IsCommandExposed ? 0x9a5b16 : 0x6e1018);
+  WardenCitadelMaterial.emissive.setHex(IsCommandExposed ? 0xffae32 : 0xb51f25);
+  WardenBeaconMaterial.color.setHex(IsCommandExposed ? 0xffe79a : 0xff5148);
   WardenForecastLine.visible = IsVisible && Boolean(TargetWorld) && !IsCommandExposed;
   WardenDistanceElement.textContent = IsCommandExposed
     ? 'EXPOSED'
@@ -2885,6 +3002,9 @@ function publishWardenState() {
   GameCanvas.dataset.wardenEvent = WardenPursuitState.lastEvent;
   GameCanvas.dataset.wardenResolvedFlights = String(WardenPursuitState.resolvedFlightCount);
   GameCanvas.dataset.wardenShieldLayers = String(WardenPursuitState.shieldLayers);
+  GameCanvas.dataset.wardenLandmark = IsCommandExposed
+    ? 'command-world-exposed'
+    : (IsVisible ? 'iron-crown-pursuit' : 'hidden');
 }
 
 function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit = null } = {}) {
@@ -2943,6 +3063,7 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
   publishWardenState();
   const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
   if (WardenPursuitState.lastEvent === WardenPursuitEvents.revealed) {
+    startWardenEventPulse(WardenVisualGroup.position, 0xff5148, 'arrival');
     showInstruction(
       'Unauthorised network detected.',
       `The Warden is targeting ${TargetWorld?.label ?? 'the frontier'} · ${WardenPursuitState.distance} resolved flights away.`,
@@ -2972,10 +3093,12 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
       1600,
     );
     if (CommandWorldJustExposed) {
+      startWardenEventPulse(WorldheartDefinition.position, 0xffd678, 'resistance');
       WorldheartJustUnlocked = false;
       WorldseedSound.worldheartOpen();
     }
   } else if (SuppressedWorld) {
+    startWardenEventPulse(SuppressedWorld.position, 0xff5148, 'suppression');
     showInstruction(
       `Signal lost: ${SuppressedWorld.label}.`,
       'Its route and courier are dark. Land there again to reconnect it.',
@@ -2985,7 +3108,28 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
   return SuppressedWorld;
 }
 
+function updateWardenEventPulse(ElapsedTimeSeconds) {
+  if (WardenEventPulseStartedAtSeconds === null) return;
+  const PulseDurationSeconds = PrefersReducedMotion ? 0.7 : 1.15;
+  const PulseProgress = THREE.MathUtils.clamp(
+    (ElapsedTimeSeconds - WardenEventPulseStartedAtSeconds) / PulseDurationSeconds,
+    0,
+    1,
+  );
+  const MaximumPulseScale = PrefersReducedMotion ? 1.7 : 3.6;
+  WardenEventPulseMesh.scale.setScalar(
+    THREE.MathUtils.lerp(1, MaximumPulseScale, PulseProgress),
+  );
+  WardenEventPulseMaterial.opacity = (1 - PulseProgress) * 0.88;
+  if (PulseProgress >= 1) {
+    WardenEventPulseMesh.visible = false;
+    WardenEventPulseStartedAtSeconds = null;
+    GameCanvas.dataset.wardenVisualBeat = '';
+  }
+}
+
 function updateWardenVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
+  updateWardenEventPulse(ElapsedTimeSeconds);
   if (WardenPursuitState.status === 'hidden') return;
   const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
   const IsCommandExposed = WardenPursuitState.status === 'exposed';
@@ -3024,7 +3168,71 @@ function updateWardenVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   }
   WardenVisualGroup.rotation.y += DeltaTimeSeconds * 0.32;
   WardenVisualGroup.rotation.z = Math.sin(ElapsedTimeSeconds * 0.7) * 0.08;
-  WardenCoreMaterial.emissiveIntensity = 0.72 + (Math.sin(ElapsedTimeSeconds * 4) * 0.16);
+  const IsCommandDefeated = CommandDefeatStartedAtSeconds !== null;
+  const DefeatProgress = IsCommandDefeated
+    ? THREE.MathUtils.clamp((ElapsedTimeSeconds - CommandDefeatStartedAtSeconds) / 1.1, 0, 1)
+    : 0;
+  const ArmorRadius = IsCommandDefeated
+    ? THREE.MathUtils.lerp(1.38, 1.82, DefeatProgress)
+    : (IsCommandExposed ? 1.38 : 1.08);
+  for (let PanelIndex = 0; PanelIndex < WardenArmorPanelCount; PanelIndex += 1) {
+    const PanelAngle = (PanelIndex / WardenArmorPanelCount) * Math.PI * 2;
+    WardenArmorTransform.position.set(
+      Math.cos(PanelAngle) * ArmorRadius,
+      Math.sin(PanelAngle) * ArmorRadius,
+      (PanelIndex % 2 === 0 ? 0.22 : -0.22),
+    );
+    WardenArmorTransform.rotation.set(
+      0,
+      DefeatProgress * (PanelIndex % 2 === 0 ? 0.8 : -0.8),
+      PanelAngle + (Math.PI * 0.5) + (DefeatProgress * 0.55),
+    );
+    WardenArmorTransform.scale.setScalar(
+      IsCommandExposed ? THREE.MathUtils.lerp(0.88, 0.62, DefeatProgress) : 1,
+    );
+    WardenArmorTransform.updateMatrix();
+    WardenArmorMesh.setMatrixAt(PanelIndex, WardenArmorTransform.matrix);
+  }
+  WardenArmorMesh.instanceMatrix.needsUpdate = true;
+
+  for (let MoonIndex = 0; MoonIndex < WardenShieldMoonMesh.count; MoonIndex += 1) {
+    const MoonDirection = MoonIndex === 0 ? 1 : -1;
+    const MoonAngle = (ElapsedTimeSeconds * (0.82 + (MoonIndex * 0.18)) * MoonDirection)
+      + (MoonIndex * Math.PI);
+    WardenShieldMoonTransform.position.set(
+      Math.cos(MoonAngle) * 1.82,
+      Math.sin(MoonAngle) * 1.42,
+      Math.sin(MoonAngle * 1.7) * 0.52,
+    );
+    WardenShieldMoonTransform.rotation.set(MoonAngle, MoonAngle * 0.7, 0);
+    WardenShieldMoonTransform.scale.setScalar(0.92 + (Math.sin(MoonAngle * 2) * 0.08));
+    WardenShieldMoonTransform.updateMatrix();
+    WardenShieldMoonMesh.setMatrixAt(MoonIndex, WardenShieldMoonTransform.matrix);
+  }
+  if (WardenShieldMoonMesh.count > 0) {
+    WardenShieldMoonMesh.instanceMatrix.needsUpdate = true;
+  }
+  for (let RingIndex = 0; RingIndex < WardenShieldRings.length; RingIndex += 1) {
+    WardenShieldRings[RingIndex].rotation.z += DeltaTimeSeconds * (RingIndex === 0 ? 0.34 : -0.27);
+    WardenShieldRingMaterials[RingIndex].opacity = 0.7
+      + (Math.sin((ElapsedTimeSeconds * 3.2) + RingIndex) * 0.16);
+  }
+  WardenExposureLatticeGroup.rotation.y += DeltaTimeSeconds * 0.46;
+  WardenExposureLatticeGroup.rotation.z -= DeltaTimeSeconds * 0.22;
+  WardenBeaconMesh.scale.setScalar(0.86 + (Math.sin(ElapsedTimeSeconds * 5.2) * 0.16));
+  WardenCoreMaterial.emissiveIntensity = IsCommandDefeated
+    ? THREE.MathUtils.lerp(2.4, 0.28, DefeatProgress)
+    : 0.72 + (Math.sin(ElapsedTimeSeconds * 4) * 0.16);
+  if (IsCommandDefeated) {
+    WardenCoreMaterial.color.setHex(0x17363a);
+    WardenCoreMaterial.emissive.setHex(0x72d9ff);
+    WardenArmorMaterial.emissive.setHex(0x17363a);
+    WardenCitadelMaterial.emissive.setHex(0x72d9ff);
+    WardenBeaconMaterial.color.setHex(0xc6f4ff);
+    WardenExposureLatticeMaterial.opacity = (1 - DefeatProgress) * 0.68;
+    WardenVisualGroup.scale.setScalar(THREE.MathUtils.lerp(1, 0.9, DefeatProgress));
+    GameCanvas.dataset.wardenLandmark = 'command-world-disabled';
+  }
   if (TargetWorld) {
     WardenForecastPositions.set([
       WardenVisualGroup.position.x, WardenVisualGroup.position.y, 0.18,
@@ -4963,6 +5171,8 @@ function completeWorldheartLiberation() {
   updateScoreInterface();
   GameCanvas.dataset.completionBonus = String(CompletionBonus);
   GameCanvas.dataset.commandPulse = 'fired';
+  CommandDefeatStartedAtSeconds = GameElapsedTimeSeconds;
+  startWardenEventPulse(WorldheartDefinition.position, 0x72d9ff, 'defeat');
   GamePhase = 'victoryPending';
   updateWorldheartObjective();
   updateVictorySummary();
@@ -6997,7 +7207,18 @@ function resetGame() {
   RelayNetworkState = createRelayNetworkState(StartingWorldIdentifier);
   synchronizeRelayNetworkVisuals();
   WardenPursuitState = createWardenPursuitState();
+  WardenEventPulseStartedAtSeconds = null;
+  CommandDefeatStartedAtSeconds = null;
+  WardenEventPulseMesh.visible = false;
+  WardenEventPulseMaterial.opacity = 0;
+  GameCanvas.dataset.wardenVisualBeat = '';
   WardenVisualGroup.position.copy(WardenEntryPosition);
+  WardenVisualGroup.rotation.set(0, 0, 0);
+  WardenShieldRings.forEach((Ring, RingIndex) => {
+    Ring.rotation.x = RingIndex === 0 ? 0 : Math.PI * 0.5;
+    Ring.rotation.y = 0;
+    Ring.rotation.z = 0;
+  });
   WardenApproachStartPosition.copy(WardenEntryPosition);
   GameCanvas.dataset.lastSuppressedWorld = '';
   GameCanvas.dataset.wardenCaughtWorld = '';

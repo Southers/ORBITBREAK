@@ -188,6 +188,20 @@ is met: the same sector supports a direct safe completion and a higher-value del
 
 Exit: screenshots communicate tiny societies, isolation, connection and authoritarian threat without explanatory text.
 
+Checkpoint A — 15 August 2026: the Warden is now an authored boss landmark instead of a generic
+icosahedron. Eight pooled iron-crown armor plates, a polar command citadel, a pulsing beacon and two
+orbiting shield moons communicate authority and remaining defence at a glance. The second circuit
+removes the moons and opens the crown around a gold three-axis command lattice; the final Pulse
+disperses the armor, cools the core to network blue and drives the same pooled system-scale beat used
+for arrival, resistance and suppression. These are presentation-only transforms driven from existing
+Warden state, so fixed-step live, prediction and replay physics are unchanged. A real desktop route
+reached pursuit and exposure: the red crown and two moons read before the gold open-lattice state,
+with a 165-call peak. The same exposed run at 390×844 stayed within the 190-call budget at a 180-call
+peak, preserved 44px controls and had no overflow or browser errors. Current judging evidence:
+**Art 8/10**, **Creativity 9/10**, **Gameplay 9/10**, **Polish 9/10**, **Tiny Worlds Theme 9/10**.
+Art remains the weakest category; the next highest-leverage checkpoint is distinct culture and
+occupation storytelling on the retained ordinary worlds. Milestone 5 remains in progress.
+
 ## Milestone 6 — Reliability and release readiness
 
 - Tune route fairness and score values through repeated fresh-player runs.
