@@ -87,3 +87,13 @@ export function resetWardenAfterSuppression(State, NextTargetWorldIdentifier) {
     lastEvent: WardenPursuitEvents.suppressed,
   };
 }
+
+export function shouldWardenCatchRunner(
+  State,
+  RunnerWorldIdentifier,
+  ProtectedWorldIdentifiers = [],
+) {
+  return State.lastEvent === WardenPursuitEvents.arrived
+    && State.targetWorldIdentifier === RunnerWorldIdentifier
+    && !new Set(ProtectedWorldIdentifiers).has(RunnerWorldIdentifier);
+}

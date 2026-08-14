@@ -1,8 +1,8 @@
 /**
  * Pure run-pressure state for ORBITBREAK.
  *
- * Releasing a valid shot spends a launch immediately. The last shot is allowed to finish:
- * settlement decides whether it reached the Command World or exhausted the run elsewhere.
+ * Releasing a valid shot spends remaining bonus fuel first. Exhausting that reserve never ends
+ * the run; only the deterministic Warden pressure can do that.
  */
 
 export function createRunState(MaximumLaunches) {
@@ -23,13 +23,9 @@ export function releaseRunLaunch(RunState) {
   if (RunState.status !== 'active' || RunState.flightInProgress) {
     throw new Error('Only an attached active Runner can launch.');
   }
-  if (RunState.remainingLaunches < 1) {
-    throw new Error('No launches remain.');
-  }
-
   return {
     ...RunState,
-    remainingLaunches: RunState.remainingLaunches - 1,
+    remainingLaunches: Math.max(0, RunState.remainingLaunches - 1),
     launchesUsed: RunState.launchesUsed + 1,
     flightInProgress: true,
   };
@@ -43,11 +39,14 @@ export function settleRunFlight(RunState, { reachedCommandWorld = false } = {}) 
   return {
     ...RunState,
     flightInProgress: false,
-    status: reachedCommandWorld
-      ? 'complete'
-      : RunState.remainingLaunches === 0
-        ? 'failed'
-        : 'active',
+    status: reachedCommandWorld ? 'complete' : 'active',
   };
+}
+
+export function failRunToWarden(RunState) {
+  if (RunState.status !== 'active' || RunState.flightInProgress) {
+    throw new Error('Only a settled active run can be caught by the Warden.');
+  }
+  return { ...RunState, status: 'failed' };
 }
 

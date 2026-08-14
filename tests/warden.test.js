@@ -7,6 +7,7 @@ import {
   createWardenPursuitState,
   resetWardenAfterSuppression,
   resolveWardenPursuit,
+  shouldWardenCatchRunner,
 } from '../src/warden.js';
 
 test('the third active relay reveals the Warden without also advancing it', () => {
@@ -57,4 +58,19 @@ test('the authored frontier nearest the command edge is targeted deterministical
   ];
   assert.equal(chooseWardenTarget(Worlds, ['haven', 'grove']), 'grove');
   assert.equal(chooseWardenTarget(Worlds, []), null);
+});
+
+test('arrival catches only the unprotected Runner on the targeted world', () => {
+  let State = createWardenPursuitState({ startingDistance: 1 });
+  State = resolveWardenPursuit(State, {
+    activeRelayCount: 3,
+    targetWorldIdentifier: 'grove',
+  });
+  State = resolveWardenPursuit(State, {
+    activeRelayCount: 3,
+    targetWorldIdentifier: 'grove',
+  });
+  assert.equal(shouldWardenCatchRunner(State, 'grove'), true);
+  assert.equal(shouldWardenCatchRunner(State, 'haven'), false);
+  assert.equal(shouldWardenCatchRunner(State, 'grove', ['grove']), false);
 });

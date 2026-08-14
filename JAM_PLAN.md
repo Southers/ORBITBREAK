@@ -119,6 +119,13 @@ pylons appear a short deterministic circumference walk ahead, orbital aiming sta
 in-range Breaker Pulse clears the barrier without health, loot, a timer or a spent launch. The
 encounter is one-use, keyboard/touch accessible and replay playback remains compatible.
 
+Checkpoint B — 14 August 2026: the eight-launch HUD is now explicitly bonus fuel. Exhausting it
+removes the remaining-launch victory bonus but neither fails the run nor blocks further launches;
+replay validation remains bounded at 64 inputs. A Warden arrival on the Runner's current,
+unprotected target world now ends the ranked run with a brief readable reset, while an intact
+circuit still prevents that world from being targeted. Flight simulation and fixed-step timing are
+unchanged.
+
 ## Milestone 4 — Score attack and ghosts
 
 - Retune the existing score into Flight, Network and Victory categories.

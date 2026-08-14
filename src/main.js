@@ -77,7 +77,8 @@ import {
   createWardenPursuitState,
   resetWardenAfterSuppression,
   resolveWardenPursuit,
-} from './warden.js?v=20260814-ob18';
+  shouldWardenCatchRunner,
+} from './warden.js?v=20260814-ob20';
 import {
   createRunResult,
   loadPersonalBest,
@@ -105,7 +106,7 @@ import {
   consumeDueReplayLaunch,
   createReplayPlaybackState,
 } from './replay-playback.js?v=20260814-ob14';
-import { validateSerializedReplay } from './replay-validator.js?v=20260814-ob14';
+import { validateSerializedReplay } from './replay-validator.js?v=20260814-ob20';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
@@ -113,9 +114,10 @@ import {
 } from './restoration.js?v=20260814-ob8';
 import {
   createRunState,
+  failRunToWarden,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260814-ob8';
+} from './run.js?v=20260814-ob20';
 import {
   addCompletionBonus,
   bankFlightScore,
@@ -242,7 +244,7 @@ const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
 const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob19';
+GameCanvas.dataset.build = '20260814-ob20';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -370,7 +372,6 @@ let SeedstoneUsesRemaining = SeedstoneDefinition.uses;
 let SeedstoneCrumbleStartedAtSeconds = null;
 let AttachedSeedstoneSurfaceOffset = null;
 let WorldheartJustUnlocked = false;
-let RunFailurePending = false;
 let FinaleRestorationStartedAtSeconds = null;
 let PredictedStardustIdentifiers = new Set();
 const FlightCollectedStardustIdentifiers = new Set();
@@ -2834,6 +2835,22 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
   let SuppressedWorld = null;
   if (WardenPursuitState.lastEvent === WardenPursuitEvents.arrived) {
     SuppressedWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
+    if (shouldWardenCatchRunner(
+      WardenPursuitState,
+      CurrentWorldIdentifier,
+      listProtectedRelayWorlds(RelayNetworkState),
+    )) {
+      WardenVisualGroup.position.set(
+        SuppressedWorld.position.x,
+        SuppressedWorld.position.y,
+        0.35,
+      );
+      GameCanvas.dataset.wardenCaughtWorld = SuppressedWorld.id;
+      publishWardenState();
+      RunState = failRunToWarden(RunState);
+      scheduleRunFailure(`THE WARDEN REACHED ${SuppressedWorld.label}`);
+      return null;
+    }
     if (SuppressedWorld && suppressRelayWorld(RelayNetworkState, SuppressedWorld.id)) {
       WardenVisualGroup.position.set(
         SuppressedWorld.position.x,
@@ -4223,7 +4240,7 @@ function updateWorldCounter() {
   WorldCounterElement.textContent = `${RestoredWorldCount} / ${RestorableWorldCount}`;
 }
 
-/** Keeps the single run constraint visible and machine-readable for browser verification. */
+/** Keeps the optional remaining-launch victory bonus visible and machine-readable. */
 function updateLaunchCounter() {
   LaunchCounterElement.textContent = `${RunState.remainingLaunches} / ${RunState.maximumLaunches}`;
   CounterElement.classList.toggle(
@@ -4281,13 +4298,12 @@ function showInstruction(Title, Body) {
   InstructionPanelElement.setAttribute('aria-hidden', 'false');
 }
 
-/** Ends an exhausted attempt after a brief, readable failure beat. */
-function scheduleRunFailure(Reason = 'OUT OF LAUNCHES') {
+/** Ends a caught attempt after a brief, readable failure beat. */
+function scheduleRunFailure(Reason = 'THE WARDEN REACHED THE RUNNER') {
   if (GamePhase === 'runFailed' || RunState.status !== 'failed') {
     return;
   }
 
-  RunFailurePending = false;
   publishFinishedReplay('failed');
   GamePhase = 'runFailed';
   IsBreakerBurnAvailable = false;
@@ -4296,7 +4312,7 @@ function scheduleRunFailure(Reason = 'OUT OF LAUNCHES') {
   GameCanvas.dataset.runStatus = 'failed';
   SeedPhysicsState.velocity = createVector();
   WorldseedSound.failure();
-  showStatusToast('RUN LOST · OUT OF LAUNCHES', 1200);
+  showStatusToast('RUN LOST · WARDEN ARRIVED', 1200);
   showInstruction('The Stillness closes in', `${Reason}. The system will reset.`);
 
   if (RunFailureTimeoutIdentifier !== null) {
@@ -4308,24 +4324,11 @@ function scheduleRunFailure(Reason = 'OUT OF LAUNCHES') {
   }, 1350);
 }
 
-/** Settles a non-command landing and defers failure until a new world's reveal completes. */
-function settleNonCommandFlight(
-  Reason = 'FINAL LAUNCH SPENT',
-  { firstCircuitClosed = false, circuit = null } = {},
-) {
-  resolveWardenAfterResolvedFlight({ firstCircuitClosed, circuit });
+/** Settles a non-command landing before applying its one deterministic pursuit beat. */
+function settleNonCommandFlight({ firstCircuitClosed = false, circuit = null } = {}) {
   RunState = settleRunFlight(RunState);
   updateLaunchCounter();
-  if (RunState.status !== 'failed') {
-    return;
-  }
-
-  if (GamePhase === 'restoring') {
-    RunFailurePending = true;
-    showInstruction('Final launch spent', 'This liberation completes before the system resets.');
-  } else {
-    scheduleRunFailure(Reason);
-  }
+  resolveWardenAfterResolvedFlight({ firstCircuitClosed, circuit });
 }
 
 /** Clears per-shot telemetry after a landing, failure or reset. */
@@ -4594,13 +4597,10 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
     );
     showRouteChoiceInstruction();
   }
-  settleNonCommandFlight(
-    `${WorldDefinition.label} WAS NOT THE COMMAND WORLD`,
-    {
-      firstCircuitClosed: RelayConnection?.circuitClosed === true,
-      circuit: RelayConnection?.circuit ?? null,
-    },
-  );
+  settleNonCommandFlight({
+    firstCircuitClosed: RelayConnection?.circuitClosed === true,
+    circuit: RelayConnection?.circuit ?? null,
+  });
   updateBreakerBurnInterface();
 }
 
@@ -4652,7 +4652,7 @@ function attachSeedToSeedstone(ImpactPosition, BodyPosition) {
       ? `Ride ${SeedstoneDefinition.label} into position, then launch before it crumbles.`
       : `Choose the next world carefully — ${SeedstoneDefinition.label} crumbles after launch.`,
   );
-  settleNonCommandFlight(`${SeedstoneDefinition.label} WAS NOT THE COMMAND WORLD`);
+  settleNonCommandFlight();
   updateBreakerBurnInterface();
 }
 
@@ -6039,12 +6039,8 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
         WorldRuntime.restorationCompleted = true;
         WorldseedSound.restorationComplete(WorldDefinition.id);
         if (CurrentWorldIdentifier === WorldDefinition.id) {
-          if (RunFailurePending) {
-            scheduleRunFailure('FINAL LAUNCH ENDED AWAY FROM THE COMMAND WORLD');
-          } else {
-            GameCanvas.dataset.lastMemory = WorldDefinition.memory;
-            showStatusToast(WorldDefinition.memory, 2100, 'memory');
-          }
+          GameCanvas.dataset.lastMemory = WorldDefinition.memory;
+          showStatusToast(WorldDefinition.memory, 2100, 'memory');
           if (WorldheartJustUnlocked) {
             WorldheartJustUnlocked = false;
             WorldseedSound.worldheartOpen();
@@ -6591,7 +6587,6 @@ function resetGame() {
   ActivePointerIdentifier = null;
   KeyboardAimState = createKeyboardAimState();
   HasLaunchedOnce = false;
-  RunFailurePending = false;
   LaunchPulseLifeSeconds = 0;
   ImpactPulseLifeSeconds = 0;
   CameraImpactLifeSeconds = 0;
@@ -6672,6 +6667,7 @@ function resetGame() {
   WardenVisualGroup.position.copy(WardenEntryPosition);
   WardenApproachStartPosition.copy(WardenEntryPosition);
   GameCanvas.dataset.lastSuppressedWorld = '';
+  GameCanvas.dataset.wardenCaughtWorld = '';
   publishWardenState();
   RunFlightTimeSeconds = 0;
   try {

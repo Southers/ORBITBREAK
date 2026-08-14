@@ -120,8 +120,8 @@ export function validateReplay(Replay) {
   ) {
     return invalid('Replay content or fixed-step version does not match.');
   }
-  if (Replay.launches.length < 1 || Replay.launches.length > AuthoredSystem.launchBudget) {
-    return invalid('Replay launch count is outside the authored budget.');
+  if (Replay.launches.length < 1 || Replay.launches.length > 64) {
+    return invalid('Replay launch count is outside the supported limit.');
   }
 
   const Runtime = createAuthoredSystemRuntime(AuthoredSystem, { createVector });

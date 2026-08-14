@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   createRunState,
+  failRunToWarden,
   releaseRunLaunch,
   settleRunFlight,
 } from '../src/run.js';
@@ -30,12 +31,14 @@ test('every released flight spends exactly one launch', () => {
   assert.equal(Landed.flightInProgress, false);
 });
 
-test('the final launch fails only after landing or missing away from the Command World', () => {
+test('bonus fuel can reach zero without ending the run or blocking another flight', () => {
   const LastFlight = releaseRunLaunch(createRunState(1));
 
   assert.equal(LastFlight.remainingLaunches, 0);
   assert.equal(LastFlight.status, 'active');
-  assert.equal(settleRunFlight(LastFlight).status, 'failed');
+  const Landed = settleRunFlight(LastFlight);
+  assert.equal(Landed.status, 'active');
+  assert.equal(releaseRunLaunch(Landed).remainingLaunches, 0);
 });
 
 test('reaching the Command World on the final launch completes the run', () => {
@@ -50,5 +53,11 @@ test('reaching the Command World on the final launch completes the run', () => {
 test('invalid budgets and impossible double launches fail closed', () => {
   assert.throws(() => createRunState(0), /positive integer/);
   assert.throws(() => releaseRunLaunch(releaseRunLaunch(createRunState(2))), /attached active/);
+});
+
+test('only a settled active Runner can be caught by the Warden', () => {
+  const State = createRunState(8);
+  assert.equal(failRunToWarden(State).status, 'failed');
+  assert.throws(() => failRunToWarden(releaseRunLaunch(State)), /settled active/);
 });
 
