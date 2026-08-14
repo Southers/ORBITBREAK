@@ -1,5 +1,67 @@
 const FullCircleRadians = Math.PI * 2;
 
+export const SurfaceGestureModes = Object.freeze({
+  pending: 'pending',
+  aim: 'aim',
+  walk: 'walk',
+});
+
+function normalizeAngle(AngleRadians) {
+  return ((AngleRadians + Math.PI) % FullCircleRadians + FullCircleRadians) % FullCircleRadians
+    - Math.PI;
+}
+
+/**
+ * Distinguishes a deliberate trace around a world's rim from a pull away from it.
+ * The decision is pure and becomes locked by the caller for the rest of the gesture.
+ */
+export function classifySurfaceGesture({
+  startPosition,
+  currentPosition,
+  bodyPosition,
+  deadzone = 0.18,
+  tangentialBias = 1.18,
+}) {
+  const StartOffsetX = startPosition.x - bodyPosition.x;
+  const StartOffsetY = startPosition.y - bodyPosition.y;
+  const StartDistance = Math.hypot(StartOffsetX, StartOffsetY);
+  const MovementX = currentPosition.x - startPosition.x;
+  const MovementY = currentPosition.y - startPosition.y;
+  if (StartDistance <= 0 || Math.hypot(MovementX, MovementY) < deadzone) {
+    return SurfaceGestureModes.pending;
+  }
+  const RadialX = StartOffsetX / StartDistance;
+  const RadialY = StartOffsetY / StartDistance;
+  const TangentX = -RadialY;
+  const TangentY = RadialX;
+  const RadialMovement = Math.abs((MovementX * RadialX) + (MovementY * RadialY));
+  const TangentialMovement = Math.abs((MovementX * TangentX) + (MovementY * TangentY));
+  return TangentialMovement > RadialMovement * tangentialBias
+    ? SurfaceGestureModes.walk
+    : SurfaceGestureModes.aim;
+}
+
+/** Returns a deterministic point on the orbital-plane circumference. */
+export function getSurfacePosition(BodyPosition, SurfaceDistance, AngleRadians) {
+  if (!(SurfaceDistance > 0) || !Number.isFinite(AngleRadians)) {
+    throw new Error('Surface position requires a positive distance and finite angle.');
+  }
+  return {
+    x: BodyPosition.x + (Math.cos(AngleRadians) * SurfaceDistance),
+    y: BodyPosition.y + (Math.sin(AngleRadians) * SurfaceDistance),
+    z: 0,
+  };
+}
+
+/** Moves a keyboard-controlled Runner around the same circumference as pointer walking. */
+export function adjustSurfaceAngle(AngleRadians, Direction, { fine = false } = {}) {
+  if (!Number.isFinite(AngleRadians)) {
+    throw new Error('Surface angle must be finite.');
+  }
+  const StepRadians = (fine ? 1 : 4) * (Math.PI / 180);
+  return normalizeAngle(AngleRadians + (Math.sign(Direction) * StepRadians));
+}
+
 /** Keeps keyboard aim state finite, normalized and inside the playable power range. */
 export function createKeyboardAimState({
   directionX = 1,

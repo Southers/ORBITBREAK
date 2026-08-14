@@ -18,6 +18,39 @@ export function createVector(PositionX = 0, PositionY = 0, PositionZ = 0) {
   return { x: PositionX, y: PositionY, z: PositionZ };
 }
 
+export const BreakerBurnImpulse = 3.4;
+
+/** Applies the one-shot Burn along current heading without changing gravity rules. */
+export function applyBreakerBurn(PhysicsState, Impulse = BreakerBurnImpulse) {
+  const Speed = Math.hypot(PhysicsState.velocity.x, PhysicsState.velocity.y);
+  if (!(Speed > 0) || !(Impulse > 0) || !Number.isFinite(Impulse)) {
+    return {
+      position: createVector(
+        PhysicsState.position.x,
+        PhysicsState.position.y,
+        PhysicsState.position.z,
+      ),
+      velocity: createVector(
+        PhysicsState.velocity.x,
+        PhysicsState.velocity.y,
+        PhysicsState.velocity.z,
+      ),
+    };
+  }
+  return {
+    position: createVector(
+      PhysicsState.position.x,
+      PhysicsState.position.y,
+      PhysicsState.position.z,
+    ),
+    velocity: createVector(
+      PhysicsState.velocity.x + ((PhysicsState.velocity.x / Speed) * Impulse),
+      PhysicsState.velocity.y + ((PhysicsState.velocity.y / Speed) * Impulse),
+      PhysicsState.velocity.z,
+    ),
+  };
+}
+
 /**
  * Calculates the squared distance between two positions.
  *

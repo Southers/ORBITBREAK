@@ -27,6 +27,14 @@ export function getRunnerPose(AnimationState) {
   return Poses[AnimationState] ?? Poses.ready;
 }
 
+/** Keeps the transformation visual-only while giving launch and flight distinct silhouettes. */
+export function getRunnerForm(GamePhase, FlightElapsedSeconds = 0) {
+  if (GamePhase !== 'flying') {
+    return 'astronaut';
+  }
+  return FlightElapsedSeconds < 0.28 ? 'launch-craft' : 'ship';
+}
+
 /** Deterministic occupation-cage transition driven by restoration progress. */
 export function getStillnessPresentation(IsRestored, RestorationProgress = 0) {
   if (!IsRestored) {

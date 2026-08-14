@@ -2,9 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  SurfaceGestureModes,
+  adjustSurfaceAngle,
   adjustKeyboardAimState,
+  classifySurfaceGesture,
   createKeyboardAimState,
   getKeyboardAimDragVector,
+  getSurfacePosition,
 } from '../src/controls.js';
 
 test('keyboard aim starts toward the suggested destination at full power', () => {
@@ -43,4 +47,35 @@ test('keyboard power stays inside the launchable range', () => {
     AimState = adjustKeyboardAimState(AimState, { powerDirection: 1 });
   }
   assert.equal(AimState.powerRatio, 1);
+});
+
+test('surface gestures distinguish rim walking from launch pulling', () => {
+  const BaseGesture = {
+    startPosition: { x: 3, y: 0 },
+    bodyPosition: { x: 0, y: 0 },
+  };
+  assert.equal(classifySurfaceGesture({
+    ...BaseGesture,
+    currentPosition: { x: 3.05, y: 0.1 },
+  }), SurfaceGestureModes.pending);
+  assert.equal(classifySurfaceGesture({
+    ...BaseGesture,
+    currentPosition: { x: 3.08, y: 0.9 },
+  }), SurfaceGestureModes.walk);
+  assert.equal(classifySurfaceGesture({
+    ...BaseGesture,
+    currentPosition: { x: 2.1, y: 0.08 },
+  }), SurfaceGestureModes.aim);
+});
+
+test('pointer and keyboard surface movement stay on one deterministic circumference', () => {
+  const CoarseAngle = adjustSurfaceAngle(0, 1);
+  const FineAngle = adjustSurfaceAngle(CoarseAngle, -1, { fine: true });
+  assert.equal(Math.round(CoarseAngle * 180 / Math.PI), 4);
+  assert.equal(Math.round(FineAngle * 180 / Math.PI), 3);
+  assert.deepEqual(getSurfacePosition({ x: 4, y: -2 }, 3, Math.PI / 2), {
+    x: 4,
+    y: 1,
+    z: 0,
+  });
 });

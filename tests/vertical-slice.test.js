@@ -5,7 +5,15 @@ import {
   BreakerReachSystemDefinition,
   createAuthoredSystemRuntime,
 } from '../src/content.js';
-import { createVector, predictTrajectory } from '../src/physics.js';
+import {
+  applyBreakerBurn,
+  calculateDistanceSquared,
+  createVector,
+  findCollidingBody,
+  findCollidingWorld,
+  predictTrajectory,
+  simulatePhysicsStep,
+} from '../src/physics.js';
 import { predictSlingshotEvents } from '../src/scoring.js';
 
 const SeedRadius = 0.46;
@@ -24,6 +32,89 @@ function createOpeningPosition(WorldDefinitions) {
     Haven.position.y + ((DeltaY / Distance) * SurfaceDistance),
     0,
   );
+}
+
+function createSurfacePosition(BodyDefinition, AngleDegrees) {
+  const AngleRadians = AngleDegrees * (Math.PI / 180);
+  return createVector(
+    BodyDefinition.position.x
+      + (Math.cos(AngleRadians) * (BodyDefinition.radius + SeedRadius + 0.03)),
+    BodyDefinition.position.y
+      + (Math.sin(AngleRadians) * (BodyDefinition.radius + SeedRadius + 0.03)),
+    0,
+  );
+}
+
+function simulateOpeningBurnRoute(Runtime, {
+  surfaceAngleDegrees,
+  launchAngleDegrees,
+  speed,
+  burnStepIndex = null,
+}) {
+  const Haven = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'meadow');
+  const StartPosition = createSurfacePosition(Haven, surfaceAngleDegrees);
+  const LaunchAngleRadians = launchAngleDegrees * (Math.PI / 180);
+  let PhysicsState = {
+    position: StartPosition,
+    velocity: createVector(
+      Math.cos(LaunchAngleRadians) * speed,
+      Math.sin(LaunchAngleRadians) * speed,
+      0,
+    ),
+  };
+  let IgnoredWorldIdentifier = Haven.id;
+  const CollectedStardustIdentifiers = new Set();
+  const TacticalBodies = Runtime.tacticalBodies.filter(
+    (BodyDefinition) => BodyDefinition.kind !== 'worldheart',
+  );
+
+  for (let StepIndex = 1; StepIndex <= 520; StepIndex += 1) {
+    if (StepIndex === burnStepIndex) PhysicsState = applyBreakerBurn(PhysicsState);
+    PhysicsState = simulatePhysicsStep(
+      PhysicsState,
+      Runtime.worlds,
+      FixedStepSeconds,
+    );
+    if (
+      IgnoredWorldIdentifier
+      && calculateDistanceSquared(PhysicsState.position, Haven.position)
+        > (Haven.radius + SeedRadius + 0.35) ** 2
+    ) {
+      IgnoredWorldIdentifier = null;
+    }
+    for (const StardustDefinition of Runtime.stardust) {
+      if (
+        calculateDistanceSquared(PhysicsState.position, StardustDefinition.position)
+          <= (SeedRadius + 0.22) ** 2
+      ) {
+        CollectedStardustIdentifiers.add(StardustDefinition.id);
+      }
+    }
+    const CollisionWorld = findCollidingWorld(
+      PhysicsState.position,
+      SeedRadius,
+      Runtime.worlds,
+      IgnoredWorldIdentifier,
+    );
+    const CollisionBody = findCollidingBody(
+      PhysicsState.position,
+      SeedRadius,
+      TacticalBodies,
+      StepIndex * FixedStepSeconds,
+    );
+    if (CollisionWorld || CollisionBody) {
+      return {
+        collisionIdentifier: CollisionBody?.definition.id ?? CollisionWorld.id,
+        collisionStepIndex: StepIndex,
+        collectedStardustIdentifiers: [...CollectedStardustIdentifiers],
+      };
+    }
+  }
+  return {
+    collisionIdentifier: null,
+    collisionStepIndex: null,
+    collectedStardustIdentifiers: [...CollectedStardustIdentifiers],
+  };
 }
 
 function predictOpeningRoute(WorldDefinitions, TacticalBodyDefinitions, AngleDegrees, Speed) {
@@ -83,6 +174,37 @@ test("Breaker\'s Reach offers a readable safe route and a hidden high-score rout
     AssistEvents.reduce((Total, Event) => Total + Event.points, 0),
     3150,
   );
+});
+
+test("Breaker\'s Reach dark-rim route requires repositioning and a timed Burn", () => {
+  const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition, { createVector });
+  const RouteInput = {
+    surfaceAngleDegrees: -115,
+    launchAngleDegrees: 80,
+    speed: 6.8,
+    burnStepIndex: 50,
+  };
+  const BurnRoute = simulateOpeningBurnRoute(Runtime, RouteInput);
+  const NoBurnRoute = simulateOpeningBurnRoute(Runtime, {
+    ...RouteInput,
+    burnStepIndex: null,
+  });
+  const DefaultSurfaceRoute = simulateOpeningBurnRoute(Runtime, {
+    ...RouteInput,
+    surfaceAngleDegrees: 4.0856,
+  });
+
+  assert.deepEqual(BurnRoute, {
+    collisionIdentifier: 'frost',
+    collisionStepIndex: 258,
+    collectedStardustIdentifiers: ['breaker-arc-2'],
+  });
+  assert.equal(NoBurnRoute.collisionIdentifier, null);
+  assert.equal(DefaultSurfaceRoute.collisionIdentifier, null);
+
+  const Frost = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'frost');
+  const Ember = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'ember');
+  assert.ok(Frost.liberationValue > Ember.liberationValue);
 });
 
 test("Breaker\'s Reach has a deterministic four-launch completion route", () => {

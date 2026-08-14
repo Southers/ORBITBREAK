@@ -67,6 +67,14 @@ button:focus-visible,
   cursor: grabbing;
 }
 
+#GameCanvas.is-walking {
+  cursor: ew-resize;
+}
+
+#GameCanvas.is-scouting {
+  cursor: move;
+}
+
 .liberation-flash {
   position: absolute;
   z-index: 2;
@@ -271,6 +279,53 @@ button:focus-visible,
   stroke: #72d9ff;
   stroke-width: 1.6;
   filter: drop-shadow(0 0 3px rgba(114, 217, 255, 0.8));
+}
+
+.burn-button {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  bottom: max(132px, calc(env(safe-area-inset-bottom) + 126px));
+  min-width: 148px;
+  min-height: 52px;
+  padding: 8px 18px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(109, 232, 255, 0.48);
+  border-radius: 999px;
+  background: rgba(8, 31, 45, 0.82);
+  box-shadow: 0 0 28px rgba(72, 211, 255, 0.18), inset 0 0 18px rgba(109, 232, 255, 0.08);
+  color: #dffbff;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.burn-button[hidden] {
+  display: none;
+}
+
+.burn-button span,
+.burn-button strong {
+  display: block;
+}
+
+.burn-button span {
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+}
+
+.burn-button strong {
+  margin-top: 2px;
+  color: #74e6ff;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+
+.burn-button.is-spent {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+  color: rgba(220, 232, 238, 0.38);
+  pointer-events: none;
 }
 
 .objective-panel {
@@ -769,7 +824,9 @@ button:focus-visible,
 .victory-panel button,
 #ResetButton,
 #AudioButton,
-#MotionButton {
+#MotionButton,
+#ScoutButton,
+.scout-zoom-button {
   pointer-events: auto;
   cursor: pointer;
 }
@@ -868,7 +925,10 @@ button:focus-visible,
 }
 
 #ResetButton,
-#AudioButton {
+#AudioButton,
+#MotionButton,
+#ScoutButton,
+.scout-zoom-button {
   min-height: 44px;
   padding: 7px 10px;
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -876,6 +936,17 @@ button:focus-visible,
   background: rgba(6, 13, 20, 0.5);
   color: rgba(238, 244, 248, 0.62);
   font-size: 11px;
+}
+
+.scout-zoom-button {
+  min-width: 44px;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.scout-zoom-button[hidden] {
+  display: none;
 }
 
 .hud__actions {
@@ -900,6 +971,22 @@ button:focus-visible,
   .brand__subtitle,
   .hud--bottom > span {
     display: none;
+  }
+
+  .hud__actions {
+    width: 100%;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  #ResetButton,
+  #AudioButton,
+  #MotionButton,
+  #ScoutButton,
+  .scout-zoom-button {
+    min-width: 44px;
+    padding-inline: 7px;
+    font-size: 9px;
   }
 
   .instruction-panel {

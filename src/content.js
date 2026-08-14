@@ -611,7 +611,7 @@ export const BreakerReachSystemDefinition = {
   contentVersion: 'breaker-reach-1',
   label: "BREAKER'S REACH",
   launchBudget: 8,
-  openingBody: 'The Command World lies beyond the Reach. Take the low route, or risk the Frost giant for a bigger chain.',
+  openingBody: 'The Command World lies beyond the Reach. Take the low route, or trace to Haven\'s dark rim and Burn through the relay arc toward Frost.',
   camera: {
     followPlayer: true,
     viewportWorldHeight: 24,

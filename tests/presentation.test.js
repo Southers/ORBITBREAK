@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   getLiberationFlashOpacity,
   getRunnerAnimationState,
+  getRunnerForm,
   getRunnerPose,
   getStillnessPresentation,
 } from '../src/presentation.js';
@@ -20,6 +21,13 @@ test('Runner poses expose thruster only during flight', () => {
   assert.equal(getRunnerPose('flying').thrusterVisible, true);
   assert.equal(getRunnerPose('aiming').thrusterVisible, false);
   assert.ok(getRunnerPose('liberating').armAngle > getRunnerPose('ready').armAngle);
+});
+
+test('Runner transformation changes silhouette without changing gameplay phase', () => {
+  assert.equal(getRunnerForm('attached', 0), 'astronaut');
+  assert.equal(getRunnerForm('flying', 0.1), 'launch-craft');
+  assert.equal(getRunnerForm('flying', 0.3), 'ship');
+  assert.equal(getRunnerForm('recovering', 4), 'astronaut');
 });
 
 test('Stillness cage visibly expands and vanishes through liberation', () => {

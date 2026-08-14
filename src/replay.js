@@ -1,5 +1,6 @@
-export const ReplaySchemaVersion = 1;
+export const ReplaySchemaVersion = 2;
 export const PhysicsModelVersion = 'orbitbreak-fixed-step-v1';
+const LegacyReplaySchemaVersion = 1;
 
 function assertIdentifier(Value, Label) {
   if (typeof Value !== 'string' || Value.length < 1 || Value.length > 96) {
@@ -13,11 +14,18 @@ function assertFiniteVelocity(Value) {
   }
 }
 
+function assertFiniteOrigin(Value) {
+  if (!Number.isFinite(Value) || Math.abs(Value) > 1000) {
+    throw new Error('Replay launch origin is invalid.');
+  }
+}
+
 export function createReplayRecorder({
   systemIdentifier,
   contentVersion,
   fixedStepHz,
   physicsVersion = PhysicsModelVersion,
+  schemaVersion = ReplaySchemaVersion,
 }) {
   assertIdentifier(systemIdentifier, 'Replay system');
   assertIdentifier(contentVersion, 'Replay content version');
@@ -25,8 +33,11 @@ export function createReplayRecorder({
   if (!Number.isInteger(fixedStepHz) || fixedStepHz < 1 || fixedStepHz > 1000) {
     throw new Error('Replay fixed-step frequency is invalid.');
   }
+  if (schemaVersion !== LegacyReplaySchemaVersion && schemaVersion !== ReplaySchemaVersion) {
+    throw new Error('Replay schema is unsupported.');
+  }
   return {
-    schemaVersion: ReplaySchemaVersion,
+    schemaVersion,
     systemIdentifier,
     contentVersion,
     physicsVersion,
@@ -40,6 +51,8 @@ export function createReplayRecorder({
 export function recordReplayLaunch(Replay, {
   stepIndex,
   originIdentifier,
+  originX,
+  originY,
   velocityX,
   velocityY,
 }) {
@@ -59,12 +72,56 @@ export function recordReplayLaunch(Replay, {
   assertIdentifier(originIdentifier, 'Replay origin');
   assertFiniteVelocity(velocityX);
   assertFiniteVelocity(velocityY);
+  if (Replay.schemaVersion >= 2) {
+    assertFiniteOrigin(originX);
+    assertFiniteOrigin(originY);
+  }
+  const Launch = Replay.schemaVersion >= 2
+    ? {
+      stepIndex,
+      originIdentifier,
+      originX,
+      originY,
+      velocityX,
+      velocityY,
+      burnStepIndex: null,
+    }
+    : { stepIndex, originIdentifier, velocityX, velocityY };
   return {
     ...Replay,
     launches: [
       ...Replay.launches,
-      { stepIndex, originIdentifier, velocityX, velocityY },
+      Launch,
     ],
+  };
+}
+
+/** Records the sole fixed-step Breaker Burn for the current flight. */
+export function recordReplayBurn(Replay, { stepIndex }) {
+  if (Replay.outcome !== 'recording') {
+    throw new Error('A finished replay cannot accept a Burn.');
+  }
+  if (Replay.schemaVersion < 2) {
+    throw new Error('Legacy replay schema cannot record a Burn.');
+  }
+  const LaunchIndex = Replay.launches.length - 1;
+  const Launch = Replay.launches[LaunchIndex];
+  if (!Launch) {
+    throw new Error('A Burn requires an active launch.');
+  }
+  if (!Number.isInteger(stepIndex) || stepIndex <= Launch.stepIndex || stepIndex > 10000000) {
+    throw new Error('Replay Burn step is invalid.');
+  }
+  if (Launch.burnStepIndex !== null) {
+    throw new Error('A flight can record only one Burn.');
+  }
+  return {
+    ...Replay,
+    launches: Replay.launches.map((ReplayLaunch, ReplayLaunchIndex) => (
+      ReplayLaunchIndex === LaunchIndex
+        ? { ...ReplayLaunch, burnStepIndex: stepIndex }
+        : ReplayLaunch
+    )),
   };
 }
 
@@ -90,12 +147,22 @@ export function serializeReplay(Replay) {
     p: Replay.physicsVersion,
     h: Replay.fixedStepHz,
     o: Replay.outcome === 'complete' ? 1 : 0,
-    l: Replay.launches.map((Launch) => [
-      Launch.stepIndex,
-      Launch.originIdentifier,
-      Launch.velocityX,
-      Launch.velocityY,
-    ]),
+    l: Replay.launches.map((Launch) => Replay.schemaVersion >= 2
+      ? [
+        Launch.stepIndex,
+        Launch.originIdentifier,
+        Launch.originX,
+        Launch.originY,
+        Launch.velocityX,
+        Launch.velocityY,
+        Launch.burnStepIndex,
+      ]
+      : [
+        Launch.stepIndex,
+        Launch.originIdentifier,
+        Launch.velocityX,
+        Launch.velocityY,
+      ]),
   });
 }
 
@@ -111,7 +178,7 @@ export function parseReplay(SerializedReplay) {
   }
   if (
     !WireReplay
-    || WireReplay.v !== ReplaySchemaVersion
+    || (WireReplay.v !== LegacyReplaySchemaVersion && WireReplay.v !== ReplaySchemaVersion)
     || (WireReplay.o !== 0 && WireReplay.o !== 1)
     || !Array.isArray(WireReplay.l)
   ) {
@@ -122,17 +189,24 @@ export function parseReplay(SerializedReplay) {
     contentVersion: WireReplay.c,
     physicsVersion: WireReplay.p,
     fixedStepHz: WireReplay.h,
+    schemaVersion: WireReplay.v,
   });
   for (const Launch of WireReplay.l) {
-    if (!Array.isArray(Launch) || Launch.length !== 4) {
+    const ExpectedLength = WireReplay.v >= 2 ? 7 : 4;
+    if (!Array.isArray(Launch) || Launch.length !== ExpectedLength) {
       throw new Error('Replay launch payload is invalid.');
     }
     Replay = recordReplayLaunch(Replay, {
       stepIndex: Launch[0],
       originIdentifier: Launch[1],
-      velocityX: Launch[2],
-      velocityY: Launch[3],
+      originX: WireReplay.v >= 2 ? Launch[2] : undefined,
+      originY: WireReplay.v >= 2 ? Launch[3] : undefined,
+      velocityX: WireReplay.v >= 2 ? Launch[4] : Launch[2],
+      velocityY: WireReplay.v >= 2 ? Launch[5] : Launch[3],
     });
+    if (WireReplay.v >= 2 && Launch[6] !== null) {
+      Replay = recordReplayBurn(Replay, { stepIndex: Launch[6] });
+    }
   }
   return finishReplay(Replay, WireReplay.o === 1 ? 'complete' : 'failed');
 }

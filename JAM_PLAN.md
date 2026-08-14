@@ -40,6 +40,17 @@ Exit: moving, planning, launching and correcting are enjoyable before pursuit or
 
 Stop condition: if walking creates input ambiguity or busywork after focused tuning, reduce it to a fast circumference reposition gesture. Do not expand it into platforming.
 
+Checkpoint — 14 August 2026: validated on desktop and 390×844 portrait mobile with deterministic
+surface origins, Scout pan/zoom and snap, Runner-to-ship transformation, one-use fixed-step Burn,
+schema-v2 replay validation and a Haven dark-rim route that only reaches Frost with deliberate
+repositioning and a timely Burn. Judging evidence: **Art 7/10** (readable miniature Haven, Runner and
+ship silhouettes), **Creativity 8/10** (surface launch geometry and one-shot orbital correction feel
+distinctive), **Gameplay 7/10** (safe and mastery openings now demand different decisions), **Polish
+8/10** (desktop/mobile controls, recovery and replay gates are reliable), **Tiny Worlds Theme 6/10**
+(the societies are visible, but connection, trade and Warden suppression are not yet playable).
+Theme is the weakest category; Milestone 2's visible relay life and predictable pursuit are the next
+highest-leverage improvement rather than adding another flight verb.
+
 ## Milestone 2 — Hope, network and pursuit
 
 - Turn successful new landings into permanent visible origin-to-destination relay links.

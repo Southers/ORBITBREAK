@@ -10,7 +10,7 @@ ORBITBREAK is a Three.js orbital adventure and score attack. You are a tiny rebe
 
 The public build is the proven score-attack foundation, not yet the locked Warden redesign. It currently offers five authored systems, eight-launch runs, deterministic slingshot scoring, occupied-world liberation, local personal bests and verified replay playback.
 
-The next design pass keeps its gravity, replay, rendering and accessibility work while replacing the arbitrary launch budget with visible Warden pursuit. It adds limited surface repositioning, one mid-flight Breaker Burn, relay links, trade traffic, reversible recapture and one orbital final encounter.
+The current development slice keeps the proven gravity and scoring loop while adding limited surface repositioning, a planning camera and one deterministic mid-flight Breaker Burn. The next milestones replace the arbitrary launch budget with visible Warden pursuit, relay links, trade traffic, reversible recapture and one orbital final encounter.
 
 The target is deliberately one dense authored sector rather than an infinite universe or a larger but shallower campaign. See `DESIGN.md` for the locked game and `JAM_PLAN.md` for the gated implementation order.
 
@@ -36,15 +36,15 @@ npm run check
 npm run release:audit
 ```
 
-## Current controls
+## Current development controls
 
-- Drag backwards from the Runner and release to launch.
+- Trace tangentially around the current world to reposition the Runner; pull radially away and release to launch.
+- Drag empty space to pan Scout view. Use the wheel, plus/minus keys or the on-screen zoom buttons to zoom; press `C` or tap Scout/Runner to toggle and snap back.
+- Tap the Breaker Burn button once during flight, or press `Space`, to spend the flight's deterministic correction.
 - Focus the game and use left/right or `A`/`D` to steer.
 - Use up/down or `W`/`S` to adjust power; hold `Shift` for fine control.
-- Press `Enter` or `Space` to launch; `Escape` cancels keyboard aiming.
+- Press `Q`/`E` to walk around the current world. Press `Enter` or `Space` to launch; `Escape` cancels keyboard aiming.
 - `R` resets the run, `M` toggles audio and `P` cycles motion preference.
-
-Surface movement, Scout camera and Breaker Burn are planned and are not represented as live controls until implemented.
 
 ## Project guide
 

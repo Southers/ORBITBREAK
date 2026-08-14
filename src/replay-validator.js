@@ -4,6 +4,7 @@ import {
   getAuthoredSystemDefinition,
 } from './content.js';
 import {
+  applyBreakerBurn,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
   createVector,
@@ -99,7 +100,7 @@ function invalid(Reason) {
  */
 export function validateReplay(Replay) {
   if (
-    Replay.schemaVersion !== ReplaySchemaVersion
+    (Replay.schemaVersion !== 1 && Replay.schemaVersion !== ReplaySchemaVersion)
     || Replay.physicsVersion !== PhysicsModelVersion
     || Replay.outcome !== 'complete'
   ) {
@@ -151,6 +152,8 @@ export function validateReplay(Replay) {
     }
 
     const IsLaunchingFromSeedstone = CurrentNodeIdentifier === Seedstone.id;
+    let LaunchBodyPosition = null;
+    let LaunchBodyDefinition = null;
     if (IsLaunchingFromSeedstone) {
       if (!AttachedSeedstoneOffset || SeedstoneUsesRemaining < 1) {
         return invalid(`Launch ${LaunchIndex + 1} uses an unavailable Seedstone.`);
@@ -159,13 +162,40 @@ export function validateReplay(Replay) {
         Seedstone,
         Launch.stepIndex * FixedStepSeconds,
       );
-      CurrentPosition = createVector(
-        SeedstonePosition.x + AttachedSeedstoneOffset.x,
-        SeedstonePosition.y + AttachedSeedstoneOffset.y,
-        SeedstonePosition.z + AttachedSeedstoneOffset.z,
-      );
+      LaunchBodyDefinition = Seedstone;
+      LaunchBodyPosition = SeedstonePosition;
+      if (Replay.schemaVersion === 1) {
+        CurrentPosition = createVector(
+          SeedstonePosition.x + AttachedSeedstoneOffset.x,
+          SeedstonePosition.y + AttachedSeedstoneOffset.y,
+          SeedstonePosition.z + AttachedSeedstoneOffset.z,
+        );
+      }
       SeedstoneUsesRemaining = 0;
       AttachedSeedstoneOffset = null;
+    } else {
+      LaunchBodyDefinition = Runtime.worlds.find(
+        (World) => World.id === CurrentNodeIdentifier,
+      );
+      LaunchBodyPosition = LaunchBodyDefinition?.position ?? null;
+    }
+
+    if (Replay.schemaVersion >= 2) {
+      if (!LaunchBodyDefinition || !LaunchBodyPosition) {
+        return invalid(`Launch ${LaunchIndex + 1} has no valid surface origin.`);
+      }
+      const SurfaceDistance = LaunchBodyDefinition.radius + RunnerRadius + 0.03;
+      const RecordedSurfaceDistance = Math.hypot(
+        Launch.originX - LaunchBodyPosition.x,
+        Launch.originY - LaunchBodyPosition.y,
+      );
+      if (Math.abs(RecordedSurfaceDistance - SurfaceDistance) > 0.015) {
+        return invalid(`Launch ${LaunchIndex + 1} leaves from outside its recorded surface.`);
+      }
+      CurrentPosition = createVector(Launch.originX, Launch.originY, 0);
+      if (!IsLaunchingFromSeedstone) {
+        LastSafePosition = createVector(CurrentPosition.x, CurrentPosition.y, 0);
+      }
     }
 
     CurrentStepIndex = Launch.stepIndex;
@@ -181,11 +211,16 @@ export function validateReplay(Replay) {
       : CurrentNodeIdentifier;
     const FlightCollectedStardust = new Set();
     let FlightSettled = false;
+    let BurnApplied = false;
 
     for (let FlightStepIndex = 0; FlightStepIndex < MaximumValidatedFlightSteps; FlightStepIndex += 1) {
       CurrentStepIndex += 1;
       FlightStepCount += 1;
       const SimulationTimeSeconds = CurrentStepIndex * FixedStepSeconds;
+      if (Launch.burnStepIndex === CurrentStepIndex) {
+        PhysicsState = applyBreakerBurn(PhysicsState);
+        BurnApplied = true;
+      }
       PhysicsState = simulatePhysicsStep(PhysicsState, Runtime.worlds, FixedStepSeconds);
       collectStardust(Runtime, PhysicsState.position, FlightCollectedStardust);
 
@@ -292,6 +327,9 @@ export function validateReplay(Replay) {
 
     if (!FlightSettled) {
       return invalid(`Launch ${LaunchIndex + 1} did not settle within the validation limit.`);
+    }
+    if (Launch.burnStepIndex !== undefined && Launch.burnStepIndex !== null && !BurnApplied) {
+      return invalid(`Launch ${LaunchIndex + 1} records a Burn outside its flight.`);
     }
     if (RunState.status === 'complete' && LaunchIndex !== Replay.launches.length - 1) {
       return invalid('Replay contains launches after completion.');

@@ -2,10 +2,14 @@ import * as THREE from 'three';
 
 import { WorldseedAudio } from './audio.js?v=20260814-ob8';
 import {
+  SurfaceGestureModes,
+  adjustSurfaceAngle,
   adjustKeyboardAimState,
+  classifySurfaceGesture,
   createKeyboardAimState,
   getKeyboardAimDragVector,
-} from './controls.js?v=20260814-ob10';
+  getSurfacePosition,
+} from './controls.js?v=20260814-ob14';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -24,7 +28,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-ob8';
+} from './content.js?v=20260814-ob14';
 
 import {
   countRestoredWorlds,
@@ -39,6 +43,7 @@ import {
 } from './campaign.js?v=20260814-ob8';
 
 import {
+  applyBreakerBurn,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
   createVector,
@@ -46,7 +51,7 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260814-ob8';
+} from './physics.js?v=20260814-ob14';
 import { createLeaderboardClient } from './leaderboard-client.js?v=20260814-ob9';
 import {
   createRunResult,
@@ -56,23 +61,26 @@ import {
 import {
   getLiberationFlashOpacity,
   getRunnerAnimationState,
+  getRunnerForm,
   getRunnerPose,
   getStillnessPresentation,
-} from './presentation.js?v=20260814-ob8';
+} from './presentation.js?v=20260814-ob14';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
   finishReplay,
   getReplayStorageKey,
   parseReplay,
+  recordReplayBurn,
   recordReplayLaunch,
   serializeReplay,
-} from './replay.js?v=20260814-ob8';
+} from './replay.js?v=20260814-ob14';
 import {
+  consumeDueReplayBurn,
   consumeDueReplayLaunch,
   createReplayPlaybackState,
-} from './replay-playback.js?v=20260814-ob8';
-import { validateSerializedReplay } from './replay-validator.js?v=20260814-ob8';
+} from './replay-playback.js?v=20260814-ob14';
+import { validateSerializedReplay } from './replay-validator.js?v=20260814-ob14';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
@@ -200,8 +208,12 @@ const CloseLeaderboardButtonElement = document.querySelector('#CloseLeaderboardB
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 const MotionButtonElement = document.querySelector('#MotionButton');
+const ScoutButtonElement = document.querySelector('#ScoutButton');
+const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
+const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
+const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-ob13';
+GameCanvas.dataset.build = '20260814-ob14';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -276,6 +288,10 @@ const DesiredCameraLookTarget = new THREE.Vector3();
 const AimDragVector = new THREE.Vector3();
 const AimLaunchVelocity = new THREE.Vector3();
 const LastAimPointerWorldPosition = new THREE.Vector3();
+const PointerGestureStartWorldPosition = new THREE.Vector3();
+const ScoutPointerStartWorldPosition = new THREE.Vector3();
+const ScoutCameraStartTarget = new THREE.Vector3();
+const ScoutCameraTarget = new THREE.Vector3();
 const LocalSwayAxis = new THREE.Vector3(0, 0, 1);
 const SurfaceSwayQuaternion = new THREE.Quaternion();
 const RouteLabelProjection = new THREE.Vector3();
@@ -297,9 +313,18 @@ let CurrentWorldIdentifier = StartingWorldIdentifier;
 let LaunchIgnoredWorldIdentifier = null;
 let LaunchIgnoredBodyIdentifier = null;
 let IsPointerAiming = false;
+let PointerGestureMode = SurfaceGestureModes.pending;
+let IsPointerWalking = false;
+let IsPointerScouting = false;
 let IsKeyboardAiming = false;
 let ActivePointerIdentifier = null;
 let KeyboardAimState = createKeyboardAimState();
+let IsScoutMode = false;
+let ScoutZoomScale = 1;
+let BaseCameraDistance = 42;
+let FlightElapsedSeconds = 0;
+let IsBreakerBurnAvailable = false;
+let IsBreakerBurnPending = false;
 let LastSafeSeedPosition = createVector();
 let LastSafeWorldIdentifier = StartingWorldIdentifier;
 let RecoveryTimeoutIdentifier = null;
@@ -2842,6 +2867,61 @@ RunnerAntennaLight.position.set(0.18, 0.5, 0);
 RunnerVisualGroup.add(RunnerAntennaLight);
 SeedGroup.add(RunnerVisualGroup);
 
+/** The Orbitbreaker unfolds around the same physics body; only its silhouette changes. */
+const ShipVisualGroup = new THREE.Group();
+const ShipHullMaterial = new THREE.MeshStandardMaterial({
+  color: 0xddecef,
+  emissive: 0x2a7f99,
+  emissiveIntensity: 0.42,
+  roughness: 0.3,
+  metalness: 0.46,
+});
+const ShipAccentMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffa85d,
+  emissive: 0xff623b,
+  emissiveIntensity: 1.1,
+  roughness: 0.26,
+  metalness: 0.34,
+});
+const ShipHullMesh = new THREE.Mesh(
+  new THREE.CapsuleGeometry(0.22, 0.44, 6, 12),
+  ShipHullMaterial,
+);
+ShipHullMesh.scale.set(0.9, 1, 0.72);
+ShipHullMesh.castShadow = true;
+ShipVisualGroup.add(ShipHullMesh);
+const ShipNoseMesh = new THREE.Mesh(
+  new THREE.ConeGeometry(0.22, 0.3, 12),
+  ShipAccentMaterial,
+);
+ShipNoseMesh.position.y = 0.5;
+ShipVisualGroup.add(ShipNoseMesh);
+for (const Side of [-1, 1]) {
+  const WingMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.32, 0.2, 0.055),
+    ShipHullMaterial,
+  );
+  WingMesh.position.set(Side * 0.28, -0.15, 0);
+  WingMesh.rotation.z = Side * -0.32;
+  ShipVisualGroup.add(WingMesh);
+}
+const ShipWindowMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(0.13, 12, 8),
+  RunnerVisorMaterial,
+);
+ShipWindowMesh.position.set(0, 0.16, 0.2);
+ShipWindowMesh.scale.set(1, 1.18, 0.38);
+ShipVisualGroup.add(ShipWindowMesh);
+const ShipThrusterMesh = new THREE.Mesh(
+  new THREE.ConeGeometry(0.12, 0.44, 10),
+  RunnerThrusterMaterial,
+);
+ShipThrusterMesh.position.y = -0.56;
+ShipThrusterMesh.rotation.z = Math.PI;
+ShipVisualGroup.add(ShipThrusterMesh);
+ShipVisualGroup.visible = false;
+SeedGroup.add(ShipVisualGroup);
+
 const SeedHaloGeometry = new THREE.SphereGeometry(SeedRadius * 1.65, 24, 16);
 const SeedHaloMaterial = new THREE.MeshBasicMaterial({
   color: 0x6de8ff,
@@ -3594,6 +3674,47 @@ function calculateSurfaceRestPosition(WorldDefinition, ImpactPosition) {
   );
 }
 
+function getCurrentAttachedWorld() {
+  return GamePhase === 'attached' ? getWorldDefinition(CurrentWorldIdentifier) : null;
+}
+
+/** Repositions the Runner around a world's playable great-circle without spending a launch. */
+function setRunnerSurfaceAngle(AngleRadians, InputKind = 'pointer') {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld || ReplayPlaybackState !== null) return false;
+  const SurfacePosition = getSurfacePosition(
+    AttachedWorld.position,
+    AttachedWorld.radius + SeedRadius + 0.03,
+    AngleRadians,
+  );
+  SeedPhysicsState.position = createVector(
+    SurfacePosition.x,
+    SurfacePosition.y,
+    SurfacePosition.z,
+  );
+  SeedPhysicsState.velocity = createVector();
+  SeedGroup.position.set(SurfacePosition.x, SurfacePosition.y, SurfacePosition.z);
+  LastSafeWorldIdentifier = CurrentWorldIdentifier;
+  LastSafeSeedPosition = createVector(SurfacePosition.x, SurfacePosition.y, SurfacePosition.z);
+  publishAttachedSeedState(CurrentWorldIdentifier, SurfacePosition);
+  GameCanvas.dataset.surfaceAngle = AngleRadians.toFixed(4);
+  GameCanvas.dataset.surfaceInput = InputKind;
+  return true;
+}
+
+function moveRunnerAroundSurface(Direction, Fine = false) {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld) return false;
+  const CurrentAngle = Math.atan2(
+    SeedPhysicsState.position.y - AttachedWorld.position.y,
+    SeedPhysicsState.position.x - AttachedWorld.position.x,
+  );
+  return setRunnerSurfaceAngle(
+    adjustSurfaceAngle(CurrentAngle, Direction, { fine: Fine }),
+    'keyboard',
+  );
+}
+
 /**
  * Updates the HUD counter using only restorable worlds. The starting world is already alive
  * so it acts as the player's launch platform rather than as an objective.
@@ -3670,6 +3791,9 @@ function scheduleRunFailure(Reason = 'OUT OF LAUNCHES') {
   RunFailurePending = false;
   publishFinishedReplay('failed');
   GamePhase = 'runFailed';
+  IsBreakerBurnAvailable = false;
+  IsBreakerBurnPending = false;
+  updateBreakerBurnInterface();
   GameCanvas.dataset.runStatus = 'failed';
   SeedPhysicsState.velocity = createVector();
   WorldseedSound.failure();
@@ -3848,6 +3972,8 @@ function restoreWorld(WorldDefinition, ImpactPosition) {
  * @param {{x:number,y:number,z:number}} ImpactPosition - Approximate impact position.
  */
 function attachSeedToWorld(WorldDefinition, ImpactPosition) {
+  IsBreakerBurnAvailable = false;
+  IsBreakerBurnPending = false;
   const SurfaceRestPosition = calculateSurfaceRestPosition(WorldDefinition, ImpactPosition);
 
   ImpactPulseMesh.material.color.set(0xfff2bc);
@@ -3909,10 +4035,13 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
     showRouteChoiceInstruction();
   }
   settleNonCommandFlight(`${WorldDefinition.label} WAS NOT THE COMMAND WORLD`);
+  updateBreakerBurnInterface();
 }
 
 /** Lands on the one-use launch node without counting it as an awakened world. */
 function attachSeedToSeedstone(ImpactPosition, BodyPosition) {
+  IsBreakerBurnAvailable = false;
+  IsBreakerBurnPending = false;
   SeedstoneDefinition.position.x = BodyPosition.x;
   SeedstoneDefinition.position.y = BodyPosition.y;
   SeedstoneDefinition.position.z = BodyPosition.z;
@@ -3958,6 +4087,7 @@ function attachSeedToSeedstone(ImpactPosition, BodyPosition) {
       : `Choose the next world carefully — ${SeedstoneDefinition.label} crumbles after launch.`,
   );
   settleNonCommandFlight(`${SeedstoneDefinition.label} WAS NOT THE COMMAND WORLD`);
+  updateBreakerBurnInterface();
 }
 
 /** Reveals the modal completion summary and moves keyboard focus into it. */
@@ -3971,6 +4101,8 @@ function attachSeedToWorldheart(ImpactPosition) {
   if (!WorldheartDefinition.routeAvailable || WorldheartDefinition.restored) {
     return;
   }
+  IsBreakerBurnAvailable = false;
+  IsBreakerBurnPending = false;
 
   const SurfaceRestPosition = calculateSurfaceRestPosition(WorldheartDefinition, ImpactPosition);
   const LandingAccolade = getCurrentLandingAccolade(WorldheartDefinition.id, true);
@@ -4019,6 +4151,7 @@ function attachSeedToWorldheart(ImpactPosition) {
     WorldseedSound.victory();
     WorldheartCompletionTimeoutIdentifier = null;
   }, VictoryDelaySeconds * 1000);
+  updateBreakerBurnInterface();
 }
 
 /** Starts the final system-scale pulse only after the seed physically lands in the core. */
@@ -4516,6 +4649,26 @@ function handleKeyboardAimKey(KeyboardEventData) {
   }
 
   const PressedKey = KeyboardEventData.key.toLowerCase();
+  if (
+    !IsKeyboardAiming
+    && (PressedKey === 'q' || PressedKey === 'e')
+    && GamePhase === 'attached'
+    && ReplayPlaybackState === null
+  ) {
+    KeyboardEventData.preventDefault();
+    setScoutMode(false);
+    const DidMove = moveRunnerAroundSurface(
+      PressedKey === 'q' ? 1 : -1,
+      KeyboardEventData.shiftKey,
+    );
+    if (DidMove) {
+      showInstruction(
+        'Launch point moved',
+        'Q/E walk · Shift makes fine steps · arrows aim · Enter launches.',
+      );
+    }
+    return DidMove;
+  }
   const IsLaunchKey = PressedKey === 'enter' || PressedKey === ' ';
   const RotationDirection = PressedKey === 'arrowleft' || PressedKey === 'a'
     ? 1
@@ -4567,8 +4720,7 @@ function handlePointerDown(PointerEventData) {
     GamePhase !== 'attached'
     || RunState.status !== 'active'
     || ReplayPlaybackState !== null
-    || IsPointerAiming
-    || !isPointerOverSeed(PointerEventData)
+    || ActivePointerIdentifier !== null
   ) {
     return;
   }
@@ -4579,16 +4731,24 @@ function handlePointerDown(PointerEventData) {
     return;
   }
 
-  IsPointerAiming = true;
   GameCanvas.focus({ preventScroll: true });
-  LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
-  WorldseedSound.beginAim();
   ActivePointerIdentifier = PointerEventData.pointerId;
   GameCanvas.setPointerCapture(PointerEventData.pointerId);
-  GameCanvas.classList.add('is-aiming');
+  if (!isPointerOverSeed(PointerEventData)) {
+    IsPointerScouting = true;
+    setScoutMode(true, { snapToRunner: false });
+    ScoutPointerStartWorldPosition.copy(CurrentPointerWorldPosition);
+    ScoutCameraStartTarget.copy(ScoutCameraTarget);
+    GameCanvas.classList.add('is-scouting');
+    PointerEventData.preventDefault();
+    return;
+  }
+
+  setScoutMode(false);
+  PointerGestureMode = SurfaceGestureModes.pending;
+  PointerGestureStartWorldPosition.copy(CurrentPointerWorldPosition);
+  LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
   PullGuideLine.visible = false;
-  AimPanelElement.hidden = false;
-  updateAimPreview(CurrentPointerWorldPosition);
   PointerEventData.preventDefault();
 }
 
@@ -4598,7 +4758,7 @@ function handlePointerDown(PointerEventData) {
  * @param {PointerEvent} PointerEventData - Browser pointer event.
  */
 function handlePointerMove(PointerEventData) {
-  if (!IsPointerAiming || PointerEventData.pointerId !== ActivePointerIdentifier) {
+  if (PointerEventData.pointerId !== ActivePointerIdentifier) {
     return;
   }
 
@@ -4607,17 +4767,89 @@ function handlePointerMove(PointerEventData) {
     return;
   }
 
-  LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
-  updateAimPreview(CurrentPointerWorldPosition);
+  if (IsPointerScouting) {
+    const NextScoutX = ScoutCameraStartTarget.x
+      + (ScoutPointerStartWorldPosition.x - CurrentPointerWorldPosition.x);
+    const NextScoutY = ScoutCameraStartTarget.y
+      + (ScoutPointerStartWorldPosition.y - CurrentPointerWorldPosition.y);
+    ScoutCameraTarget.set(
+      ScannerProjection
+        ? THREE.MathUtils.clamp(
+          NextScoutX,
+          ScannerProjection.minimumX,
+          ScannerProjection.minimumX + ScannerProjection.width,
+        )
+        : NextScoutX,
+      ScannerProjection
+        ? THREE.MathUtils.clamp(
+          NextScoutY,
+          ScannerProjection.minimumY,
+          ScannerProjection.minimumY + ScannerProjection.height,
+        )
+        : NextScoutY,
+      0,
+    );
+    GameCanvas.dataset.scoutX = ScoutCameraTarget.x.toFixed(2);
+    GameCanvas.dataset.scoutY = ScoutCameraTarget.y.toFixed(2);
+    PointerEventData.preventDefault();
+    return;
+  }
+
+  if (PointerGestureMode === SurfaceGestureModes.pending) {
+    const AttachedWorld = getCurrentAttachedWorld();
+    PointerGestureMode = AttachedWorld
+      ? classifySurfaceGesture({
+        startPosition: PointerGestureStartWorldPosition,
+        currentPosition: CurrentPointerWorldPosition,
+        bodyPosition: AttachedWorld.position,
+      })
+      : SurfaceGestureModes.aim;
+    if (PointerGestureMode === SurfaceGestureModes.walk) {
+      IsPointerWalking = true;
+      GameCanvas.classList.add('is-walking');
+      showInstruction(
+        `Walking around ${AttachedWorld.label}`,
+        'Trace the rim to choose a launch point. Release to stop; pull away to aim.',
+      );
+    } else if (PointerGestureMode === SurfaceGestureModes.aim) {
+      IsPointerAiming = true;
+      WorldseedSound.beginAim();
+      GameCanvas.classList.add('is-aiming');
+      AimPanelElement.hidden = false;
+    }
+  }
+
+  if (IsPointerWalking) {
+    const AttachedWorld = getCurrentAttachedWorld();
+    const SurfaceAngle = Math.atan2(
+      CurrentPointerWorldPosition.y - AttachedWorld.position.y,
+      CurrentPointerWorldPosition.x - AttachedWorld.position.x,
+    );
+    setRunnerSurfaceAngle(SurfaceAngle);
+    PointerEventData.preventDefault();
+    return;
+  }
+
+  if (IsPointerAiming) {
+    LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
+    updateAimPreview(CurrentPointerWorldPosition);
+  }
   PointerEventData.preventDefault();
 }
 
 /** Launches the current pointer or keyboard aim through the shared deterministic path. */
 function releaseAimedLaunch() {
   IsPointerAiming = false;
+  IsPointerWalking = false;
+  IsPointerScouting = false;
+  PointerGestureMode = SurfaceGestureModes.pending;
   IsKeyboardAiming = false;
+  setScoutMode(false);
+  FlightElapsedSeconds = 0;
+  IsBreakerBurnAvailable = false;
+  IsBreakerBurnPending = false;
   ActivePointerIdentifier = null;
-  GameCanvas.classList.remove('is-aiming');
+  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
   AimPanelElement.hidden = true;
   clearTrajectoryPreview();
 
@@ -4638,6 +4870,8 @@ function releaseAimedLaunch() {
   ReplayState = recordReplayLaunch(ReplayState, {
     stepIndex: Math.round(PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz),
     originIdentifier: CurrentWorldIdentifier,
+    originX: SeedPhysicsState.position.x,
+    originY: SeedPhysicsState.position.y,
     velocityX: AimLaunchVelocity.x,
     velocityY: AimLaunchVelocity.y,
   });
@@ -4659,6 +4893,10 @@ function releaseAimedLaunch() {
     showStatusToast(`${SeedstoneDefinition.label} SPENT`, 650);
   }
   GamePhase = 'flying';
+  FlightElapsedSeconds = 0;
+  IsBreakerBurnAvailable = true;
+  IsBreakerBurnPending = false;
+  updateBreakerBurnInterface();
   HasLaunchedOnce = true;
   LaunchPulseMesh.position.copy(SeedGroup.position);
   LaunchPulseMesh.scale.setScalar(1);
@@ -4674,13 +4912,96 @@ function releaseAimedLaunch() {
   return true;
 }
 
+function updateBreakerBurnInterface() {
+  BurnButtonElement.hidden = GamePhase !== 'flying';
+  BurnButtonElement.classList.toggle('is-spent', !IsBreakerBurnAvailable);
+  BurnButtonElement.disabled = !IsBreakerBurnAvailable;
+  BurnButtonElement.querySelector('strong').textContent = IsBreakerBurnAvailable
+    ? (IsBreakerBurnPending ? 'ARMED' : 'READY')
+    : 'SPENT';
+  GameCanvas.dataset.breakerBurn = GamePhase !== 'flying'
+    ? 'stowed'
+    : (IsBreakerBurnAvailable ? (IsBreakerBurnPending ? 'armed' : 'ready') : 'spent');
+}
+
+/** Queues input for the next authoritative fixed step rather than mutating between frames. */
+function requestBreakerBurn() {
+  if (
+    GamePhase !== 'flying'
+    || !IsBreakerBurnAvailable
+    || IsBreakerBurnPending
+    || ReplayPlaybackState !== null
+  ) {
+    return false;
+  }
+  IsBreakerBurnPending = true;
+  updateBreakerBurnInterface();
+  return true;
+}
+
+function applyBreakerBurnAtCurrentStep({ record = false } = {}) {
+  if (!IsBreakerBurnAvailable) return false;
+  SeedPhysicsState = applyBreakerBurn(SeedPhysicsState);
+  IsBreakerBurnAvailable = false;
+  IsBreakerBurnPending = false;
+  if (record) {
+    ReplayState = recordReplayBurn(ReplayState, {
+      stepIndex: Math.round(PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz),
+    });
+  }
+  GameCanvas.dataset.breakerBurnStep = String(
+    Math.round(PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz),
+  );
+  GameCanvas.dataset.breakerBurnSpeed = Math.hypot(
+    SeedPhysicsState.velocity.x,
+    SeedPhysicsState.velocity.y,
+  ).toFixed(3);
+  LaunchPulseMesh.position.copy(SeedGroup.position);
+  LaunchPulseMesh.scale.setScalar(1.3);
+  LaunchPulseMesh.visible = true;
+  LaunchPulseLifeSeconds = 0.5;
+  showStatusToast('BREAKER BURN', 650);
+  updateBreakerBurnInterface();
+  return true;
+}
+
 /**
  * Converts the final drag vector into launch velocity, or cancels if the gesture was tiny.
  *
  * @param {PointerEvent} PointerEventData - Browser pointer event.
  */
 function handlePointerUp(PointerEventData) {
-  if (!IsPointerAiming || PointerEventData.pointerId !== ActivePointerIdentifier) {
+  if (PointerEventData.pointerId !== ActivePointerIdentifier) {
+    return;
+  }
+
+  if (GameCanvas.hasPointerCapture(PointerEventData.pointerId)) {
+    GameCanvas.releasePointerCapture(PointerEventData.pointerId);
+  }
+
+  if (IsPointerScouting) {
+    IsPointerScouting = false;
+    ActivePointerIdentifier = null;
+    GameCanvas.classList.remove('is-scouting');
+    PointerEventData.preventDefault();
+    return;
+  }
+
+  if (IsPointerWalking) {
+    IsPointerWalking = false;
+    ActivePointerIdentifier = null;
+    PointerGestureMode = SurfaceGestureModes.pending;
+    GameCanvas.classList.remove('is-walking');
+    showRouteChoiceInstruction();
+    PointerEventData.preventDefault();
+    return;
+  }
+
+  if (!IsPointerAiming) {
+    ActivePointerIdentifier = null;
+    PointerGestureMode = SurfaceGestureModes.pending;
+    showInstruction('Choose a gesture', 'Trace around the world to walk, or pull away to launch.');
+    PointerEventData.preventDefault();
     return;
   }
 
@@ -4691,7 +5012,25 @@ function handlePointerUp(PointerEventData) {
   }
 
   releaseAimedLaunch();
+  PointerGestureMode = SurfaceGestureModes.pending;
   PointerEventData.preventDefault();
+}
+
+function handlePointerCancel(PointerEventData) {
+  if (PointerEventData.pointerId !== ActivePointerIdentifier) return;
+  if (GameCanvas.hasPointerCapture(PointerEventData.pointerId)) {
+    GameCanvas.releasePointerCapture(PointerEventData.pointerId);
+  }
+  const WasAiming = IsPointerAiming;
+  IsPointerAiming = false;
+  IsPointerWalking = false;
+  IsPointerScouting = false;
+  ActivePointerIdentifier = null;
+  PointerGestureMode = SurfaceGestureModes.pending;
+  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
+  AimPanelElement.hidden = true;
+  clearTrajectoryPreview();
+  if (WasAiming) WorldseedSound.endAim();
 }
 
 /**
@@ -4709,6 +5048,9 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
   rollbackFlightStardust();
   resetFlightFeedback();
   SeedPhysicsState.velocity = createVector();
+  IsBreakerBurnAvailable = false;
+  IsBreakerBurnPending = false;
+  updateBreakerBurnInterface();
   if (RunState.status === 'failed') {
     scheduleRunFailure(StatusMessage);
     return;
@@ -4747,6 +5089,7 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
     LaunchIgnoredWorldIdentifier = null;
     LaunchIgnoredBodyIdentifier = null;
     GamePhase = 'attached';
+    updateBreakerBurnInterface();
     showInstruction('Try another angle', 'Use the gold route rings and wait for a landing lock.');
     RecoveryTimeoutIdentifier = null;
   }, 420);
@@ -4756,6 +5099,13 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
 function beginReplayLaunch(Launch) {
   RunState = releaseRunLaunch(RunState);
   updateLaunchCounter();
+  if (Number.isFinite(Launch.originX) && Number.isFinite(Launch.originY)) {
+    SeedPhysicsState.position = createVector(Launch.originX, Launch.originY, 0);
+    SeedGroup.position.set(Launch.originX, Launch.originY, 0);
+    if (getWorldDefinition(CurrentWorldIdentifier)) {
+      LastSafeSeedPosition = createVector(Launch.originX, Launch.originY, 0);
+    }
+  }
   SeedPhysicsState.velocity = createVector(Launch.velocityX, Launch.velocityY, 0);
   GameCanvas.dataset.lastLaunchVelocityX = Launch.velocityX.toFixed(3);
   GameCanvas.dataset.lastLaunchVelocityY = Launch.velocityY.toFixed(3);
@@ -4773,6 +5123,10 @@ function beginReplayLaunch(Launch) {
     SeedstoneCrumbleStartedAtSeconds = GameElapsedTimeSeconds;
   }
   GamePhase = 'flying';
+  FlightElapsedSeconds = 0;
+  IsBreakerBurnAvailable = true;
+  IsBreakerBurnPending = false;
+  updateBreakerBurnInterface();
   HasLaunchedOnce = true;
   LaunchPulseMesh.position.copy(SeedGroup.position);
   LaunchPulseMesh.scale.setScalar(1);
@@ -4786,6 +5140,16 @@ function beginReplayLaunch(Launch) {
     1,
   ));
   hideInstruction();
+}
+
+function advanceReplayBurn() {
+  if (!ReplayPlaybackState || GamePhase !== 'flying') return;
+  const BurnUpdate = consumeDueReplayBurn(
+    ReplayPlaybackState,
+    Math.round(PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz),
+  );
+  ReplayPlaybackState = BurnUpdate.playbackState;
+  if (BurnUpdate.burn) applyBreakerBurnAtCurrentStep();
 }
 
 /** Injects a replay input immediately before its recorded fixed simulation step. */
@@ -4835,7 +5199,10 @@ function simulateSeedFixedStep() {
   if (GamePhase !== 'flying') {
     return;
   }
+  advanceReplayBurn();
+  if (IsBreakerBurnPending) applyBreakerBurnAtCurrentStep({ record: true });
   RunFlightTimeSeconds += FixedPhysicsStepSeconds;
+  FlightElapsedSeconds += FixedPhysicsStepSeconds;
 
   SeedPhysicsState = simulatePhysicsStep(
     SeedPhysicsState,
@@ -5206,10 +5573,24 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
     IsPointerAiming || IsKeyboardAiming,
   );
   const RunnerPose = getRunnerPose(RunnerAnimationState);
+  const RunnerForm = getRunnerForm(GamePhase, FlightElapsedSeconds);
   const PoseBlend = PrefersReducedMotion
     ? 1
     : 1 - Math.exp(-DeltaTimeSeconds * 13);
   GameCanvas.dataset.runnerAnimation = RunnerAnimationState;
+  GameCanvas.dataset.runnerForm = RunnerForm;
+  RunnerVisualGroup.visible = RunnerForm === 'astronaut';
+  ShipVisualGroup.visible = RunnerForm !== 'astronaut';
+  if (RunnerForm === 'launch-craft') {
+    const UnfoldProgress = THREE.MathUtils.clamp(FlightElapsedSeconds / 0.28, 0, 1);
+    ShipVisualGroup.scale.set(
+      THREE.MathUtils.lerp(0.62, 1.08, UnfoldProgress),
+      THREE.MathUtils.lerp(0.82, 1, UnfoldProgress),
+      1,
+    );
+  } else {
+    ShipVisualGroup.scale.set(1.08, 1, 1);
+  }
   for (const ArmMesh of RunnerArmMeshes) {
     ArmMesh.rotation.z = THREE.MathUtils.lerp(
       ArmMesh.rotation.z,
@@ -5235,6 +5616,10 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   if (GamePhase === 'flying') {
     const FlightAngle = Math.atan2(SeedPhysicsState.velocity.y, SeedPhysicsState.velocity.x);
     RunnerVisualGroup.rotation.z = FlightAngle - (Math.PI * 0.5);
+    ShipVisualGroup.rotation.z = FlightAngle - (Math.PI * 0.5);
+    ShipVisualGroup.rotation.y = PrefersReducedMotion
+      ? 0
+      : Math.sin(ElapsedTimeSeconds * 3.2) * 0.08;
     RunnerVisualGroup.rotation.y += DeltaTimeSeconds * 1.8;
     RunnerVisualGroup.rotation.x = THREE.MathUtils.lerp(
       RunnerVisualGroup.rotation.x,
@@ -5242,6 +5627,7 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
       PoseBlend,
     );
   } else {
+    ShipVisualGroup.rotation.set(0, 0, 0);
     const AttachedBody = getWorldDefinition(CurrentWorldIdentifier)
       ?? TacticalBodyDefinitions.find(
         (BodyDefinition) => BodyDefinition.id === CurrentWorldIdentifier,
@@ -5334,9 +5720,51 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
  *
  * @param {number} DeltaTimeSeconds - Real frame delta.
  */
+function setScoutMode(Enabled, { snapToRunner = true } = {}) {
+  const CanScout = ActiveSystem.camera?.followPlayer === true
+    && GamePhase === 'attached'
+    && ReplayPlaybackState === null;
+  IsScoutMode = Enabled && CanScout;
+  if (IsScoutMode) {
+    ScoutCameraTarget.copy(CameraLookTarget);
+  } else if (snapToRunner) {
+    ScoutCameraTarget.set(SeedPhysicsState.position.x, SeedPhysicsState.position.y, 0);
+    ScoutZoomScale = 1;
+  }
+  ScoutButtonElement.textContent = IsScoutMode ? 'Runner [C]' : 'Scout [C]';
+  ScoutButtonElement.setAttribute('aria-pressed', String(IsScoutMode));
+  ScoutZoomOutButtonElement.hidden = !IsScoutMode;
+  ScoutZoomInButtonElement.hidden = !IsScoutMode;
+  GameCanvas.dataset.scoutMode = String(IsScoutMode);
+  GameCanvas.classList.toggle('is-scouting', IsScoutMode && IsPointerScouting);
+  resizeRenderer();
+}
+
+function adjustScoutZoom(Direction) {
+  if (!IsScoutMode) setScoutMode(true, { snapToRunner: false });
+  if (!IsScoutMode) return false;
+  ScoutZoomScale = THREE.MathUtils.clamp(
+    ScoutZoomScale + (Math.sign(Direction) * 0.1),
+    0.72,
+    1.55,
+  );
+  GameCanvas.dataset.scoutZoom = ScoutZoomScale.toFixed(2);
+  resizeRenderer();
+  return true;
+}
+
+function handleScoutWheel(WheelEventData) {
+  if (GamePhase !== 'attached' || ReplayPlaybackState !== null) return;
+  if (adjustScoutZoom(WheelEventData.deltaY > 0 ? 1 : -1)) {
+    WheelEventData.preventDefault();
+  }
+}
+
 function updateCamera(DeltaTimeSeconds) {
   const UsesExplorationCamera = ActiveSystem.camera?.followPlayer === true;
-  if (UsesExplorationCamera) {
+  if (UsesExplorationCamera && IsScoutMode) {
+    DesiredCameraLookTarget.copy(ScoutCameraTarget);
+  } else if (UsesExplorationCamera) {
     DesiredCameraLookTarget.set(
       SeedPhysicsState.position.x,
       SeedPhysicsState.position.y,
@@ -5397,7 +5825,8 @@ function resizeRenderer() {
   const DistanceForWidth = RequiredWorldWidth / (
     2 * Math.tan(HalfVerticalFieldOfViewRadians) * Math.max(ViewportAspectRatio, 0.2)
   );
-  Camera.position.z = Math.max(DistanceForHeight, DistanceForWidth, 34);
+  BaseCameraDistance = Math.max(DistanceForHeight, DistanceForWidth, 34);
+  Camera.position.z = BaseCameraDistance * (IsScoutMode ? ScoutZoomScale : 1);
   Camera.updateProjectionMatrix();
 }
 
@@ -5497,7 +5926,15 @@ function resetGame() {
   }
 
   IsPointerAiming = false;
+  IsPointerWalking = false;
+  IsPointerScouting = false;
+  PointerGestureMode = SurfaceGestureModes.pending;
   IsKeyboardAiming = false;
+  IsScoutMode = false;
+  ScoutZoomScale = 1;
+  FlightElapsedSeconds = 0;
+  IsBreakerBurnAvailable = false;
+  IsBreakerBurnPending = false;
   ReplayPlaybackState = null;
   ReplayIndicatorElement.hidden = true;
   WatchReplayButtonElement.hidden = true;
@@ -5521,10 +5958,16 @@ function resetGame() {
   LiberationFlashElement.style.opacity = '0';
   SeedGroup.scale.setScalar(1);
   RunnerThrusterGroup.visible = false;
+  RunnerVisualGroup.visible = true;
+  ShipVisualGroup.visible = false;
   RunnerVisualGroup.rotation.set(0, 0, 0);
   Camera.position.x = 0;
   Camera.position.y = 0;
-  GameCanvas.classList.remove('is-aiming');
+  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
+  ScoutButtonElement.textContent = 'Scout [C]';
+  ScoutButtonElement.setAttribute('aria-pressed', 'false');
+  ScoutZoomOutButtonElement.hidden = true;
+  ScoutZoomInButtonElement.hidden = true;
   AimPanelElement.hidden = true;
   AimPanelElement.classList.remove('is-locked');
   clearTrajectoryPreview();
@@ -5545,6 +5988,13 @@ function resetGame() {
   GameCanvas.dataset.keyboardAimAngle = '';
   GameCanvas.dataset.keyboardAimPower = '';
   GameCanvas.dataset.runnerAnimation = 'ready';
+  GameCanvas.dataset.runnerForm = 'astronaut';
+  GameCanvas.dataset.surfaceAngle = '';
+  GameCanvas.dataset.surfaceInput = '';
+  GameCanvas.dataset.scoutMode = 'false';
+  GameCanvas.dataset.scoutZoom = '1.00';
+  GameCanvas.dataset.breakerBurnStep = '';
+  GameCanvas.dataset.breakerBurnSpeed = '';
   GameCanvas.dataset.lastBank = '';
   GameCanvas.dataset.lastScoreLost = '';
   GameCanvas.dataset.completionBonus = '';
@@ -5693,6 +6143,7 @@ function resetGame() {
   PredictedStardustIdentifiers.clear();
   FlightCollectedStardustIdentifiers.clear();
   GamePhase = 'attached';
+  updateBreakerBurnInterface();
   PhysicsAccumulatorSeconds = 0;
   PhysicsElapsedTimeSeconds = 0;
   GameElapsedTimeSeconds = 0;
@@ -5995,7 +6446,8 @@ function renderFrame() {
 GameCanvas.addEventListener('pointerdown', handlePointerDown, { passive: false });
 GameCanvas.addEventListener('pointermove', handlePointerMove, { passive: false });
 GameCanvas.addEventListener('pointerup', handlePointerUp, { passive: false });
-GameCanvas.addEventListener('pointercancel', handlePointerUp, { passive: false });
+GameCanvas.addEventListener('pointercancel', handlePointerCancel, { passive: false });
+GameCanvas.addEventListener('wheel', handleScoutWheel, { passive: false });
 window.addEventListener('resize', resizeRenderer);
 window.addEventListener('orientationchange', () => {
   window.setTimeout(resizeRenderer, 120);
@@ -6009,9 +6461,11 @@ function setPageActivity(IsActive) {
   if (IsPageActive) {
     Clock.getDelta();
     resizeRenderer();
-  } else if (IsPointerAiming || IsKeyboardAiming) {
+  } else if (IsPointerAiming || IsKeyboardAiming || IsPointerWalking || IsPointerScouting) {
     const CanceledPointerIdentifier = ActivePointerIdentifier;
     IsPointerAiming = false;
+    IsPointerWalking = false;
+    IsPointerScouting = false;
     IsKeyboardAiming = false;
     ActivePointerIdentifier = null;
     GameCanvas.dataset.keyboardAimAngle = '';
@@ -6022,7 +6476,7 @@ function setPageActivity(IsActive) {
     ) {
       GameCanvas.releasePointerCapture(CanceledPointerIdentifier);
     }
-    GameCanvas.classList.remove('is-aiming');
+    GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
     AimPanelElement.hidden = true;
     clearTrajectoryPreview();
     WorldseedSound.endAim();
@@ -6192,6 +6646,21 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     return;
   }
   const PressedKey = KeyboardEventData.key.toLowerCase();
+  if (PressedKey === ' ' && GamePhase === 'flying') {
+    KeyboardEventData.preventDefault();
+    requestBreakerBurn();
+    return;
+  }
+  if (PressedKey === 'c' && !KeyboardEventData.repeat) {
+    KeyboardEventData.preventDefault();
+    setScoutMode(!IsScoutMode, { snapToRunner: IsScoutMode });
+    return;
+  }
+  if (IsScoutMode && (PressedKey === '+' || PressedKey === '=' || PressedKey === '-')) {
+    KeyboardEventData.preventDefault();
+    adjustScoutZoom(PressedKey === '-' ? 1 : -1);
+    return;
+  }
   if (IsReleaseDiagnosticsEnabled && KeyboardEventData.shiftKey) {
     if (PressedKey === 'b' || PressedKey === 'g' || PressedKey === 'f') {
       KeyboardEventData.preventDefault();
@@ -6251,6 +6720,12 @@ AudioButtonElement.addEventListener('click', () => {
   AudioButtonElement.setAttribute('aria-pressed', String(IsMuted));
 });
 MotionButtonElement.addEventListener('click', selectNextMotionPreference);
+ScoutButtonElement.addEventListener('click', () => {
+  setScoutMode(!IsScoutMode, { snapToRunner: IsScoutMode });
+});
+ScoutZoomOutButtonElement.addEventListener('click', () => adjustScoutZoom(1));
+ScoutZoomInButtonElement.addEventListener('click', () => adjustScoutZoom(-1));
+BurnButtonElement.addEventListener('click', requestBreakerBurn);
 
 createLighting();
 createStarField();

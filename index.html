@@ -11,7 +11,7 @@
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
   <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260814-ob13" />
-  <link rel="stylesheet" href="./src/style.css?v=20260814-ob13" />
+  <link rel="stylesheet" href="./src/style.css?v=20260814-ob14" />
 
   <!--
     Buildless release import map. Three.js is pinned and vendored so startup
@@ -30,14 +30,16 @@
     <canvas
       id="GameCanvas"
       tabindex="0"
-      aria-label="ORBITBREAK gravity slingshot game. Drag the Runner backwards and release, or use the keyboard to aim and launch."
+      aria-label="ORBITBREAK gravity game. Trace around a world to reposition, pull away to launch, and Burn once during flight."
       aria-describedby="InstructionPanel KeyboardHelp"
-      aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Enter Space A D W S"
+      aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Enter Space A D W S Q E C + -"
     ></canvas>
     <p id="KeyboardHelp" class="visually-hidden">
       Keyboard controls: focus the game, use left and right or A and D to steer, use up and
       down or W and S to change power, hold Shift for fine adjustments, and press Enter or
-      Space to launch. Escape cancels keyboard aiming. R resets, M toggles audio, and P changes motion.
+      Space to launch. Q and E walk around the current world. During flight, Space activates
+      the one-shot Breaker Burn. C toggles Scout view; plus and minus zoom it. Escape cancels
+      keyboard aiming. R resets, M toggles audio, and P changes motion.
     </p>
     <div id="LiberationFlash" class="liberation-flash" aria-hidden="true"></div>
 
@@ -96,6 +98,9 @@
     </section>
 
     <section id="StatusToast" class="status-toast" aria-live="polite"></section>
+    <button id="BurnButton" class="burn-button" type="button" aria-keyshortcuts="Space" hidden>
+      <span>BREAKER BURN</span><strong>READY</strong>
+    </button>
     <div id="ReplayIndicator" class="replay-indicator" aria-live="polite" hidden>
       WATCHING VERIFIED REPLAY
     </div>
@@ -178,8 +183,11 @@
     </section>
 
     <footer class="hud hud--bottom">
-      <span>Drag + release · arrows + Enter</span>
+      <span>Trace to walk · pull to launch · tap to Burn</span>
       <div class="hud__actions">
+        <button id="ScoutButton" type="button" aria-pressed="false" aria-keyshortcuts="C">Scout [C]</button>
+        <button id="ScoutZoomOutButton" class="scout-zoom-button" type="button" aria-label="Scout zoom out" aria-keyshortcuts="-" hidden>−</button>
+        <button id="ScoutZoomInButton" class="scout-zoom-button" type="button" aria-label="Scout zoom in" aria-keyshortcuts="+" hidden>+</button>
         <button id="MotionButton" type="button" aria-pressed="mixed" aria-keyshortcuts="P">Motion system [P]</button>
         <button id="AudioButton" type="button" aria-pressed="false" aria-keyshortcuts="M">Audio on [M]</button>
         <button id="ResetButton" type="button" aria-keyshortcuts="R">Reset [R]</button>
@@ -187,6 +195,6 @@
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260814-ob13"></script>
+  <script type="module" src="./src/main.js?v=20260814-ob14"></script>
 </body>
 </html>

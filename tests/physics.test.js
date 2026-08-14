@@ -11,6 +11,8 @@ import {
 } from '../src/content.js';
 
 import {
+  BreakerBurnImpulse,
+  applyBreakerBurn,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
   calculateGravityAcceleration,
@@ -39,6 +41,20 @@ test('gravity accelerates the seed toward a world', () => {
   assert.ok(GravityAcceleration.x < 0, 'Gravity should pull toward the world centre.');
   assert.equal(GravityAcceleration.y, 0);
   assert.equal(GravityAcceleration.z, 0);
+});
+
+test('Breaker Burn adds one deterministic impulse along current heading', () => {
+  const Burned = applyBreakerBurn({
+    position: createVector(4, 5, 0),
+    velocity: createVector(3, 4, 0),
+  });
+  assert.deepEqual(Burned.position, createVector(4, 5, 0));
+  assert.ok(Math.abs(Burned.velocity.x - (3 + (BreakerBurnImpulse * 0.6))) < 1e-12);
+  assert.ok(Math.abs(Burned.velocity.y - (4 + (BreakerBurnImpulse * 0.8))) < 1e-12);
+  assert.deepEqual(
+    applyBreakerBurn({ position: createVector(1, 2, 0), velocity: createVector() }).velocity,
+    createVector(),
+  );
 });
 
 test('collision expands the world radius by the seed radius', () => {
