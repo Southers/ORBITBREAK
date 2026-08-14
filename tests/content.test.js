@@ -105,7 +105,13 @@ test('Wandering Garden satisfies the moving-system content contract', () => {
 test('Long Night satisfies the authored campaign and environment contract', () => {
   assert.deepEqual(validateAuthoredSystemDefinition(LongNightSystemDefinition), []);
   assert.equal(LongNightSystemDefinition.worlds.length, 6);
-  assert.equal(LongNightSystemDefinition.worldheartUnlockThreshold, 4);
+  assert.equal(LongNightSystemDefinition.contentVersion, 'long-night-1');
+  assert.equal(LongNightSystemDefinition.worldheartUnlockThreshold, 3);
+  assert.equal(LongNightSystemDefinition.camera.followPlayer, true);
+  const WorldXs = LongNightSystemDefinition.worlds.map(
+    (WorldDefinition) => WorldDefinition.position.x,
+  );
+  assert.ok(Math.max(...WorldXs) - Math.min(...WorldXs) > 45);
   const Runtime = createAuthoredSystemRuntime(LongNightSystemDefinition);
   assert.equal(Runtime.environment.backgroundColor, 0x02030b);
   assert.equal(Runtime.environment.toneMappingExposure, 1.08);
@@ -253,7 +259,7 @@ test('Long Night route order preserves a safe line and a higher-gravity commitme
   assert.deepEqual(
     getRouteChoices(CampaignNodes, 'hollow', 2, Runtime.routeSuggestions.hollow)
       .map((WorldDefinition) => WorldDefinition.id),
-    ['beacon', 'lumen'],
+    ['umbra', 'beacon'],
   );
 });
 
