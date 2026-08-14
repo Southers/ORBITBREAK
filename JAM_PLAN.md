@@ -106,6 +106,8 @@ Checkpoint G — local CPU gate: a reproducible Node V8 benchmark now warms the 
 
 Exit: ORBITBREAK is cohesive, reliable and ready for the user to decide how and when to release it.
 
+Checkpoint A — Shatterbelt authored-system conversion: the inherited Broken Belt fixture is now a wide timing-focused system with six named worlds, one tactical Seedstone, a moving Sentinel and a Command World. A dependable Relay → Kiln → Drift → Vault route completes in four launches for 7,700. The higher Relay → Loom route collects all three Stardust, waits for the Sentinel window and earns a 2,400-point Deep Assist around Shard before converging on Drift and Vault for 10,400. Deterministic tests cover both complete routes, the opening choices, Stardust collection and blocked/open Sentinel timing with prediction/live collision-step agreement. Real desktop play completed and independently verified both scores; 390×844 play completed the safe route, verified miss recovery and Reset, fit the result panel without scrolling and stayed within the 39-draw-call peak. No new external assets were introduced. The remaining inherited systems are still migration fixtures.
+
 ## Validation gate
 
 For every milestone:

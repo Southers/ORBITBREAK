@@ -12,7 +12,9 @@ This repository has separated from WORLDSEED. Its deterministic fixed-step physi
 
 Milestones 1–5 now establish the complete vertical-slice loop. A procedural tiny astronaut has eight launches; every release spends one, including misses, and the eighth flight is allowed to finish. The exact ranked prediction ends after 1.33 seconds, so longer routes demand judgement. Passing into and back out of a planet's influence band earns Assist, Deep or Razor points, distinct planets build a chain and the same body scores only once per flight. A safe landing banks the visible at-risk score; a miss or asteroid impact loses it. Liberating an optional world and reaching the Command World add clear bonuses.
 
-Breaker's Reach is now the default ORBITBREAK vertical slice: six worlds span several camera views, a compact scanner keeps distant routes readable, and offscreen labels point toward authored choices. A four-launch low route reaches the Command World with room for recovery; the high opening bends around Ember and Grove before Tide for a much larger bank. The later campaign chapters remain inherited WORLDSEED migration fixtures and should not be mistaken for finished ORBITBREAK content.
+Breaker's Reach is the default ORBITBREAK vertical slice: six worlds span several camera views, a compact scanner keeps distant routes readable, and offscreen labels point toward authored choices. A four-launch low route reaches the Command World with room for recovery; the high opening bends around Ember and Grove before Tide for a much larger bank.
+
+Shatterbelt is the second authored ORBITBREAK system and the first timing-focused expansion. Its wide broken convoy offers a dependable four-shot lower route worth 7,700, while the upper route collects three Stardust and waits for the moving Sentinel before bending deep around Shard. That four-shot mastery route is worth 10,400, making its extra execution risk legible in the result breakdown. Wandering Garden, Sunken Crown and Worldheart remain inherited migration fixtures rather than finished ORBITBREAK chapters.
 
 Completed runs now show exactly how many points came from slingshots, liberated worlds and unused launches, plus deterministic airborne time. Ranked personal bests persist locally per system/content version and compare score, launches, then flight time. Run again is the primary results action.
 
@@ -31,6 +33,7 @@ The locked target is deliberately small:
 - optional high-value occupied planets — implemented in Breaker's Reach;
 - safe-landing banking with miss rollback — implemented;
 - one large authored vertical-slice system — implemented as Breaker's Reach;
+- one distinct timing-and-moving-body system — implemented as Shatterbelt;
 - transparent results and versioned local personal bests — implemented;
 - distinct occupation, Runner and liberation presentation — implemented;
 - compact versioned replay recording — implemented;
@@ -39,7 +42,7 @@ The locked target is deliberately small:
 - provider-neutral validated leaderboard service — implemented;
 - Cloudflare Worker + D1 production adapter — prepared locally, not deployed;
 - in-game callsign, ranked list and remote replay flow — implemented against the optional endpoint;
-- production CPU proof and user-approved service deployment — next.
+- local validator CPU headroom — measured; production traces and user-approved service deployment remain gated.
 
 See `DESIGN.md` for the complete rules and `JAM_PLAN.md` for implementation order.
 
@@ -60,7 +63,7 @@ npm test
 npm run check
 ```
 
-## Controls in the migration fixture
+## Controls
 
 - Drag backwards from the glowing player marker and release to launch.
 - `R` resets the run.
