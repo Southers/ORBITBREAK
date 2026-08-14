@@ -9,7 +9,7 @@
   <meta property="og:description" content="Chain planetary slingshots, free tiny worlds and bank the run before your launches expire." />
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
-  <link rel="stylesheet" href="./src/style.css?v=20260814-ob1" />
+  <link rel="stylesheet" href="./src/style.css?v=20260814-ob2" />
 
   <!--
     Buildless import map for the five-day jam. Three.js is pinned and vendored so startup
@@ -43,12 +43,19 @@
         <span id="LaunchCounter" class="counter__value">8 / 8</span>
         <span class="counter__divider" aria-hidden="true"></span>
         <span class="counter__mastery">
-          <span class="counter__label">WORLDS</span>
-          <span id="WorldCounter" class="counter__value">0 / 4</span>
+          <span class="counter__label">SCORE</span>
+          <span id="ScoreCounter" class="counter__value">0</span>
         </span>
+        <span id="WorldCounter" hidden>0 / 4</span>
         <span id="StardustCounter" hidden>0 / 3</span>
       </div>
     </header>
+
+    <section id="FlightScore" class="flight-score" aria-live="polite" hidden>
+      <span>UNBANKED</span>
+      <strong id="FlightScoreValue">+0</strong>
+      <small id="ChainValue">CHAIN ×1</small>
+    </section>
 
     <section id="ObjectivePanel" class="objective-panel" aria-live="polite">
       <span class="objective-panel__label">COMMAND WORLD</span>
@@ -111,6 +118,6 @@
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260814-ob1"></script>
+  <script type="module" src="./src/main.js?v=20260814-ob2"></script>
 </body>
 </html>

@@ -54,7 +54,7 @@ Mastery comes from:
 
 ## Slingshot scoring
 
-Every scoreable gravity body has an authored influence band and base value.
+Every scoreable gravity body has a deterministic radius-derived influence band and an authored base value. Migration-fixture bodies without an authored value use a deterministic gravity-and-radius fallback until their content is replaced.
 
 1. The Runner enters the band.
 2. The trajectory bends around the body.
@@ -73,10 +73,11 @@ Larger or harder-to-reach planets may carry higher authored values, but physical
 
 ## Other scoring
 
-- Occupied planets display their value before commitment.
-- Landing closer to the liberation target adds a small precision bonus.
+- Freeing an occupied planet adds a clear liberation bonus when the flight is banked.
 - Unused launches add a clear completion bonus.
 - The Command World banks the run but is not an endlessly farmable target.
+
+Landing precision is deliberately deferred until the large-system vertical slice proves that a readable target zone improves choices rather than adding noise.
 
 The results screen shows the score breakdown rather than hiding it behind an opaque formula.
 
@@ -141,4 +142,3 @@ No dialogue trees, combat encounters or cutscenes are required.
 - Slingshot points are readable, deterministic and impossible to farm by circling one body.
 - The player wants an immediate replay after seeing the result.
 - Desktop and portrait-mobile runs remain reliable and responsive.
-

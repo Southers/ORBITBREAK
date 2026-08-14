@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "check": "node --check src/main.js && node --check src/audio.js && node --check src/campaign.js && node --check src/content.js && node --check src/physics.js && node --check src/restoration.js && node --check src/run.js"
+    "check": "node --check src/main.js && node --check src/audio.js && node --check src/campaign.js && node --check src/content.js && node --check src/physics.js && node --check src/restoration.js && node --check src/run.js && node --check src/scoring.js"
   }
 }

@@ -152,6 +152,18 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     if (!(WorldDefinition.radius > 0) || !(WorldDefinition.gravitationalParameter > 0)) {
       Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} requires positive physics values.`);
     }
+    if (
+      WorldDefinition.slingshotValue !== undefined
+      && (!Number.isInteger(WorldDefinition.slingshotValue) || WorldDefinition.slingshotValue < 1)
+    ) {
+      Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} has an invalid slingshotValue.`);
+    }
+    if (
+      WorldDefinition.liberationValue !== undefined
+      && (!Number.isInteger(WorldDefinition.liberationValue) || WorldDefinition.liberationValue < 1)
+    ) {
+      Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} has an invalid liberationValue.`);
+    }
     if (!WorldDefinition.visualKey || typeof WorldDefinition.visualKey !== 'string') {
       Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} requires a visualKey.`);
     }
@@ -489,6 +501,7 @@ export const FirstLightSystemDefinition = {
     {
       id: 'meadow', label: 'MEADOW', visualKey: 'meadow',
       position: { x: -8, y: -6.4, z: 0 }, radius: 3.35, gravitationalParameter: 92,
+      slingshotValue: 350, liberationValue: 1000,
       aliveColor: 0x5f9b63, atmosphereColor: 0x9bcfb4, initiallyRestored: true,
       memory: 'The first free signal crosses the rain.',
       restoration: {
@@ -500,6 +513,7 @@ export const FirstLightSystemDefinition = {
     {
       id: 'ember', label: 'EMBER', visualKey: 'ember',
       position: { x: 7.8, y: -3.3, z: 0 }, radius: 3, gravitationalParameter: 82,
+      slingshotValue: 450, liberationValue: 1000,
       aliveColor: 0xc47a46, atmosphereColor: 0xffbe78, initiallyRestored: false,
       memory: 'One hidden spark answers the Runner.',
       restoration: {
@@ -511,6 +525,7 @@ export const FirstLightSystemDefinition = {
     {
       id: 'grove', label: 'GROVE', visualKey: 'grove',
       position: { x: -8.8, y: 3, z: 0 }, radius: 2.05, gravitationalParameter: 44,
+      slingshotValue: 300, liberationValue: 1000,
       aliveColor: 0x78aa66, atmosphereColor: 0xb7e5a4, accentColor: 0xc6e886,
       initiallyRestored: false, isPrototypeWorld: true, biomeStyle: 1,
       memory: 'The roots were still holding hands.',
@@ -523,6 +538,7 @@ export const FirstLightSystemDefinition = {
     {
       id: 'frost', label: 'FROST', visualKey: 'frost',
       position: { x: 0.7, y: 8, z: 0 }, radius: 3.55, gravitationalParameter: 102,
+      slingshotValue: 700, liberationValue: 1000,
       aliveColor: 0x81b6c9, atmosphereColor: 0xbbe8f5, initiallyRestored: false,
       memory: 'Under the ice, the old ocean was still dreaming.',
       restoration: {
@@ -534,6 +550,7 @@ export const FirstLightSystemDefinition = {
     {
       id: 'tide', label: 'TIDE', visualKey: 'tide',
       position: { x: 9.7, y: 6, z: 0 }, radius: 2.15, gravitationalParameter: 48,
+      slingshotValue: 400, liberationValue: 1000,
       aliveColor: 0x4d91aa, atmosphereColor: 0x9ce7ef, accentColor: 0x9de9df,
       initiallyRestored: false, isPrototypeWorld: true, biomeStyle: 2,
       memory: 'The moon-pulled water found its rhythm.',

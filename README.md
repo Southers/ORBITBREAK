@@ -10,7 +10,7 @@ The safe route completes the system. The dangerous route reaches the leaderboard
 
 This repository has separated from WORLDSEED. Its deterministic fixed-step physics, authored-content pipeline, miniature rendering and one-pointer controls are preserved while the new game is built in small playable checkpoints.
 
-Milestone 1 now replaces the seed marker with a procedural tiny astronaut and gives every authored system an eight-launch run budget. Every released shot spends one launch, including misses; the eighth shot is allowed to finish, succeeds at the Command World and otherwise triggers a short, automatic system restart. The default shell, objective and completion copy now establish the Runner and Stillness premise.
+Milestones 1 and 2 now establish the competitive loop. A procedural tiny astronaut has eight launches; every release spends one, including misses, and the eighth flight is allowed to finish. The exact ranked prediction ends after 1.33 seconds, so longer routes demand judgement. Passing into and back out of a planet's influence band earns Assist, Deep or Razor points, distinct planets build a chain and the same body scores only once per flight. A safe landing banks the visible at-risk score; a miss or asteroid impact loses it. Liberating an optional world and reaching the Command World add clear bonuses.
 
 The planets and most chapter content remain the inherited WORLDSEED migration fixture while ORBITBREAK's slingshot scoring and first large system replace them. They should not be mistaken for the finished score-attack loop.
 
@@ -18,10 +18,10 @@ The locked target is deliberately small:
 
 - one tiny astronaut controlled with drag and release — implemented;
 - eight launches to reach the Command World — implemented;
-- accurate but partial ranked trajectory prediction;
-- deterministic slingshot points, close-pass tiers and multi-body chains;
+- accurate but partial ranked trajectory prediction — implemented;
+- deterministic slingshot points, close-pass tiers and multi-body chains — implemented;
 - optional high-value occupied planets;
-- score banking only on system completion;
+- safe-landing banking with miss rollback — implemented;
 - one large authored vertical-slice system;
 - local personal bests before any validated online leaderboard.
 
