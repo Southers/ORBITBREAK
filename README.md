@@ -16,7 +16,9 @@ Breaker's Reach is the default ORBITBREAK vertical slice: six worlds span severa
 
 Shatterbelt is the second authored ORBITBREAK system and the first timing-focused expansion. Its wide broken convoy offers a dependable four-shot lower route worth 7,700, while the upper route collects three Stardust and waits for the moving Sentinel before bending deep around Shard. That four-shot mastery route is worth 10,400, making its extra execution risk legible in the result breakdown.
 
-Verdant Caravan is the third authored system and changes the skill test again. Its four-launch lantern road is worth 7,400. The alternate route collects the Arc, intercepts the continuously moving Pollen Moon, then launches from it past Nest toward Crown. The exact aim changes with the moon's phase: an ordinary live Assist produced an 8,300 verified run, while the authored Razor line is worth 9,900. The Long Night and Worldheart remain inherited migration fixtures rather than finished ORBITBREAK chapters.
+Verdant Caravan is the third authored system and changes the skill test again. Its four-launch lantern road is worth 7,400. The alternate route collects the Arc, intercepts the continuously moving Pollen Moon, then launches from it past Nest toward Crown. The exact aim changes with the moon's phase: an ordinary live Assist produced an 8,300 verified run, while the authored Razor line is worth 9,900.
+
+Long Night is the fourth authored system and the chain-mastery chapter. Its readable four-launch watchfire road banks 7,600. The upper route collects the Arc, then uses a deliberately lower-power, 442-step flight whose landing lies far beyond the ranked preview. Exiting Lumen at Razor depth and then Beacon with the distinct-body multiplier banks 4,350 before Umbra; the complete verified route reaches 14,850. Worldheart is the final inherited migration fixture.
 
 Completed runs now show exactly how many points came from slingshots, liberated worlds and unused launches, plus deterministic airborne time. Ranked personal bests persist locally per system/content version and compare score, launches, then flight time. Run again is the primary results action.
 
@@ -37,6 +39,7 @@ The locked target is deliberately small:
 - one large authored vertical-slice system — implemented as Breaker's Reach;
 - one distinct timing-and-moving-body system — implemented as Shatterbelt;
 - one moving-launch-node interception system — implemented as Verdant Caravan;
+- one long-arc distinct-body chain system — implemented as Long Night;
 - transparent results and versioned local personal bests — implemented;
 - distinct occupation, Runner and liberation presentation — implemented;
 - compact versioned replay recording — implemented;

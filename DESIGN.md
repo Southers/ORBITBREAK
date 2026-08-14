@@ -97,6 +97,8 @@ Shatterbelt proves that another system must change the scoring problem, not mere
 
 Verdant Caravan makes a moving body the route rather than the obstruction. The four-launch lantern road is the dependable 7,400-point completion. The alternate opening collects the Arc at Canopy, then the player must read Pollen Moon's current orbit and intercept it as a one-use launch node. Launching from the moving surface toward Crown curves past Nest: a loose clearance still beats the road, while the authored Razor line reaches 9,900. There is no fixed memorised moon angle because its phase continues while the player aims; the exact preview and scanner expose enough information to make the changing shot fair.
 
+Long Night turns the chain multiplier into the central commitment. The four-launch watchfire road is broad, fully previewable and worth 7,600. The alternate opening collects the Arc at Hollow, then asks for a lower-power 442-step curve whose destination is intentionally hidden beyond the ranked preview. The visible opening must line up a Razor exit from Lumen and a second exit from Beacon; only landing on Umbra banks the resulting 4,350-point chain. The enlarged Umbra landing basin accepts normal pointer variance without making the gravity clearances generous. A final Beacon-to-Heart assist brings the authored mastery run to 14,850.
+
 The vocabulary stays small:
 
 - **Living worlds:** safe launch nodes and concise story moments.
