@@ -105,7 +105,7 @@ Distant signals encourage a first exploratory attempt. Repeat attempts turn that
 
 ## Leaderboards
 
-The first leaderboard is local personal bests per system. It records score, launches, flight time, content version and assist state.
+The first leaderboard is implemented as local personal bests per system and content version. It records score, launches, deterministic airborne flight time and assist state. Results expose slingshot, liberation and remaining-launch contributions before offering an immediate replay.
 
 An online leaderboard comes only after compact replay recording exists. The service must rerun the deterministic inputs against the matching content version before accepting a score. Client-submitted totals alone are not trustworthy.
 

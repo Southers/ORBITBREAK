@@ -52,6 +52,15 @@ test('authored systems fail closed without a positive launch budget', () => {
   ));
 });
 
+test('authored systems require a stable content version for local records', () => {
+  const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  InvalidSystemDefinition.contentVersion = '';
+
+  assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
+    'Authored system requires a contentVersion.',
+  ));
+});
+
 test('authored scoring values fail closed when present but invalid', () => {
   const InvalidSystemDefinition = structuredClone(FirstLightSystemDefinition);
   InvalidSystemDefinition.worlds[0].slingshotValue = 0;

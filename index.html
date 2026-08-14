@@ -9,7 +9,7 @@
   <meta property="og:description" content="Chain planetary slingshots, free tiny worlds and bank the run before your launches expire." />
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
-  <link rel="stylesheet" href="./src/style.css?v=20260814-ob3" />
+  <link rel="stylesheet" href="./src/style.css?v=20260814-ob4" />
 
   <!--
     Buildless import map for the five-day jam. Three.js is pinned and vendored so startup
@@ -108,13 +108,23 @@
       <span id="VictoryEyebrow" class="victory-panel__eyebrow">FIRST LIGHT RECONNECTED</span>
       <h1 id="VictoryTitle">The command signal is broken.</h1>
       <p id="VictoryBody">The Runner banks this liberated route.</p>
+      <strong id="PersonalBestLabel" class="personal-best-label">NEW PERSONAL BEST</strong>
+      <dl class="result-breakdown" aria-label="Run score breakdown">
+        <div><dt>SLINGSHOTS</dt><dd id="ResultSlingshotScore">0</dd></div>
+        <div><dt>LIBERATIONS</dt><dd id="ResultLiberationScore">0</dd></div>
+        <div><dt>LAUNCH BONUS</dt><dd id="ResultCompletionBonus">0</dd></div>
+        <div><dt>FLIGHT TIME</dt><dd id="ResultFlightTime">0.0s</dd></div>
+      </dl>
       <svg id="ConstellationSummary" class="constellation-summary" viewBox="0 0 240 92" role="img" aria-label="First Light constellation summary"></svg>
       <div id="EmblemRow" class="emblem-row" aria-label="First Light emblems">
         <span class="emblem" data-emblem="heart"><strong>HEART</strong><small>RECONNECTED</small></span>
         <span class="emblem" data-emblem="bloom"><strong>BLOOM</strong><small>ALL WORLDS</small></span>
         <span class="emblem" data-emblem="arc"><strong>ARC</strong><small>3 STARDUST</small></span>
       </div>
-      <button id="PlayAgainButton" type="button">Play again</button>
+      <div class="result-actions">
+        <button id="ReplayButton" type="button">Run again</button>
+        <button id="PlayAgainButton" class="is-secondary" type="button">Continue</button>
+      </div>
     </section>
 
     <footer class="hud hud--bottom">
@@ -126,6 +136,6 @@
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260814-ob3"></script>
+  <script type="module" src="./src/main.js?v=20260814-ob4"></script>
 </body>
 </html>

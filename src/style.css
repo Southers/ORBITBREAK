@@ -509,9 +509,48 @@ button:focus-visible,
 }
 
 .victory-panel p {
-  margin: 0 auto 20px;
+  margin: 0 auto 12px;
   color: rgba(229, 237, 241, 0.66);
   font-size: 14px;
+}
+
+.personal-best-label {
+  display: block;
+  margin-bottom: 10px;
+  color: #ffe29a;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+}
+
+.result-breakdown {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.result-breakdown div {
+  min-width: 0;
+  padding: 7px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.result-breakdown dt {
+  overflow: hidden;
+  color: rgba(214, 228, 235, 0.44);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+}
+
+.result-breakdown dd {
+  margin: 3px 0 0;
+  color: #f2f7f9;
+  font-size: 12px;
+  font-weight: 850;
 }
 
 .victory-panel button,
@@ -596,6 +635,18 @@ button:focus-visible,
   background: #eaf6e8;
   color: #102116;
   font-weight: 850;
+}
+
+.result-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.victory-panel button.is-secondary {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(235, 243, 246, 0.72);
 }
 
 #ResetButton,
@@ -689,6 +740,10 @@ button:focus-visible,
 
   .victory-panel {
     padding: 24px 22px;
+  }
+
+  .result-breakdown {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .aim-panel {

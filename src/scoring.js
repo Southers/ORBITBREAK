@@ -21,6 +21,9 @@ export function getSlingshotBand(BodyDefinition) {
 export function createScoreState() {
   return {
     bankedScore: 0,
+    bankedSlingshotScore: 0,
+    liberationScore: 0,
+    completionBonus: 0,
     flightScore: 0,
     chainCount: 0,
     activePasses: new Map(),
@@ -123,6 +126,8 @@ export function bankFlightScore(ScoreState, { landingBonus = 0 } = {}) {
   const FlightPoints = ScoreState.flightScore;
   const BankedPoints = FlightPoints + landingBonus;
   ScoreState.bankedScore += BankedPoints;
+  ScoreState.bankedSlingshotScore += FlightPoints;
+  ScoreState.liberationScore += landingBonus;
   resetFlightState(ScoreState);
   return {
     flightPoints: FlightPoints,
@@ -141,6 +146,7 @@ export function rollbackFlightScore(ScoreState) {
 export function addCompletionBonus(ScoreState, RemainingLaunches, ValuePerLaunch = 1000) {
   const Bonus = Math.max(0, RemainingLaunches) * ValuePerLaunch;
   ScoreState.bankedScore += Bonus;
+  ScoreState.completionBonus += Bonus;
   return Bonus;
 }
 
