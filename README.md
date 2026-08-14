@@ -18,7 +18,9 @@ Shatterbelt is the second authored ORBITBREAK system and the first timing-focuse
 
 Verdant Caravan is the third authored system and changes the skill test again. Its four-launch lantern road is worth 7,400. The alternate route collects the Arc, intercepts the continuously moving Pollen Moon, then launches from it past Nest toward Crown. The exact aim changes with the moon's phase: an ordinary live Assist produced an 8,300 verified run, while the authored Razor line is worth 9,900.
 
-Long Night is the fourth authored system and the chain-mastery chapter. Its readable four-launch watchfire road banks 7,600. The upper route collects the Arc, then uses a deliberately lower-power, 442-step flight whose landing lies far beyond the ranked preview. Exiting Lumen at Razor depth and then Beacon with the distinct-body multiplier banks 4,350 before Umbra; the complete verified route reaches 14,850. Worldheart is the final inherited migration fixture.
+Long Night is the fourth authored system and the chain-mastery chapter. Its readable four-launch watchfire road banks 7,600. The upper route collects the Arc, then uses a deliberately lower-power, 442-step flight whose landing lies far beyond the ranked preview. Exiting Lumen at Razor depth and then Beacon with the distinct-body multiplier banks 4,350 before Umbra; the complete verified route reaches 14,850.
+
+Worldheart is the authored campaign finale and the exam for every earlier skill. The dependable Kindle → Chorus → Dawn road uses Starwell as a slingshot and reconnects the core in four launches for 9,200. The Memory route collects the Arc, intercepts the moving Memory Moon, chains a Razor pass around Chorus into a multiplied Starwell assist, then doubles back through Starwell and Dawn before reaching the core. That five-launch mastery line banks 14,600. The finale breaks the Stillness and reconnects the liberated systems without introducing another ruleset.
 
 Completed runs now show exactly how many points came from slingshots, liberated worlds and unused launches, plus deterministic airborne time. Ranked personal bests persist locally per system/content version and compare score, launches, then flight time. Run again is the primary results action.
 
@@ -40,6 +42,7 @@ The locked target is deliberately small:
 - one distinct timing-and-moving-body system — implemented as Shatterbelt;
 - one moving-launch-node interception system — implemented as Verdant Caravan;
 - one long-arc distinct-body chain system — implemented as Long Night;
+- one authored finale that recombines the campaign's skills — implemented as Worldheart;
 - transparent results and versioned local personal bests — implemented;
 - distinct occupation, Runner and liberation presentation — implemented;
 - compact versioned replay recording — implemented;
@@ -81,7 +84,7 @@ npm run check
 - `AGENTS.md` defines scope, priorities and quality gates.
 - `DESIGN.md` locks the gameplay loop, scoring and leaderboard contract.
 - `JAM_PLAN.md` defines milestone order and cut rules.
-- `src/content.js` contains the inherited authored-system data boundary.
+- `src/content.js` contains the authored campaign-system data boundary.
 - `CREDITS.md` records dependencies, assets and source provenance.
 
 ## Provenance

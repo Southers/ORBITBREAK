@@ -99,6 +99,8 @@ Verdant Caravan makes a moving body the route rather than the obstruction. The f
 
 Long Night turns the chain multiplier into the central commitment. The four-launch watchfire road is broad, fully previewable and worth 7,600. The alternate opening collects the Arc at Hollow, then asks for a lower-power 442-step curve whose destination is intentionally hidden beyond the ranked preview. The visible opening must line up a Razor exit from Lumen and a second exit from Beacon; only landing on Umbra banks the resulting 4,350-point chain. The enlarged Umbra landing basin accepts normal pointer variance without making the gravity clearances generous. A final Beacon-to-Heart assist brings the authored mastery run to 14,850.
 
+Worldheart is the compact final exam rather than a sixth mechanic. Its four-launch road runs Confluence → Kindle → Chorus → Dawn → Worldheart, uses Starwell as a readable assist and banks 9,200. The alternate commitment reaches Memory while collecting the Arc, intercepts the one-use Memory Moon at its live orbital phase, then asks for a lower-power curve that exits Chorus at Razor depth and Starwell with the distinct-body multiplier before landing on Dawn. Returning through Starwell adds a Dawn deep pass on the final core approach; the robust authored line banks 14,600 in five launches. Three liberations open the core, so the player can bank a disciplined run without clearing the board; Bloom remains the optional all-worlds mastery emblem. Reconnecting the core breaks the Stillness and pays off the campaign story through the existing liberation language, score rules and deterministic route vocabulary.
+
 The vocabulary stays small:
 
 - **Living worlds:** safe launch nodes and concise story moments.

@@ -120,7 +120,13 @@ test('Long Night satisfies the authored campaign and environment contract', () =
 test('Worldheart satisfies the authored finale contract', () => {
   assert.deepEqual(validateAuthoredSystemDefinition(WorldheartSystemDefinition), []);
   assert.equal(WorldheartSystemDefinition.worlds.length, 6);
-  assert.equal(WorldheartSystemDefinition.worldheartUnlockThreshold, 4);
+  assert.equal(WorldheartSystemDefinition.contentVersion, 'worldheart-1');
+  assert.equal(WorldheartSystemDefinition.worldheartUnlockThreshold, 3);
+  assert.equal(WorldheartSystemDefinition.camera.followPlayer, true);
+  const WorldXs = WorldheartSystemDefinition.worlds.map(
+    (WorldDefinition) => WorldDefinition.position.x,
+  );
+  assert.ok(Math.max(...WorldXs) - Math.min(...WorldXs) > 45);
   const Runtime = createAuthoredSystemRuntime(WorldheartSystemDefinition);
   assert.equal(Runtime.finale.isCampaignFinale, true);
   assert.equal(Runtime.finale.victoryDelaySeconds, 3.4);
@@ -239,7 +245,7 @@ test('Worldheart opens with two commitments and keeps its moving moon optional',
   assert.deepEqual(
     getRouteChoices(CampaignNodes, 'memory', 2, Runtime.routeSuggestions.memory)
       .map((WorldDefinition) => WorldDefinition.id),
-    ['memory-moon', 'starwell'],
+    ['memory-moon', 'chorus'],
   );
 });
 
