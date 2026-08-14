@@ -873,116 +873,199 @@ test('Broken Belt Sentinel closes and opens the same mastery line deterministica
   assert.equal(LiveCollisionStep, OpenPrediction.points.length - 1);
 });
 
-test('Wandering Garden opens safely and its moving moon matches live collision timing', () => {
-  const FixedStepSeconds = 1 / 120;
+test('Wandering Garden opens with deterministic road and moon-route commitments', () => {
   const Runtime = createAuthoredSystemRuntime(WanderingGardenSystemDefinition, { createVector });
   const BowerDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'bower');
-  const LanternDefinition = Runtime.worlds.find(
-    (WorldDefinition) => WorldDefinition.id === 'lantern',
-  );
-  const CanopyDefinition = Runtime.worlds.find(
-    (WorldDefinition) => WorldDefinition.id === 'canopy',
-  );
-  const BowerToLantern = createVector(
-    LanternDefinition.position.x - BowerDefinition.position.x,
-    LanternDefinition.position.y - BowerDefinition.position.y,
-    0,
-  );
-  const BowerToLanternLength = Math.hypot(BowerToLantern.x, BowerToLantern.y);
+  const LanternDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'lantern');
+  const DirectionX = LanternDefinition.position.x - BowerDefinition.position.x;
+  const DirectionY = LanternDefinition.position.y - BowerDefinition.position.y;
+  const DirectionLength = Math.hypot(DirectionX, DirectionY);
   const OpeningPosition = createVector(
-    BowerDefinition.position.x
-      + ((BowerToLantern.x / BowerToLanternLength) * (BowerDefinition.radius + 0.49)),
-    BowerDefinition.position.y
-      + ((BowerToLantern.y / BowerToLanternLength) * (BowerDefinition.radius + 0.49)),
+    BowerDefinition.position.x + ((DirectionX / DirectionLength) * (BowerDefinition.radius + 0.49)),
+    BowerDefinition.position.y + ((DirectionY / DirectionLength) * (BowerDefinition.radius + 0.49)),
     0,
   );
-  const createOpeningPrediction = (Velocity) => predictTrajectory(
-    OpeningPosition,
-    Velocity,
-    Runtime.worlds,
-    {
-      seedRadius: 0.46,
-      fixedStepSeconds: FixedStepSeconds,
-      maximumSteps: 520,
-      ignoredWorldIdentifier: 'bower',
-    },
-  );
-  const DirectPrediction = createOpeningPrediction(createVector(
-    (BowerToLantern.x / BowerToLanternLength) * 8.85,
-    (BowerToLantern.y / BowerToLanternLength) * 8.85,
-    0,
-  ));
-  const HighRouteAngleRadians = 106 * (Math.PI / 180);
-  const HighRoutePrediction = createOpeningPrediction(createVector(
-    Math.cos(HighRouteAngleRadians) * 8,
-    Math.sin(HighRouteAngleRadians) * 8,
-    0,
-  ));
+  const createOpeningPrediction = (AngleDegrees) => {
+    const AngleRadians = AngleDegrees * (Math.PI / 180);
+    return predictTrajectory(
+      OpeningPosition,
+      createVector(Math.cos(AngleRadians) * 18.4, Math.sin(AngleRadians) * 18.4, 0),
+      Runtime.worlds,
+      {
+        seedRadius: 0.46,
+        fixedStepSeconds: 1 / 120,
+        maximumSteps: 520,
+        ignoredWorldIdentifier: 'bower',
+        collisionBodyDefinitions: Runtime.tacticalBodies,
+        startTimeSeconds: 0,
+      },
+    );
+  };
+  const RoadPrediction = createOpeningPrediction(0);
+  const MoonRoutePrediction = createOpeningPrediction(60);
 
-  assert.equal(DirectPrediction.collisionWorldIdentifier, 'lantern');
-  assert.equal(HighRoutePrediction.collisionWorldIdentifier, 'canopy');
+  assert.equal(RoadPrediction.collisionWorldIdentifier, 'lantern');
+  assert.equal(MoonRoutePrediction.collisionWorldIdentifier, 'canopy');
+  assert.deepEqual(
+    getTrajectoryPickupIdentifiers(MoonRoutePrediction.points, Runtime.stardust, 0.68).sort(),
+    Runtime.stardust.map((StardustDefinition) => StardustDefinition.id).sort(),
+  );
+});
 
-  const CanopyImpactPosition = HighRoutePrediction.points.at(-1);
-  const CanopyImpactOffset = createVector(
-    CanopyImpactPosition.x - CanopyDefinition.position.x,
-    CanopyImpactPosition.y - CanopyDefinition.position.y,
+test('Wandering Garden has complete deterministic road and moving-moon routes', () => {
+  const FixedStepSeconds = 1 / 120;
+  const Runtime = createAuthoredSystemRuntime(WanderingGardenSystemDefinition, { createVector });
+  const MoonDefinition = Runtime.tacticalBodies.find(
+    (BodyDefinition) => BodyDefinition.id === 'pollen-moon',
+  );
+  const BowerDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'bower');
+  const LanternDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'lantern');
+  const DirectionX = LanternDefinition.position.x - BowerDefinition.position.x;
+  const DirectionY = LanternDefinition.position.y - BowerDefinition.position.y;
+  const DirectionLength = Math.hypot(DirectionX, DirectionY);
+  const OpeningPosition = createVector(
+    BowerDefinition.position.x + ((DirectionX / DirectionLength) * (BowerDefinition.radius + 0.49)),
+    BowerDefinition.position.y + ((DirectionY / DirectionLength) * (BowerDefinition.radius + 0.49)),
     0,
   );
-  const CanopyImpactOffsetLength = Math.hypot(
-    CanopyImpactOffset.x,
-    CanopyImpactOffset.y,
-  );
-  const CanopyLaunchPosition = createVector(
-    CanopyDefinition.position.x
-      + ((CanopyImpactOffset.x / CanopyImpactOffsetLength) * (CanopyDefinition.radius + 0.49)),
-    CanopyDefinition.position.y
-      + ((CanopyImpactOffset.y / CanopyImpactOffsetLength) * (CanopyDefinition.radius + 0.49)),
+  const restOnBody = (BodyDefinition, ImpactPosition, BodyPosition = BodyDefinition.position) => {
+    const OffsetX = ImpactPosition.x - BodyPosition.x;
+    const OffsetY = ImpactPosition.y - BodyPosition.y;
+    const OffsetLength = Math.hypot(OffsetX, OffsetY) || 1;
+    return createVector(
+      BodyPosition.x + ((OffsetX / OffsetLength) * (BodyDefinition.radius + 0.49)),
+      BodyPosition.y + ((OffsetY / OffsetLength) * (BodyDefinition.radius + 0.49)),
+      0,
+    );
+  };
+  const predictShot = (Position, OriginIdentifier, AngleDegrees, StartTimeSeconds) => {
+    const AngleRadians = AngleDegrees * (Math.PI / 180);
+    return predictTrajectory(
+      Position,
+      createVector(Math.cos(AngleRadians) * 18.4, Math.sin(AngleRadians) * 18.4, 0),
+      Runtime.worlds,
+      {
+        seedRadius: 0.46,
+        fixedStepSeconds: FixedStepSeconds,
+        maximumSteps: 520,
+        ignoredWorldIdentifier: Runtime.worlds.some((WorldDefinition) => (
+          WorldDefinition.id === OriginIdentifier
+        )) ? OriginIdentifier : null,
+        collisionBodyDefinitions: Runtime.tacticalBodies,
+        ignoredCollisionBodyIdentifier: OriginIdentifier === 'pollen-moon'
+          ? OriginIdentifier
+          : null,
+        startTimeSeconds: StartTimeSeconds,
+      },
+    );
+  };
+  const runWorldRoute = (Shots) => {
+    let Position = OpeningPosition;
+    let ElapsedTimeSeconds = 0;
+    const Outcomes = [];
+    for (const Shot of Shots) {
+      const Prediction = predictShot(
+        Position,
+        Shot.originIdentifier,
+        Shot.angleDegrees,
+        ElapsedTimeSeconds,
+      );
+      Outcomes.push(Prediction);
+      ElapsedTimeSeconds += (Prediction.points.length - 1) * FixedStepSeconds;
+      const LandedWorld = Runtime.worlds.find((WorldDefinition) => (
+        WorldDefinition.id === Prediction.collisionWorldIdentifier
+      ));
+      if (LandedWorld) Position = restOnBody(LandedWorld, Prediction.points.at(-1));
+    }
+    return Outcomes;
+  };
+  const RoadOutcomes = runWorldRoute([
+    { originIdentifier: 'bower', angleDegrees: 2 },
+    { originIdentifier: 'lantern', angleDegrees: 2 },
+    { originIdentifier: 'nest', angleDegrees: 14 },
+    { originIdentifier: 'dew', angleDegrees: 29.5 },
+  ]);
+
+  let ElapsedTimeSeconds = 0;
+  const CanopyPrediction = predictShot(OpeningPosition, 'bower', 60, ElapsedTimeSeconds);
+  ElapsedTimeSeconds += (CanopyPrediction.points.length - 1) * FixedStepSeconds;
+  const CanopyDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'canopy');
+  const CanopyPosition = restOnBody(CanopyDefinition, CanopyPrediction.points.at(-1));
+  const MoonPrediction = predictShot(CanopyPosition, 'canopy', 319, ElapsedTimeSeconds);
+  const MoonLaunchTimeSeconds = ElapsedTimeSeconds
+    + ((MoonPrediction.points.length - 1) * FixedStepSeconds);
+  const MoonPosition = calculateBodyPositionAtTime(MoonDefinition, MoonLaunchTimeSeconds);
+  const MoonRestPosition = restOnBody(MoonDefinition, MoonPrediction.points.at(-1), MoonPosition);
+  const MoonSurfaceOffset = createVector(
+    MoonRestPosition.x - MoonPosition.x,
+    MoonRestPosition.y - MoonPosition.y,
     0,
   );
-  const MoonRouteAngleRadians = 328 * (Math.PI / 180);
-  const MoonRouteVelocity = createVector(
-    Math.cos(MoonRouteAngleRadians) * 4.4,
-    Math.sin(MoonRouteAngleRadians) * 4.4,
-    0,
+  const MovingMoonPosition = calculateBodyPositionAtTime(MoonDefinition, MoonLaunchTimeSeconds);
+  const CrownPrediction = predictShot(
+    createVector(
+      MovingMoonPosition.x + MoonSurfaceOffset.x,
+      MovingMoonPosition.y + MoonSurfaceOffset.y,
+      0,
+    ),
+    'pollen-moon',
+    46.5,
+    MoonLaunchTimeSeconds,
   );
-  const ActiveBodyDefinitions = Runtime.tacticalBodies.filter(
-    (BodyDefinition) => BodyDefinition.kind !== 'worldheart',
+  ElapsedTimeSeconds = MoonLaunchTimeSeconds
+    + ((CrownPrediction.points.length - 1) * FixedStepSeconds);
+  const CrownDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'crown');
+  const CrownPosition = restOnBody(CrownDefinition, CrownPrediction.points.at(-1));
+  const DewPrediction = predictShot(CrownPosition, 'crown', 0, ElapsedTimeSeconds);
+  ElapsedTimeSeconds += (DewPrediction.points.length - 1) * FixedStepSeconds;
+  const DewDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'dew');
+  const DewPosition = restOnBody(DewDefinition, DewPrediction.points.at(-1));
+  const HeartPrediction = predictShot(DewPosition, 'dew', 13, ElapsedTimeSeconds);
+  const MoonRouteOutcomes = [
+    CanopyPrediction,
+    MoonPrediction,
+    CrownPrediction,
+    DewPrediction,
+    HeartPrediction,
+  ];
+
+  assert.deepEqual(
+    RoadOutcomes.map((Outcome) => Outcome.collisionWorldIdentifier ?? Outcome.collisionBodyIdentifier),
+    ['lantern', 'nest', 'dew', 'garden-heart'],
   );
-  const MoonRouteStartTimeSeconds = 3;
-  const MoonPrediction = predictTrajectory(
-    CanopyLaunchPosition,
-    MoonRouteVelocity,
-    Runtime.worlds,
-    {
-      seedRadius: 0.46,
-      fixedStepSeconds: FixedStepSeconds,
-      maximumSteps: 520,
-      ignoredWorldIdentifier: 'canopy',
-      collisionBodyDefinitions: ActiveBodyDefinitions,
-      startTimeSeconds: MoonRouteStartTimeSeconds,
-    },
+  assert.deepEqual(
+    MoonRouteOutcomes.map((Outcome) => Outcome.collisionWorldIdentifier ?? Outcome.collisionBodyIdentifier),
+    ['canopy', 'pollen-moon', 'crown', 'dew', 'garden-heart'],
+  );
+  assert.deepEqual(
+    predictSlingshotEvents(CrownPrediction.points, Runtime.worlds, { runnerRadius: 0.46 })
+      .map((Event) => [Event.bodyIdentifier, Event.tier, Event.points]),
+    [['nest', 'razor', 2400]],
   );
 
-  let LiveState = { position: CanopyLaunchPosition, velocity: MoonRouteVelocity };
-  let LiveCollision = null;
+  let LiveState = {
+    position: CanopyPosition,
+    velocity: createVector(
+      Math.cos(319 * (Math.PI / 180)) * 18.4,
+      Math.sin(319 * (Math.PI / 180)) * 18.4,
+      0,
+    ),
+  };
   let LiveCollisionStep = null;
   for (let StepIndex = 1; StepIndex <= 520; StepIndex += 1) {
     LiveState = simulatePhysicsStep(LiveState, Runtime.worlds, FixedStepSeconds);
-    LiveCollision = findCollidingBody(
+    const LiveCollision = findCollidingBody(
       LiveState.position,
       0.46,
-      ActiveBodyDefinitions,
-      MoonRouteStartTimeSeconds + (StepIndex * FixedStepSeconds),
+      Runtime.tacticalBodies,
+      ((CanopyPrediction.points.length - 1) * FixedStepSeconds)
+        + (StepIndex * FixedStepSeconds),
     );
-    if (LiveCollision) {
+    if (LiveCollision?.definition.id === 'pollen-moon') {
       LiveCollisionStep = StepIndex;
       break;
     }
   }
-
-  assert.equal(MoonPrediction.collisionKind, 'seedstone');
-  assert.equal(MoonPrediction.collisionBodyIdentifier, 'pollen-moon');
-  assert.equal(LiveCollision?.definition.id, 'pollen-moon');
   assert.equal(LiveCollisionStep, MoonPrediction.points.length - 1);
 });
 

@@ -885,35 +885,51 @@ export const BrokenBeltSystemDefinition = {
   ],
 };
 
-/** A living system whose useful routes open and close as its small bodies move. */
+/** ORBITBREAK's moving-launch-node arena: intercept a moon to cross the living caravan. */
 export const WanderingGardenSystemDefinition = {
   id: 'wandering-garden',
-  contentVersion: 'migration-1',
-  label: 'WANDERING GARDEN',
+  contentVersion: 'wandering-garden-1',
+  label: 'VERDANT CARAVAN',
   launchBudget: 8,
-  openingBody: 'The Garden is still turning. Wake a path, then ride its little moon into bloom.',
+  openingBody: 'The Stillness uprooted a travelling garden. Follow the lantern road, or intercept Pollen Moon and carry its hidden names across the void.',
+  camera: {
+    followPlayer: true,
+    viewportWorldHeight: 24,
+    viewportWorldWidth: 20,
+    outOfBoundsDistance: 62,
+  },
+  environment: {
+    backgroundColor: 0x07130f,
+    fogColor: 0x07130f,
+    fogDensity: 0.009,
+    hemisphereSkyColor: 0xb6e7c5,
+    hemisphereGroundColor: 0x10261b,
+    keyLightColor: 0xffefb8,
+    fillLightColor: 0x6ebc96,
+    rimLightColor: 0xd4ff9d,
+    toneMappingExposure: 1.2,
+  },
   completion: {
-    eyebrow: 'THE GARDEN TURNS AGAIN',
-    title: 'Life has learned to move with the dark.',
-    perfectTitle: 'Every wandering root has found the light.',
-    body: 'The Garden Heart sends a green pulse toward the long night ahead.',
-    perfectBody: 'Every world and every moonlit arc now flowers in the living constellation.',
+    eyebrow: 'VERDANT CARAVAN LIBERATED',
+    title: 'The garden is travelling again.',
+    perfectTitle: 'Every stolen seed has a home.',
+    body: 'The freed caravan carries shelter toward the long night.',
+    perfectBody: 'Every world and moonlit path now travels with the uprising.',
   },
   constellation: {
     nodes: [
       { id: 'bower', label: 'Bower', x: 22, y: 72 },
-      { id: 'canopy', label: 'Canopy', x: 58, y: 34 },
-      { id: 'crown', label: 'Crown', x: 112, y: 16 },
-      { id: 'dew', label: 'Dew', x: 174, y: 30 },
-      { id: 'lantern', label: 'Lantern', x: 112, y: 72 },
-      { id: 'nest', label: 'Nest', x: 104, y: 45 },
+      { id: 'canopy', label: 'Canopy', x: 60, y: 26 },
+      { id: 'crown', label: 'Crown', x: 132, y: 18 },
+      { id: 'dew', label: 'Dew', x: 188, y: 42 },
+      { id: 'lantern', label: 'Lantern', x: 70, y: 72 },
+      { id: 'nest', label: 'Nest', x: 110, y: 66 },
       { id: 'garden-heart', label: 'Garden Heart', x: 216, y: 68, isHeart: true },
     ],
     edges: [
       ['bower', 'canopy'], ['bower', 'lantern'], ['canopy', 'crown'],
-      ['canopy', 'nest'], ['lantern', 'nest'], ['lantern', 'dew'],
-      ['nest', 'crown'], ['nest', 'dew'], ['crown', 'dew'],
-      ['crown', 'garden-heart'], ['dew', 'garden-heart'],
+      ['lantern', 'nest'], ['canopy', 'nest'], ['nest', 'dew'],
+      ['crown', 'dew'], ['dew', 'garden-heart'],
     ],
   },
   startingWorldIdentifier: 'bower',
@@ -921,20 +937,21 @@ export const WanderingGardenSystemDefinition = {
   worldheartUnlockThreshold: 3,
   routeSuggestions: {
     bower: ['canopy', 'lantern'],
-    canopy: ['pollen-moon', 'crown', 'nest', 'lantern'],
-    lantern: ['pollen-moon', 'dew', 'nest', 'canopy'],
+    canopy: ['pollen-moon', 'crown', 'nest'],
+    lantern: ['nest', 'pollen-moon', 'dew'],
     nest: ['garden-heart', 'crown', 'dew', 'canopy'],
     crown: ['garden-heart', 'dew', 'canopy', 'nest'],
     dew: ['garden-heart', 'crown', 'lantern', 'nest'],
-    'pollen-moon': ['crown', 'nest', 'dew', 'lantern'],
+    'pollen-moon': ['crown', 'dew', 'nest'],
   },
   worlds: [
     {
       id: 'bower', label: 'BOWER', visualKey: 'bower',
-      position: { x: -8, y: -6.4, z: 0 }, radius: 3.35, gravitationalParameter: 92,
+      position: { x: -25, y: -9, z: 0 }, radius: 3.35, gravitationalParameter: 92,
+      slingshotValue: 300, liberationValue: 1000,
       aliveColor: 0x4f9870, atmosphereColor: 0x9ce6b2, accentColor: 0xf2e69a,
       initiallyRestored: true, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
-      memory: 'The first shelter had kept one leaf warm.',
+      memory: 'The last free shelter kept a lamp lit for the uprooted worlds.',
       restoration: {
         durationSeconds: 2.2, waveWidth: 0.045, growthTrailWidth: 0.18,
         waveColor: 0xe8ffc0, atmosphereOpacity: 0, rotationSpeed: 0.00045,
@@ -943,10 +960,11 @@ export const WanderingGardenSystemDefinition = {
     },
     {
       id: 'lantern', label: 'LANTERN', visualKey: 'lantern',
-      position: { x: 7.8, y: -3.3, z: 0 }, radius: 3, gravitationalParameter: 82,
+      position: { x: -11, y: -8, z: 0 }, radius: 3, gravitationalParameter: 82,
+      slingshotValue: 450, liberationValue: 1000,
       aliveColor: 0xa88a45, atmosphereColor: 0xffe895, accentColor: 0xfff2b6,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
-      memory: 'A patient flower opened its lamp to the void.',
+      memory: 'A patient flower turns its lamp toward the escaping caravan.',
       restoration: {
         durationSeconds: 2.3, waveWidth: 0.048, growthTrailWidth: 0.18,
         waveColor: 0xffefad, atmosphereOpacity: 0, rotationSpeed: 0.00105,
@@ -955,10 +973,11 @@ export const WanderingGardenSystemDefinition = {
     },
     {
       id: 'canopy', label: 'CANOPY', visualKey: 'canopy',
-      position: { x: -8.8, y: 3, z: 0 }, radius: 2.05, gravitationalParameter: 44,
+      position: { x: -14, y: 8, z: 0 }, radius: 2.5, gravitationalParameter: 58,
+      slingshotValue: 600, liberationValue: 1400,
       aliveColor: 0x5b9c73, atmosphereColor: 0xb6e8bd, accentColor: 0xe6f39b,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
-      memory: 'Its branches bent together, remembering the shape of rain.',
+      memory: 'Its branches hide the names the Stillness tried to erase.',
       restoration: {
         durationSeconds: 1.9, waveWidth: 0.055, growthTrailWidth: 0.2,
         waveColor: 0xddffb7, atmosphereOpacity: 0, rotationSpeed: 0.00068,
@@ -967,10 +986,11 @@ export const WanderingGardenSystemDefinition = {
     },
     {
       id: 'crown', label: 'CROWN', visualKey: 'crown',
-      position: { x: 0.7, y: 8, z: 0 }, radius: 3.55, gravitationalParameter: 102,
+      position: { x: 5, y: 12, z: 0 }, radius: 4, gravitationalParameter: 132,
+      slingshotValue: 1100, liberationValue: 1800,
       aliveColor: 0x8160a4, atmosphereColor: 0xd7b8ef, accentColor: 0xffc5ec,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
-      memory: 'The old crown bloomed only when the moon passed close.',
+      memory: 'The old crown blooms when Pollen Moon returns its stolen names.',
       restoration: {
         durationSeconds: 2.55, waveWidth: 0.042, growthTrailWidth: 0.2,
         waveColor: 0xf6c8ff, atmosphereOpacity: 0, rotationSpeed: 0.0009,
@@ -979,10 +999,11 @@ export const WanderingGardenSystemDefinition = {
     },
     {
       id: 'dew', label: 'DEW', visualKey: 'dew',
-      position: { x: 9.7, y: 6, z: 0 }, radius: 2.15, gravitationalParameter: 48,
+      position: { x: 20, y: 7, z: 0 }, radius: 2.4, gravitationalParameter: 58,
+      slingshotValue: 650, liberationValue: 1300,
       aliveColor: 0x3d8f91, atmosphereColor: 0x9ff4dc, accentColor: 0xc2ffef,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
-      memory: 'One clear drop still held the reflection of a blue sky.',
+      memory: 'One clear drop reflects the road the caravan will take next.',
       restoration: {
         durationSeconds: 1.95, waveWidth: 0.052, growthTrailWidth: 0.2,
         waveColor: 0xb9ffe7, atmosphereOpacity: 0, rotationSpeed: 0.00082,
@@ -991,10 +1012,11 @@ export const WanderingGardenSystemDefinition = {
     },
     {
       id: 'nest', label: 'NEST', visualKey: 'nest',
-      position: { x: 3.5, y: 1, z: 0 }, radius: 1.45, gravitationalParameter: 18,
+      position: { x: 2, y: -3, z: 0 }, radius: 3.7, gravitationalParameter: 116,
+      slingshotValue: 800, liberationValue: 1100,
       aliveColor: 0x8b704c, atmosphereColor: 0xe8cf9b, accentColor: 0xb8e58c,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
-      memory: 'The smallest world had saved a place for every traveller.',
+      memory: 'The travelling nest saved a place for every uprooted world.',
       restoration: {
         durationSeconds: 1.7, waveWidth: 0.06, growthTrailWidth: 0.22,
         waveColor: 0xf4e4aa, atmosphereOpacity: 0, rotationSpeed: 0.00055,
@@ -1005,33 +1027,33 @@ export const WanderingGardenSystemDefinition = {
   tacticalBodies: [
     {
       id: 'pollen-moon', label: 'POLLEN MOON', kind: 'seedstone',
-      position: { x: 0.5, y: -0.6, z: 0 }, radius: 0.72, uses: 1,
+      position: { x: -2.45, y: -0.32, z: 0 }, radius: 0.72, uses: 1,
       countsTowardRestoration: false, isRouteDestination: true,
       routeAvailableInitially: true,
       orbit: {
-        centre: { x: 3.5, y: 1, z: 0 }, radius: 3.4,
-        phaseRadians: -2.65, angularSpeedRadiansPerSecond: 0.18,
+        centre: { x: 2, y: -3, z: 0 }, radius: 5.2,
+        phaseRadians: 2.6, angularSpeedRadiansPerSecond: 0.22,
       },
     },
     {
-      id: 'thornwing', label: 'THORNWING', kind: 'hazard', radius: 0.66,
+      id: 'thornwing', label: 'THORNWING', kind: 'hazard', radius: 0.82,
       countsTowardRestoration: false,
       orbit: {
-        centre: { x: 0.7, y: 8, z: 0 }, radius: 5.35,
-        phaseRadians: -0.9, angularSpeedRadiansPerSecond: 0.28,
+        centre: { x: 5, y: 12, z: 0 }, radius: 5.4,
+        phaseRadians: -0.9, angularSpeedRadiansPerSecond: 0.24,
       },
     },
     {
       id: 'garden-heart', label: 'GARDEN HEART', kind: 'worldheart',
-      position: { x: -4.35, y: 8.75, z: 0 }, radius: 0.9,
+      position: { x: 31, y: 12, z: 0 }, radius: 0.9,
       initiallyRestored: false, countsTowardRestoration: false,
       isRouteDestination: true, routeAvailableInitially: false,
     },
   ],
   stardust: [
-    { id: 'wandering-garden-arc-1', position: { x: -4.9, y: -3.7, z: 0 } },
-    { id: 'wandering-garden-arc-2', position: { x: -5.7, y: -2.25, z: 0 } },
-    { id: 'wandering-garden-arc-3', position: { x: -6.5, y: -0.9, z: 0 } },
+    { id: 'wandering-garden-arc-1', position: { x: -18.957, y: -4.769, z: 0 } },
+    { id: 'wandering-garden-arc-2', position: { x: -17.124, y: -1.517, z: 0 } },
+    { id: 'wandering-garden-arc-3', position: { x: -15.258, y: 1.709, z: 0 } },
   ],
 };
 
