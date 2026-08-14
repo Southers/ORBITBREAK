@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#07111d" />
+  <meta name="description" content="ORBITBREAK — a tiny astronaut gravity score-attack game." />
+  <meta property="og:title" content="ORBITBREAK" />
+  <meta property="og:description" content="Chain planetary slingshots, free tiny worlds and bank the run before your launches expire." />
+  <meta property="og:type" content="website" />
+  <title>ORBITBREAK</title>
+  <link rel="stylesheet" href="./src/style.css?v=20260814-ob0" />
+
+  <!--
+    Buildless import map for the five-day jam. Three.js is pinned and vendored so startup
+    does not depend on a third-party CDN.
+  -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.min.js?v=0.179.1"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main id="GameShell">
+    <canvas
+      id="GameCanvas"
+      tabindex="0"
+      aria-label="ORBITBREAK gravity slingshot prototype. Drag the glowing player marker backwards and release to launch."
+      aria-describedby="InstructionPanel"
+    ></canvas>
+
+    <header class="hud hud--top">
+      <div class="brand">
+        <span class="brand__title">ORBITBREAK</span>
+        <span class="brand__subtitle">gravity engine migration build</span>
+      </div>
+
+      <div class="counter" aria-live="polite">
+        <span class="counter__label">WORLDS</span>
+        <span id="WorldCounter" class="counter__value">0 / 4</span>
+        <span class="counter__divider" aria-hidden="true"></span>
+        <span class="counter__mastery">
+          <span class="counter__label">ARC</span>
+          <span id="StardustCounter" class="counter__value">0 / 3</span>
+        </span>
+      </div>
+    </header>
+
+    <section id="ObjectivePanel" class="objective-panel" aria-live="polite">
+      <span class="objective-panel__label">WORLDHEART</span>
+      <span id="ObjectiveState" class="objective-panel__state">0 / 3</span>
+      <span id="ObjectivePips" class="objective-panel__pips" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+    </section>
+
+    <section id="InstructionPanel" class="instruction-panel" aria-live="polite" aria-atomic="true">
+      <strong id="InstructionTitle">Choose GROVE or EMBER</strong>
+      <span id="InstructionBody">Carry the last living seed onward. Pull away from a gold ring, then release.</span>
+    </section>
+
+    <section id="AimPanel" class="aim-panel" hidden>
+      <span id="AimLabel">PULL</span>
+      <span class="aim-panel__meter" aria-hidden="true">
+        <span id="AimPowerFill" class="aim-panel__fill"></span>
+      </span>
+      <span id="AimPowerValue">0%</span>
+    </section>
+
+    <section id="StatusToast" class="status-toast" aria-live="polite"></section>
+
+    <div id="RouteLabels" class="route-labels" aria-hidden="true">
+      <span class="route-label"></span>
+      <span class="route-label"></span>
+      <span class="tactical-label tactical-label--seedstone"></span>
+      <span class="tactical-label tactical-label--hazard"></span>
+      <span class="tactical-label tactical-label--worldheart"></span>
+    </div>
+
+    <section
+      id="VictoryPanel"
+      class="victory-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="VictoryTitle"
+      aria-describedby="VictoryBody"
+      hidden
+    >
+      <span id="VictoryEyebrow" class="victory-panel__eyebrow">FIRST LIGHT RECONNECTED</span>
+      <h1 id="VictoryTitle">The Worldheart hears you.</h1>
+      <p id="VictoryBody">A living path reaches beyond this tiny system.</p>
+      <svg id="ConstellationSummary" class="constellation-summary" viewBox="0 0 240 92" role="img" aria-label="First Light constellation summary"></svg>
+      <div id="EmblemRow" class="emblem-row" aria-label="First Light emblems">
+        <span class="emblem" data-emblem="heart"><strong>HEART</strong><small>RECONNECTED</small></span>
+        <span class="emblem" data-emblem="bloom"><strong>BLOOM</strong><small>ALL WORLDS</small></span>
+        <span class="emblem" data-emblem="arc"><strong>ARC</strong><small>3 STARDUST</small></span>
+      </div>
+      <button id="PlayAgainButton" type="button">Play again</button>
+    </section>
+
+    <footer class="hud hud--bottom">
+      <span>Drag + release to launch</span>
+      <div class="hud__actions">
+        <button id="AudioButton" type="button" aria-pressed="false" aria-keyshortcuts="M">Audio on [M]</button>
+        <button id="ResetButton" type="button" aria-keyshortcuts="R">Reset [R]</button>
+      </div>
+    </footer>
+  </main>
+
+  <script type="module" src="./src/main.js?v=20260814-ob0"></script>
+</body>
+</html>
