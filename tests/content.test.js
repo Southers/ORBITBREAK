@@ -89,6 +89,12 @@ test('Broken Belt satisfies the authored-system content contract', () => {
 test('Wandering Garden satisfies the moving-system content contract', () => {
   assert.deepEqual(validateAuthoredSystemDefinition(WanderingGardenSystemDefinition), []);
   assert.equal(WanderingGardenSystemDefinition.worlds.length, 6);
+  assert.equal(WanderingGardenSystemDefinition.contentVersion, 'wandering-garden-1');
+  assert.equal(WanderingGardenSystemDefinition.camera.followPlayer, true);
+  const WorldXs = WanderingGardenSystemDefinition.worlds.map(
+    (WorldDefinition) => WorldDefinition.position.x,
+  );
+  assert.ok(Math.max(...WorldXs) - Math.min(...WorldXs) >= 45);
   const PollenMoonDefinition = WanderingGardenSystemDefinition.tacticalBodies.find(
     (BodyDefinition) => BodyDefinition.id === 'pollen-moon',
   );
@@ -267,7 +273,7 @@ test('Wandering Garden makes its moving moon a genuine authored route choice', (
   assert.deepEqual(
     getRouteChoices(CampaignNodes, 'pollen-moon', 2, Runtime.routeSuggestions['pollen-moon'])
       .map((WorldDefinition) => WorldDefinition.id),
-    ['crown', 'nest'],
+    ['crown', 'dew'],
   );
 });
 

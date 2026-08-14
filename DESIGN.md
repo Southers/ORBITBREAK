@@ -95,6 +95,8 @@ The first vertical slice is Breaker's Reach, an authored six-world system spanni
 
 Shatterbelt proves that another system must change the scoring problem, not merely rearrange planets. Its lower convoy is a readable four-launch completion route. Its upper line collects the Arc, then asks the player to delay the Loom launch until the deterministic Sentinel clears a long, partially hidden bend around high-value Shard. Both routes converge on Drift and Vault, so the risky decision is comparable rather than a separate ruleset: safe play banks 7,700; the timed Deep Assist route banks 10,400. The moving hazard's position, preview warning and live collision all use the same fixed-step clock.
 
+Verdant Caravan makes a moving body the route rather than the obstruction. The four-launch lantern road is the dependable 7,400-point completion. The alternate opening collects the Arc at Canopy, then the player must read Pollen Moon's current orbit and intercept it as a one-use launch node. Launching from the moving surface toward Crown curves past Nest: a loose clearance still beats the road, while the authored Razor line reaches 9,900. There is no fixed memorised moon angle because its phase continues while the player aims; the exact preview and scanner expose enough information to make the changing shot fair.
+
 The vocabulary stays small:
 
 - **Living worlds:** safe launch nodes and concise story moments.
