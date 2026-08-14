@@ -9,7 +9,7 @@
   <meta property="og:description" content="Chain planetary slingshots, free tiny worlds and bank the run before your launches expire." />
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
-  <link rel="stylesheet" href="./src/style.css?v=20260814-ob0" />
+  <link rel="stylesheet" href="./src/style.css?v=20260814-ob1" />
 
   <!--
     Buildless import map for the five-day jam. Three.js is pinned and vendored so startup
@@ -35,22 +35,23 @@
     <header class="hud hud--top">
       <div class="brand">
         <span class="brand__title">ORBITBREAK</span>
-        <span class="brand__subtitle">gravity engine migration build</span>
+        <span class="brand__subtitle">break the Stillness</span>
       </div>
 
       <div class="counter" aria-live="polite">
-        <span class="counter__label">WORLDS</span>
-        <span id="WorldCounter" class="counter__value">0 / 4</span>
+        <span class="counter__label">LAUNCHES</span>
+        <span id="LaunchCounter" class="counter__value">8 / 8</span>
         <span class="counter__divider" aria-hidden="true"></span>
         <span class="counter__mastery">
-          <span class="counter__label">ARC</span>
-          <span id="StardustCounter" class="counter__value">0 / 3</span>
+          <span class="counter__label">WORLDS</span>
+          <span id="WorldCounter" class="counter__value">0 / 4</span>
         </span>
+        <span id="StardustCounter" hidden>0 / 3</span>
       </div>
     </header>
 
     <section id="ObjectivePanel" class="objective-panel" aria-live="polite">
-      <span class="objective-panel__label">WORLDHEART</span>
+      <span class="objective-panel__label">COMMAND WORLD</span>
       <span id="ObjectiveState" class="objective-panel__state">0 / 3</span>
       <span id="ObjectivePips" class="objective-panel__pips" aria-hidden="true">
         <span></span><span></span><span></span>
@@ -59,7 +60,7 @@
 
     <section id="InstructionPanel" class="instruction-panel" aria-live="polite" aria-atomic="true">
       <strong id="InstructionTitle">Choose GROVE or EMBER</strong>
-      <span id="InstructionBody">Carry the last living seed onward. Pull away from a gold ring, then release.</span>
+      <span id="InstructionBody">The Runner has eight launches. Pull away from a gold ring, then release.</span>
     </section>
 
     <section id="AimPanel" class="aim-panel" hidden>
@@ -90,8 +91,8 @@
       hidden
     >
       <span id="VictoryEyebrow" class="victory-panel__eyebrow">FIRST LIGHT RECONNECTED</span>
-      <h1 id="VictoryTitle">The Worldheart hears you.</h1>
-      <p id="VictoryBody">A living path reaches beyond this tiny system.</p>
+      <h1 id="VictoryTitle">The command signal is broken.</h1>
+      <p id="VictoryBody">The Runner banks this liberated route.</p>
       <svg id="ConstellationSummary" class="constellation-summary" viewBox="0 0 240 92" role="img" aria-label="First Light constellation summary"></svg>
       <div id="EmblemRow" class="emblem-row" aria-label="First Light emblems">
         <span class="emblem" data-emblem="heart"><strong>HEART</strong><small>RECONNECTED</small></span>
@@ -110,6 +111,6 @@
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260814-ob0"></script>
+  <script type="module" src="./src/main.js?v=20260814-ob1"></script>
 </body>
 </html>

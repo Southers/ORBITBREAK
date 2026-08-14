@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260814-7s';
+import { WorldseedAudio } from './audio.js?v=20260814-ob1';
 
 import {
   DefaultAuthoredSystemIdentifier,
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260814-7s';
+} from './content.js?v=20260814-ob1';
 
 import {
   countRestoredWorlds,
@@ -19,7 +19,7 @@ import {
   isSystemRestored,
   isWorldheartUnlocked,
   rollbackFlightPickups,
-} from './campaign.js?v=20260814-7s';
+} from './campaign.js?v=20260814-ob1';
 
 import {
   calculateBodyPositionAtTime,
@@ -29,12 +29,17 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260814-7s';
+} from './physics.js?v=20260814-ob1';
 import {
   calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
   calculateStagedGrowthProgress,
-} from './restoration.js?v=20260814-7s';
+} from './restoration.js?v=20260814-ob1';
+import {
+  createRunState,
+  releaseRunLaunch,
+  settleRunFlight,
+} from './run.js?v=20260814-ob1';
 
 const RequestedSystemIdentifier = new URLSearchParams(window.location.search).get('system')
   ?? DefaultAuthoredSystemIdentifier;
@@ -65,7 +70,7 @@ const CampaignNodeDefinitions = [
 const StardustDefinitions = ActiveSystem.stardust;
 
 /**
- * WORLDSEED — authored-system orbital restoration campaign.
+ * ORBITBREAK — deterministic gravity score-attack foundation.
  *
  * The game deliberately keeps the simulation in a flat orbital plane while rendering
  * fully three-dimensional worlds. This produces immediately readable slingshot controls
@@ -74,6 +79,8 @@ const StardustDefinitions = ActiveSystem.stardust;
  */
 
 const GameCanvas = document.querySelector('#GameCanvas');
+const CounterElement = document.querySelector('.counter');
+const LaunchCounterElement = document.querySelector('#LaunchCounter');
 const WorldCounterElement = document.querySelector('#WorldCounter');
 const StardustCounterElement = document.querySelector('#StardustCounter');
 const ObjectivePanelElement = document.querySelector('#ObjectivePanel');
@@ -102,7 +109,7 @@ const PlayAgainButtonElement = document.querySelector('#PlayAgainButton');
 const ResetButtonElement = document.querySelector('#ResetButton');
 const AudioButtonElement = document.querySelector('#AudioButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260814-7s';
+GameCanvas.dataset.build = '20260814-ob1';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.pageActive = String(!document.hidden);
 GameCanvas.dataset.webglAvailable = 'true';
@@ -186,6 +193,7 @@ let ActivePointerIdentifier = null;
 let LastSafeSeedPosition = createVector();
 let LastSafeWorldIdentifier = StartingWorldIdentifier;
 let RecoveryTimeoutIdentifier = null;
+let RunFailureTimeoutIdentifier = null;
 let StatusToastTimeoutIdentifier = null;
 let WorldheartCompletionTimeoutIdentifier = null;
 let HasLaunchedOnce = false;
@@ -196,6 +204,7 @@ let SeedstoneUsesRemaining = SeedstoneDefinition.uses;
 let SeedstoneCrumbleStartedAtSeconds = null;
 let AttachedSeedstoneSurfaceOffset = null;
 let WorldheartJustUnlocked = false;
+let RunFailurePending = false;
 let FinaleRestorationStartedAtSeconds = null;
 let PredictedStardustIdentifiers = new Set();
 const FlightCollectedStardustIdentifiers = new Set();
@@ -206,6 +215,7 @@ let SeedPhysicsState = {
   position: createVector(),
   velocity: createVector(),
 };
+let RunState = createRunState(ActiveSystem.launchBudget);
 const WorldseedSound = new WorldseedAudio();
 
 const WorldRuntimeByIdentifier = new Map();
@@ -2461,23 +2471,95 @@ for (let StardustIndex = 0; StardustIndex < StardustDefinitions.length; Stardust
 StardustMesh.instanceColor.needsUpdate = true;
 Scene.add(StardustMesh);
 
-/** The seed is intentionally bright and oversized enough to remain readable on mobile. */
+/** A compact procedural Runner preserves the original collision radius and mobile readability. */
 const SeedGroup = new THREE.Group();
-const SeedCoreGeometry = new THREE.IcosahedronGeometry(SeedRadius, 2);
-const SeedCoreMaterial = new THREE.MeshStandardMaterial({
-  color: 0xeaf6df,
-  emissive: 0x8dcc70,
-  emissiveIntensity: 1.65,
-  roughness: 0.35,
-  metalness: 0.05,
+const RunnerVisualGroup = new THREE.Group();
+RunnerVisualGroup.scale.setScalar(1.18);
+const RunnerSuitMaterial = new THREE.MeshStandardMaterial({
+  color: 0xe9f2f4,
+  emissive: 0x4f8fa0,
+  emissiveIntensity: 0.28,
+  roughness: 0.38,
+  metalness: 0.08,
 });
-const SeedCoreMesh = new THREE.Mesh(SeedCoreGeometry, SeedCoreMaterial);
-SeedCoreMesh.castShadow = true;
-SeedGroup.add(SeedCoreMesh);
+const RunnerDarkMaterial = new THREE.MeshStandardMaterial({
+  color: 0x193646,
+  emissive: 0x0d2633,
+  emissiveIntensity: 0.4,
+  roughness: 0.32,
+  metalness: 0.28,
+});
+const RunnerVisorMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffbf62,
+  emissive: 0xff7a38,
+  emissiveIntensity: 1.25,
+  roughness: 0.2,
+  metalness: 0.3,
+});
+
+const RunnerBackpackMesh = new THREE.Mesh(
+  new THREE.BoxGeometry(0.34, 0.38, 0.2),
+  RunnerDarkMaterial,
+);
+RunnerBackpackMesh.position.set(0, -0.11, -0.13);
+RunnerVisualGroup.add(RunnerBackpackMesh);
+
+const RunnerTorsoMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(0.24, 16, 12),
+  RunnerSuitMaterial,
+);
+RunnerTorsoMesh.position.y = -0.12;
+RunnerTorsoMesh.scale.set(0.88, 1.08, 0.72);
+RunnerTorsoMesh.castShadow = true;
+RunnerVisualGroup.add(RunnerTorsoMesh);
+
+const RunnerHelmetMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(0.27, 20, 14),
+  RunnerSuitMaterial,
+);
+RunnerHelmetMesh.position.y = 0.17;
+RunnerHelmetMesh.castShadow = true;
+RunnerVisualGroup.add(RunnerHelmetMesh);
+
+const RunnerVisorMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(0.19, 16, 10),
+  RunnerVisorMaterial,
+);
+RunnerVisorMesh.position.set(0, 0.18, 0.2);
+RunnerVisorMesh.scale.set(1, 0.7, 0.34);
+RunnerVisualGroup.add(RunnerVisorMesh);
+
+const RunnerLimbGeometry = new THREE.CylinderGeometry(0.052, 0.065, 0.24, 8);
+for (const Side of [-1, 1]) {
+  const ArmMesh = new THREE.Mesh(RunnerLimbGeometry, RunnerSuitMaterial);
+  ArmMesh.position.set(Side * 0.245, -0.12, 0);
+  ArmMesh.rotation.z = Side * -0.22;
+  RunnerVisualGroup.add(ArmMesh);
+
+  const LegMesh = new THREE.Mesh(RunnerLimbGeometry, RunnerSuitMaterial);
+  LegMesh.position.set(Side * 0.095, -0.34, 0);
+  LegMesh.rotation.z = Side * -0.08;
+  RunnerVisualGroup.add(LegMesh);
+}
+
+const RunnerAntennaStem = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.018, 0.018, 0.16, 6),
+  RunnerDarkMaterial,
+);
+RunnerAntennaStem.position.set(0.16, 0.42, 0);
+RunnerAntennaStem.rotation.z = -0.22;
+RunnerVisualGroup.add(RunnerAntennaStem);
+const RunnerAntennaLight = new THREE.Mesh(
+  new THREE.SphereGeometry(0.045, 10, 8),
+  RunnerVisorMaterial,
+);
+RunnerAntennaLight.position.set(0.18, 0.5, 0);
+RunnerVisualGroup.add(RunnerAntennaLight);
+SeedGroup.add(RunnerVisualGroup);
 
 const SeedHaloGeometry = new THREE.SphereGeometry(SeedRadius * 1.65, 24, 16);
 const SeedHaloMaterial = new THREE.MeshBasicMaterial({
-  color: 0xbceca8,
+  color: 0x6de8ff,
   transparent: true,
   opacity: 0.12,
   depthWrite: false,
@@ -2486,7 +2568,7 @@ const SeedHaloMaterial = new THREE.MeshBasicMaterial({
 const SeedHaloMesh = new THREE.Mesh(SeedHaloGeometry, SeedHaloMaterial);
 SeedGroup.add(SeedHaloMesh);
 
-const SeedPointLight = new THREE.PointLight(0xbceca8, 2.3, 6, 2);
+const SeedPointLight = new THREE.PointLight(0x72dcff, 2.1, 6, 2);
 SeedGroup.add(SeedPointLight);
 Scene.add(SeedGroup);
 
@@ -2727,17 +2809,17 @@ function showRouteChoiceInstruction() {
   );
   if (HasWorldheartChoice) {
     showInstruction(
-      'The WORLDHEART route is open',
+      'The COMMAND WORLD route is open',
       isSystemRestored(WorldDefinitions)
-        ? 'Every world is awake. Carry the seed into the golden heart.'
-        : 'Leave now for Heart, or awaken the final world to earn Bloom.',
+        ? 'Every world is free. Guide the Runner into the golden command core.'
+        : 'Bank the run now, or liberate the final world first.',
     );
     return;
   }
   if (RouteChoices.length === 0) {
     showInstruction(
       `The ${ActiveSystem.label} network is awake`,
-      'Find the golden Worldheart route.',
+      'Find the golden Command World route.',
     );
     return;
   }
@@ -2961,7 +3043,7 @@ function updateWorldheartObjective() {
   const IsWorldheartOpen = WorldheartDefinition.routeAvailable;
   ObjectivePanelElement.classList.toggle('is-open', IsWorldheartOpen);
   ObjectiveStateElement.textContent = WorldheartDefinition.restored
-    ? 'RECONNECTED'
+    ? 'LIBERATED'
     : IsWorldheartOpen
       ? 'ROUTE OPEN'
     : `${Math.min(RestoredWorldCount, WorldheartUnlockThreshold)} / ${WorldheartUnlockThreshold}`;
@@ -2989,9 +3071,10 @@ function updateVictorySummary() {
   VictoryTitleElement.textContent = EarnedEmblemCount === 3
     ? ActiveSystem.completion.perfectTitle
     : ActiveSystem.completion.title;
-  VictoryBodyElement.textContent = EarnedEmblemCount === 3
+  const CompletionBody = EarnedEmblemCount === 3
     ? ActiveSystem.completion.perfectBody
     : ActiveSystem.completion.body;
+  VictoryBodyElement.textContent = `${CompletionBody} ${RunState.launchesUsed} / ${RunState.maximumLaunches} launches used.`;
 
   for (const EmblemElement of EmblemElements) {
     const IsEarned = Emblems[EmblemElement.dataset.emblem] === true;
@@ -3141,6 +3224,19 @@ function updateWorldCounter() {
   WorldCounterElement.textContent = `${RestoredWorldCount} / ${RestorableWorldCount}`;
 }
 
+/** Keeps the single run constraint visible and machine-readable for browser verification. */
+function updateLaunchCounter() {
+  LaunchCounterElement.textContent = `${RunState.remainingLaunches} / ${RunState.maximumLaunches}`;
+  CounterElement.classList.toggle(
+    'is-low',
+    RunState.remainingLaunches > 0 && RunState.remainingLaunches <= 2,
+  );
+  CounterElement.classList.toggle('is-empty', RunState.remainingLaunches === 0);
+  GameCanvas.dataset.launchesRemaining = String(RunState.remainingLaunches);
+  GameCanvas.dataset.launchesUsed = String(RunState.launchesUsed);
+  GameCanvas.dataset.runStatus = RunState.status;
+}
+
 /**
  * Displays a short centre-screen status message without queueing old messages.
  *
@@ -3173,6 +3269,45 @@ function showInstruction(Title, Body) {
   InstructionBodyElement.textContent = Body;
   InstructionPanelElement.classList.remove('is-hidden');
   InstructionPanelElement.setAttribute('aria-hidden', 'false');
+}
+
+/** Ends an exhausted attempt after a brief, readable failure beat. */
+function scheduleRunFailure(Reason = 'OUT OF LAUNCHES') {
+  if (GamePhase === 'runFailed' || RunState.status !== 'failed') {
+    return;
+  }
+
+  RunFailurePending = false;
+  GamePhase = 'runFailed';
+  GameCanvas.dataset.runStatus = 'failed';
+  SeedPhysicsState.velocity = createVector();
+  WorldseedSound.failure();
+  showStatusToast('RUN LOST · OUT OF LAUNCHES', 1200);
+  showInstruction('The Stillness closes in', `${Reason}. The system will reset.`);
+
+  if (RunFailureTimeoutIdentifier !== null) {
+    window.clearTimeout(RunFailureTimeoutIdentifier);
+  }
+  RunFailureTimeoutIdentifier = window.setTimeout(() => {
+    RunFailureTimeoutIdentifier = null;
+    resetGame();
+  }, 1350);
+}
+
+/** Settles a non-command landing and defers failure until a new world's reveal completes. */
+function settleNonCommandFlight(Reason = 'FINAL LAUNCH SPENT') {
+  RunState = settleRunFlight(RunState);
+  updateLaunchCounter();
+  if (RunState.status !== 'failed') {
+    return;
+  }
+
+  if (GamePhase === 'restoring') {
+    RunFailurePending = true;
+    showInstruction('Final launch spent', 'This liberation completes before the system resets.');
+  } else {
+    scheduleRunFailure(Reason);
+  }
 }
 
 /** Clears per-shot telemetry after a landing, failure or reset. */
@@ -3346,6 +3481,7 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
     showStatusToast(LandingAccolade ?? 'CLEAN LANDING', 700);
     showRouteChoiceInstruction();
   }
+  settleNonCommandFlight(`${WorldDefinition.label} WAS NOT THE COMMAND WORLD`);
 }
 
 /** Lands on the one-use launch node without counting it as an awakened world. */
@@ -3394,6 +3530,7 @@ function attachSeedToSeedstone(ImpactPosition, BodyPosition) {
       ? `Ride ${SeedstoneDefinition.label} into position, then launch before it crumbles.`
       : `Choose the next world carefully — ${SeedstoneDefinition.label} crumbles after launch.`,
   );
+  settleNonCommandFlight(`${SeedstoneDefinition.label} WAS NOT THE COMMAND WORLD`);
 }
 
 /** Reveals the modal completion summary and moves keyboard focus into it. */
@@ -3423,6 +3560,8 @@ function attachSeedToWorldheart(ImpactPosition) {
   CurrentWorldIdentifier = WorldheartDefinition.id;
   publishAttachedSeedState(CurrentWorldIdentifier, SurfaceRestPosition);
   WorldheartDefinition.restored = true;
+  RunState = settleRunFlight(RunState, { reachedCommandWorld: true });
+  updateLaunchCounter();
   GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
   commitFlightStardust();
   resetFlightFeedback();
@@ -3832,7 +3971,12 @@ function updateAimPreview(CurrentPointerWorldPosition) {
  * @param {PointerEvent} PointerEventData - Browser pointer event.
  */
 function handlePointerDown(PointerEventData) {
-  if (GamePhase !== 'attached' || IsPointerAiming || !isPointerOverSeed(PointerEventData)) {
+  if (
+    GamePhase !== 'attached'
+    || RunState.status !== 'active'
+    || IsPointerAiming
+    || !isPointerOverSeed(PointerEventData)
+  ) {
     return;
   }
 
@@ -3898,9 +4042,12 @@ function handlePointerUp(PointerEventData) {
 
   if (AimDragVector.length() < MinimumLaunchDragDistance) {
     WorldseedSound.endAim();
-    showInstruction('Grab the glowing seed', 'Pull away from your target, then release.');
+    showInstruction('Grab the Runner', 'Pull away from your target, then release.');
     return;
   }
+
+  RunState = releaseRunLaunch(RunState);
+  updateLaunchCounter();
 
   SeedPhysicsState.velocity = createVector(
     AimLaunchVelocity.x,
@@ -3949,10 +4096,17 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
     return;
   }
 
-  GamePhase = 'recovering';
+  RunState = settleRunFlight(RunState);
+  updateLaunchCounter();
   rollbackFlightStardust();
   resetFlightFeedback();
   SeedPhysicsState.velocity = createVector();
+  if (RunState.status === 'failed') {
+    scheduleRunFailure(StatusMessage);
+    return;
+  }
+
+  GamePhase = 'recovering';
   WorldseedSound.failure();
   showStatusToast(StatusMessage, 700);
 
@@ -4158,7 +4312,9 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
         WorldRuntime.restorationCompleted = true;
         WorldseedSound.restorationComplete(WorldDefinition.id);
         if (CurrentWorldIdentifier === WorldDefinition.id) {
-          if (WorldheartJustUnlocked) {
+          if (RunFailurePending) {
+            scheduleRunFailure('FINAL LAUNCH ENDED AWAY FROM THE COMMAND WORLD');
+          } else if (WorldheartJustUnlocked) {
             WorldheartJustUnlocked = false;
             WorldseedSound.worldheartOpen();
             showStatusToast(`${WorldheartDefinition.label} ROUTE OPEN`, 1400);
@@ -4325,9 +4481,27 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   GameCanvas.dataset.seedScreenY = String(Math.round(
     (-RouteLabelProjection.y * 0.5 + 0.5) * window.innerHeight,
   ));
+  GameCanvas.dataset.runnerScreenX = GameCanvas.dataset.seedScreenX;
+  GameCanvas.dataset.runnerScreenY = GameCanvas.dataset.seedScreenY;
 
-  SeedCoreMesh.rotation.x += DeltaTimeSeconds * (GamePhase === 'flying' ? 4.5 : 0.8);
-  SeedCoreMesh.rotation.y += DeltaTimeSeconds * (GamePhase === 'flying' ? 6.0 : 1.2);
+  if (GamePhase === 'flying') {
+    const FlightAngle = Math.atan2(SeedPhysicsState.velocity.y, SeedPhysicsState.velocity.x);
+    RunnerVisualGroup.rotation.z = FlightAngle - (Math.PI * 0.5);
+    RunnerVisualGroup.rotation.y += DeltaTimeSeconds * 1.8;
+  } else {
+    const AttachedBody = getWorldDefinition(CurrentWorldIdentifier)
+      ?? TacticalBodyDefinitions.find(
+        (BodyDefinition) => BodyDefinition.id === CurrentWorldIdentifier,
+      );
+    if (AttachedBody?.position) {
+      const SurfaceAngle = Math.atan2(
+        SeedPhysicsState.position.y - AttachedBody.position.y,
+        SeedPhysicsState.position.x - AttachedBody.position.x,
+      );
+      RunnerVisualGroup.rotation.z = SurfaceAngle - (Math.PI * 0.5);
+    }
+    RunnerVisualGroup.rotation.y = Math.sin(ElapsedTimeSeconds * 1.7) * 0.08;
+  }
   SeedHaloMesh.scale.setScalar(1 + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.08));
   SeedHaloMaterial.opacity = 0.105 + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.025);
 
@@ -4501,6 +4675,10 @@ function resetGame() {
     window.clearTimeout(RecoveryTimeoutIdentifier);
     RecoveryTimeoutIdentifier = null;
   }
+  if (RunFailureTimeoutIdentifier !== null) {
+    window.clearTimeout(RunFailureTimeoutIdentifier);
+    RunFailureTimeoutIdentifier = null;
+  }
   if (StatusToastTimeoutIdentifier !== null) {
     window.clearTimeout(StatusToastTimeoutIdentifier);
     StatusToastTimeoutIdentifier = null;
@@ -4513,6 +4691,7 @@ function resetGame() {
   IsPointerAiming = false;
   ActivePointerIdentifier = null;
   HasLaunchedOnce = false;
+  RunFailurePending = false;
   LaunchPulseLifeSeconds = 0;
   ImpactPulseLifeSeconds = 0;
   CameraImpactLifeSeconds = 0;
@@ -4536,6 +4715,7 @@ function resetGame() {
   GameCanvas.dataset.lastLaunchVelocityX = '';
   GameCanvas.dataset.lastLaunchVelocityY = '';
   GameCanvas.dataset.lastLaunchTime = '';
+  RunState = createRunState(ActiveSystem.launchBudget);
 
   for (const WorldDefinition of WorldDefinitions) {
     const IsInitiallyRestored = WorldDefinition.initiallyRestored === true;
@@ -4662,6 +4842,7 @@ function resetGame() {
   PullGuideLine.visible = true;
 
   updateWorldCounter();
+  updateLaunchCounter();
   updateStardustCounter();
   updateWorldheartObjective();
   updateTargetBeacons(0);

@@ -120,6 +120,16 @@ button:focus-visible,
   font-weight: 800;
 }
 
+.counter.is-low #LaunchCounter {
+  color: #ffb27d;
+  text-shadow: 0 0 14px rgba(255, 119, 93, 0.38);
+}
+
+.counter.is-empty {
+  border-color: rgba(255, 101, 82, 0.44);
+  box-shadow: 0 0 26px rgba(255, 76, 63, 0.12);
+}
+
 .counter__divider {
   width: 1px;
   height: 14px;
@@ -528,6 +538,35 @@ button:focus-visible,
 
   .instruction-panel {
     bottom: max(62px, calc(env(safe-area-inset-bottom) + 56px));
+  }
+
+  .hud {
+    left: max(14px, env(safe-area-inset-left));
+    right: max(14px, env(safe-area-inset-right));
+  }
+
+  .brand__title {
+    font-size: 15px;
+    letter-spacing: 0.12em;
+  }
+
+  .counter {
+    gap: 5px;
+    padding: 7px 8px;
+    white-space: nowrap;
+  }
+
+  .counter__label {
+    font-size: 7px;
+    letter-spacing: 0.1em;
+  }
+
+  .counter__value {
+    font-size: 12px;
+  }
+
+  .counter__mastery {
+    gap: 4px;
   }
 
   .objective-panel {

@@ -18,6 +18,16 @@ import {
 
 test('First Light satisfies the authored-system content contract', () => {
   assert.deepEqual(validateAuthoredSystemDefinition(FirstLightSystemDefinition), []);
+  assert.equal(createAuthoredSystemRuntime(FirstLightSystemDefinition).launchBudget, 8);
+});
+
+test('authored systems fail closed without a positive launch budget', () => {
+  const InvalidSystemDefinition = structuredClone(FirstLightSystemDefinition);
+  InvalidSystemDefinition.launchBudget = 0;
+
+  assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
+    'Authored system requires a positive integer launchBudget.',
+  ));
 });
 
 test('Broken Belt satisfies the authored-system content contract', () => {
