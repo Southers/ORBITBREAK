@@ -87,6 +87,17 @@ protects every circuit world from frontier targeting, replaces that flight's pur
 retreat and removes one of the Warden's two visible shield rings. Circuit identity is canonical;
 repairing a suppressed member restores protection without repeating the closure or shield effect.
 
+Milestone 2 judging gate — 14 August 2026: validated through the hopeful two-link opening, timed
+Warden reveal, four-beat arrival, visible suppression, zero-farm recapture and the authored
+Frost-to-Meadow circuit on desktop and 390×844 portrait mobile. **Art 7/10** (the miniature
+societies, couriers and corrupted Warden read clearly, but several occupied worlds remain visually
+generic), **Creativity 9/10** (route topology is now both the story and the defence system),
+**Gameplay 8/10** (the gold reinforce-versus-expand choice is understandable and action-driven),
+**Polish 8/10** (forecast, recovery copy, reset, accessibility and deterministic gates are reliable),
+**Tiny Worlds Theme 9/10** (isolation, exchange, suppression and collective resilience all happen
+on the miniature worlds themselves). Art is now the weakest category; Milestone 3's dense authored
+sector and one carefully bounded hostile surface beat are the highest-leverage next work.
+
 ## Milestone 3 — One complete sector
 
 - Build a dense six-to-nine-world authored sector from the strongest existing content.
