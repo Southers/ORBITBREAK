@@ -1214,6 +1214,18 @@ button[aria-disabled='true'] {
   }
 }
 
+@media (orientation: portrait) and (max-width: 640px) {
+  .aim-panel {
+    bottom: max(156px, calc(env(safe-area-inset-bottom) + 150px));
+  }
+}
+
+@media (orientation: portrait) and (max-width: 340px) {
+  .aim-panel {
+    bottom: max(206px, calc(env(safe-area-inset-bottom) + 200px));
+  }
+}
+
 @media (orientation: landscape) and (max-height: 520px) {
   .burn-button {
     right: max(18px, env(safe-area-inset-right));

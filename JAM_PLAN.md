@@ -767,6 +767,20 @@ stayed empty. Release checks protect the label spacing, compact aim lane, result
 contract. This presentation-only pass changes no route, input mapping, camera, physics, score,
 pursuit, replay or leaderboard behavior.
 
+Gauntlet pass 43 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** A fresh judge opening remained strong, but the first launch
+exposed a mobile-first clarity failure: at 320×568 the full 265.6×27.6px aim panel covered the release
+coach by 7,330.6px², while 360×640 still overlapped it by 5,471.4px². Portrait aim spacing now follows
+the existing footer and coach breakpoints. The corrected panel clears the coach by 11.4px at both
+320px and 340px, 9.4px at 342–360px, 17.4px at 390px and 33.6px at 480–640px; the coach preserves its
+10px gap above the wrapped 320px footer and every tested page remains overflow-free. First-aim checks
+at 568×320 landscape, 844×390 and 1280×720 retain 23.2px, 17.2px and 11.6px of clearance respectively.
+A real keyboard launch from the portrait floor kept canvas focus, exposed the 148×52px Breaker Burn
+control without collision, spent one launch and landed on Ember at 1,000 points with the next Grove
+or Frost choice readable. The console stayed empty. Release checks protect both ordinary portrait and
+wrapped-footer aim offsets. This accessibility and presentation pass changes no aim values, input
+mapping, camera, world position, physics, score, pursuit, replay or leaderboard behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
