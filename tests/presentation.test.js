@@ -34,6 +34,7 @@ import {
   shouldShowInhabitantSlot,
   getInhabitantSilhouette,
   getWorldLifeAudioMix,
+  getStoryMusicStage,
   isInnerClusterLive,
   isFurtherReachLive,
   getRangeVeilStrength,
@@ -671,6 +672,10 @@ test('prosperity densifies from a first link to busy routes and circuits', () =>
     garden: 0.25,
     dock: 0,
   });
+  assert.equal(getStoryMusicStage({ innerClusterLive: false, wardenStatus: 'hidden' }), 'quiet');
+  assert.equal(getStoryMusicStage({ innerClusterLive: true, wardenStatus: 'hidden' }), 'hope');
+  assert.equal(getStoryMusicStage({ innerClusterLive: true, wardenStatus: 'pursuing' }), 'hunt');
+  assert.equal(getStoryMusicStage({ innerClusterLive: true, wardenStatus: 'exposed' }), 'crown');
 });
 
 test('range veil lifts only after Haven, Ember and Grove are live', () => {

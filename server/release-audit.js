@@ -132,6 +132,8 @@ export function auditReleaseReadiness() {
       && PresentationSource.includes('export function getCourierDockWorldRole(')
       && PresentationSource.includes('export function shouldRevealWarden(') === false
       && MainSource.includes('shouldReveal: getWardenRevealFlag()')
+      && PresentationSource.includes('export function getStoryMusicStage(')
+      && MainSource.includes('setStoryMusicStage(')
       && PresentationSource.includes('export function getRangeVeilStrength(')
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
         ?.rangeUnlockLine === 'The dark is not as wide as they said.',

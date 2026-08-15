@@ -137,6 +137,7 @@ import {
   getTradeHullScale,
   getTyrantOccupationStrength,
   getWorldLifeAudioMix,
+  getStoryMusicStage,
   getWorldLifeStage,
   isFurtherReachLive,
   isInnerClusterLive,
@@ -8957,6 +8958,12 @@ function updateWorldLifeAudio() {
     isolatedWorldCount: IsolatedWorldCount,
     livingWorldCount: LivingWorldCount,
   }));
+  const MusicStage = getStoryMusicStage({
+    innerClusterLive: isInnerClusterLive(listLiveWorldIdentifiers()),
+    wardenStatus: WardenPursuitState.status,
+  });
+  WorldseedSound.setStoryMusicStage(MusicStage);
+  GameCanvas.dataset.storyMusicStage = MusicStage;
   const MaximumScoutScale = getActiveMaximumScoutZoomScale();
   if (ScoutZoomScale > MaximumScoutScale) {
     ScoutZoomScale = MaximumScoutScale;

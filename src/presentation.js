@@ -283,6 +283,23 @@ export function getInhabitantSilhouette(slotIndex) {
   return { kind: Kind, scale: Scales[Kind] };
 }
 
+/** Returns which in-engine bed should follow network and Warden state. */
+export function getStoryMusicStage({
+  innerClusterLive = false,
+  wardenStatus = 'hidden',
+} = {}) {
+  if (wardenStatus === 'exposed') {
+    return 'crown';
+  }
+  if (wardenStatus === 'pursuing') {
+    return 'hunt';
+  }
+  if (innerClusterLive === true) {
+    return 'hope';
+  }
+  return 'quiet';
+}
+
 /** Mixes mine rumble, quiet garden and dock crowd without touching simulation. */
 export function getWorldLifeAudioMix({
   tyrantWorldCount = 0,
