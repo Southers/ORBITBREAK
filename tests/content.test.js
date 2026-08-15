@@ -84,7 +84,8 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     (WorldDefinition) => WorldDefinition.id === 'bastion',
   );
   assert.equal(BastionDefinition.disposition, 'hostile');
-  assert.ok(BastionDefinition.hostileEncounter.pulseRangeRadians > 0);
+  assert.ok(BastionDefinition.hostileEncounter.clampOffsetsRadians.length >= 3);
+  assert.ok(BastionDefinition.hostileEncounter.maxCutLength > 0);
   const CommandDefinition = BreakerReachSystemDefinition.tacticalBodies.find(
     (BodyDefinition) => BodyDefinition.kind === 'worldheart',
   );
@@ -98,7 +99,7 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   });
   assert.equal(BreakerReachSystemDefinition.completion.continueToNextSystem, false);
   assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
-  assert.ok(CommandDefinition.hostileEncounter.pulseRangeRadians > 0);
+  assert.ok(CommandDefinition.hostileEncounter.clampOffsetsRadians.length >= 3);
   assert.ok(BreakerReachSystemDefinition.worlds.every(
     (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2,
   ));
@@ -203,7 +204,7 @@ test('hostile worlds fail closed without a bounded contextual encounter', () => 
   const BastionDefinition = InvalidSystemDefinition.worlds.find(
     (WorldDefinition) => WorldDefinition.id === 'bastion',
   );
-  BastionDefinition.hostileEncounter.pulseRangeRadians = 0;
+  BastionDefinition.hostileEncounter.clampOffsetsRadians = [];
   assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
     'World bastion has invalid hostile encounter data.',
   ));
@@ -217,12 +218,12 @@ test('occupation scar authoring stays finite and bounded', () => {
   ));
 });
 
-test('tactical surface encounters fail closed without a bounded Pulse range', () => {
+test('tactical surface encounters fail closed without authored clamps', () => {
   const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
   const CommandDefinition = InvalidSystemDefinition.tacticalBodies.find(
     (BodyDefinition) => BodyDefinition.kind === 'worldheart',
   );
-  CommandDefinition.hostileEncounter.pulseRangeRadians = 0;
+  CommandDefinition.hostileEncounter.clampOffsetsRadians = [];
   assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
     'Tactical body worldheart has invalid encounter data.',
   ));

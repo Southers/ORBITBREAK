@@ -37,6 +37,29 @@ function isColorValue(ColorValue) {
   return Number.isInteger(ColorValue) && ColorValue >= 0 && ColorValue <= 0xffffff;
 }
 
+function isValidHostileEncounter(Encounter) {
+  const Offsets = Encounter?.clampOffsetsRadians;
+  if (!Array.isArray(Offsets) || Offsets.length < 1 || Offsets.length > 5) {
+    return false;
+  }
+  if (Offsets.some((Offset) => !Number.isFinite(Offset) || Math.abs(Offset) > Math.PI)) {
+    return false;
+  }
+  if (
+    Encounter.cutHitRadius !== undefined
+    && (!(Encounter.cutHitRadius > 0) || Encounter.cutHitRadius > 1.5)
+  ) {
+    return false;
+  }
+  if (
+    Encounter.maxCutLength !== undefined
+    && (!(Encounter.maxCutLength > 0) || Encounter.maxCutLength > 8)
+  ) {
+    return false;
+  }
+  return true;
+}
+
 const AllowedStoryBoardPortraits = new Set([
   'warden', 'runner', 'haven', 'orbitbreaker', 'ember', 'grove', 'command',
 ]);
@@ -333,11 +356,7 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     }
     if (
       WorldDefinition.disposition === 'hostile'
-      && (
-        !Number.isFinite(WorldDefinition.hostileEncounter?.pylonOffsetRadians)
-        || !(WorldDefinition.hostileEncounter?.pulseRangeRadians > 0)
-        || WorldDefinition.hostileEncounter.pulseRangeRadians > Math.PI
-      )
+      && !isValidHostileEncounter(WorldDefinition.hostileEncounter)
     ) {
       Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} has invalid hostile encounter data.`);
     }
@@ -426,11 +445,7 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     if (BodyDefinition.kind === 'seedstone' && !(BodyDefinition.uses > 0)) {
       Errors.push(`Seedstone ${BodyDefinition.id ?? '<unknown>'} requires at least one use.`);
     }
-    if (BodyDefinition.hostileEncounter && (
-      !Number.isFinite(BodyDefinition.hostileEncounter.pylonOffsetRadians)
-      || !(BodyDefinition.hostileEncounter.pulseRangeRadians > 0)
-      || BodyDefinition.hostileEncounter.pulseRangeRadians > Math.PI
-    )) {
+    if (BodyDefinition.hostileEncounter && !isValidHostileEncounter(BodyDefinition.hostileEncounter)) {
       Errors.push(`Tactical body ${BodyDefinition.id ?? '<unknown>'} has invalid encounter data.`);
     }
   }
@@ -602,6 +617,12 @@ export function createAuthoredSystemRuntime(
     occupationScarAngles: WorldDefinition.occupationScarAngles
       ? [...WorldDefinition.occupationScarAngles]
       : undefined,
+    hostileEncounter: WorldDefinition.hostileEncounter
+      ? {
+        ...WorldDefinition.hostileEncounter,
+        clampOffsetsRadians: [...WorldDefinition.hostileEncounter.clampOffsetsRadians],
+      }
+      : undefined,
     restored: WorldDefinition.initiallyRestored === true,
     isStartingWorld: WorldDefinition.id === SystemDefinition.startingWorldIdentifier,
     restoration: {
@@ -623,6 +644,12 @@ export function createAuthoredSystemRuntime(
       : undefined,
     restored: BodyDefinition.initiallyRestored === true,
     routeAvailable: BodyDefinition.routeAvailableInitially === true,
+    hostileEncounter: BodyDefinition.hostileEncounter
+      ? {
+        ...BodyDefinition.hostileEncounter,
+        clampOffsetsRadians: [...BodyDefinition.hostileEncounter.clampOffsetsRadians],
+      }
+      : undefined,
   }));
   const EnvironmentDefinition = {
     ...DefaultEnvironmentDefinition,
@@ -1175,8 +1202,9 @@ export const BreakerReachSystemDefinition = {
       occupationScarAngles: [0.08, 0.28, 0.48],
       disposition: 'hostile',
       hostileEncounter: {
-        pylonOffsetRadians: Math.PI / 6,
-        pulseRangeRadians: 8 * (Math.PI / 180),
+        clampOffsetsRadians: [0.4, 0.85, 1.3],
+        cutHitRadius: 0.48,
+        maxCutLength: 2.85,
       },
       memory: 'The watchtowers turn their lights away from the Command World.',
       restoration: {
@@ -1206,8 +1234,9 @@ export const BreakerReachSystemDefinition = {
         phaseRadians: 0, angularSpeedRadiansPerSecond: 0.08,
       },
       hostileEncounter: {
-        pylonOffsetRadians: Math.PI / 5,
-        pulseRangeRadians: 8 * (Math.PI / 180),
+        clampOffsetsRadians: [0.35, 0.75, 1.2],
+        cutHitRadius: 0.5,
+        maxCutLength: 2.7,
       },
     },
   ],

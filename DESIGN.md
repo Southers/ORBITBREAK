@@ -30,7 +30,7 @@ The Warden's ideology is concise and visible:
 2. **Choose:** balance a safe connection, a valuable occupied world, a scoring slingshot or a route that protects the existing network.
 3. **Reposition:** walk clockwise or counter-clockwise around the current world's orbital-plane circumference to choose a launch point or reach a local relay obstacle.
 4. **Launch:** pull away from the Runner and release. The astronaut folds into a launch craft, then a small ship, while retaining one deterministic physics body.
-5. **Fly:** read the exact full-path prediction, chain gravity assists through visible wells and optionally spend one Breaker Burn. Drag from the ship to choose a direction, or fire along heading with Space.
+5. **Fly:** read the exact full-path prediction, chain gravity assists through visible wells and optionally spend one Break. Drag from the ship to choose a direction, or break along heading with Space.
 6. **Land:** unfold back into the Runner. A successful new landing breaks the local cage, activates its relay and establishes a visible link from the origin world. A first traversal between two active relays can also create a missing link.
 7. **Resolve:** bank the flight's score, animate life and trade along connected routes, then advance the Warden one predictable pursuit beat.
 8. **Continue:** expand, reinforce, recapture or attack. Complete resilient links to push the Warden back and open the final confrontation.
@@ -44,8 +44,8 @@ The game remains one-pointer/touch accessible.
 - Drag the ship to aim. Release away from it to launch. Drag back onto the ship, or press Escape, to cancel without spending the flight.
 - Drag the current world's disk (not the ship) to walk the orbital-plane circumference. Q/E remain the keyboard walk.
 - Drag empty space to pan. Pinch or mouse wheel to zoom. C snaps the camera back to the Runner.
-- During flight, drag from the ship to aim the one-shot Breaker Burn in any direction, then release to fire. A heading Burn remains available from the Burn button or Space. The preview cannot solve a future player-timed burn at launch time.
-- Use one contextual Breaker Pulse near a hostile pylon, barrier or drone. No manual weapon aiming or health bar is required.
+- During flight, drag from the ship to **break** your line in any direction, then release. Space still breaks along heading. The preview cannot solve a future player-timed break at launch time.
+- On a caged world, drag from the ship through a clamp to **cut** it. A longer drag can take more than one. Drag back onto the ship, or press Escape, to cancel. Misses do not spend the flight. No health bars.
 - Keyboard controls must reach the same deterministic actions as pointer controls.
 
 Surface movement is deliberately one-dimensional. It creates launch-position choice, scale and character without turning ORBITBREAK into a platformer.
@@ -131,16 +131,16 @@ Worlds have authored dispositions rather than random encounters:
 - **Occupied:** break the cage and connect the relay.
 - **Friendly:** safe launch node, story beat and visible community.
 - **Uncertain:** route value or local state is revealed by approaching or connecting it.
-- **Hostile:** a brief pylon, barrier or drone pattern blocks the best launch position or relay.
+- **Hostile:** the cage still has teeth. Clamps around the rim block launch until they are cut.
 - **Command:** the Warden's mobile final world.
 
-Hostile surface moments last seconds, use the same circumference movement and one contextual Breaker Pulse, and never introduce enemies with health pools, loot drops or a separate combat ruleset. Their purpose is to make some landings active and flavourful, not to compete with orbital flight.
+Hostile surface moments last seconds and use the same ship-grab as launch. Clamps are spread around the rim. Drag a short cut through them; walking gets you a better line. A chord can take two. There is no Pulse button that wins the encounter, no health pools, no loot, and no second combat ruleset. The point is to make the landing active, not to compete with orbital flight.
 
 ## Final encounter
 
 The Warden's command vessel is a hostile moving tiny world, not a conventional shooter boss.
 
-The first two unique resilient circuits each remove one visible shield layer. Once the vessel is exposed, the Runner must use the established verbs—scouting, repositioning, slingshots and Breaker Burn—to pass its shield moons and land on the command core. A short surface approach and final Breaker Pulse disables the isolation lattice.
+The first two unique resilient circuits each remove one visible shield layer. Once the vessel is exposed, the Runner must use the established verbs—scouting, repositioning, slingshots and a mid-flight break—to pass its shield moons and land on the command core. A short surface approach and cutting the lattice teeth disables the isolation lattice.
 
 The worlds then answer together: trade lanes converge, allied craft arrive through routes the player created and the Warden loses control because the network is no longer dependent on one rebel.
 
@@ -282,7 +282,7 @@ Ember grows furnaces and barges. Grove grows canopies and leaf-sails. Tide grows
 - Opening uses a four-page board. Later beats reuse that board: first answer, second voice, range, neighbourhood, Warden arrival, circuit, suppression, recapture, Command, lost run.
 - The player dismisses with Continue/Skip. Keyboard Enter/Space continue; Escape skips the current beat.
 - Liberation still plays the wrapping wave under the board. Do not immediately replace it with hunt coaching.
-- Coach copy between boards stays one sentence. Controls appear when the verb is available (Burn in flight, Pulse on Bastion, Scout when the veil recedes).
+- Coach copy between boards stays one sentence. Controls appear when the verb is available (Break in flight, Cut on Bastion, Scout when the veil recedes).
 - Mobile must keep 44px controls, no overflow, and boards that do not cover the Continue/Skip row.
 
 ### Three visual states, equally authored
@@ -356,14 +356,14 @@ Do not add a permanent meta-upgrade tree, random infinite runs or a second comba
 
 Proposed ladder, earliest first:
 
-1. **Breaker Burn** — already the first flight verb. Directed drag is the tutorial unlock; heading Space remains the accessible fallback.
+1. **Break** — already the first flight verb. Directed drag is the tutorial unlock; heading Space remains the accessible fallback.
 2. **Longer prediction** — the full path is always true; an unlock can hold the camera on a committed chain longer, not invent a second simulator.
-3. **Relay pulse** — after the first live link, a landed Pulse that wakes a dark window or clears one pylon. Same Breaker Pulse, earlier in the run.
-4. **Second Burn charge** — only after the neighbourhood is talking, still one at a time, still recorded. Never a spray.
+3. **Cut** — after the first live link, dragging through a clamp. Same cut, earlier in the run.
+4. **Second Break** — only after the neighbourhood is talking, still one at a time, still recorded. Never a spray.
 5. **Circuit beacon** — after the first loop, a visible gold ghost of the next closing edge. Information, not an auto-aim.
 6. **Command lock** — after both shields crack, keyboard/pointer lead on the moving crown. Already exists; gate it as the finale gift.
 
-Roguelike flavour without roguelike chaos: one or two run-only boons chosen after the Warden arrives (extra Burn **or** a once-per-run recapture pulse). The map, wells and ranked physics stay authored. Score still cannot reward waiting. No HP, no loot, no ship stats that persist between runs.
+Roguelike flavour without roguelike chaos: one or two run-only boons chosen after the Warden arrives (extra Break **or** a once-per-run recapture cut). The map, wells and ranked physics stay authored. Score still cannot reward waiting. No HP, no loot, no ship stats that persist between runs.
 
 ## Scope
 
