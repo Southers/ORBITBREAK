@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   getLiberationFlashOpacity,
   getPersonalBestStatus,
+  getRelayLinkOpacity,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
@@ -11,6 +12,13 @@ import {
   getStillnessPresentation,
   getWorldLandingAimLabel,
 } from '../src/presentation.js';
+
+test('relay links retain a bright bounded pulse for system-scale readability', () => {
+  assert.equal(getRelayLinkOpacity(0), 0.8);
+  assert.ok(Math.abs(getRelayLinkOpacity(Math.PI / 4.8) - 0.9) < 1e-12);
+  assert.ok(Math.abs(getRelayLinkOpacity(3 * Math.PI / 4.8) - 0.7) < 1e-12);
+  assert.throws(() => getRelayLinkOpacity(Number.NaN), /finite time/);
+});
 
 test('world landing aim copy names a new destination without calling it imprisoned', () => {
   assert.equal(getWorldLandingAimLabel('Ember', true), 'Ember TARGET');

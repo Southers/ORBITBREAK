@@ -109,3 +109,11 @@ export function getWorldLandingAimLabel(WorldLabel, IsNewWorldLanding) {
   }
   return IsNewWorldLanding ? `${WorldLabel} TARGET` : 'SAFE LANDING';
 }
+
+/** Keeps permanent relay links visible while retaining a restrained network pulse. */
+export function getRelayLinkOpacity(ElapsedTimeSeconds) {
+  if (!Number.isFinite(ElapsedTimeSeconds)) {
+    throw new Error('Relay link presentation requires finite time.');
+  }
+  return 0.8 + (Math.sin(ElapsedTimeSeconds * 2.4) * 0.1);
+}

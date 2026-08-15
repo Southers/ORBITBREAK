@@ -89,13 +89,14 @@ import {
 import {
   getLiberationFlashOpacity,
   getPersonalBestStatus,
+  getRelayLinkOpacity,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
   getRunnerPose,
   getStillnessPresentation,
   getWorldLandingAimLabel,
-} from './presentation.js?v=20260815-ob46';
+} from './presentation.js?v=20260815-ob47';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -256,7 +257,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob46';
+GameCanvas.dataset.build = '20260815-ob47';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -2901,7 +2902,7 @@ RelayLinkGeometry.setDrawRange(0, 0);
 const RelayLinkMaterial = new THREE.LineBasicMaterial({
   color: 0x72e8ff,
   transparent: true,
-  opacity: 0.72,
+  opacity: 0.8,
   depthWrite: false,
   blending: THREE.AdditiveBlending,
 });
@@ -2968,7 +2969,7 @@ function synchronizeRelayNetworkVisuals() {
 
 function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
   const Links = listLiveRelayLinks(RelayNetworkState);
-  RelayLinkMaterial.opacity = 0.64 + (Math.sin(ElapsedTimeSeconds * 2.4) * 0.12);
+  RelayLinkMaterial.opacity = getRelayLinkOpacity(ElapsedTimeSeconds);
   for (let LinkIndex = 0; LinkIndex < Links.length; LinkIndex += 1) {
     const Link = Links[LinkIndex];
     const Origin = getWorldDefinition(Link.originWorldIdentifier);

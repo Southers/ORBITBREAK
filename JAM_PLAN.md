@@ -448,6 +448,16 @@ stayed compact at 39.6px, above the route instruction and 44px controls, with no
 This onboarding copy pass changes no target selection, trajectory visibility, input, fixed-step
 prediction, live physics, scoring or replay state.
 
+Gauntlet pass 17 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The third-relay visual audit showed the permanent network—the
+object that embodies `connect the tiny worlds`—dropping to 52% opacity and receding behind route
+guides at portrait scale. Its single pooled line material now pulses within a restrained 70–90%
+range, with pure presentation coverage enforcing those bounds. Desktop and 390×844 Warden reveals
+kept both cyan links and the tiny courier legible at 150/190 calls; portrait retained 44px controls
+and no overflow. Closing the first circuit preserved the same geometry while its protected links
+changed cleanly to gold at a 163/190 transition peak. This thematic visibility pass adds no mesh or
+draw call and changes no network topology, protection, pursuit, input, physics, score or replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
