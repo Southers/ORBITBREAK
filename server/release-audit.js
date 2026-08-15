@@ -117,7 +117,7 @@ export function auditReleaseReadiness() {
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
       ?.routeGuidance?.grove?.meadow
-      === "Walk Grove's far rim, then aim back at Haven to arc around Ember. Closing the gold loop protects its worlds.",
+      === "Walk Grove's far rim, then aim back around Ember. Haven lies beyond preview—hold the long arc to close the gold loop.",
     'The selected one-sector candidate must teach the surface line for its first circuit.',
   );
   requireCondition(

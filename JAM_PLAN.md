@@ -371,6 +371,17 @@ bank its 1,250 bonus. Portrait retained 44px controls with no overflow or browse
 affected routes peaked at 155 and 156 of 190 draw calls. The hypothesis held: the player is taught the
 positioning decision without changing launch inputs, prediction, fixed-step physics, scoring or replay.
 
+Gauntlet pass 10 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The new first-circuit clue still left a feedback contradiction:
+its correct 176.9-degree line displayed `The ranked preview ends here`, which could read as a failed
+route rather than an intentional commitment. Extending the global preview would reveal mastery arcs
+that deliberately exceed its 160-step limit, so the authored Grove hint now says Haven lies beyond
+preview and tells the player to hold the long arc. The endpoint remains hidden. Desktop diagnostics
+confirmed that the correct trajectory contains 172 points while exposing only 161, then landed on
+Haven and closed the circuit at 151/190 peak calls. The compact 390×844 copy uses a 73px instruction
+panel above the 44px footer, with no overlap, overflow or browser warnings and a 156-call peak. The
+hypothesis held without changing preview length, target disclosure, physics, score or replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

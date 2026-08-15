@@ -816,7 +816,7 @@ export const BreakerReachSystemDefinition = {
   },
   routeGuidance: {
     grove: {
-      meadow: "Walk Grove's far rim, then aim back at Haven to arc around Ember. Closing the gold loop protects its worlds.",
+      meadow: "Walk Grove's far rim, then aim back around Ember. Haven lies beyond preview—hold the long arc to close the gold loop.",
     },
   },
   worlds: [
