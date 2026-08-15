@@ -66,7 +66,7 @@ The same body scores once per flight. A safe landing banks the chain; a miss los
 
 ## The living network
 
-The starting world already carries the Runner's illegal relay. Every first landing on an occupied world activates another. A successful traversal between two active relays creates their link if it does not already exist and, after a short delay, that luminous route carries messages and tiny trade ships. Repeating an existing link remains useful for travel but creates no new network reward.
+The starting world already carries the Runner's illegal relay. Every first landing on an occupied world activates another. A successful traversal between two active relays creates their link if it does not already exist and, after a short delay, that luminous route carries messages and tiny trade ships. After a new landing the camera frames the live relay long enough to see the worlds answer, then returns to the Runner. Repeating an existing link remains useful for travel but creates no new network reward.
 
 A world with only one live connection is a vulnerable frontier node. A world is resilient only while it belongs to an intact closed circuit; merely sitting in the middle of a chain is not enough. Closing a new circuit in the network:
 

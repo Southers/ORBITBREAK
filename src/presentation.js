@@ -119,6 +119,63 @@ export function getRelayLinkOpacity(ElapsedTimeSeconds, { reducedMotion = false 
   return 0.8 + (Math.sin(ElapsedTimeSeconds * 2.4) * 0.1);
 }
 
+function assertFinitePoint(Point, Label) {
+  if (!Point || !Number.isFinite(Point.x) || !Number.isFinite(Point.y)) {
+    throw new Error(`Relay reveal camera requires a finite ${Label}.`);
+  }
+}
+
+/**
+ * Pulls the camera toward a new relay without letting the landed Runner leave the viewport.
+ * The player should see the worlds answer each other, then regain a Runner-centred shot.
+ */
+export function getRelayRevealLookTarget({
+  origin,
+  destination,
+  runner,
+  viewportWorldWidth,
+  viewportWorldHeight,
+} = {}) {
+  assertFinitePoint(origin, 'origin');
+  assertFinitePoint(destination, 'destination');
+  assertFinitePoint(runner, 'runner');
+  if (
+    !Number.isFinite(viewportWorldWidth)
+    || viewportWorldWidth <= 0
+    || !Number.isFinite(viewportWorldHeight)
+    || viewportWorldHeight <= 0
+  ) {
+    throw new Error('Relay reveal camera requires a positive viewport.');
+  }
+  const MidX = (origin.x + destination.x) * 0.5;
+  const MidY = (origin.y + destination.y) * 0.5;
+  const MaximumOffsetX = viewportWorldWidth * 0.38;
+  const MaximumOffsetY = viewportWorldHeight * 0.38;
+  return {
+    x: Math.min(runner.x + MaximumOffsetX, Math.max(runner.x - MaximumOffsetX, MidX)),
+    y: Math.min(runner.y + MaximumOffsetY, Math.max(runner.y - MaximumOffsetY, MidY)),
+  };
+}
+
+/** Starts each new courier at the origin of its live link instead of mid-route. */
+export function getRelayCourierTravelProgress(
+  ElapsedSinceCreatedSeconds,
+  { cycleSpeed = 0.11 } = {},
+) {
+  if (!Number.isFinite(ElapsedSinceCreatedSeconds) || ElapsedSinceCreatedSeconds < 0) {
+    throw new Error('Courier travel requires a non-negative age.');
+  }
+  if (!Number.isFinite(cycleSpeed) || cycleSpeed <= 0) {
+    throw new Error('Courier travel requires a positive cycle speed.');
+  }
+  const CycleProgress = (ElapsedSinceCreatedSeconds * cycleSpeed) % 2;
+  const IsReturning = CycleProgress > 1;
+  return {
+    travelProgress: IsReturning ? 2 - CycleProgress : CycleProgress,
+    isReturning: IsReturning,
+  };
+}
+
 /** Publishes the finale presentation without mutating authoritative pursuit state. */
 export function getPublishedWardenState(PursuitStatus, IsCommandDefeated = false) {
   if (typeof PursuitStatus !== 'string' || PursuitStatus.length < 1) {

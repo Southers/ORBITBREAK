@@ -803,8 +803,10 @@ Gameplay honesty check — 15 August 2026: later gauntlet passes scored Gameplay
 HUD type. That was too high. A new player still met endgame jargon (`COMMAND WORLD 0 / 3`, circuits,
 shields) before their first landing, so the loop did not exist as play. The opening now teaches one
 shot; after the first relay the coach says one more world will alert the Warden; the objective reads
-`RELAYS`, then `CIRCUITS`, then Command. Physics, score and replay inputs are unchanged. This is the
-start of making the loop fun, not a claim that it already is.
+`RELAYS`, then `CIRCUITS`, then Command. After a new relay the camera frames the live link during
+liberation and its courier starts at the origin, then control returns to the Runner. Physics, score
+and replay inputs are unchanged. This is the start of making the loop fun, not a claim that it
+already is.
 
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 

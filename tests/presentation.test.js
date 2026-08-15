@@ -8,7 +8,9 @@ import {
   getPlayfieldLabelTopMargin,
   getPlayfieldLabelVerticalBounds,
   getPublishedWardenState,
+  getRelayCourierTravelProgress,
   getRelayLinkOpacity,
+  getRelayRevealLookTarget,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
@@ -125,6 +127,45 @@ test('loop objective teaches relays, then circuits, then Command', () => {
     () => getLoopObjectivePresentation({ liveRelayCount: 1 }),
     /requires relay, circuit and Warden state/,
   );
+});
+
+test('relay reveal camera frames the new link without losing the Runner', () => {
+  assert.deepEqual(getRelayRevealLookTarget({
+    origin: { x: -24, y: -10 },
+    destination: { x: -10, y: -9 },
+    runner: { x: -13, y: -9 },
+    viewportWorldWidth: 20,
+    viewportWorldHeight: 24,
+  }), { x: -17, y: -9.5 });
+  assert.deepEqual(getRelayRevealLookTarget({
+    origin: { x: 0, y: 0 },
+    destination: { x: 40, y: 0 },
+    runner: { x: 40, y: 0 },
+    viewportWorldWidth: 20,
+    viewportWorldHeight: 24,
+  }), { x: 32.4, y: 0 });
+  assert.throws(
+    () => getRelayRevealLookTarget({
+      origin: { x: 0, y: 0 },
+      destination: { x: 1, y: 1 },
+      runner: { x: 0, y: 0 },
+      viewportWorldWidth: 0,
+      viewportWorldHeight: 24,
+    }),
+    /positive viewport/,
+  );
+});
+
+test('new relay couriers depart from the origin of the live link', () => {
+  assert.deepEqual(getRelayCourierTravelProgress(0), {
+    travelProgress: 0,
+    isReturning: false,
+  });
+  assert.ok(Math.abs(getRelayCourierTravelProgress(1 / 0.11).travelProgress - 1) < 1e-12);
+  assert.equal(getRelayCourierTravelProgress(1 / 0.11).isReturning, false);
+  assert.equal(getRelayCourierTravelProgress(0.5 / 0.11).travelProgress, 0.5);
+  assert.equal(getRelayCourierTravelProgress(1.25 / 0.11).isReturning, true);
+  assert.throws(() => getRelayCourierTravelProgress(-1), /non-negative age/);
 });
 
 test('hidden Warden coach teaches the first shot then the triangulation beat', () => {

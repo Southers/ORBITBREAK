@@ -277,8 +277,11 @@ export function auditReleaseReadiness() {
         ?.openingBody.includes('leaves a relay')
       && MainSource.includes('getHiddenWardenRouteCoach(')
       && MainSource.includes('getLoopObjectivePresentation(')
-      && /id="ObjectiveLabel"[^>]*>RELAYS</.test(IndexHtml),
-    'The selected sector must teach the first landing before circuits, shields or Command.',
+      && /id="ObjectiveLabel"[^>]*>RELAYS</.test(IndexHtml)
+      && PresentationSource.includes('export function getRelayRevealLookTarget(')
+      && MainSource.includes('getRelayRevealLookTarget(')
+      && MainSource.includes('CourierStartTimesByLinkId'),
+    'The selected sector must teach the first landing and show each new relay before circuits, shields or Command.',
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
