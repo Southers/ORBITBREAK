@@ -89,6 +89,11 @@ export function auditReleaseReadiness() {
     'Terminal results must centre their unpaired rankings action.',
   );
   requireCondition(
+    /id="ReplayIndicator"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
+      && /\.replay-indicator\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),
+    'Replay progress must remain an atomic live status at a legible type floor.',
+  );
+  requireCondition(
     /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),
     'Release diagnostics must remain restricted to local development hosts.',
   );

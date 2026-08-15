@@ -575,9 +575,10 @@ button:focus-visible,
   border-radius: 999px;
   background: rgba(5, 17, 27, 0.78);
   color: #b8efff;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
   letter-spacing: 0.13em;
+  line-height: 1.2;
   white-space: nowrap;
   pointer-events: none;
   backdrop-filter: blur(9px);

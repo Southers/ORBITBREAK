@@ -549,6 +549,18 @@ and the browser reported no warnings or errors. The release audit protects both 
 the short-landscape override. This layout-only pass changes no focus order, input, score, physics,
 pursuit, replay or leaderboard behavior.
 
+Gauntlet pass 26 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The verified replay's only persistent progress cue used 9px type
+and a polite live region without atomic semantics, weakening both visual and assistive continuity on a
+primary result action. Replay progress now has a 10px floor, explicit line height and `status`/atomic
+semantics, so each complete `WATCHING VERIFIED REPLAY · n / 6` update is announced as one message. An
+authentic six-launch route produced a replay-verified 11,250 result; `Watch replay` focused the canvas,
+hid the result and advanced the indicator from 0/6 through its complete updates. The 244.6×29.6px cue
+remained visible and overflow-free at 1280×720 and 390×844. Starting it again and pressing `R` cleared
+playback, hid the cue, restored recording state and retained canvas focus. The browser reported no
+warnings or errors. The release audit protects both semantic and type-size floors. This accessibility
+pass changes no replay schedule, fixed-step input, physics, score, pursuit or submission behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
