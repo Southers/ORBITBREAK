@@ -84,7 +84,8 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob85` passes deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob86` passes deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Living worlds now mix houses, workshops and docks on the same scar kit, with window/street instances and crowds that densify to twelve people on a circuit. Trade hulls dwell at the dock, light the pier and gather nearby walkers. Reduced motion skips the pause.
 - Campaign story boards wait for the wrapping liberation and relay look, then freeze the sim. Continue and Skip disconnect dialogue voices and restore the game bed. Aiming snaps to the sector frame and no longer inherits landed pan/zoom, so fog cannot swallow the predicted path.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.

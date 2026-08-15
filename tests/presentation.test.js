@@ -9,6 +9,7 @@ import {
   getPlayfieldLabelVerticalBounds,
   getPublishedWardenState,
   getRelayCourierTravelProgress,
+  getCourierDockWorldRole,
   getRelayLinkOpacity,
   getRelayRevealLookTarget,
   getSectorPlanningCamera,
@@ -27,6 +28,10 @@ import {
   getTradeHullScale,
   getTradeHullColor,
   getProsperityPresence,
+  getProsperityBuildingKind,
+  getProsperityBuildingProfile,
+  getLivingInhabitantSlotCount,
+  shouldShowInhabitantSlot,
   getInhabitantSilhouette,
   getWorldLifeAudioMix,
   isInnerClusterLive,
@@ -188,11 +193,20 @@ test('new relay couriers depart from the origin of the live link', () => {
   assert.deepEqual(getRelayCourierTravelProgress(0), {
     travelProgress: 0,
     isReturning: false,
+    isDocked: false,
   });
   assert.ok(Math.abs(getRelayCourierTravelProgress(1 / 0.11).travelProgress - 1) < 1e-12);
   assert.equal(getRelayCourierTravelProgress(1 / 0.11).isReturning, false);
   assert.equal(getRelayCourierTravelProgress(0.5 / 0.11).travelProgress, 0.5);
   assert.equal(getRelayCourierTravelProgress(1.25 / 0.11).isReturning, true);
+  const DockedArrival = getRelayCourierTravelProgress(1 / 0.11, { dwellRatio: 0.12 });
+  assert.equal(DockedArrival.isDocked, true);
+  assert.equal(DockedArrival.travelProgress, 1);
+  assert.equal(getCourierDockWorldRole(DockedArrival), 'destination');
+  const DockedOrigin = getRelayCourierTravelProgress(0, { dwellRatio: 0.12 });
+  assert.equal(DockedOrigin.isDocked, true);
+  assert.equal(getCourierDockWorldRole(DockedOrigin), 'origin');
+  assert.equal(getCourierDockWorldRole({ travelProgress: 1, isDocked: false }), null);
   assert.throws(() => getRelayCourierTravelProgress(-1), /non-negative age/);
 });
 
@@ -611,6 +625,31 @@ test('prosperity densifies from a first link to busy routes and circuits', () =>
   assert.equal(getProsperityPresence('linked'), 0.78);
   assert.equal(getProsperityPresence('busy'), 1);
   assert.equal(getProsperityPresence('circuit'), 1.12);
+  assert.equal(getProsperityBuildingKind('linked', 2), 'house');
+  assert.equal(getProsperityBuildingKind('busy', 0), 'house');
+  assert.equal(getProsperityBuildingKind('busy', 1), 'workshop');
+  assert.equal(getProsperityBuildingKind('circuit', 2), 'dock');
+  assert.equal(getProsperityBuildingKind('isolated', 0), null);
+  assert.equal(getProsperityBuildingProfile('dock').height < getProsperityBuildingProfile('house').height, true);
+  assert.equal(getLivingInhabitantSlotCount('isolated'), 3);
+  assert.equal(getLivingInhabitantSlotCount('linked'), 6);
+  assert.equal(getLivingInhabitantSlotCount('busy'), 9);
+  assert.equal(getLivingInhabitantSlotCount('circuit'), 12);
+  assert.equal(shouldShowInhabitantSlot({
+    lifeStage: 'tyrant',
+    prosperityStage: 'tyrant',
+    slotIndex: 5,
+  }), true);
+  assert.equal(shouldShowInhabitantSlot({
+    lifeStage: 'tyrant',
+    prosperityStage: 'tyrant',
+    slotIndex: 6,
+  }), false);
+  assert.equal(shouldShowInhabitantSlot({
+    lifeStage: 'living',
+    prosperityStage: 'circuit',
+    slotIndex: 11,
+  }), true);
   assert.equal(getInhabitantSilhouette(0).kind, 'worker');
   assert.equal(getInhabitantSilhouette(1).kind, 'child');
   assert.equal(getInhabitantSilhouette(2).kind, 'pack');

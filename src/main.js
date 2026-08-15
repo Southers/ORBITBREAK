@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260815-ob85';
+import { WorldseedAudio } from './audio.js?v=20260815-ob86';
 import {
   SurfaceGestureModes,
   adjustSurfaceAngle,
@@ -100,6 +100,7 @@ import {
 } from './records.js?v=20260814-ob8';
 import {
   getExtractionFreighterTravelProgress,
+  getCourierDockWorldRole,
   getHiddenWardenRouteCoach,
   getInhabitantSilhouette,
   getLandedCameraScale,
@@ -112,6 +113,8 @@ import {
   isCampaignStoryBoardReadyToPresent,
   getPersonalBestStatus,
   getPlayfieldLabelVerticalBounds,
+  getProsperityBuildingKind,
+  getProsperityBuildingProfile,
   getProsperityPresence,
   getProsperityStage,
   getPublishedWardenState,
@@ -128,6 +131,7 @@ import {
   getSlingshotBandVisualState,
   getSlingshotPreviewPresentation,
   getStillnessPresentation,
+  shouldShowInhabitantSlot,
   getTradeHullColor,
   getTradeHullKind,
   getTradeHullScale,
@@ -141,7 +145,7 @@ import {
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob85';
+} from './presentation.js?v=20260815-ob86';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -315,7 +319,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob85';
+GameCanvas.dataset.build = '20260815-ob86';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -3137,11 +3141,87 @@ ProsperityBuildingMesh.frustumCulled = false;
 Scene.add(ProsperityBuildingMesh);
 const ProsperityBuildingTransform = new THREE.Object3D();
 const ProsperityBuildingColor = new THREE.Color();
+const ProsperityWindowCapacity = Math.max(1, OccupationScarCapacity * 2);
+const ProsperityWindowMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffe29a,
+  transparent: true,
+  opacity: 0.92,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  vertexColors: true,
+  toneMapped: false,
+});
+const ProsperityWindowMesh = new THREE.InstancedMesh(
+  new THREE.BoxGeometry(0.12, 0.1, 0.06),
+  ProsperityWindowMaterial,
+  ProsperityWindowCapacity,
+);
+ProsperityWindowMesh.count = 0;
+ProsperityWindowMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+ProsperityWindowMesh.frustumCulled = false;
+Scene.add(ProsperityWindowMesh);
+const ProsperityWindowTransform = new THREE.Object3D();
+const ProsperityWindowColor = new THREE.Color();
 let VisibleProsperityBuildingCount = -1;
+const DockedWorldIdentifiers = new Set();
+const DockGatherAngleByWorldId = new Map();
 GameCanvas.dataset.prosperityBuildingCount = String(OccupationScarInstances.length);
+
+function getTradeCourierDwellRatio() {
+  return PrefersReducedMotion ? 0 : 0.12;
+}
+
+function refreshDockedTradeState(ElapsedTimeSeconds) {
+  DockedWorldIdentifiers.clear();
+  DockGatherAngleByWorldId.clear();
+  const Links = listLiveRelayLinks(RelayNetworkState);
+  const LiveCircuitLinkIdentifiers = new Set(
+    listLiveRelayCircuits(RelayNetworkState).flatMap((Circuit) => Circuit.linkIdentifiers),
+  );
+  for (const Link of Links) {
+    const Origin = getWorldDefinition(Link.originWorldIdentifier);
+    const Destination = getWorldDefinition(Link.destinationWorldIdentifier);
+    const InLiveCircuit = LiveCircuitLinkIdentifiers.has(Link.id);
+    const ShipCount = getLiveLinkShipCount({
+      originDegree: getRelayDegree(RelayNetworkState, Link.originWorldIdentifier),
+      destinationDegree: getRelayDegree(RelayNetworkState, Link.destinationWorldIdentifier),
+      inLiveCircuit: InLiveCircuit,
+    });
+    for (let ShipSlot = 0; ShipSlot < ShipCount; ShipSlot += 1) {
+      const CourierAgeSeconds = (
+        CourierStartTimesByLinkId.has(Link.id)
+          ? Math.max(0, ElapsedTimeSeconds - CourierStartTimesByLinkId.get(Link.id))
+          : ((ElapsedTimeSeconds * 0.11) + (Link.sequenceIndex * 0.37)) / 0.11
+      ) + (ShipSlot * 4.2);
+      const CourierTravel = getRelayCourierTravelProgress(CourierAgeSeconds, {
+        dwellRatio: getTradeCourierDwellRatio(),
+      });
+      const DockRole = getCourierDockWorldRole(CourierTravel);
+      if (!DockRole) {
+        continue;
+      }
+      const DockWorld = DockRole === 'destination' ? Destination : Origin;
+      DockedWorldIdentifiers.add(DockWorld.id);
+      const DockAngles = DockWorld.occupationScarAngles ?? [];
+      const GatherAngle = DockAngles.find((Angle, PatternIndex) => (
+        getProsperityBuildingKind(
+          getProsperityStage({
+            restored: DockWorld.restored,
+            liveLinkCount: getRelayDegree(RelayNetworkState, DockWorld.id),
+            inLiveCircuit: isWorldInLiveCircuit(DockWorld.id),
+          }),
+          PatternIndex,
+        ) === 'dock'
+      )) ?? DockAngles[0] ?? 0;
+      DockGatherAngleByWorldId.set(DockWorld.id, GatherAngle);
+    }
+  }
+  GameCanvas.dataset.dockedWorlds = [...DockedWorldIdentifiers].sort().join(',');
+}
 
 function updateProsperityBuildingVisuals(ElapsedTimeSeconds) {
   let NextVisibleProsperityBuildingCount = 0;
+  let NextVisibleWindowCount = 0;
   const ProsperityKinds = [];
   for (let ScarIndex = 0; ScarIndex < OccupationScarInstances.length; ScarIndex += 1) {
     const Scar = OccupationScarInstances[ScarIndex];
@@ -3152,56 +3232,127 @@ function updateProsperityBuildingVisuals(ElapsedTimeSeconds) {
       inLiveCircuit: isWorldInLiveCircuit(Scar.worldDefinition.id),
     });
     const Presence = getProsperityPresence(ProsperityStage);
+    const BuildingKind = getProsperityBuildingKind(ProsperityStage, Scar.patternIndex);
+    const BuildingProfile = getProsperityBuildingProfile(BuildingKind);
     if (Scar.patternIndex === 0) {
-      ProsperityKinds.push(`${Scar.worldDefinition.id}:${ProsperityStage}`);
+      ProsperityKinds.push(`${Scar.worldDefinition.id}:${ProsperityStage}:${BuildingKind ?? 'none'}`);
     }
-    if (Presence <= 0.04) {
+    const HideBuilding = Presence <= 0.04 || !BuildingProfile;
+    if (HideBuilding) {
       ProsperityBuildingTransform.scale.set(0, 0, 0);
       ProsperityBuildingTransform.position.set(0, 0, -8);
       ProsperityBuildingTransform.updateMatrix();
       ProsperityBuildingMesh.setMatrixAt(ScarIndex, ProsperityBuildingTransform.matrix);
+    } else {
+      NextVisibleProsperityBuildingCount += 1;
+      const RadialX = Math.cos(Scar.angle);
+      const RadialY = Math.sin(Scar.angle);
+      const Height = BuildingProfile.height
+        * Presence
+        * (1 + ((Scar.patternIndex % 3) * 0.08));
+      const IsDockLit = BuildingKind === 'dock'
+        && DockedWorldIdentifiers.has(Scar.worldDefinition.id);
+      ProsperityBuildingTransform.position.set(
+        Scar.worldDefinition.position.x
+          + (RadialX * (Scar.worldDefinition.radius + (Height * 0.08))),
+        Scar.worldDefinition.position.y
+          + (RadialY * (Scar.worldDefinition.radius + (Height * 0.08))),
+        0.32 + ((Scar.patternIndex % 2) * 0.04),
+      );
+      ProsperityBuildingTransform.rotation.set(0, 0, Scar.angle - (Math.PI * 0.5));
+      ProsperityBuildingTransform.scale.set(
+        BuildingProfile.width * Presence,
+        Height,
+        BuildingProfile.depth * Presence,
+      );
+      ProsperityBuildingTransform.updateMatrix();
+      ProsperityBuildingMesh.setMatrixAt(ScarIndex, ProsperityBuildingTransform.matrix);
+      ProsperityBuildingColor.set(Scar.worldDefinition.restoration.waveColor);
+      if (ProsperityStage === 'circuit') {
+        ProsperityBuildingColor.lerp(new THREE.Color(0xffe7b0), 0.35);
+      }
+      if (IsDockLit) {
+        ProsperityBuildingColor.lerp(new THREE.Color(0xfff4c8), 0.55);
+      }
+      ProsperityBuildingMesh.setColorAt(ScarIndex, ProsperityBuildingColor);
+
+      const WindowSlot = ScarIndex * 2;
+      const StreetSlot = WindowSlot + 1;
+      if (BuildingProfile.hasWindow) {
+        ProsperityWindowTransform.position.set(
+          Scar.worldDefinition.position.x
+            + (RadialX * (Scar.worldDefinition.radius + (Height * 0.42))),
+          Scar.worldDefinition.position.y
+            + (RadialY * (Scar.worldDefinition.radius + (Height * 0.42))),
+          0.38 + (Height * 0.22),
+        );
+        ProsperityWindowTransform.rotation.set(0, 0, Scar.angle - (Math.PI * 0.5));
+        ProsperityWindowTransform.scale.set(Presence, Presence * (IsDockLit ? 1.25 : 1), Presence);
+        ProsperityWindowTransform.updateMatrix();
+        ProsperityWindowMesh.setMatrixAt(WindowSlot, ProsperityWindowTransform.matrix);
+        ProsperityWindowColor.setHex(ProsperityStage === 'circuit' ? 0xfff0c4 : 0xffd27a);
+        ProsperityWindowMesh.setColorAt(WindowSlot, ProsperityWindowColor);
+        NextVisibleWindowCount += 1;
+      } else {
+        ProsperityWindowTransform.scale.set(0, 0, 0);
+        ProsperityWindowTransform.position.set(0, 0, -8);
+        ProsperityWindowTransform.updateMatrix();
+        ProsperityWindowMesh.setMatrixAt(WindowSlot, ProsperityWindowTransform.matrix);
+      }
+      if (BuildingProfile.hasStreet) {
+        ProsperityWindowTransform.position.set(
+          Scar.worldDefinition.position.x
+            + (RadialX * (Scar.worldDefinition.radius + 0.02)),
+          Scar.worldDefinition.position.y
+            + (RadialY * (Scar.worldDefinition.radius + 0.02)),
+          0.18,
+        );
+        ProsperityWindowTransform.rotation.set(0, 0, Scar.angle - (Math.PI * 0.5));
+        ProsperityWindowTransform.scale.set(2.4 * Presence, 0.18 * Presence, 0.7 * Presence);
+        ProsperityWindowTransform.updateMatrix();
+        ProsperityWindowMesh.setMatrixAt(StreetSlot, ProsperityWindowTransform.matrix);
+        ProsperityWindowColor.setHex(0x6a5a48);
+        ProsperityWindowMesh.setColorAt(StreetSlot, ProsperityWindowColor);
+        NextVisibleWindowCount += 1;
+      } else {
+        ProsperityWindowTransform.scale.set(0, 0, 0);
+        ProsperityWindowTransform.position.set(0, 0, -8);
+        ProsperityWindowTransform.updateMatrix();
+        ProsperityWindowMesh.setMatrixAt(StreetSlot, ProsperityWindowTransform.matrix);
+      }
       continue;
     }
-    NextVisibleProsperityBuildingCount += 1;
-    const RadialX = Math.cos(Scar.angle);
-    const RadialY = Math.sin(Scar.angle);
-    const IsWorkshop = ProsperityStage !== 'linked' && Scar.patternIndex % 2 === 1;
-    const Height = (IsWorkshop ? 1.28 : 0.92)
-      * Presence
-      * (1 + ((Scar.patternIndex % 3) * 0.08));
-    const Width = IsWorkshop ? 0.72 : 1;
-    ProsperityBuildingTransform.position.set(
-      Scar.worldDefinition.position.x
-        + (RadialX * (Scar.worldDefinition.radius + (Height * 0.08))),
-      Scar.worldDefinition.position.y
-        + (RadialY * (Scar.worldDefinition.radius + (Height * 0.08))),
-      0.32 + ((Scar.patternIndex % 2) * 0.04),
-    );
-    ProsperityBuildingTransform.rotation.set(0, 0, Scar.angle - (Math.PI * 0.5));
-    ProsperityBuildingTransform.scale.set(Width * Presence, Height, Width * Presence);
-    ProsperityBuildingTransform.updateMatrix();
-    ProsperityBuildingMesh.setMatrixAt(ScarIndex, ProsperityBuildingTransform.matrix);
-    ProsperityBuildingColor.set(Scar.worldDefinition.restoration.waveColor);
-    if (ProsperityStage === 'circuit') {
-      ProsperityBuildingColor.lerp(new THREE.Color(0xffe7b0), 0.35);
-    }
-    ProsperityBuildingMesh.setColorAt(ScarIndex, ProsperityBuildingColor);
+    const WindowSlot = ScarIndex * 2;
+    ProsperityWindowTransform.scale.set(0, 0, 0);
+    ProsperityWindowTransform.position.set(0, 0, -8);
+    ProsperityWindowTransform.updateMatrix();
+    ProsperityWindowMesh.setMatrixAt(WindowSlot, ProsperityWindowTransform.matrix);
+    ProsperityWindowMesh.setMatrixAt(WindowSlot + 1, ProsperityWindowTransform.matrix);
   }
   if (OccupationScarInstances.length > 0) {
     ProsperityBuildingMesh.instanceMatrix.needsUpdate = true;
     if (ProsperityBuildingMesh.instanceColor) {
       ProsperityBuildingMesh.instanceColor.needsUpdate = true;
     }
+    ProsperityWindowMesh.instanceMatrix.needsUpdate = true;
+    if (ProsperityWindowMesh.instanceColor) {
+      ProsperityWindowMesh.instanceColor.needsUpdate = true;
+    }
   }
+  ProsperityWindowMesh.count = OccupationScarInstances.length * 2;
   const HasLiveCircuit = listLiveRelayCircuits(RelayNetworkState).length > 0;
   const WindowPulse = PrefersReducedMotion
     ? 0.38
     : 0.28 + (Math.sin(ElapsedTimeSeconds * (HasLiveCircuit ? 4.2 : 2.4)) * 0.16);
   ProsperityBuildingMaterial.emissiveIntensity = WindowPulse;
+  ProsperityWindowMaterial.opacity = PrefersReducedMotion
+    ? 0.72
+    : 0.64 + (Math.sin(ElapsedTimeSeconds * (HasLiveCircuit ? 5.1 : 2.8)) * 0.18);
   if (VisibleProsperityBuildingCount !== NextVisibleProsperityBuildingCount) {
     VisibleProsperityBuildingCount = NextVisibleProsperityBuildingCount;
     GameCanvas.dataset.visibleProsperityBuildingCount = String(VisibleProsperityBuildingCount);
   }
+  GameCanvas.dataset.visibleProsperityWindowCount = String(NextVisibleWindowCount);
   GameCanvas.dataset.prosperityStages = ProsperityKinds.join(',');
 }
 
@@ -3222,7 +3373,7 @@ const InhabitantInstances = WorldDefinitions.flatMap((WorldDefinition, WorldInde
   if (!MineAngles) {
     return [];
   }
-  return Array.from({ length: 6 }, (_, InhabitantIndex) => ({
+  return Array.from({ length: 12 }, (_, InhabitantIndex) => ({
     worldDefinition: WorldDefinition,
     slotIndex: InhabitantIndex,
     role: InhabitantIndex < 2 ? 'guard' : 'civilian',
@@ -3288,11 +3439,19 @@ function updateInhabitantVisuals(ElapsedTimeSeconds) {
       Inhabitant.worldDefinition.restored,
       RestorationProgress,
     );
-    const IsolatedVisible = LifeStage !== 'isolated' || Inhabitant.slotIndex < 3;
+    const IsolatedVisible = shouldShowInhabitantSlot({
+      lifeStage: LifeStage,
+      prosperityStage: getProsperityStage({
+        restored: Inhabitant.worldDefinition.restored,
+        liveLinkCount: LiveLinkCount,
+        inLiveCircuit: isWorldInLiveCircuit(Inhabitant.worldDefinition.id),
+      }),
+      slotIndex: Inhabitant.slotIndex,
+    });
     const FreeEmergence = Inhabitant.worldDefinition.restored && IsolatedVisible
       ? THREE.MathUtils.smoothstep(Math.max(0, RestorationProgress), 0.54, 0.96)
       : 0;
-    const Presence = Math.max(TyrantStrength, FreeEmergence);
+    const Presence = IsolatedVisible ? Math.max(TyrantStrength, FreeEmergence) : 0;
     if (Presence <= 0.08) {
       InhabitantTransform.scale.set(0, 0, 0);
       InhabitantTransform.position.set(0, 0, -8);
@@ -3313,7 +3472,17 @@ function updateInhabitantVisuals(ElapsedTimeSeconds) {
         (ElapsedTimeSeconds * Inhabitant.profile.speed) + Inhabitant.phase,
       ) * Inhabitant.profile.stride * THREE.MathUtils.lerp(0.35, 1, Freedom);
     const HeldAngle = Inhabitant.mineAngle + (IsGuard ? 0.1 : -0.14);
-    const FreeAngle = Inhabitant.baseAngle + WalkingOffset;
+    const GatherAngle = DockGatherAngleByWorldId.get(Inhabitant.worldDefinition.id);
+    const GatherBlend = GatherAngle === undefined || IsGuard || TyrantStrength > 0.35
+      ? 0
+      : 0.72;
+    const FreeAngle = GatherBlend > 0
+      ? THREE.MathUtils.lerp(
+        Inhabitant.baseAngle + WalkingOffset,
+        GatherAngle,
+        GatherBlend,
+      )
+      : Inhabitant.baseAngle + WalkingOffset;
     const SurfaceAngle = THREE.MathUtils.lerp(HeldAngle, FreeAngle, Freedom);
     const RadialX = Math.cos(SurfaceAngle);
     const RadialY = Math.sin(SurfaceAngle);
@@ -3489,9 +3658,16 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
           ? Math.max(0, ElapsedTimeSeconds - CourierStartTimesByLinkId.get(Link.id))
           : ((ElapsedTimeSeconds * 0.11) + (Link.sequenceIndex * 0.37)) / 0.11
       ) + (ShipSlot * 4.2);
-      const CourierTravel = getRelayCourierTravelProgress(CourierAgeSeconds);
-      const LaneOffset = (ShipSlot === 0 ? 0.55 : -0.72)
-        * Math.sin(CourierTravel.travelProgress * Math.PI);
+      const CourierTravel = getRelayCourierTravelProgress(CourierAgeSeconds, {
+        dwellRatio: getTradeCourierDwellRatio(),
+      });
+      const LaneOffset = CourierTravel.isDocked
+        ? 0
+        : (ShipSlot === 0 ? 0.55 : -0.72)
+          * Math.sin(CourierTravel.travelProgress * Math.PI);
+      const FlightHeight = CourierTravel.isDocked
+        ? 0.22
+        : 0.3 + (Math.sin(CourierTravel.travelProgress * Math.PI) * 0.75);
       TradeShipTransform.position.set(
         THREE.MathUtils.lerp(
           Origin.position.x,
@@ -3503,7 +3679,7 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
           Destination.position.y,
           CourierTravel.travelProgress,
         ) + (NormalY * LaneOffset),
-        0.3 + (Math.sin(CourierTravel.travelProgress * Math.PI) * 0.75),
+        FlightHeight,
       );
       TradeShipTransform.rotation.set(
         0,
@@ -3517,6 +3693,9 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
       TradeShipTransform.updateMatrix();
       TradeShipMesh.setMatrixAt(ShipIndex, TradeShipTransform.matrix);
       TradeShipColor.setHex(getTradeHullColor(HullKind, InLiveCircuit));
+      if (CourierTravel.isDocked) {
+        TradeShipColor.lerp(new THREE.Color(0xfff4c8), 0.4);
+      }
       TradeShipMesh.setColorAt(ShipIndex, TradeShipColor);
       ShipIndex += 1;
     }
@@ -6003,7 +6182,7 @@ function presentStoryBoardPage(PageIndex, { playVoice = false } = {}) {
   BriefingProgressElement.textContent = Presentation.progressLabel;
   BriefingContinueButtonElement.textContent = Presentation.continueLabel;
   BriefingSkipButtonElement.textContent = Board.skipLabel;
-  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob85`;
+  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob86`;
   BriefingPortraitElement.alt = Presentation.speaker;
   OpeningBriefingElement.classList.remove(
     'is-warden',
@@ -9884,6 +10063,7 @@ function renderFrame() {
 
   updateWorldRestorationVisuals(ElapsedTimeSeconds);
   updateOccupationScarVisuals(ElapsedTimeSeconds);
+  refreshDockedTradeState(ElapsedTimeSeconds);
   updateProsperityBuildingVisuals(ElapsedTimeSeconds);
   updateExtractionFreighterVisuals(ElapsedTimeSeconds);
   updateInhabitantVisuals(ElapsedTimeSeconds);

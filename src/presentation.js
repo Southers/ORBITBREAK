@@ -211,6 +211,63 @@ export function getProsperityPresence(stage) {
   return 0;
 }
 
+/** Linked worlds are all houses; busy and circuit mix workshops and docks on the same scars. */
+export function getProsperityBuildingKind(stage, patternIndex = 0) {
+  if (stage !== 'linked' && stage !== 'busy' && stage !== 'circuit') {
+    return null;
+  }
+  if (!Number.isInteger(patternIndex) || patternIndex < 0) {
+    throw new Error('Prosperity building kind requires a non-negative pattern index.');
+  }
+  if (stage === 'linked') {
+    return 'house';
+  }
+  return ['house', 'workshop', 'dock'][patternIndex % 3];
+}
+
+export function getProsperityBuildingProfile(kind) {
+  const Profiles = {
+    house: { height: 0.92, width: 1, depth: 0.9, hasWindow: true, hasStreet: true },
+    workshop: { height: 1.42, width: 0.62, depth: 0.72, hasWindow: true, hasStreet: false },
+    dock: { height: 0.34, width: 1.62, depth: 0.7, hasWindow: false, hasStreet: false },
+  };
+  return Profiles[kind] ?? null;
+}
+
+/** Isolated stays a quiet trio; living crowds densify with degree without extra draws. */
+export function getLivingInhabitantSlotCount(stage) {
+  if (stage === 'isolated') {
+    return 3;
+  }
+  if (stage === 'linked') {
+    return 6;
+  }
+  if (stage === 'busy') {
+    return 9;
+  }
+  if (stage === 'circuit') {
+    return 12;
+  }
+  return 0;
+}
+
+export function shouldShowInhabitantSlot({
+  lifeStage,
+  prosperityStage,
+  slotIndex,
+} = {}) {
+  if (!Number.isInteger(slotIndex) || slotIndex < 0) {
+    throw new Error('Inhabitant slot requires a non-negative index.');
+  }
+  if (lifeStage === 'tyrant') {
+    return slotIndex < 6;
+  }
+  if (lifeStage === 'isolated') {
+    return slotIndex < 3;
+  }
+  return slotIndex < getLivingInhabitantSlotCount(prosperityStage);
+}
+
 /** Worker, child-scale and pack silhouettes share one inhabitant draw. */
 export function getInhabitantSilhouette(slotIndex) {
   if (!Number.isInteger(slotIndex) || slotIndex < 0) {
@@ -478,7 +535,7 @@ export function getRelayRevealLookTarget({
 /** Starts each new courier at the origin of its live link instead of mid-route. */
 export function getRelayCourierTravelProgress(
   ElapsedSinceCreatedSeconds,
-  { cycleSpeed = 0.11 } = {},
+  { cycleSpeed = 0.11, dwellRatio = 0 } = {},
 ) {
   if (!Number.isFinite(ElapsedSinceCreatedSeconds) || ElapsedSinceCreatedSeconds < 0) {
     throw new Error('Courier travel requires a non-negative age.');
@@ -486,12 +543,46 @@ export function getRelayCourierTravelProgress(
   if (!Number.isFinite(cycleSpeed) || cycleSpeed <= 0) {
     throw new Error('Courier travel requires a positive cycle speed.');
   }
+  if (!Number.isFinite(dwellRatio) || dwellRatio < 0 || dwellRatio > 0.24) {
+    throw new Error('Courier dwell must stay between 0 and 0.24 of a leg.');
+  }
   const CycleProgress = (ElapsedSinceCreatedSeconds * cycleSpeed) % 2;
   const IsReturning = CycleProgress > 1;
+  const LegProgress = IsReturning ? CycleProgress - 1 : CycleProgress;
+  let TravelProgress;
+  let IsDocked = false;
+  if (dwellRatio > 0 && LegProgress <= dwellRatio) {
+    TravelProgress = 0;
+    IsDocked = true;
+  } else if (dwellRatio > 0 && LegProgress >= 1 - dwellRatio) {
+    TravelProgress = 1;
+    IsDocked = true;
+  } else {
+    const Span = 1 - (2 * dwellRatio);
+    TravelProgress = Span <= 0 ? 1 : (LegProgress - dwellRatio) / Span;
+  }
+  if (IsReturning) {
+    TravelProgress = 1 - TravelProgress;
+  }
   return {
-    travelProgress: IsReturning ? 2 - CycleProgress : CycleProgress,
+    travelProgress: TravelProgress,
     isReturning: IsReturning,
+    isDocked: IsDocked,
   };
+}
+
+/** Docked hulls gather people at the destination on arrival and the origin on return. */
+export function getCourierDockWorldRole({
+  travelProgress,
+  isDocked = false,
+} = {}) {
+  if (isDocked !== true) {
+    return null;
+  }
+  if (!Number.isFinite(travelProgress)) {
+    throw new Error('Dock world role requires finite travel progress.');
+  }
+  return travelProgress >= 0.5 ? 'destination' : 'origin';
 }
 
 /** Colors a long-arc preview when the visible line already threads scoring wells. */

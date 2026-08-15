@@ -119,15 +119,20 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     MainSource.includes('ProsperityBuildingMesh')
+      && MainSource.includes('ProsperityWindowMesh')
+      && MainSource.includes('refreshDockedTradeState(')
       && MainSource.includes('getTradeHullKind(')
       && MainSource.includes('getInhabitantSilhouette(')
       && PresentationSource.includes('export function getProsperityPresence(')
+      && PresentationSource.includes('export function getProsperityBuildingKind(')
+      && PresentationSource.includes('export function shouldShowInhabitantSlot(')
+      && PresentationSource.includes('export function getCourierDockWorldRole(')
       && PresentationSource.includes('export function shouldRevealWarden(') === false
       && MainSource.includes('shouldReveal: getWardenRevealFlag()')
       && PresentationSource.includes('export function getRangeVeilStrength(')
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
         ?.rangeUnlockLine === 'The dark is not as wide as they said.',
-    'Living routes must grow houses and culture-true hulls, and the Warden must wait until the inner cluster plus one further world are live.',
+    'Living routes must grow houses, windows, docks and culture-true hulls, and the Warden must wait until the inner cluster plus one further world are live.',
   );
   requireCondition(
     /id="MotionButton"/.test(IndexHtml)

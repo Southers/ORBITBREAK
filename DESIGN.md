@@ -341,12 +341,11 @@ A still frame of three linked worlds shows different buildings, different ships 
 
 GitHub Pages being static does not mean the campaign stays quiet. These are the next ambitious layers, in roughly this order, while `main` stays playable:
 
-1. **Denser living surfaces.** Streets, docks that receive hulls, windows that actually occupy buildings, more than six people on a busy world. Keep the 190-call budget honest at 390×844.
+1. **Denser living surfaces.** Streets, docks that receive hulls, windows that occupy house facades, and up to twelve people on a busy/circuit world. Same inhabitant and prosperity draws plus one window/street instanced mesh.
 2. **World-specific arrival boards.** Tide, Frost and Bastion should speak in their own portraits when first linked, not only Ember and Grove.
-3. **Finale character.** Command should keep talking during the rim walk and Pulse, then the Reach should answer with a board before the score card.
-4. **Trade that docks.** Ships should arrive, pause, and leave cargo or light, not only slide on a spline.
-5. **Music that follows the network.** Hopeful neighbourhood, hunt ostinato, cracked-crown finale. In-engine first; sampled music only with credits.
-6. **External voices and image APIs.** ElevenLabs / Gemini can replace in-engine voices and generate more portraits when keys are supplied. They will not live in this repo and they are not required for the authored boards to exist.
+3. **Finale character.** Command should keep talking during the rim walk and Cut, then the Reach should answer with a board before the score card.
+4. **Music that follows the network.** Hopeful neighbourhood, hunt ostinato, cracked-crown finale. In-engine first; sampled music only with credits.
+5. **External voices and image APIs.** ElevenLabs / Gemini can replace in-engine voices and generate more portraits when keys are supplied. They will not live in this repo and they are not required for the authored boards to exist.
 
 Do not treat a toast, a HUD chip or a one-line coach as the delivery of those beats.
 
