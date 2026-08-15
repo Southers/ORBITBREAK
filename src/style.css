@@ -985,6 +985,12 @@ button:focus-visible,
   gap: 8px;
 }
 
+.result-actions--terminal #LeaderboardButton {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: calc((100% - 8px) / 2);
+}
+
 #PlayAgainButton {
   grid-column: 1 / -1;
 }
@@ -1218,5 +1224,11 @@ button:focus-visible,
 
   #PlayAgainButton {
     grid-column: auto;
+  }
+
+  .result-actions--terminal #LeaderboardButton {
+    grid-column: auto;
+    justify-self: stretch;
+    width: auto;
   }
 }

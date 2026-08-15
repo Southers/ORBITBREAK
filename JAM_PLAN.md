@@ -536,6 +536,19 @@ overflow-free at 1280×720, 390×844 and 844×390; the portrait action wrapped t
 height, while both landscape versions remained 45.2px high. No endpoint, submission or production
 behavior changed, and this disclosure pass changes no storage, score, physics, pursuit or replay state.
 
+Gauntlet pass 25 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The terminal result's three visible actions occupied a two-column
+grid as two buttons followed by one left-aligned button, leaving an accidental empty cell beneath the
+player's final accomplishment. Terminal systems now identify that state explicitly and centre the
+unpaired rankings action at desktop and portrait sizes; systems with a continuation keep their existing
+layout. An authentic six-launch route again closed both circuits, reached Command and produced a
+replay-verified 12,050 result. The rankings action landed within a fraction of a pixel of the action-row
+centre at 1280×720 and 390×844, remained fully visible at 225.2×45.2px and 148.9×66.8px respectively,
+and preserved three equal 232.8×45.2px actions at 844×390. All three layouts remained overflow-free
+and the browser reported no warnings or errors. The release audit protects both terminal centring and
+the short-landscape override. This layout-only pass changes no focus order, input, score, physics,
+pursuit, replay or leaderboard behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

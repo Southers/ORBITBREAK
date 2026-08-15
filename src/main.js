@@ -228,6 +228,7 @@ const ReplayIndicatorElement = document.querySelector('#ReplayIndicator');
 const RouteLabelElements = [...document.querySelectorAll('.route-label')];
 const TacticalLabelElements = [...document.querySelectorAll('.tactical-label')];
 const VictoryPanelElement = document.querySelector('#VictoryPanel');
+const ResultActionsElement = VictoryPanelElement.querySelector('.result-actions');
 const VictoryEyebrowElement = document.querySelector('#VictoryEyebrow');
 const VictoryTitleElement = document.querySelector('#VictoryTitle');
 const VictoryBodyElement = document.querySelector('#VictoryBody');
@@ -260,7 +261,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob54';
+GameCanvas.dataset.build = '20260815-ob55';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -477,6 +478,7 @@ function configureSystemInterface() {
     ? `Continue to ${getAuthoredSystemDefinition(NextSystemIdentifier).label}`
     : '';
   PlayAgainButtonElement.hidden = !CanContinueToNextSystem;
+  ResultActionsElement.classList.toggle('result-actions--terminal', !CanContinueToNextSystem);
 
   ObjectivePipsElement.replaceChildren();
   for (let PipIndex = 0; PipIndex < ActiveSystem.worldheartUnlockThreshold; PipIndex += 1) {
