@@ -27,7 +27,7 @@ Replace it in small playable checkpoints. Preserve working physics, tests and us
 - The Warden isolates worlds because connection creates freedom and disorder it cannot control.
 - The Runner uses a forbidden courier ship, the Orbitbreaker, to cross the silence and establish relay links.
 - A successful journey visibly changes the system: messages appear, settlements brighten and small trade ships travel between connected worlds.
-- The Warden appears after the first hopeful connections and predictably suppresses vulnerable worlds behind the Runner.
+- The Warden appears after the hopeful neighbourhood is visibly alive and the Runner has travelled further, then predictably suppresses vulnerable worlds behind the Runner.
 - Pursuit advances on resolved flights, not wall-clock time. Scouting and accessibility never create hidden disadvantage.
 - Landing links the origin and destination. Closed relay circuits form resilient loops; completing a new circuit pushes the Warden back and weakens its command vessel once per run.
 - The run ends by reaching and disabling the Warden's mobile Command World. An unfinished run cannot enter the ranked board.
@@ -59,7 +59,7 @@ Replace it in small playable checkpoints. Preserve working physics, tests and us
 5. Turn the Warden vessel into an orbital final encounter using established movement and gravity skills.
 6. Retune slingshot, liberation, network and victory scoring around the new complete run.
 7. Add a local personal-best ghost to the proven Scout and replay systems.
-8. Raise world detail, inhabitants, trade traffic, sound, story delivery and mobile polish.
+8. Raise world detail, inhabitants, trade traffic, scale, walking, spaced story delivery and mobile polish so connected worlds look prosperous before the Warden arrives.
 9. Prepare release evidence while leaving every external submission action user-controlled.
 
 If work does not improve agency, jeopardy, route choice, visible consequence or the Tiny Worlds fantasy, defer it.
