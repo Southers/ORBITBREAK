@@ -12,6 +12,7 @@ import {
 
 import {
   BreakerBurnImpulse,
+  MaximumLaunchSpeed,
   applyBreakerBurn,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
@@ -41,6 +42,11 @@ test('gravity accelerates the seed toward a world', () => {
   assert.ok(GravityAcceleration.x < 0, 'Gravity should pull toward the world centre.');
   assert.equal(GravityAcceleration.y, 0);
   assert.equal(GravityAcceleration.z, 0);
+});
+
+test('launch speed stays inside the gravity-assist range', () => {
+  assert.equal(MaximumLaunchSpeed, 12.5);
+  assert.ok(MaximumLaunchSpeed < 18, 'Full-power darts must not outrun every well.');
 });
 
 test('Breaker Burn adds one deterministic impulse along current heading', () => {

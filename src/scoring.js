@@ -18,6 +18,20 @@ export function getSlingshotBand(BodyDefinition) {
   };
 }
 
+/** Maps scoring clearances onto world-space ring radii for aim and flight presentation. */
+export function getSlingshotBandRadii(BodyDefinition, RunnerRadius) {
+  if (!(BodyDefinition?.radius > 0) || !(RunnerRadius > 0)) {
+    throw new Error('Slingshot band radii require a world radius and runner radius.');
+  }
+  const Band = getSlingshotBand(BodyDefinition);
+  const Surface = BodyDefinition.radius + RunnerRadius;
+  return {
+    assistRadius: Surface + Band.outerClearance,
+    deepRadius: Surface + Band.deepClearance,
+    razorRadius: Surface + Band.razorClearance,
+  };
+}
+
 export function createScoreState() {
   return {
     bankedScore: 0,

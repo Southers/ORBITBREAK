@@ -25,6 +25,8 @@ export function auditReleaseReadiness() {
   const IndexHtml = readRepositoryFile('index.html');
   const MainSource = readRepositoryFile('src/main.js');
   const PresentationSource = readRepositoryFile('src/presentation.js');
+  const PhysicsSource = readRepositoryFile('src/physics.js');
+  const ScoringSource = readRepositoryFile('src/scoring.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -58,6 +60,13 @@ export function auditReleaseReadiness() {
   requireCondition(
     MainBuildVersion === MainAssetVersion && MainBuildVersion === StyleAssetVersion,
     'HTML, CSS and published canvas build identifiers must match.',
+  );
+  requireCondition(
+    PhysicsSource.includes('export const MaximumLaunchSpeed = 12.5;')
+      && MainSource.includes('LaunchVelocityPerDragUnit = MaximumLaunchSpeed / MaximumDragDistance')
+      && MainSource.includes('updateSlingshotBandVisuals(')
+      && ScoringSource.includes('export function getSlingshotBandRadii('),
+    'Launch speed must stay inside the gravity-assist range and show scoring wells while aiming.',
   );
   requireCondition(
     /id="MotionButton"/.test(IndexHtml)

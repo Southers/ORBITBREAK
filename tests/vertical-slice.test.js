@@ -11,6 +11,7 @@ import {
   createVector,
   findCollidingBody,
   findCollidingWorld,
+  MaximumLaunchSpeed,
   predictTrajectory,
   simulatePhysicsStep,
 } from '../src/physics.js';
@@ -176,6 +177,27 @@ test("Breaker\'s Reach offers a readable safe route and a hidden high-score rout
   );
 });
 
+test("Breaker\'s Reach near-max opening shot can chain Ember and Grove into Tide", () => {
+  const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition, { createVector });
+  const ChainRoute = predictOpeningRoute(
+    Runtime.worlds,
+    Runtime.tacticalBodies,
+    25,
+    MaximumLaunchSpeed,
+  );
+
+  assert.equal(ChainRoute.collisionWorldIdentifier, 'tide');
+  const AssistEvents = predictSlingshotEvents(ChainRoute.points, Runtime.worlds, {
+    runnerRadius: SeedRadius,
+    ignoredBodyIdentifier: 'meadow',
+  });
+  assert.deepEqual(
+    AssistEvents.map((Event) => Event.bodyIdentifier),
+    ['ember', 'grove'],
+  );
+  assert.ok(AssistEvents.length >= 2);
+});
+
 test("Breaker\'s Reach dark-rim route requires repositioning and a timed Burn", () => {
   const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition, { createVector });
   const RouteInput = {
@@ -212,8 +234,8 @@ test("Breaker\'s Reach has a deterministic four-launch completion route", () => 
   const Route = [
     { source: 'meadow', target: 'ember', angle: 2 },
     { source: 'ember', target: 'grove', angle: 2 },
-    { source: 'grove', target: 'tide', angle: 8 },
-    { source: 'tide', target: 'worldheart', angle: 49.2 },
+    { source: 'grove', target: 'tide', angle: 28 },
+    { source: 'tide', target: 'worldheart', angle: 40 },
   ];
   let Position = createOpeningPosition(Runtime.worlds);
   let SimulationTimeSeconds = 0;
@@ -224,8 +246,8 @@ test("Breaker\'s Reach has a deterministic four-launch completion route", () => 
     const Prediction = predictTrajectory(
       Position,
       createVector(
-        Math.cos(AngleRadians) * 18.25,
-        Math.sin(AngleRadians) * 18.25,
+        Math.cos(AngleRadians) * MaximumLaunchSpeed,
+        Math.sin(AngleRadians) * MaximumLaunchSpeed,
         0,
       ),
       Runtime.worlds,

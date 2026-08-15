@@ -799,6 +799,13 @@ empty console. Release checks protect semantic Pulse state, portrait clearance, 
 compact actions. This accessibility-only pass changes no action timing, route, input mapping, camera,
 world position, physics, score, pursuit, replay or leaderboard behavior.
 
+Gameplay pass — 15 August 2026: full-power launches were ~18 and outran every well, so slingshot
+chains hid behind a fiddly mid-pull. Maximum launch speed is now 12.5: adjacent hops still complete,
+and a near-max opening line can thread Ember and Grove into Tide. Scoring rings appear while aiming
+or flying, and a long-arc preview turns gold when it already holds a chain. Gravity, Burn, replay
+inputs and anti-farming are unchanged. This deepens flight skill; it does not claim Gameplay is
+solved.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
