@@ -68,15 +68,15 @@ One resolved flight is still one pursuit beat, so a long slingshot chain is how 
 
 The starting world already carries the Runner's illegal relay. Every first landing on an occupied world activates another. A successful traversal between two active relays creates their link if it does not already exist. After a new landing the camera frames the live relay long enough to see the worlds answer, then returns to the Runner. Repeating an existing link remains useful for travel but creates no new network reward.
 
-Prosperity is staged from network state, never from wall-clock time:
+Prosperity is staged from network state, never from wall-clock time. Every world is always in one of three readable art states:
 
-1. **Occupied:** cages, dark windows, no people.
-2. **Awake:** the liberation wave reveals the local landmark and the first inhabitants.
-3. **Linked:** the origin and destination grow houses, workshops or docks; windows light; one culture-true ship begins the route.
-4. **Busy:** a second live connection adds industry, extra figures and a second hull on an offset lane.
-5. **Circuit:** the loop carries mixed traffic both ways, festival light and denser settlement. Suppression reverses the stage without erasing the canonical route.
+1. **Tyrant.** The Warden still owns it. Mines, fumes, guards, held people and outbound extraction freighters eat the surface. This is the default for occupied worlds, and the state suppression returns them to.
+2. **Isolated.** The cage is gone but the world is not yet talking. Haven starts here: a quiet garden, sparse people, no traffic. A freshly liberated world pauses here until its first live link.
+3. **Living.** At least one live relay. Houses, workshops and culture-true ships appear, then densify with each extra connection and with a closed circuit.
 
-A dashed line with one identical triangle is not the living network. Each live route should read as a specific trade: Ember barges, Grove leaf-sails, Tide hulls, Frost sled-skiffs. Buildings and people on the connected worlds must change enough that a still frame of three linked planets looks prosperous.
+Art is judged on that contrast. A still frame must show hell next to quiet next to prosperity without reading the HUD.
+
+A dashed line with one identical triangle is not the living network. Each live route should read as a specific trade: Ember barges, Grove leaf-sails, Tide hulls, Frost sled-skiffs. Living worlds densify with degree: a second connection adds industry and a second hull; a circuit carries mixed traffic both ways. Suppression reverses the art state without erasing the canonical route.
 
 A world with only one live connection is a vulnerable frontier node. A world is resilient only while it belongs to an intact closed circuit; merely sitting in the middle of a chain is not enough. Closing a new circuit in the network:
 
@@ -207,8 +207,7 @@ The Reach already has the verbs. What a new player actually sees does not yet ma
 - The objective still counts `RELAYS 1 / 3` toward a hunt that starts after two hops.
 - A live link is a luminous segment and one shared cone courier. That is a diagram, not prosperity.
 - Restored worlds grow one landmark and three identical walking pins. Houses, industry and crowds do not accumulate as more routes open.
-- The Runner visual scale is 1.18 against world radii of about 2.5–4.2, so the courier reads huge on the surface. Legs exist but do not walk.
-- Scout zoom only moves between 0.72 and 1.55. Landed follow does not give the planet stance.
+- The Runner visual scale is 0.52 against world radii of about 2.5–4.2, with a landed close camera and Scout zoom from 0.38 to 1.95, so miniature industry can read. Occupied worlds now show mines, fumes, guards, held people and outbound extraction; Haven stays the quiet garden. Living prosperity (houses, culture-true ships) is still the next art checkpoint.
 - Draw-call peaks already sit near the 190 budget, so new life must be instanced and pooled.
 
 Judging from current evidence, not intention: **Art** and **Theme** are the weak categories because connection does not look like life. **Gameplay** improved once the full path was visible, but the hunt still arrives before the hopeful act has a chance to exist.
@@ -285,17 +284,44 @@ Ember grows furnaces and barges. Grove grows canopies and leaf-sails. Tide grows
 - Coach copy stays one sentence. Controls appear when the verb is available (Burn in flight, Pulse on Bastion, Scout when the veil recedes).
 - Mobile must keep 44px controls, no overflow, and cards that do not cover the planet that just came alive.
 
+### Three visual states, equally authored
+
+Judging is primarily Art. The living-network kit is not enough if occupied worlds only wear red clamps. Tyrant, isolated and living need the same density of thought.
+
+**Tyrant (Warden-owned)**
+
+The surface is being eaten. Culture-specific extraction sits in the occupation scars:
+
+- Ember: furnace stacks, cinder fumes, ore barges hauled toward Command.
+- Grove: stripped root-heads, wood smoke, caged workers among the staples.
+- Tide: dredge cranes, oily vapour, hulls leaving with water and salt.
+- Frost: ice drills into a collapsing crust, steam, sled-skiffs of ore.
+- Bastion: prison yards under the watch battery, iron spines, courier cages.
+- Haven, if suppressed: the garden fenced into a work camp.
+
+Visible Warden staff stand the mines. Held people huddle and shuffle; they are not hidden offscreen. Dark freighters lift raw material toward the Command World and do not bring anything back. The crust is ashen, the air dirtier, the landmark crushed under industry. Liberation must look like those machines failing, fumes dying and people standing up.
+
+**Isolated (neutral / quiet)**
+
+No cage, no mines, no traffic. A few free inhabitants, the local landmark, dim windows. Haven’s opening garden is the reference: survival without exchange. This is the breath between tyranny and prosperity, so the first link can feel like a gift.
+
+**Living (connected)**
+
+The prosperity kit from Linked through Circuit. Extraction is gone. Trade hulls are culture-true and travel both ways. Houses and workshops replace pits. The same people who were held now walk the rim.
+
+Suppression slams a living world back to Tyrant without deleting its canonical route. Recapture plays Isolated then Living again as the first restored link relights.
+
 ### Checkpoint sequence
 
 Implement in this order. Each checkpoint is one coherent commit, with `npm test`, `npm run check` and a desktop plus portrait pass.
 
-1. **Opening purpose and spaced beats.** Replace the control-dump opening with the two-beat intro and one-line coaches. Stop promising the Warden before the hopeful act. No physics change.
-2. **Tiny courier, huge worlds.** Shrink Runner/ship visuals, closer landed follow, deeper zoom-in and wider zoom-out. Physics identity unchanged.
-3. **Walk and crowd.** Runner walk cycle; extra instanced inhabitants with culture silhouettes. Still circumference-only.
-4. **First prosperity jump.** A new live link grows houses/windows and replaces the shared cone with a culture-pair ship. Camera still frames the new lane.
-5. **Busy routes.** Degree 2 and circuits add offset lanes, a second hull and industry props. Draw-call budget proved on 390×844.
+1. **Tyrant / isolated / living contrast, plus a tiny Runner.** Occupied worlds show mines, fumes, guards, held people and outbound extraction. Haven stays the quiet garden. Shrink Runner/ship visuals, closer landed follow, deeper zoom-in. Physics identity unchanged.
+2. **Opening purpose and spaced beats.** Two-card intro; one-line coaches; no hunt promise before hope.
+3. **Walk and denser crowd.** Runner walk cycle; more culture silhouettes. Still circumference-only.
+4. **First prosperity jump.** New links grow houses/windows and a culture-true ship instead of one cone.
+5. **Busy routes.** Degree 2 and circuits add offset lanes, a second hull and industry. Prove 390×844.
 6. **Hopeful act and range veil.** Inner cluster recedes the outer veil and raises Scout zoom-out. Warden reveals only after one further landing. Update pursuit tests and golden replays.
-7. **Sound and breathing room.** Distinct dock, crowd and lane layers; hold the camera on prosperity before handing control back.
+7. **Sound and breathing room.** Distinct dock, crowd, mine and lane layers; hold the camera on the change before handing control back.
 8. **Stance retune if needed.** Larger world radii and well restance only if zoom and shrink were not enough. New `contentVersion`, new goldens, same verbs.
 
 Stop conditions:

@@ -11,7 +11,7 @@ import {
   getKeyboardAimDragVector,
   getScoutZoomPresentation,
   getSurfacePosition,
-} from './controls.js?v=20260815-ob59';
+} from './controls.js?v=20260815-ob79';
 import {
   createHostileEncounterState,
   getHostileEncounterAngularDistance,
@@ -38,7 +38,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob78';
+} from './content.js?v=20260815-ob79';
 
 import {
   countRestoredWorlds,
@@ -62,12 +62,13 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260815-ob78';
+} from './physics.js?v=20260815-ob79';
 import { createLeaderboardClient } from './leaderboard-client.js?v=20260814-ob9';
 import {
   connectRelayWorlds,
   countLiveRelayWorlds,
   createRelayNetworkState,
+  getRelayDegree,
   listLiveRelayCircuits,
   listLiveRelayLinks,
   listProtectedRelayWorlds,
@@ -91,7 +92,9 @@ import {
   savePersonalBest,
 } from './records.js?v=20260814-ob8';
 import {
+  getExtractionFreighterTravelProgress,
   getHiddenWardenRouteCoach,
+  getLandedCameraScale,
   getLiberationFlashOpacity,
   getLeaderboardActionLabel,
   getLoopObjectivePresentation,
@@ -110,12 +113,14 @@ import {
   getSlingshotBandVisualState,
   getSlingshotPreviewPresentation,
   getStillnessPresentation,
+  getTyrantOccupationStrength,
+  getWorldLifeStage,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob78';
+} from './presentation.js?v=20260815-ob79';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -154,7 +159,7 @@ import {
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260815-ob78';
+} from './scoring.js?v=20260815-ob79';
 
 const PageSearchParameters = new URLSearchParams(window.location.search);
 const RequestedSystemIdentifier = PageSearchParameters.get('system')
@@ -280,7 +285,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob78';
+GameCanvas.dataset.build = '20260815-ob79';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -410,14 +415,15 @@ let KeyboardAimState = createKeyboardAimState();
 let IsScoutMode = false;
 let RelayRevealLookTarget = null;
 const CourierStartTimesByLinkId = new Map();
-const MinimumScoutZoomScale = 0.72;
-const MaximumScoutZoomScale = 1.55;
+const MinimumScoutZoomScale = 0.38;
+const MaximumScoutZoomScale = 1.95;
 let ScoutZoomScale = 1;
 let IsPersonalBestGhostEnabled = false;
 let HasPersonalBestGhost = false;
 let BaseCameraDistance = 42;
 let CameraDistanceScale = 1;
 let PlanningCameraScale = 1;
+let RunnerWalkLifeSeconds = 0;
 let AimInteractionCamera = null;
 const PlanningCameraLookTarget = new THREE.Vector3();
 let FlightElapsedSeconds = 0;
@@ -476,7 +482,9 @@ const WorldRuntimeByIdentifier = new Map();
 const WorldRuntimesByVisualKey = new Map();
 const EmptyWorldRuntimeList = [];
 const ShaderMotionVisualKeys = ['grove', 'tide'];
-const DeadWorldColor = new THREE.Color(0x575d60);
+const DeadWorldColor = new THREE.Color(0x3f3532);
+const TyrantAtmosphereColor = new THREE.Color(0x5a2418);
+const AtmosphereRestoreColor = new THREE.Color();
 const DarkWorldColor = new THREE.Color(0x2c3337);
 const RestorableWorldCount = getRestorableWorlds(WorldDefinitions).length;
 const IsCampaignFinale = ActiveSystem.finale?.isCampaignFinale === true;
@@ -2812,14 +2820,22 @@ function updateSlingshotBandVisuals(ElapsedTimeSeconds) {
   if (SlingshotRazorMesh.instanceColor) SlingshotRazorMesh.instanceColor.needsUpdate = true;
 }
 
-/** Two pooled meshes pin culture-specific occupation clamps across every silenced world. */
+/** Instanced mines, clamps, fumes and haulers make Warden-owned worlds look eaten, not merely clamped. */
 const OccupationScarProfiles = {
   meadow: { height: 0.9, width: 0.82, depth: 0.82 },
-  ember: { height: 1.25, width: 0.62, depth: 0.78 },
-  grove: { height: 0.58, width: 1.18, depth: 0.72 },
-  tide: { height: 0.66, width: 1.3, depth: 0.68 },
-  frost: { height: 1.08, width: 0.72, depth: 0.88 },
-  vault: { height: 1.35, width: 0.78, depth: 0.92 },
+  ember: { height: 1.42, width: 0.7, depth: 0.86 },
+  grove: { height: 0.78, width: 1.18, depth: 0.72 },
+  tide: { height: 0.92, width: 1.3, depth: 0.68 },
+  frost: { height: 1.22, width: 0.72, depth: 0.88 },
+  vault: { height: 1.48, width: 0.78, depth: 0.92 },
+};
+const OccupationFumeColors = {
+  meadow: new THREE.Color(0x8a6a40),
+  ember: new THREE.Color(0xff5a24),
+  grove: new THREE.Color(0x6a5a38),
+  tide: new THREE.Color(0x4a5a48),
+  frost: new THREE.Color(0xb8c4cc),
+  vault: new THREE.Color(0x6a2030),
 };
 const OccupationScarInstances = WorldDefinitions.flatMap((WorldDefinition) => (
   (WorldDefinition.occupationScarAngles ?? []).map((Angle, PatternIndex) => ({
@@ -2828,6 +2844,7 @@ const OccupationScarInstances = WorldDefinitions.flatMap((WorldDefinition) => (
     patternIndex: PatternIndex,
     profile: OccupationScarProfiles[WorldDefinition.visualKey]
       ?? { height: 0.85, width: 0.8, depth: 0.8 },
+    fumeColor: OccupationFumeColors[WorldDefinition.visualKey] ?? OccupationFumeColors.vault,
   }))
 ));
 const OccupationScarCapacity = Math.max(1, OccupationScarInstances.length);
@@ -2838,8 +2855,19 @@ const OccupationScarMaterial = new THREE.MeshStandardMaterial({
   roughness: 0.4,
   metalness: 0.82,
 });
-const OccupationSpikeMesh = new THREE.InstancedMesh(
-  new THREE.ConeGeometry(0.14, 0.82, 4),
+const OccupationMineGeometry = new THREE.LatheGeometry([
+  new THREE.Vector2(0.42, -0.1),
+  new THREE.Vector2(0.36, 0.02),
+  new THREE.Vector2(0.14, 0.08),
+  new THREE.Vector2(0.11, 0.46),
+  new THREE.Vector2(0.28, 0.52),
+  new THREE.Vector2(0.08, 0.56),
+  new THREE.Vector2(0.07, 0.92),
+  new THREE.Vector2(0.13, 0.98),
+  new THREE.Vector2(0.04, 1.08),
+], 7);
+const OccupationMineMesh = new THREE.InstancedMesh(
+  OccupationMineGeometry,
   OccupationScarMaterial,
   OccupationScarCapacity,
 );
@@ -2848,16 +2876,57 @@ const OccupationClampMesh = new THREE.InstancedMesh(
   OccupationScarMaterial,
   OccupationScarCapacity,
 );
-OccupationSpikeMesh.count = OccupationScarInstances.length;
+const OccupationFumeMaterial = new THREE.MeshBasicMaterial({
+  color: 0xff6a32,
+  transparent: true,
+  opacity: 0.42,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  vertexColors: true,
+  toneMapped: false,
+});
+const OccupationFumeMesh = new THREE.InstancedMesh(
+  new THREE.ConeGeometry(0.16, 0.72, 6, 1, true),
+  OccupationFumeMaterial,
+  OccupationScarCapacity,
+);
+OccupationMineMesh.count = OccupationScarInstances.length;
 OccupationClampMesh.count = OccupationScarInstances.length;
-OccupationSpikeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+OccupationFumeMesh.count = OccupationScarInstances.length;
+OccupationMineMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 OccupationClampMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-OccupationSpikeMesh.frustumCulled = false;
+OccupationFumeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+OccupationMineMesh.frustumCulled = false;
 OccupationClampMesh.frustumCulled = false;
-Scene.add(OccupationSpikeMesh, OccupationClampMesh);
+OccupationFumeMesh.frustumCulled = false;
+Scene.add(OccupationMineMesh, OccupationClampMesh, OccupationFumeMesh);
 const OccupationScarTransform = new THREE.Object3D();
+const OccupationFumeColor = new THREE.Color();
 let VisibleOccupationScarCount = -1;
 GameCanvas.dataset.occupationScarCount = String(OccupationScarInstances.length);
+
+const ExtractionFreighterInstances = WorldDefinitions.filter(
+  (WorldDefinition) => Array.isArray(WorldDefinition.occupationScarAngles),
+);
+const ExtractionFreighterCapacity = Math.max(1, ExtractionFreighterInstances.length);
+const ExtractionFreighterMaterial = new THREE.MeshStandardMaterial({
+  color: 0x2a1418,
+  emissive: 0x8a2418,
+  emissiveIntensity: 0.7,
+  roughness: 0.46,
+  metalness: 0.72,
+});
+const ExtractionFreighterMesh = new THREE.InstancedMesh(
+  new THREE.CapsuleGeometry(0.08, 0.42, 3, 6),
+  ExtractionFreighterMaterial,
+  ExtractionFreighterCapacity,
+);
+ExtractionFreighterMesh.count = ExtractionFreighterInstances.length;
+ExtractionFreighterMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+ExtractionFreighterMesh.frustumCulled = false;
+Scene.add(ExtractionFreighterMesh);
+const ExtractionFreighterTransform = new THREE.Object3D();
+let VisibleExtractionFreighterCount = -1;
 
 function updateOccupationScarVisuals(ElapsedTimeSeconds) {
   let NextVisibleOccupationScarCount = 0;
@@ -2865,19 +2934,20 @@ function updateOccupationScarVisuals(ElapsedTimeSeconds) {
     const Scar = OccupationScarInstances[ScarIndex];
     const WorldRuntime = WorldRuntimeByIdentifier.get(Scar.worldDefinition.id);
     const RestorationProgress = WorldRuntime.restorationUniforms.restorationProgress.value;
-    const ScarStrength = Scar.worldDefinition.restored
-      ? 1 - THREE.MathUtils.smoothstep(RestorationProgress, 0, 0.68)
-      : 1;
+    const ScarStrength = getTyrantOccupationStrength(
+      Scar.worldDefinition.restored,
+      RestorationProgress,
+    );
     if (ScarStrength > 0.01) NextVisibleOccupationScarCount += 1;
     const RadialX = Math.cos(Scar.angle);
     const RadialY = Math.sin(Scar.angle);
     const Height = Scar.profile.height * (1 + ((Scar.patternIndex % 2) * 0.12));
     OccupationScarTransform.position.set(
       Scar.worldDefinition.position.x
-        + (RadialX * (Scar.worldDefinition.radius + (Height * 0.34))),
+        + (RadialX * (Scar.worldDefinition.radius + (Height * 0.12))),
       Scar.worldDefinition.position.y
-        + (RadialY * (Scar.worldDefinition.radius + (Height * 0.34))),
-      0.34 + ((Scar.patternIndex % 2) * 0.05),
+        + (RadialY * (Scar.worldDefinition.radius + (Height * 0.12))),
+      0.28 + ((Scar.patternIndex % 2) * 0.05),
     );
     OccupationScarTransform.rotation.set(0, 0, Scar.angle - (Math.PI * 0.5));
     OccupationScarTransform.scale.set(
@@ -2886,13 +2956,13 @@ function updateOccupationScarVisuals(ElapsedTimeSeconds) {
       Scar.profile.depth * ScarStrength,
     );
     OccupationScarTransform.updateMatrix();
-    OccupationSpikeMesh.setMatrixAt(ScarIndex, OccupationScarTransform.matrix);
+    OccupationMineMesh.setMatrixAt(ScarIndex, OccupationScarTransform.matrix);
 
     OccupationScarTransform.position.set(
       Scar.worldDefinition.position.x
-        + (RadialX * (Scar.worldDefinition.radius + (Height * 0.62))),
+        + (RadialX * (Scar.worldDefinition.radius + (Height * 0.58))),
       Scar.worldDefinition.position.y
-        + (RadialY * (Scar.worldDefinition.radius + (Height * 0.62))),
+        + (RadialY * (Scar.worldDefinition.radius + (Height * 0.58))),
       0.36 + ((Scar.patternIndex % 2) * 0.05),
     );
     OccupationScarTransform.rotation.set(0, 0, Scar.angle);
@@ -2903,20 +2973,93 @@ function updateOccupationScarVisuals(ElapsedTimeSeconds) {
     );
     OccupationScarTransform.updateMatrix();
     OccupationClampMesh.setMatrixAt(ScarIndex, OccupationScarTransform.matrix);
+
+    const FumePulse = PrefersReducedMotion
+      ? 1
+      : 1 + (Math.sin((ElapsedTimeSeconds * 1.7) + Scar.patternIndex) * 0.18);
+    OccupationScarTransform.position.set(
+      Scar.worldDefinition.position.x
+        + (RadialX * (Scar.worldDefinition.radius + (Height * 0.92))),
+      Scar.worldDefinition.position.y
+        + (RadialY * (Scar.worldDefinition.radius + (Height * 0.92))),
+      0.48,
+    );
+    OccupationScarTransform.rotation.set(0, 0, Scar.angle - (Math.PI * 0.5));
+    OccupationScarTransform.scale.set(
+      ScarStrength * FumePulse,
+      ScarStrength * (1.15 + ((Scar.patternIndex % 2) * 0.25)) * FumePulse,
+      ScarStrength * FumePulse,
+    );
+    OccupationScarTransform.updateMatrix();
+    OccupationFumeMesh.setMatrixAt(ScarIndex, OccupationScarTransform.matrix);
+    OccupationFumeColor.copy(Scar.fumeColor);
+    OccupationFumeMesh.setColorAt(ScarIndex, OccupationFumeColor);
   }
   if (OccupationScarInstances.length > 0) {
-    OccupationSpikeMesh.instanceMatrix.needsUpdate = true;
+    OccupationMineMesh.instanceMatrix.needsUpdate = true;
     OccupationClampMesh.instanceMatrix.needsUpdate = true;
+    OccupationFumeMesh.instanceMatrix.needsUpdate = true;
+    if (OccupationFumeMesh.instanceColor) OccupationFumeMesh.instanceColor.needsUpdate = true;
   }
   OccupationScarMaterial.emissiveIntensity = 0.72
     + (Math.sin(ElapsedTimeSeconds * 3.4) * 0.16);
+  OccupationFumeMaterial.opacity = PrefersReducedMotion
+    ? 0.34
+    : 0.28 + (Math.sin(ElapsedTimeSeconds * 2.1) * 0.1);
   if (VisibleOccupationScarCount !== NextVisibleOccupationScarCount) {
     VisibleOccupationScarCount = NextVisibleOccupationScarCount;
     GameCanvas.dataset.visibleOccupationScarCount = String(VisibleOccupationScarCount);
   }
 }
 
-/** Tiny restored-world inhabitants share one draw call and culture-specific walking rhythms. */
+function updateExtractionFreighterVisuals(ElapsedTimeSeconds) {
+  const ExtractionSink = WorldheartDefinition?.position ?? { x: 36, y: 8, z: 0 };
+  let NextVisibleExtractionFreighterCount = 0;
+  for (let FreighterIndex = 0; FreighterIndex < ExtractionFreighterInstances.length; FreighterIndex += 1) {
+    const WorldDefinition = ExtractionFreighterInstances[FreighterIndex];
+    const WorldRuntime = WorldRuntimeByIdentifier.get(WorldDefinition.id);
+    const RestorationProgress = WorldRuntime.restorationUniforms.restorationProgress.value;
+    const OccupationStrength = getTyrantOccupationStrength(
+      WorldDefinition.restored,
+      RestorationProgress,
+    );
+    const Haul = getExtractionFreighterTravelProgress(
+      ElapsedTimeSeconds + (FreighterIndex * 1.7),
+    );
+    const Visibility = OccupationStrength * Haul.opacity;
+    if (Visibility > 0.05) NextVisibleExtractionFreighterCount += 1;
+    const OriginX = WorldDefinition.position.x;
+    const OriginY = WorldDefinition.position.y;
+    const TravelX = THREE.MathUtils.lerp(OriginX, ExtractionSink.x, Haul.travelProgress);
+    const TravelY = THREE.MathUtils.lerp(OriginY, ExtractionSink.y, Haul.travelProgress);
+    const OffsetX = OriginY - ExtractionSink.y;
+    const OffsetY = ExtractionSink.x - OriginX;
+    const OffsetLength = Math.hypot(OffsetX, OffsetY) || 1;
+    const LaneOffset = Math.sin(Haul.travelProgress * Math.PI) * 1.6;
+    ExtractionFreighterTransform.position.set(
+      TravelX + ((OffsetX / OffsetLength) * LaneOffset),
+      TravelY + ((OffsetY / OffsetLength) * LaneOffset),
+      0.42 + (Math.sin(Haul.travelProgress * Math.PI) * 0.55),
+    );
+    ExtractionFreighterTransform.rotation.set(
+      0,
+      0,
+      Math.atan2(ExtractionSink.y - OriginY, ExtractionSink.x - OriginX) - (Math.PI * 0.5),
+    );
+    ExtractionFreighterTransform.scale.setScalar(Visibility);
+    ExtractionFreighterTransform.updateMatrix();
+    ExtractionFreighterMesh.setMatrixAt(FreighterIndex, ExtractionFreighterTransform.matrix);
+  }
+  if (ExtractionFreighterInstances.length > 0) {
+    ExtractionFreighterMesh.instanceMatrix.needsUpdate = true;
+  }
+  if (VisibleExtractionFreighterCount !== NextVisibleExtractionFreighterCount) {
+    VisibleExtractionFreighterCount = NextVisibleExtractionFreighterCount;
+    GameCanvas.dataset.extractionFreighterCount = String(VisibleExtractionFreighterCount);
+  }
+}
+
+/** Inhabitants share one draw call: guards and prisoners on tyrant worlds, free walkers once isolated or living. */
 const InhabitantProfiles = {
   meadow: { speed: 0.42, stride: 0.11 },
   ember: { speed: 0.72, stride: 0.075 },
@@ -2925,17 +3068,27 @@ const InhabitantProfiles = {
   frost: { speed: 0.3, stride: 0.065 },
   vault: { speed: 0.24, stride: 0.055 },
 };
-const InhabitantInstances = WorldDefinitions.flatMap((WorldDefinition, WorldIndex) => (
-  WorldDefinition.occupationScarAngles
-    ? Array.from({ length: 3 }, (_, InhabitantIndex) => ({
-      worldDefinition: WorldDefinition,
-      baseAngle: (1.1 + (WorldIndex * 1.37) + (InhabitantIndex * 0.3)) % (Math.PI * 2),
-      phase: (WorldIndex * 0.73) + (InhabitantIndex * 1.91),
-      profile: InhabitantProfiles[WorldDefinition.visualKey]
-        ?? { speed: 0.4, stride: 0.08 },
-    }))
-    : []
-));
+const InhabitantGuardColor = new THREE.Color(0x6a1c22);
+const InhabitantPrisonerColor = new THREE.Color(0x6e5a52);
+const InhabitantFreeColor = new THREE.Color();
+const InhabitantInstances = WorldDefinitions.flatMap((WorldDefinition, WorldIndex) => {
+  const MineAngles = WorldDefinition.occupationScarAngles;
+  if (!MineAngles) {
+    return [];
+  }
+  return Array.from({ length: 6 }, (_, InhabitantIndex) => ({
+    worldDefinition: WorldDefinition,
+    slotIndex: InhabitantIndex,
+    role: InhabitantIndex < 2 ? 'guard' : 'civilian',
+    mineAngle: MineAngles[InhabitantIndex % MineAngles.length]
+      + ((InhabitantIndex % 3) * 0.11)
+      - 0.08,
+    baseAngle: (1.1 + (WorldIndex * 1.37) + (InhabitantIndex * 0.42)) % (Math.PI * 2),
+    phase: (WorldIndex * 0.73) + (InhabitantIndex * 1.91),
+    profile: InhabitantProfiles[WorldDefinition.visualKey]
+      ?? { speed: 0.4, stride: 0.08 },
+  }));
+});
 const InhabitantCapacity = Math.max(1, InhabitantInstances.length);
 const InhabitantMaterial = new THREE.MeshBasicMaterial({
   vertexColors: true,
@@ -2962,34 +3115,60 @@ InhabitantMesh.frustumCulled = false;
 Scene.add(InhabitantMesh);
 const InhabitantTransform = new THREE.Object3D();
 let VisibleInhabitantCount = -1;
-for (let InhabitantIndex = 0; InhabitantIndex < InhabitantInstances.length; InhabitantIndex += 1) {
-  const Inhabitant = InhabitantInstances[InhabitantIndex];
-  InhabitantMesh.setColorAt(
-    InhabitantIndex,
-    Inhabitant.worldDefinition.restoration.waveColor,
-  );
-}
-if (InhabitantMesh.instanceColor) InhabitantMesh.instanceColor.needsUpdate = true;
+let VisiblePrisonerCount = -1;
+let VisibleGuardCount = -1;
 GameCanvas.dataset.inhabitantCount = String(InhabitantInstances.length);
 
 function updateInhabitantVisuals(ElapsedTimeSeconds) {
   let NextVisibleInhabitantCount = 0;
+  let NextVisiblePrisonerCount = 0;
+  let NextVisibleGuardCount = 0;
+  const LifeStages = [];
   const IsCollectiveResponseActive = FinaleRestorationStartedAtSeconds !== null
     && GamePhase === 'victoryPending';
   for (let InhabitantIndex = 0; InhabitantIndex < InhabitantInstances.length; InhabitantIndex += 1) {
     const Inhabitant = InhabitantInstances[InhabitantIndex];
     const WorldRuntime = WorldRuntimeByIdentifier.get(Inhabitant.worldDefinition.id);
     const RestorationProgress = WorldRuntime.restorationUniforms.restorationProgress.value;
-    const EmergenceProgress = Inhabitant.worldDefinition.restored
-      ? THREE.MathUtils.smoothstep(RestorationProgress, 0.54, 0.96)
+    const LiveLinkCount = getRelayDegree(RelayNetworkState, Inhabitant.worldDefinition.id);
+    const LifeStage = getWorldLifeStage({
+      restored: Inhabitant.worldDefinition.restored,
+      liveLinkCount: LiveLinkCount,
+    });
+    if (Inhabitant.slotIndex === 0) {
+      LifeStages.push(`${Inhabitant.worldDefinition.id}:${LifeStage}`);
+    }
+    const TyrantStrength = getTyrantOccupationStrength(
+      Inhabitant.worldDefinition.restored,
+      RestorationProgress,
+    );
+    const IsolatedVisible = LifeStage !== 'isolated' || Inhabitant.slotIndex < 3;
+    const FreeEmergence = Inhabitant.worldDefinition.restored && IsolatedVisible
+      ? THREE.MathUtils.smoothstep(Math.max(0, RestorationProgress), 0.54, 0.96)
       : 0;
-    if (EmergenceProgress > 0.08) NextVisibleInhabitantCount += 1;
+    const Presence = Math.max(TyrantStrength, FreeEmergence);
+    if (Presence <= 0.08) {
+      InhabitantTransform.scale.set(0, 0, 0);
+      InhabitantTransform.position.set(0, 0, -8);
+      InhabitantTransform.updateMatrix();
+      InhabitantMesh.setMatrixAt(InhabitantIndex, InhabitantTransform.matrix);
+      continue;
+    }
+    NextVisibleInhabitantCount += 1;
+    const Freedom = 1 - TyrantStrength;
+    const IsGuard = Inhabitant.role === 'guard';
+    if (TyrantStrength > 0.35) {
+      if (IsGuard) NextVisibleGuardCount += 1;
+      else NextVisiblePrisonerCount += 1;
+    }
     const WalkingOffset = PrefersReducedMotion
       ? 0
       : Math.sin(
         (ElapsedTimeSeconds * Inhabitant.profile.speed) + Inhabitant.phase,
-      ) * Inhabitant.profile.stride;
-    const SurfaceAngle = Inhabitant.baseAngle + WalkingOffset;
+      ) * Inhabitant.profile.stride * THREE.MathUtils.lerp(0.35, 1, Freedom);
+    const HeldAngle = Inhabitant.mineAngle + (IsGuard ? 0.1 : -0.14);
+    const FreeAngle = Inhabitant.baseAngle + WalkingOffset;
+    const SurfaceAngle = THREE.MathUtils.lerp(HeldAngle, FreeAngle, Freedom);
     const RadialX = Math.cos(SurfaceAngle);
     const RadialY = Math.sin(SurfaceAngle);
     InhabitantTransform.position.set(
@@ -3000,6 +3179,7 @@ function updateInhabitantVisuals(ElapsedTimeSeconds) {
       0.5 + ((InhabitantIndex % 2) * 0.035),
     );
     InhabitantTransform.rotation.set(0, 0, SurfaceAngle - (Math.PI * 0.5));
+    const HeldHeight = IsGuard ? 1.08 : 0.58;
     const BobScale = PrefersReducedMotion
       ? 1
       : 1 + (
@@ -3008,21 +3188,34 @@ function updateInhabitantVisuals(ElapsedTimeSeconds) {
             + Inhabitant.phase,
         ) * (IsCollectiveResponseActive ? 0.2 : 0.08)
       );
-    InhabitantTransform.scale.set(
-      EmergenceProgress,
-      EmergenceProgress * BobScale,
-      EmergenceProgress,
-    );
+    const HeightScale = THREE.MathUtils.lerp(HeldHeight, 1, Freedom) * BobScale;
+    InhabitantTransform.scale.set(Presence, Presence * HeightScale, Presence);
     InhabitantTransform.updateMatrix();
     InhabitantMesh.setMatrixAt(InhabitantIndex, InhabitantTransform.matrix);
+    InhabitantFreeColor.set(Inhabitant.worldDefinition.restoration.waveColor);
+    const HeldColor = IsGuard ? InhabitantGuardColor : InhabitantPrisonerColor;
+    InhabitantMesh.setColorAt(
+      InhabitantIndex,
+      InhabitantFreeColor.lerp(HeldColor, TyrantStrength),
+    );
   }
   if (InhabitantInstances.length > 0) {
     InhabitantMesh.instanceMatrix.needsUpdate = true;
+    if (InhabitantMesh.instanceColor) InhabitantMesh.instanceColor.needsUpdate = true;
   }
   if (VisibleInhabitantCount !== NextVisibleInhabitantCount) {
     VisibleInhabitantCount = NextVisibleInhabitantCount;
     GameCanvas.dataset.visibleInhabitantCount = String(VisibleInhabitantCount);
   }
+  if (VisiblePrisonerCount !== NextVisiblePrisonerCount) {
+    VisiblePrisonerCount = NextVisiblePrisonerCount;
+    GameCanvas.dataset.visiblePrisonerCount = String(VisiblePrisonerCount);
+  }
+  if (VisibleGuardCount !== NextVisibleGuardCount) {
+    VisibleGuardCount = NextVisibleGuardCount;
+    GameCanvas.dataset.visibleGuardCount = String(VisibleGuardCount);
+  }
+  GameCanvas.dataset.worldLifeStages = LifeStages.join(',');
 }
 
 /** A pooled line network and tiny courier fleet make every new connection persist visibly. */
@@ -3848,10 +4041,13 @@ for (let StardustIndex = 0; StardustIndex < StardustDefinitions.length; Stardust
 StardustMesh.instanceColor.needsUpdate = true;
 Scene.add(StardustMesh);
 
-/** A compact procedural Runner preserves the original collision radius and mobile readability. */
+/** A compact procedural Runner stays tiny on the world; collision radius is unchanged. */
 const SeedGroup = new THREE.Group();
 const RunnerVisualGroup = new THREE.Group();
-RunnerVisualGroup.scale.setScalar(1.18);
+const RunnerPresentationScale = 0.52;
+const ShipPresentationScale = 0.58;
+RunnerVisualGroup.scale.setScalar(RunnerPresentationScale);
+GameCanvas.dataset.runnerVisualScale = String(RunnerPresentationScale);
 const RunnerSuitMaterial = new THREE.MeshStandardMaterial({
   color: 0xe9f2f4,
   emissive: 0x4f8fa0,
@@ -6434,6 +6630,9 @@ function handleKeyboardAimKey(KeyboardEventData) {
       PressedKey === 'q' ? 1 : -1,
       KeyboardEventData.shiftKey,
     );
+    if (DidMove) {
+      RunnerWalkLifeSeconds = 0.34;
+    }
     if (DidMove && !ActiveHostileEncounterState) {
       showInstruction(
         'Launch point moved',
@@ -7207,6 +7406,10 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
     if (!WorldDefinition.restored) {
       WorldRuntime.group.rotation.y += 0.0005;
       WorldRuntime.stillnessCageGroup.rotation.y += 0.0015;
+      if (WorldRuntime.atmosphereMaterial?.color) {
+        WorldRuntime.atmosphereMaterial.color.copy(TyrantAtmosphereColor);
+        WorldRuntime.atmosphereMaterial.opacity = 0.11;
+      }
       continue;
     }
 
@@ -7244,6 +7447,13 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
       WorldDefinition.restoration.atmosphereOpacity,
       AtmosphereProgress,
     );
+    if (WorldRuntime.atmosphereMaterial?.color) {
+      AtmosphereRestoreColor.set(WorldDefinition.atmosphereColor);
+      WorldRuntime.atmosphereMaterial.color.copy(TyrantAtmosphereColor).lerp(
+        AtmosphereRestoreColor,
+        AtmosphereProgress,
+      );
+    }
     WorldRuntime.atmosphereMesh.scale.setScalar(
       THREE.MathUtils.lerp(0.96, 1, AtmosphereProgress),
     );
@@ -7449,11 +7659,22 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   GameCanvas.dataset.runnerScreenX = GameCanvas.dataset.seedScreenX;
   GameCanvas.dataset.runnerScreenY = GameCanvas.dataset.seedScreenY;
 
+  const IsWalking = (
+    PointerGestureMode === SurfaceGestureModes.walk
+    || RunnerWalkLifeSeconds > 0
+  ) && GamePhase === 'attached';
+  if (RunnerWalkLifeSeconds > 0) {
+    RunnerWalkLifeSeconds = Math.max(0, RunnerWalkLifeSeconds - DeltaTimeSeconds);
+  }
   const RunnerAnimationState = getRunnerAnimationState(
     GamePhase,
     IsPointerAiming || IsKeyboardAiming,
+    IsWalking && !PrefersReducedMotion,
   );
-  const RunnerPose = getRunnerPose(RunnerAnimationState);
+  const RunnerPose = getRunnerPose(
+    RunnerAnimationState,
+    ElapsedTimeSeconds * 9.2,
+  );
   const RunnerForm = getRunnerForm(GamePhase, FlightElapsedSeconds);
   const PoseBlend = PrefersReducedMotion
     ? 1
@@ -7465,12 +7686,16 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   if (RunnerForm === 'launch-craft') {
     const UnfoldProgress = THREE.MathUtils.clamp(FlightElapsedSeconds / 0.28, 0, 1);
     ShipVisualGroup.scale.set(
-      THREE.MathUtils.lerp(0.62, 1.08, UnfoldProgress),
-      THREE.MathUtils.lerp(0.82, 1, UnfoldProgress),
-      1,
+      THREE.MathUtils.lerp(0.62, 1.08, UnfoldProgress) * ShipPresentationScale,
+      THREE.MathUtils.lerp(0.82, 1, UnfoldProgress) * ShipPresentationScale,
+      ShipPresentationScale,
     );
   } else {
-    ShipVisualGroup.scale.set(1.08, 1, 1);
+    ShipVisualGroup.scale.set(
+      1.08 * ShipPresentationScale,
+      ShipPresentationScale,
+      ShipPresentationScale,
+    );
   }
   for (const ArmMesh of RunnerArmMeshes) {
     ArmMesh.rotation.z = THREE.MathUtils.lerp(
@@ -7707,6 +7932,18 @@ function updateCamera(DeltaTimeSeconds) {
     DesiredDistanceScale = ScoutZoomScale;
   } else if (UsesPlanningCamera) {
     DesiredDistanceScale = PlanningCameraScale;
+  } else if (
+    UsesExplorationCamera
+    && (GamePhase === 'attached' || GamePhase === 'restoring')
+  ) {
+    const LandedWorld = getWorldDefinition(CurrentWorldIdentifier);
+    DesiredDistanceScale = LandedWorld
+      ? getLandedCameraScale({
+        worldRadius: LandedWorld.radius,
+        viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
+      })
+      : 0.5;
+    GameCanvas.dataset.landedCameraScale = DesiredDistanceScale.toFixed(2);
   }
   CameraDistanceScale += (DesiredDistanceScale - CameraDistanceScale) * CameraFollowAlpha;
 
@@ -8406,6 +8643,7 @@ function renderFrame() {
 
   updateWorldRestorationVisuals(ElapsedTimeSeconds);
   updateOccupationScarVisuals(ElapsedTimeSeconds);
+  updateExtractionFreighterVisuals(ElapsedTimeSeconds);
   updateInhabitantVisuals(ElapsedTimeSeconds);
   updateWorldBiomeMotion(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateFinaleRestorationVisuals(ElapsedTimeSeconds);

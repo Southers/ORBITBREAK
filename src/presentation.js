@@ -1,5 +1,5 @@
 /** Maps gameplay state to one legible Runner animation state. */
-export function getRunnerAnimationState(GamePhase, IsPointerAiming) {
+export function getRunnerAnimationState(GamePhase, IsPointerAiming, IsWalking = false) {
   if (GamePhase === 'runFailed' || GamePhase === 'recovering') {
     return 'recovering';
   }
@@ -12,11 +12,22 @@ export function getRunnerAnimationState(GamePhase, IsPointerAiming) {
   if (IsPointerAiming) {
     return 'aiming';
   }
+  if (IsWalking) {
+    return 'walking';
+  }
   return 'ready';
 }
 
 /** Returns the target limb pose without introducing frame-rate-dependent state. */
-export function getRunnerPose(AnimationState) {
+export function getRunnerPose(AnimationState, WalkPhase = 0) {
+  if (AnimationState === 'walking') {
+    const Swing = Number.isFinite(WalkPhase) ? Math.sin(WalkPhase) : 0;
+    return {
+      armAngle: 0.28 + (Swing * 0.58),
+      legAngle: 0.12 - (Swing * 0.72),
+      thrusterVisible: false,
+    };
+  }
   const Poses = {
     ready: { armAngle: 0.22, legAngle: 0.08, thrusterVisible: false },
     aiming: { armAngle: 0.72, legAngle: 0.26, thrusterVisible: false },
@@ -46,6 +57,85 @@ export function getStillnessPresentation(IsRestored, RestorationProgress = 0) {
     opacity: 0.22 * Math.pow(1 - ClampedProgress, 1.45),
     scale: 1 + (ClampedProgress * 0.22),
   };
+}
+
+/**
+ * Every world is tyrant, isolated or living. Art contrast is the primary judging signal.
+ */
+export function getWorldLifeStage({ restored, liveLinkCount = 0 } = {}) {
+  if (typeof restored !== 'boolean') {
+    throw new Error('World life stage requires a restored flag.');
+  }
+  if (!Number.isInteger(liveLinkCount) || liveLinkCount < 0) {
+    throw new Error('World life stage requires a non-negative live link count.');
+  }
+  if (!restored) {
+    return 'tyrant';
+  }
+  return liveLinkCount >= 1 ? 'living' : 'isolated';
+}
+
+/** Occupation industry collapses through the same wave that frees the world. */
+export function getTyrantOccupationStrength(restored, restorationProgress = 0) {
+  if (typeof restored !== 'boolean') {
+    throw new Error('Tyrant occupation strength requires a restored flag.');
+  }
+  if (!restored) {
+    return 1;
+  }
+  if (!Number.isFinite(restorationProgress)) {
+    throw new Error('Tyrant occupation strength requires finite restoration progress.');
+  }
+  const ClampedProgress = Math.max(0, Math.min(1.2, restorationProgress));
+  if (ClampedProgress <= 0) {
+    return 1;
+  }
+  if (ClampedProgress >= 0.68) {
+    return 0;
+  }
+  return 1 - (ClampedProgress / 0.68);
+}
+
+/**
+ * One-way haul from an occupied world toward Command. Freighters leave full and never return.
+ */
+export function getExtractionFreighterTravelProgress(
+  ElapsedSinceCreatedSeconds,
+  { cycleSpeed = 0.075 } = {},
+) {
+  if (!Number.isFinite(ElapsedSinceCreatedSeconds) || ElapsedSinceCreatedSeconds < 0) {
+    throw new Error('Extraction travel requires a non-negative age.');
+  }
+  if (!Number.isFinite(cycleSpeed) || cycleSpeed <= 0) {
+    throw new Error('Extraction travel requires a positive cycle speed.');
+  }
+  const TravelProgress = (ElapsedSinceCreatedSeconds * cycleSpeed) % 1;
+  const Opacity = TravelProgress < 0.1
+    ? TravelProgress / 0.1
+    : TravelProgress > 0.82
+      ? Math.max(0, (1 - TravelProgress) / 0.18)
+      : 1;
+  return { travelProgress: TravelProgress, opacity: Opacity, isReturning: false };
+}
+
+/** Frames one landed world so mines, people and houses read, then aiming zooms back out. */
+export function getLandedCameraScale({
+  worldRadius,
+  viewportWorldHeight,
+  minimumScale = 0.42,
+  maximumScale = 0.58,
+} = {}) {
+  if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
+    throw new Error('Landed camera requires a positive world radius.');
+  }
+  if (!Number.isFinite(viewportWorldHeight) || viewportWorldHeight <= 0) {
+    throw new Error('Landed camera requires a positive viewport height.');
+  }
+  const FramedHeight = worldRadius * 3.35;
+  return Math.min(
+    maximumScale,
+    Math.max(minimumScale, FramedHeight / viewportWorldHeight),
+  );
 }
 
 /** Bright initial break followed by a clean, short screen-space fade. */

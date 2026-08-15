@@ -849,17 +849,26 @@ feel like miniature societies that come to life, then delaying the Warden until 
 seen. Sequence, stop conditions and the still-frame success test live in `DESIGN.md`. Playable
 checkpoints, in order:
 
-1. Opening purpose and spaced beats. Two-card intro; one-line coaches; no hunt promise before hope.
-2. Tiny courier, huge worlds. Shrink Runner/ship visuals; closer landed camera; deeper zoom-in and
-   wider zoom-out. Collision radius unchanged.
-3. Walk and crowd. Runner walk cycle; more instanced culture silhouettes on the circumference.
+1. Tyrant / isolated / living contrast, plus a tiny Runner. Occupied worlds show mines, fumes,
+   guards, held people and outbound extraction toward Command. Haven stays the quiet garden.
+   Collision radius unchanged.
+2. Opening purpose and spaced beats. Two-card intro; one-line coaches; no hunt promise before hope.
+3. Walk and denser crowd. Runner walk cycle; more instanced culture silhouettes on the circumference.
 4. First prosperity jump. New links grow houses/windows and a culture-true ship instead of one cone.
 5. Busy routes. Degree 2 and circuits add offset lanes, a second hull and industry. Prove 390×844.
 6. Hopeful act and range veil. Inner cluster (Haven, Ember, Grove) recedes the outer stillness veil.
    Warden reveals after one further landing, not on relay three. New goldens.
-7. Sound and breathing room. Hold the camera on the living lane before handing control back.
+7. Sound and breathing room. Hold the camera on the living or tyrant change before handing control back.
 8. Stance retune only if shrink-and-zoom was not enough. Larger radii, restanced wells, new
    `contentVersion`.
+
+Checkpoint 1 — 15 August 2026: occupied worlds now show instanced mine headframes seated in
+the crust, culture-coloured fumes, Warden guards, huddled prisoners and one-way extraction
+freighters hauling toward Command. Haven stays isolated: three quiet garden figures, no mines.
+Liberation collapses the industry through the existing wave and stands the same people up. The
+Runner visual scale is 0.52, landed follow frames one world, and Scout zoom now runs 0.38–1.95.
+Physics identity, scoring and replay inputs are unchanged. Art is still not a 9: living routes
+remain a luminous segment plus one cone, and prosperity houses are the next checkpoint.
 
 Keep `main` playable. Do not add a second sector, free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until Bastion is already solved. Range is the silence

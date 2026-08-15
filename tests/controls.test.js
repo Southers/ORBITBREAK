@@ -107,9 +107,9 @@ test('Scout zoom presentation announces percentage and marks only reached limits
     canZoomIn: true,
     canZoomOut: true,
   });
-  assert.equal(getScoutZoomPresentation(0.72).percentage, 139);
-  assert.equal(getScoutZoomPresentation(0.72).canZoomIn, false);
-  assert.equal(getScoutZoomPresentation(1.55).percentage, 65);
-  assert.equal(getScoutZoomPresentation(1.55).canZoomOut, false);
-  assert.throws(() => getScoutZoomPresentation(0.5), /inside valid bounds/);
+  assert.equal(getScoutZoomPresentation(0.38).percentage, 263);
+  assert.equal(getScoutZoomPresentation(0.38).canZoomIn, false);
+  assert.equal(getScoutZoomPresentation(1.95).percentage, 51);
+  assert.equal(getScoutZoomPresentation(1.95).canZoomOut, false);
+  assert.throws(() => getScoutZoomPresentation(0.2), /inside valid bounds/);
 });

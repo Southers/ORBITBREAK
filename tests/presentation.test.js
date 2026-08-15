@@ -20,6 +20,10 @@ import {
   getSlingshotBandVisualState,
   getSlingshotPreviewPresentation,
   getStillnessPresentation,
+  getWorldLifeStage,
+  getTyrantOccupationStrength,
+  getExtractionFreighterTravelProgress,
+  getLandedCameraScale,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
   getLoopObjectivePresentation,
@@ -426,12 +430,15 @@ test('Runner state prioritises recovery, liberation, flight and aim', () => {
   assert.equal(getRunnerAnimationState('flying', true), 'flying');
   assert.equal(getRunnerAnimationState('attached', true), 'aiming');
   assert.equal(getRunnerAnimationState('attached', false), 'ready');
+  assert.equal(getRunnerAnimationState('attached', false, true), 'walking');
 });
 
 test('Runner poses expose thruster only during flight', () => {
   assert.equal(getRunnerPose('flying').thrusterVisible, true);
   assert.equal(getRunnerPose('aiming').thrusterVisible, false);
   assert.ok(getRunnerPose('liberating').armAngle > getRunnerPose('ready').armAngle);
+  assert.equal(getRunnerPose('walking', 0).thrusterVisible, false);
+  assert.ok(getRunnerPose('walking', Math.PI / 2).armAngle > getRunnerPose('walking', 0).armAngle);
 });
 
 test('Runner transformation changes silhouette without changing gameplay phase', () => {
@@ -456,6 +463,38 @@ test('Stillness cage visibly expands and vanishes through liberation', () => {
     opacity: 0,
     scale: 1.22,
   });
+});
+
+test('world life stages distinguish tyrant, isolated and living art', () => {
+  assert.equal(getWorldLifeStage({ restored: false, liveLinkCount: 0 }), 'tyrant');
+  assert.equal(getWorldLifeStage({ restored: false, liveLinkCount: 3 }), 'tyrant');
+  assert.equal(getWorldLifeStage({ restored: true, liveLinkCount: 0 }), 'isolated');
+  assert.equal(getWorldLifeStage({ restored: true, liveLinkCount: 1 }), 'living');
+  assert.throws(() => getWorldLifeStage({ restored: 'yes' }), /restored flag/);
+});
+
+test('tyrant occupation collapses through the liberation wave and never returns a haul', () => {
+  assert.equal(getTyrantOccupationStrength(false), 1);
+  assert.equal(getTyrantOccupationStrength(true, 0), 1);
+  assert.equal(getTyrantOccupationStrength(true, 0.34), 0.5);
+  assert.equal(getTyrantOccupationStrength(true, 0.68), 0);
+  assert.equal(getTyrantOccupationStrength(true, 1.2), 0);
+  const Haul = getExtractionFreighterTravelProgress(0);
+  assert.equal(Haul.isReturning, false);
+  assert.equal(Haul.travelProgress, 0);
+  assert.equal(Haul.opacity, 0);
+  const MidHaul = getExtractionFreighterTravelProgress(1 / 0.075 / 2);
+  assert.ok(MidHaul.travelProgress > 0.45 && MidHaul.travelProgress < 0.55);
+  assert.equal(MidHaul.opacity, 1);
+  assert.equal(MidHaul.isReturning, false);
+});
+
+test('landed camera frames one world tightly enough for surface art to read', () => {
+  const EmberScale = getLandedCameraScale({ worldRadius: 3.2, viewportWorldHeight: 24 });
+  assert.ok(EmberScale >= 0.42 && EmberScale <= 0.58);
+  assert.ok(EmberScale < 1);
+  const TinyScale = getLandedCameraScale({ worldRadius: 2.15, viewportWorldHeight: 24 });
+  assert.equal(TinyScale, 0.42);
 });
 
 test('liberation flash remains bounded and reaches zero', () => {

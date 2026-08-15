@@ -76,6 +76,17 @@ export function auditReleaseReadiness() {
     'Aiming must frame the whole sector and draw the exact remaining path.',
   );
   requireCondition(
+    PresentationSource.includes('export function getWorldLifeStage(')
+      && PresentationSource.includes("return 'tyrant';")
+      && MainSource.includes('OccupationMineMesh')
+      && MainSource.includes('OccupationFumeMesh')
+      && MainSource.includes('ExtractionFreighterMesh')
+      && MainSource.includes('visiblePrisonerCount')
+      && MainSource.includes('RunnerPresentationScale = 0.52')
+      && MainSource.includes('getLandedCameraScale('),
+    'Occupied worlds must show tyrant extraction, held people and a tiny Runner so living contrast can read.',
+  );
+  requireCondition(
     /id="MotionButton"/.test(IndexHtml)
       && MainSource.includes("window.localStorage.setItem('orbitbreak.motion'")
       && MainSource.includes("PageSearchParameters.get('diagnostics') === '1'"),
