@@ -38,6 +38,10 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
   );
   assert.equal(
+    BreakerReachSystemDefinition.wardenArrivalBroadcast,
+    'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',
+  );
+  assert.equal(
     BreakerReachSystemDefinition.commandApproachLine,
     'A network cannot be imprisoned.',
   );
@@ -97,8 +101,13 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
 test('authored opening broadcasts fail closed when present but empty', () => {
   const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
   InvalidSystemDefinition.openingBroadcast = '   ';
-  assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
+  InvalidSystemDefinition.wardenArrivalBroadcast = '';
+  const Errors = validateAuthoredSystemDefinition(InvalidSystemDefinition);
+  assert.ok(Errors.includes(
     'Authored system openingBroadcast must be a non-empty string when present.',
+  ));
+  assert.ok(Errors.includes(
+    'Authored system wardenArrivalBroadcast must be a non-empty string when present.',
   ));
 });
 

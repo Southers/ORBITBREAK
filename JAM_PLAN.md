@@ -382,6 +382,18 @@ Haven and closed the circuit at 151/190 peak calls. The compact 390×844 copy us
 panel above the 44px footer, with no overlap, overflow or browser warnings and a 156-call peak. The
 hypothesis held without changing preview length, target disclosure, physics, score or replay state.
 
+Gauntlet pass 11 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The design's defining Warden ideology, `CONNECTION IS DISORDER ·
+MOVEMENT IS DISOBEDIENCE`, was absent from live play, weakening the antagonist's relationship to the
+network mechanic. Breaker's Reach now authors that line as the non-blocking third-relay broadcast;
+empty optional story fields fail content validation and the release audit protects the exact anchor.
+The first browser gate caught Grove's restoration completion immediately replacing both broadcast and
+reveal instruction. The corrected ordering preserves the atomic Warden status plus `We thought we were
+alone`, target and four-flight forecast after the Runner unfolds, while aim and cancel return the normal
+circuit coach without advancing pursuit. Fresh desktop and 390×844 runs proved that sequence at 150
+and 156 of 190 draw calls; portrait retained 44px controls, no overflow and no browser warnings. This
+story pass changes no flight, network, Warden resolution, score or replay input.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

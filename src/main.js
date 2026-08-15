@@ -35,7 +35,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob40';
+} from './content.js?v=20260815-ob41';
 
 import {
   countRestoredWorlds,
@@ -253,7 +253,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob40';
+GameCanvas.dataset.build = '20260815-ob41';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -3333,6 +3333,10 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
       'Unauthorised network detected.',
       `${ArrivalAnswerLine ? `${ArrivalAnswerLine} ` : ''}The Warden is targeting ${TargetWorld?.label ?? 'the frontier'} · ${WardenPursuitState.distance} resolved flights away.`,
     );
+    GameCanvas.dataset.wardenArrivalBroadcast = ActiveSystem.wardenArrivalBroadcast ?? '';
+    if (ActiveSystem.wardenArrivalBroadcast) {
+      showStatusToast(ActiveSystem.wardenArrivalBroadcast, 3600, 'warden');
+    }
   } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.advanced) {
     showStatusToast(
       `WARDEN → ${TargetWorld?.label ?? 'FRONTIER'} · ${WardenPursuitState.distance} FLIGHTS`,
@@ -6913,8 +6917,14 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
         WorldRuntime.restorationCompleted = true;
         WorldseedSound.restorationComplete(WorldDefinition.id);
         if (CurrentWorldIdentifier === WorldDefinition.id) {
+          const ShouldPreserveWardenReveal = (
+            WardenPursuitState.lastEvent === WardenPursuitEvents.revealed
+            && GameCanvas.dataset.wardenArrivalBroadcast !== ''
+          );
           GameCanvas.dataset.lastMemory = WorldDefinition.memory;
-          showStatusToast(WorldDefinition.memory, 2100, 'memory');
+          if (!ShouldPreserveWardenReveal) {
+            showStatusToast(WorldDefinition.memory, 2100, 'memory');
+          }
           if (WorldheartJustUnlocked) {
             WorldheartJustUnlocked = false;
             WorldseedSound.worldheartOpen();
@@ -6926,7 +6936,10 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
             hideInstruction();
           } else if (GamePhase === 'restoring') {
             GamePhase = 'attached';
-            if (!beginHostileEncounter(WorldDefinition)) showRouteChoiceInstruction();
+            const DidBeginHostileEncounter = beginHostileEncounter(WorldDefinition);
+            if (!DidBeginHostileEncounter && !ShouldPreserveWardenReveal) {
+              showRouteChoiceInstruction();
+            }
           }
         }
       }
@@ -7559,6 +7572,7 @@ function resetGame() {
   GameCanvas.dataset.lastSuppressedWorld = '';
   GameCanvas.dataset.wardenCaughtWorld = '';
   GameCanvas.dataset.wardenArrivalAnswer = '';
+  GameCanvas.dataset.wardenArrivalBroadcast = '';
   publishWardenState();
   RunFlightTimeSeconds = 0;
   try {

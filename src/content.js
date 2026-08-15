@@ -69,23 +69,20 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
   if (!SystemDefinition.openingBody || typeof SystemDefinition.openingBody !== 'string') {
     Errors.push('Authored system requires openingBody story copy.');
   }
-  if (
-    SystemDefinition.openingBroadcast !== undefined
-    && (
-      typeof SystemDefinition.openingBroadcast !== 'string'
-      || SystemDefinition.openingBroadcast.trim() === ''
-    )
-  ) {
-    Errors.push('Authored system openingBroadcast must be a non-empty string when present.');
-  }
-  if (
-    SystemDefinition.commandApproachLine !== undefined
-    && (
-      typeof SystemDefinition.commandApproachLine !== 'string'
-      || SystemDefinition.commandApproachLine.trim() === ''
-    )
-  ) {
-    Errors.push('Authored system commandApproachLine must be a non-empty string when present.');
+  for (const OptionalStoryField of [
+    'openingBroadcast', 'wardenArrivalBroadcast', 'commandApproachLine',
+  ]) {
+    if (
+      SystemDefinition[OptionalStoryField] !== undefined
+      && (
+        typeof SystemDefinition[OptionalStoryField] !== 'string'
+        || SystemDefinition[OptionalStoryField].trim() === ''
+      )
+    ) {
+      Errors.push(
+        `Authored system ${OptionalStoryField} must be a non-empty string when present.`,
+      );
+    }
   }
   if (!Number.isInteger(SystemDefinition.launchBudget) || SystemDefinition.launchBudget < 1) {
     Errors.push('Authored system requires a positive integer launchBudget.');
@@ -557,6 +554,7 @@ export function createAuthoredSystemRuntime(
     contentVersion: SystemDefinition.contentVersion,
     openingBody: SystemDefinition.openingBody,
     openingBroadcast: SystemDefinition.openingBroadcast ?? null,
+    wardenArrivalBroadcast: SystemDefinition.wardenArrivalBroadcast ?? null,
     commandApproachLine: SystemDefinition.commandApproachLine ?? null,
     camera: SystemDefinition.camera ? { ...SystemDefinition.camera } : null,
     environment: {
@@ -762,6 +760,7 @@ export const BreakerReachSystemDefinition = {
   circuitBonusValue: 1250,
   wardenVictoryValuePerStep: 1000,
   openingBroadcast: 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
+  wardenArrivalBroadcast: 'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',
   openingBody: 'Build relays. Three active worlds reveal the Warden; two circuits break its shields. Start low toward Ember, or walk Haven\'s dark rim and Burn toward Frost.',
   commandApproachLine: 'A network cannot be imprisoned.',
   camera: {
