@@ -524,6 +524,18 @@ route remained within budget at 188/190 calls. Resizing the same result preserve
 bounded scroll surface and sticky action row. This presentation-only repair changes no result data,
 focus target, scoring, physics, pursuit or replay validation.
 
+Gauntlet pass 24 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The verified result offered a prominent `Rankings` action even
+when its published state correctly reported that no leaderboard endpoint was configured, creating an
+avoidable surprise only after the player opened the board. The action now says `Rankings offline` in
+that candidate state while configured builds retain `Rankings`; pure presentation coverage protects
+both mappings. An authentic six-launch route closed two circuits, intercepted the moving Command
+World and fired the timed Pulse for a replay-verified 12,050 result. Its offline action opened the
+truthful no-endpoint explanation and returned focus to the same action. The result and board remained
+overflow-free at 1280×720, 390×844 and 844×390; the portrait action wrapped to a comfortable 66.8px
+height, while both landscape versions remained 45.2px high. No endpoint, submission or production
+behavior changed, and this disclosure pass changes no storage, score, physics, pursuit or replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

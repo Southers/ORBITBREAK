@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   getLiberationFlashOpacity,
+  getLeaderboardActionLabel,
   getPersonalBestStatus,
   getPublishedWardenState,
   getRelayLinkOpacity,
@@ -29,6 +30,12 @@ test('published Warden state distinguishes exposure from final defeat', () => {
     landmark: 'command-world-disabled',
   });
   assert.throws(() => getPublishedWardenState(''), /requires a pursuit status/);
+});
+
+test('rankings action discloses offline state before opening the board', () => {
+  assert.equal(getLeaderboardActionLabel(true), 'Rankings');
+  assert.equal(getLeaderboardActionLabel(false), 'Rankings offline');
+  assert.throws(() => getLeaderboardActionLabel('false'), /requires configured state/);
 });
 
 test('nearby route labels separate without changing distant or edge-clamped layouts', () => {

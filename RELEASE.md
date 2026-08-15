@@ -84,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob53` passes 153 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob54` passes 154 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
 - 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
@@ -109,6 +109,7 @@ Suggested 40-second trailer beat sheet:
 - Suggested-world labels now preserve a 76px centre gap when their projected positions converge, keeping both authored route choices readable after surface repositioning in short landscape without moving their worlds or camera.
 - At short landscape heights the 148×52 Breaker control moves to the right safe edge, clearing the central flight corridor while portrait and desktop retain their centred placement.
 - Verified results use a compact 760px-wide short-landscape layout with a single sticky three-action row and internal scroll fallback, keeping focused actions visible without changing desktop or portrait results.
+- Offline candidates label the final action `Rankings offline` before the explanatory board opens; configured builds retain the shorter `Rankings` label.
 - Explicit Reduced motion holds relay luminance at the same readable 80% midpoint instead of continuously pulsing it.
 - Final Pulse publication now reports `defeated` and `command-world-disabled`, matching the visible Warden panel and verified result without mutating authoritative pursuit state.
 - Two-ring world contours and Haven's three-blade grass tufts preserve their silhouettes in one draw call each, restoring headroom during fast liberation and Command transitions.

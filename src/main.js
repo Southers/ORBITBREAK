@@ -88,6 +88,7 @@ import {
 } from './records.js?v=20260814-ob8';
 import {
   getLiberationFlashOpacity,
+  getLeaderboardActionLabel,
   getPersonalBestStatus,
   getPublishedWardenState,
   getRelayLinkOpacity,
@@ -98,7 +99,7 @@ import {
   getStillnessPresentation,
   getWorldLandingAimLabel,
   separateOverlappingRouteLabels,
-} from './presentation.js?v=20260815-ob51';
+} from './presentation.js?v=20260815-ob54';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -259,7 +260,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob53';
+GameCanvas.dataset.build = '20260815-ob54';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -454,6 +455,7 @@ function configureSystemInterface() {
   VictoryEyebrowElement.textContent = ActiveSystem.completion.eyebrow;
   VictoryTitleElement.textContent = ActiveSystem.completion.title;
   VictoryBodyElement.textContent = ActiveSystem.completion.body;
+  LeaderboardButtonElement.textContent = getLeaderboardActionLabel(LeaderboardClient.configured);
   ConstellationSummaryElement.setAttribute(
     'aria-label',
     `${ActiveSystem.label} constellation summary`,

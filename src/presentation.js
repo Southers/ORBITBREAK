@@ -134,6 +134,14 @@ export function getPublishedWardenState(PursuitStatus, IsCommandDefeated = false
   };
 }
 
+/** Names the rankings action honestly before an offline player opens it. */
+export function getLeaderboardActionLabel(IsConfigured) {
+  if (typeof IsConfigured !== 'boolean') {
+    throw new Error('Leaderboard action label requires configured state.');
+  }
+  return IsConfigured ? 'Rankings' : 'Rankings offline';
+}
+
 /** Separates two nearby route labels horizontally while preserving their projected order. */
 export function separateOverlappingRouteLabels(
   LabelPositions,
