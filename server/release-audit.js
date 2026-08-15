@@ -87,6 +87,16 @@ export function auditReleaseReadiness() {
     'Occupied worlds must show tyrant extraction, held people and a tiny Runner so living contrast can read.',
   );
   requireCondition(
+    Array.isArray(AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]?.openingBriefing)
+      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier].openingBriefing.length >= 4
+      && /id="OpeningBriefing"/.test(IndexHtml)
+      && /id="BriefingContinueButton"/.test(IndexHtml)
+      && /\.opening-briefing__actions button\s*\{[^}]*min-height:\s*44px;/s.test(StyleSheet)
+      && MainSource.includes('beginOpeningBriefing(')
+      && PresentationSource.includes('export function getOpeningBriefingPresentation('),
+    'The selected sector must open with a story board that names the Runner, the Reach and the charge.',
+  );
+  requireCondition(
     MainSource.includes('ProsperityBuildingMesh')
       && MainSource.includes('getTradeHullKind(')
       && MainSource.includes('getInhabitantSilhouette(')
@@ -374,7 +384,9 @@ export function auditReleaseReadiness() {
   requireCondition(Credits.includes('Three.js'), 'CREDITS.md must credit Three.js.');
   requireCondition(Credits.includes('WORLDSEED'), 'CREDITS.md must record WORLDSEED provenance.');
   requireCondition(
-    Credits.includes('None. The imported geometry'),
+    Credits.includes('Opening briefing portraits')
+      && Credits.includes('assets/runner-portrait.jpg')
+      && Credits.includes('original ORBITBREAK stills'),
     'CREDITS.md must explicitly state the current external-asset status.',
   );
   requireCondition(

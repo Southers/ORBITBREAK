@@ -914,3 +914,51 @@ export function getHiddenWardenRouteCoach({
   };
 }
 
+const OpeningBriefingPortraitFiles = Object.freeze({
+  warden: './assets/warden-portrait.jpg',
+  runner: './assets/runner-portrait.jpg',
+  haven: './assets/haven-portrait.jpg',
+  orbitbreaker: './assets/orbitbreaker-portrait.jpg',
+});
+
+/** Turns authored briefing pages into one readable story board. */
+export function getOpeningBriefingPresentation(pages, pageIndex) {
+  if (!Array.isArray(pages) || pages.length < 1) {
+    throw new Error('Opening briefing requires at least one authored page.');
+  }
+  if (!Number.isInteger(pageIndex) || pageIndex < 0 || pageIndex >= pages.length) {
+    throw new Error('Opening briefing requires a page inside the authored sequence.');
+  }
+  const Page = pages[pageIndex];
+  if (
+    typeof Page?.speaker !== 'string' || Page.speaker.trim() === ''
+    || typeof Page?.kicker !== 'string' || Page.kicker.trim() === ''
+    || typeof Page?.title !== 'string' || Page.title.trim() === ''
+    || typeof Page?.body !== 'string' || Page.body.trim() === ''
+    || typeof Page?.portrait !== 'string' || Page.portrait.trim() === ''
+  ) {
+    throw new Error('Opening briefing pages require speaker, kicker, title, body and portrait.');
+  }
+  const IsLast = pageIndex === pages.length - 1;
+  return {
+    speaker: Page.speaker,
+    kicker: Page.kicker,
+    title: Page.title,
+    body: Page.body,
+    portrait: Page.portrait,
+    portraitSrc: OpeningBriefingPortraitFiles[Page.portrait] ?? OpeningBriefingPortraitFiles.runner,
+    tone: Page.portrait === 'warden'
+      ? 'warden'
+      : Page.portrait === 'haven'
+        ? 'haven'
+        : Page.portrait === 'orbitbreaker'
+          ? 'courier'
+          : 'runner',
+    pageIndex,
+    pageCount: pages.length,
+    isLast: IsLast,
+    continueLabel: IsLast ? 'Take the Orbitbreaker' : 'Continue',
+    progressLabel: `${pageIndex + 1} / ${pages.length}`,
+  };
+}
+

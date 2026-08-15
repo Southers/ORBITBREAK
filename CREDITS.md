@@ -10,7 +10,7 @@
 
 ## External art and audio assets
 
-None. The imported geometry, materials, particles, interface, music and sound effects are generated in code. Procedural audio uses the browser Web Audio API and contains no sampled or third-party source material.
+Opening briefing portraits `assets/runner-portrait.jpg`, `assets/warden-portrait.jpg`, `assets/haven-portrait.jpg` and `assets/orbitbreaker-portrait.jpg` are original ORBITBREAK stills generated for this project during development. They are not third-party stock. All other geometry, materials, particles, interface, music and sound effects are generated in code. Procedural audio uses the browser Web Audio API and contains no sampled or third-party source material.
 
 The ORBITBREAK Runner model, Stillness cages, liberation effects, orbit-mark SVG and all animation are built entirely from procedural Three.js primitives, shaders, SVG and CSS and introduce no external asset.
 

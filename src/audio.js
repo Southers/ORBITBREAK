@@ -361,6 +361,27 @@ export class WorldseedAudio {
     this.setRestoredWorldCount(RestoredWorldCount);
   }
 
+  briefingVoice(Speaker) {
+    const Voices = {
+      'THE WARDEN': { root: 68, type: 'sawtooth', noise: 140, volume: 0.1 },
+      'THE RUNNER': { root: 233, type: 'triangle', noise: 980, volume: 0.07 },
+      HAVEN: { root: 196, type: 'sine', noise: 1500, volume: 0.055 },
+      'THE RUN': { root: 311, type: 'triangle', noise: 640, volume: 0.07 },
+    };
+    const Voice = Voices[Speaker] ?? Voices['THE RUNNER'];
+    this.playNoise({ duration: 0.22, volume: Voice.volume * 0.7, frequency: Voice.noise });
+    [1, 1.25, 1.5, 0.75].forEach((Ratio, NoteIndex) => {
+      this.playTone({
+        frequency: Voice.root * Ratio,
+        endFrequency: Voice.root * Ratio * (NoteIndex === 3 ? 0.92 : 1.03),
+        duration: 0.28,
+        volume: Voice.volume,
+        type: Voice.type,
+        delay: NoteIndex * 0.09,
+      });
+    });
+  }
+
   slingshot(TierLabel, ChainMultiplier) {
     const TierOffset = TierLabel.startsWith('RAZOR')
       ? 1.34
