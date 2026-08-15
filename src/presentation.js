@@ -118,3 +118,18 @@ export function getRelayLinkOpacity(ElapsedTimeSeconds, { reducedMotion = false 
   if (reducedMotion) return 0.8;
   return 0.8 + (Math.sin(ElapsedTimeSeconds * 2.4) * 0.1);
 }
+
+/** Publishes the finale presentation without mutating authoritative pursuit state. */
+export function getPublishedWardenState(PursuitStatus, IsCommandDefeated = false) {
+  if (typeof PursuitStatus !== 'string' || PursuitStatus.length < 1) {
+    throw new Error('Published Warden state requires a pursuit status.');
+  }
+  const IsVisible = PursuitStatus !== 'hidden';
+  const IsExposed = PursuitStatus === 'exposed';
+  return {
+    status: IsCommandDefeated ? 'defeated' : PursuitStatus,
+    landmark: IsCommandDefeated
+      ? 'command-world-disabled'
+      : (IsExposed ? 'command-world-exposed' : (IsVisible ? 'iron-crown-pursuit' : 'hidden')),
+  };
+}

@@ -89,6 +89,7 @@ import {
 import {
   getLiberationFlashOpacity,
   getPersonalBestStatus,
+  getPublishedWardenState,
   getRelayLinkOpacity,
   getRunResourceSummary,
   getRunnerAnimationState,
@@ -96,7 +97,7 @@ import {
   getRunnerPose,
   getStillnessPresentation,
   getWorldLandingAimLabel,
-} from './presentation.js?v=20260815-ob48';
+} from './presentation.js?v=20260815-ob49';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -257,7 +258,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob48';
+GameCanvas.dataset.build = '20260815-ob49';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -3223,6 +3224,10 @@ function publishWardenState() {
   const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
   const IsCommandExposed = WardenPursuitState.status === 'exposed';
   const IsCommandDefeated = WorldheartDefinition.restored;
+  const PublishedWardenState = getPublishedWardenState(
+    WardenPursuitState.status,
+    IsCommandDefeated,
+  );
   WardenPanelElement.hidden = !IsVisible;
   WardenPanelElement.classList.toggle('is-defeated', IsCommandDefeated);
   if (IsVisible) {
@@ -3263,15 +3268,13 @@ function publishWardenState() {
     : listLiveRelayCircuits(RelayNetworkState).length > 0
       ? 'NETWORK BLOCKED'
       : 'TARGET UNKNOWN';
-  GameCanvas.dataset.wardenStatus = WardenPursuitState.status;
+  GameCanvas.dataset.wardenStatus = PublishedWardenState.status;
   GameCanvas.dataset.wardenDistance = String(WardenPursuitState.distance);
   GameCanvas.dataset.wardenTarget = WardenPursuitState.targetWorldIdentifier ?? '';
   GameCanvas.dataset.wardenEvent = WardenPursuitState.lastEvent;
   GameCanvas.dataset.wardenResolvedFlights = String(WardenPursuitState.resolvedFlightCount);
   GameCanvas.dataset.wardenShieldLayers = String(WardenPursuitState.shieldLayers);
-  GameCanvas.dataset.wardenLandmark = IsCommandExposed
-    ? 'command-world-exposed'
-    : (IsVisible ? 'iron-crown-pursuit' : 'hidden');
+  GameCanvas.dataset.wardenLandmark = PublishedWardenState.landmark;
 }
 
 function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit = null } = {}) {
@@ -3506,7 +3509,6 @@ function updateWardenVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
     WardenBeaconMaterial.color.setHex(0xc6f4ff);
     WardenExposureLatticeMaterial.opacity = (1 - DefeatProgress) * 0.68;
     WardenVisualGroup.scale.setScalar(THREE.MathUtils.lerp(1, 0.9, DefeatProgress));
-    GameCanvas.dataset.wardenLandmark = 'command-world-disabled';
   }
   if (TargetWorld) {
     WardenForecastPositions.set([

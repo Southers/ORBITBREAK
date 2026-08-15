@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   getLiberationFlashOpacity,
   getPersonalBestStatus,
+  getPublishedWardenState,
   getRelayLinkOpacity,
   getRunResourceSummary,
   getRunnerAnimationState,
@@ -12,6 +13,22 @@ import {
   getStillnessPresentation,
   getWorldLandingAimLabel,
 } from '../src/presentation.js';
+
+test('published Warden state distinguishes exposure from final defeat', () => {
+  assert.deepEqual(getPublishedWardenState('hidden'), {
+    status: 'hidden',
+    landmark: 'hidden',
+  });
+  assert.deepEqual(getPublishedWardenState('exposed'), {
+    status: 'exposed',
+    landmark: 'command-world-exposed',
+  });
+  assert.deepEqual(getPublishedWardenState('exposed', true), {
+    status: 'defeated',
+    landmark: 'command-world-disabled',
+  });
+  assert.throws(() => getPublishedWardenState(''), /requires a pursuit status/);
+});
 
 test('relay links retain a bright bounded pulse for system-scale readability', () => {
   assert.equal(getRelayLinkOpacity(0), 0.8);
