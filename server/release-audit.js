@@ -98,6 +98,10 @@ export function auditReleaseReadiness() {
     'Warden state and target forecasts must retain their legible single-line floor.',
   );
   requireCondition(
+    /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml),
+    'Command World objective updates must remain a complete atomic status.',
+  );
+  requireCondition(
     /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),
     'Release diagnostics must remain restricted to local development hosts.',
   );

@@ -573,6 +573,18 @@ stayed unwrapped, both layouts stayed overflow-free and the browser reported no 
 The release audit protects the forecast floor. This legibility pass changes no target selection,
 pursuit timing, input, fixed-step physics, scoring or replay state.
 
+Gauntlet pass 28 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The central objective was a polite live region but not atomic,
+so its changing `0 / 3`, exposure, core-lock and liberation fragments could be announced without the
+stable `COMMAND WORLD` context. The panel is now an atomic status, preserving the complete objective
+meaning through every state. A fresh predicted Haven-to-Ember launch landed on the same live route and
+advanced the portrait accessibility tree from `COMMAND WORLD 0 / 3` to one status containing
+`COMMAND WORLD 1 / 3`. Its 168×32.6px portrait and 176×34.6px desktop panels were unchanged and both
+layouts remained overflow-free. Pressing `R` restored `COMMAND WORLD 0 / 3`, zero launches and canvas
+focus; the browser reported no warnings or errors. The release audit protects the semantic contract.
+This accessibility-only pass changes no objective thresholds, relay state, input, fixed-step physics,
+score, pursuit or replay behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

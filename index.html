@@ -11,7 +11,7 @@
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
   <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260814-ob13" />
-  <link rel="stylesheet" href="./src/style.css?v=20260815-ob57" />
+  <link rel="stylesheet" href="./src/style.css?v=20260815-ob58" />
 
   <!--
     Buildless release import map. Three.js is pinned and vendored so startup
@@ -84,7 +84,7 @@
       <small id="WardenTarget">TARGET UNKNOWN</small>
     </section>
 
-    <section id="ObjectivePanel" class="objective-panel" aria-live="polite">
+    <section id="ObjectivePanel" class="objective-panel" role="status" aria-live="polite" aria-atomic="true">
       <span class="objective-panel__label">COMMAND WORLD</span>
       <span id="ObjectiveState" class="objective-panel__state">0 / 3</span>
       <span id="ObjectivePips" class="objective-panel__pips" aria-hidden="true">
@@ -204,6 +204,6 @@
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260815-ob57"></script>
+  <script type="module" src="./src/main.js?v=20260815-ob58"></script>
 </body>
 </html>
