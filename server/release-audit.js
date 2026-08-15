@@ -106,8 +106,10 @@ export function auditReleaseReadiness() {
     'Warden state and target forecasts must retain their legible single-line floor.',
   );
   requireCondition(
-    /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml),
-    'Command World objective updates must remain a complete atomic status.',
+    /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
+      && /\.objective-panel__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+      && /\.objective-panel__state\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),
+    'Command World objective updates must remain a complete atomic status with legible type.',
   );
   requireCondition(
     /id="ScoutZoomStatus"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)

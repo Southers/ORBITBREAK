@@ -415,16 +415,18 @@ button[aria-disabled='true'] {
 
 .objective-panel__label {
   color: rgba(255, 231, 174, 0.7);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
   letter-spacing: 0.17em;
+  line-height: 1.2;
 }
 
 .objective-panel__state {
   color: rgba(228, 236, 240, 0.72);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.08em;
+  line-height: 1.2;
   text-align: right;
 }
 
