@@ -150,9 +150,10 @@ button[aria-disabled='true'] {
 
 .counter__label {
   color: rgba(220, 231, 237, 0.5);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.16em;
+  line-height: 1.2;
 }
 
 .counter__value {
@@ -241,9 +242,10 @@ button[aria-disabled='true'] {
   background: rgba(5, 12, 20, 0.5);
   backdrop-filter: blur(10px);
   color: rgba(194, 231, 243, 0.55);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.16em;
+  line-height: 1.2;
   pointer-events: none;
 }
 
@@ -1106,7 +1108,7 @@ button[aria-disabled='true'] {
   }
 
   .counter__label {
-    font-size: 7px;
+    font-size: 9px;
     letter-spacing: 0.1em;
   }
 

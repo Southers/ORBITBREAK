@@ -92,19 +92,21 @@ import {
   getLiberationFlashOpacity,
   getLeaderboardActionLabel,
   getPersonalBestStatus,
+  getPlayfieldLabelTopMargin,
   getPublishedWardenState,
   getRelayLinkOpacity,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
   getRunnerPose,
+  getScannerAccessibleLabel,
   getStillnessPresentation,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob64';
+} from './presentation.js?v=20260815-ob65';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -267,7 +269,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob64';
+GameCanvas.dataset.build = '20260815-ob65';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -448,6 +450,7 @@ const ScannerWorldElements = new Map();
 let ScannerHazardElement = null;
 let ScannerCommandElement = null;
 let ScannerProjection = null;
+let LastScannerAccessibleLabel = '';
 configureScannerInterface();
 
 const WorldRuntimeByIdentifier = new Map();
@@ -625,6 +628,26 @@ function updateScannerInterface() {
   const CommandPosition = projectScannerPosition(WorldheartDefinition.position);
   ScannerCommandElement?.setAttribute('cx', String(CommandPosition.x));
   ScannerCommandElement?.setAttribute('cy', String(CommandPosition.y));
+  const CurrentWorld = getWorldDefinition(CurrentWorldIdentifier);
+  const PublishedWardenState = getPublishedWardenState(
+    WardenPursuitState.status,
+    WorldheartDefinition.restored,
+  );
+  const WardenTarget = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
+  const ScannerAccessibleLabel = getScannerAccessibleLabel({
+    runnerLocation: GamePhase === 'flying'
+      ? 'in flight'
+      : `at ${CurrentWorld?.label ?? 'an unknown world'}`,
+    activeWorldCount: countLiveRelayWorlds(RelayNetworkState),
+    worldCount: WorldDefinitions.length,
+    wardenStatus: PublishedWardenState.status,
+    wardenDistance: WardenPursuitState.distance,
+    wardenTargetLabel: WardenTarget?.label ?? '',
+  });
+  if (ScannerAccessibleLabel !== LastScannerAccessibleLabel) {
+    ScannerPanelElement.setAttribute('aria-label', ScannerAccessibleLabel);
+    LastScannerAccessibleLabel = ScannerAccessibleLabel;
+  }
   GameCanvas.dataset.scannerRunnerX = RunnerPosition.x.toFixed(1);
   GameCanvas.dataset.scannerRunnerY = RunnerPosition.y.toFixed(1);
 }
@@ -4321,9 +4344,14 @@ function updateRouteLabels() {
   const RouteChoices = GamePhase === 'attached'
     ? getCurrentRouteChoices(RouteLabelElements.length)
     : [];
-  const HorizontalMargin = window.innerWidth <= 640 ? 48 : 58;
-  const TopMargin = window.innerWidth <= 640 ? 172 : 78;
-  const BottomMargin = window.innerWidth <= 640 ? 112 : 82;
+  const IsCompactLayout = window.innerWidth <= 640;
+  const HorizontalMargin = IsCompactLayout ? 48 : 58;
+  const TopMargin = getPlayfieldLabelTopMargin({
+    isCompact: IsCompactLayout,
+    wardenVisible: !WardenPanelElement.hidden,
+    isTactical: false,
+  });
+  const BottomMargin = IsCompactLayout ? 112 : 82;
   const LabelPositions = [];
 
   for (let LabelIndex = 0; LabelIndex < RouteLabelElements.length; LabelIndex += 1) {
@@ -4532,7 +4560,11 @@ function updateTacticalBodies(ElapsedTimeSeconds) {
     {
       horizontalClearance: 160,
       verticalClearance: 28,
-      minimumY: window.innerWidth <= 640 ? 116 : 70,
+      minimumY: getPlayfieldLabelTopMargin({
+        isCompact: window.innerWidth <= 640,
+        wardenVisible: !WardenPanelElement.hidden,
+        isTactical: true,
+      }),
       maximumY: window.innerHeight - (window.innerWidth <= 640 ? 112 : 82),
     },
   );

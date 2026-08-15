@@ -5,12 +5,14 @@ import {
   getLiberationFlashOpacity,
   getLeaderboardActionLabel,
   getPersonalBestStatus,
+  getPlayfieldLabelTopMargin,
   getPublishedWardenState,
   getRelayLinkOpacity,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
   getRunnerPose,
+  getScannerAccessibleLabel,
   getStillnessPresentation,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
@@ -33,6 +35,37 @@ test('published Warden state distinguishes exposure from final defeat', () => {
     landmark: 'command-world-disabled',
   });
   assert.throws(() => getPublishedWardenState(''), /requires a pursuit status/);
+  assert.equal(
+    getScannerAccessibleLabel({
+      runnerLocation: 'at Meadow',
+      activeWorldCount: 1,
+      worldCount: 5,
+      wardenStatus: 'hidden',
+      wardenDistance: 4,
+    }),
+    'System scanner. Runner at Meadow. 1 of 5 relay worlds active. Warden hidden. Moving bodies tracked.',
+  );
+  assert.equal(
+    getScannerAccessibleLabel({
+      runnerLocation: 'in flight',
+      activeWorldCount: 3,
+      worldCount: 5,
+      wardenStatus: 'pursuing',
+      wardenDistance: 1,
+      wardenTargetLabel: 'Frost',
+    }),
+    'System scanner. Runner in flight. 3 of 5 relay worlds active. Warden 1 flight away, targeting Frost. Moving bodies tracked.',
+  );
+  assert.throws(
+    () => getScannerAccessibleLabel({
+      runnerLocation: '',
+      activeWorldCount: 0,
+      worldCount: 5,
+      wardenStatus: 'hidden',
+      wardenDistance: 4,
+    }),
+    /requires valid runner, relay and Warden state/,
+  );
 });
 
 test('rankings action discloses offline state before opening the board', () => {
@@ -70,6 +103,29 @@ test('nearby route labels separate without changing distant or edge-clamped layo
 });
 
 test('route labels clear nearby tactical annotations without leaving HUD bounds', () => {
+  assert.equal(getPlayfieldLabelTopMargin({
+    isCompact: true,
+    wardenVisible: false,
+    isTactical: false,
+  }), 172);
+  assert.equal(getPlayfieldLabelTopMargin({
+    isCompact: true,
+    wardenVisible: true,
+    isTactical: true,
+  }), 246);
+  assert.equal(getPlayfieldLabelTopMargin({
+    isCompact: false,
+    wardenVisible: true,
+    isTactical: false,
+  }), 212);
+  assert.throws(
+    () => getPlayfieldLabelTopMargin({
+      isCompact: 'true',
+      wardenVisible: false,
+      isTactical: false,
+    }),
+    /requires boolean layout state/,
+  );
   assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · 1 USE'), 72);
   assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · MOVING · 1 USE'), 108);
   assert.throws(() => getTacticalLabelHorizontalMargin(' '), /requires visible text/);

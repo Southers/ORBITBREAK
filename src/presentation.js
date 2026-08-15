@@ -283,3 +283,54 @@ export function getTacticalLabelHorizontalMargin(LabelText) {
   }
   return Math.max(64, Math.ceil([...LabelText].length * 4) + 4);
 }
+
+/** Describes the visual scanner without turning moving coordinates into live announcements. */
+export function getScannerAccessibleLabel({
+  runnerLocation,
+  activeWorldCount,
+  worldCount,
+  wardenStatus,
+  wardenDistance,
+  wardenTargetLabel = '',
+}) {
+  if (
+    typeof runnerLocation !== 'string'
+    || runnerLocation.trim().length < 1
+    || !Number.isInteger(activeWorldCount)
+    || !Number.isInteger(worldCount)
+    || activeWorldCount < 0
+    || worldCount < 1
+    || activeWorldCount > worldCount
+    || !['hidden', 'pursuing', 'exposed', 'defeated'].includes(wardenStatus)
+    || !Number.isInteger(wardenDistance)
+    || wardenDistance < 0
+    || typeof wardenTargetLabel !== 'string'
+  ) {
+    throw new Error('Scanner label requires valid runner, relay and Warden state.');
+  }
+  const WardenDescription = wardenStatus === 'hidden'
+    ? 'Warden hidden.'
+    : wardenStatus === 'exposed'
+      ? 'Command World exposed.'
+      : wardenStatus === 'defeated'
+        ? 'Warden defeated.'
+        : `Warden ${wardenDistance} flight${wardenDistance === 1 ? '' : 's'} away${
+          wardenTargetLabel.trim().length > 0 ? `, targeting ${wardenTargetLabel.trim()}` : ''
+        }.`;
+  return `System scanner. Runner ${runnerLocation.trim()}. ${activeWorldCount} of ${worldCount}`
+    + ` relay worlds active. ${WardenDescription} Moving bodies tracked.`;
+}
+
+/** Reserves the upper HUD band once the Warden forecast appears. */
+export function getPlayfieldLabelTopMargin({ isCompact, wardenVisible, isTactical }) {
+  if (
+    typeof isCompact !== 'boolean'
+    || typeof wardenVisible !== 'boolean'
+    || typeof isTactical !== 'boolean'
+  ) {
+    throw new Error('Playfield label margin requires boolean layout state.');
+  }
+  if (wardenVisible) return isCompact ? (isTactical ? 246 : 244) : 212;
+  if (isCompact) return isTactical ? 116 : 172;
+  return isTactical ? 70 : 78;
+}

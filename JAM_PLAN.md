@@ -651,6 +651,20 @@ authentic Ember landing showed zero chip overlap, no clipping or overflow, retai
 browser errors. Focused tests and the release audit protect the deterministic separation, bounds and type
 floor. This HUD-only pass changes no world position, route choice, physics, scoring, pursuit or replay.
 
+Gauntlet pass 35 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The remaining navigation HUD mixed tiny type with a visual-only
+scanner: portrait `BONUS FUEL` rendered at 7px, `SCANNER` at 8px, and assistive navigation exposed only
+the name “System scanner.” Counter labels now render at 9px mobile/10px desktop with explicit line
+height, while the scanner uses a 10px/1.2 floor and an image role whose concise, non-live label reports
+Runner location, active relay count, Warden distance/target and tracked motion. The opening label read
+`Runner at HAVEN · 1 of 6 · Warden hidden`; an authentic Haven–Ember–Grove route updated it to Grove,
+3 of 6 and Warden 4 flights away targeting Grove while retaining canvas focus. That Warden-visible state
+also exposed a 593px² Seedstone/forecast collision, so deterministic compact and desktop top bands now
+keep both route and tactical chips below the pursuit HUD. Repeated moving-body sweeps at 390×844 and
+1280×720 showed zero HUD/chip overlap or overflow and no browser errors. Focused tests and the release
+audit protect the semantic snapshot, responsive type floors and pursuit boundary. This navigation-only
+pass changes no world position, route, physics, scoring, pursuit or replay behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

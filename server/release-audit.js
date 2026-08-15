@@ -116,6 +116,16 @@ export function auditReleaseReadiness() {
     'Route and tactical labels must remain legible, single-line and collision-aware.',
   );
   requireCondition(
+    /id="ScannerPanel"[^>]*role="img"[^>]*aria-label="System scanner"/.test(IndexHtml)
+      && /\.scanner-panel\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+      && /\.counter__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.counter__label\s*\{[^}]*font-size:\s*9px;/s.test(StyleSheet)
+      && MainSource.includes('getScannerAccessibleLabel({')
+      && MainSource.includes('getPlayfieldLabelTopMargin({')
+      && MainSource.includes("ScannerPanelElement.setAttribute('aria-label', ScannerAccessibleLabel)"),
+    'Navigation HUD labels must remain legible and the visual scanner must expose a semantic snapshot.',
+  );
+  requireCondition(
     /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
       && /\.objective-panel__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.objective-panel__state\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),
