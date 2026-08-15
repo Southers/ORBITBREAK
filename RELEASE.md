@@ -84,7 +84,8 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob87` passes deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob88` passes deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Aiming frames the live neighbourhood on a brighter, less fogged map. Pinch and zoom buttons work during aim, and zoom now reaches from a close world to the whole authored Reach. Extra solar systems stay out of scope.
 - After the first live link the committed chain holds 1.7s and Ember teaches leftover Cut. After the first unique loop a gold ghost names the next closing edge. Command lock remains the exposed finale gift. Warden arrival arms a once-per-run recapture Cut. Extra Break is still deferred so ranked flights keep one recorded burn.
 - Living worlds now mix houses, workshops and docks on the same scar kit, with window/street instances and crowds that densify to twelve people on a circuit. Trade hulls dwell at the dock, light the pier and gather nearby walkers. Reduced motion skips the pause.
 - Campaign story boards wait for the wrapping liberation and relay look, then freeze the sim. Continue and Skip disconnect dialogue voices and restore the game bed. Aiming snaps to the sector frame and no longer inherits landed pan/zoom, so fog cannot swallow the predicted path.

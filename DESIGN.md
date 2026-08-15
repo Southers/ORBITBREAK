@@ -52,7 +52,7 @@ Surface movement is deliberately one-dimensional. It creates launch-position cho
 
 ## Flight skill
 
-Aiming zooms the camera out to the whole authored sector and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. A committed chain is visible before release, including three- and four-world slingshots.
+Aiming frames the readable neighbourhood and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. Pinch, wheel or the zoom buttons move from a close world to the whole authored Reach. Fog lifts while planning so the map stays bright. A committed chain is visible before release, including three- and four-world slingshots. Extra solar systems stay expansion; this run is one dense sector.
 
 Skill comes from:
 
