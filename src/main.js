@@ -44,7 +44,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob87';
+} from './content.js?v=20260815-ob88';
 
 import {
   countRestoredWorlds,
@@ -122,6 +122,10 @@ import {
   getPublishedWardenState,
   getRangeVeilStrength,
   getRelayCourierTravelProgress,
+  getPlanningAtmosphere,
+  getPlanningFocusWorldIdentifiers,
+  PlanningMaximumZoomScale,
+  PlanningMinimumZoomScale,
   getRelayLinkOpacity,
   getRelayRevealHoldDurationSeconds,
   getRelayRevealLookTarget,
@@ -152,7 +156,7 @@ import {
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob87';
+} from './presentation.js?v=20260815-ob88';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -326,7 +330,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob87';
+GameCanvas.dataset.build = '20260815-ob88';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -407,7 +411,7 @@ Renderer.toneMappingExposure = ActiveSystem.environment.toneMappingExposure;
 Renderer.shadowMap.enabled = true;
 Renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const Camera = new THREE.PerspectiveCamera(42, 1, 0.1, 180);
+const Camera = new THREE.PerspectiveCamera(42, 1, 0.1, 480);
 Camera.position.set(0, 0, 42);
 Camera.lookAt(0, 0, 0);
 
@@ -468,14 +472,16 @@ let KeyboardAimState = createKeyboardAimState();
 let IsScoutMode = false;
 let RelayRevealLookTarget = null;
 let RelayRevealHoldUntilSeconds = 0;
+let LastPlanningPathPoints = [];
+let LastPredictedBodyIdentifier = '';
 let CommittedPredictionPoints = null;
 let RecaptureCutGiftAvailable = false;
 let PendingRecaptureCutWorldIdentifier = null;
 let HasAnnouncedCommandLockGift = false;
 const CourierStartTimesByLinkId = new Map();
-const MinimumScoutZoomScale = 0.38;
-const MaximumScoutZoomScaleOpen = 1.95;
-const MaximumScoutZoomScaleVeiled = 1.45;
+const MinimumScoutZoomScale = PlanningMinimumZoomScale;
+const MaximumScoutZoomScaleOpen = PlanningMaximumZoomScale;
+const MaximumScoutZoomScaleVeiled = 2.45;
 let ScoutZoomScale = 1;
 let IsPersonalBestGhostEnabled = false;
 let HasPersonalBestGhost = false;
@@ -827,25 +833,25 @@ function createStarField() {
     return RandomState / 4294967296;
   }
 
-  const StarCount = 620;
+  const StarCount = 880;
   const StarPositions = new Float32Array(StarCount * 3);
 
   for (let StarIndex = 0; StarIndex < StarCount; StarIndex += 1) {
     const PositionOffset = StarIndex * 3;
-    StarPositions[PositionOffset] = (nextRandomValue() - 0.5) * 92;
-    StarPositions[PositionOffset + 1] = (nextRandomValue() - 0.5) * 68;
-    StarPositions[PositionOffset + 2] = -8 - (nextRandomValue() * 28);
+    StarPositions[PositionOffset] = (nextRandomValue() - 0.5) * 168;
+    StarPositions[PositionOffset + 1] = (nextRandomValue() - 0.5) * 124;
+    StarPositions[PositionOffset + 2] = -8 - (nextRandomValue() * 42);
   }
 
   const StarGeometry = new THREE.BufferGeometry();
   StarGeometry.setAttribute('position', new THREE.BufferAttribute(StarPositions, 3));
 
   const StarMaterial = new THREE.PointsMaterial({
-    color: 0xc9d8e1,
-    size: 0.075,
+    color: 0xe4eef4,
+    size: 0.1,
     sizeAttenuation: true,
     transparent: true,
-    opacity: 0.68,
+    opacity: 0.84,
     depthWrite: false,
   });
 
@@ -854,19 +860,19 @@ function createStarField() {
 
   createBackgroundGlow(
     new THREE.Vector3(-15, -9, -24),
-    new THREE.Vector2(35, 27),
-    40,
-    106,
-    92,
-    0.16,
+    new THREE.Vector2(48, 36),
+    58,
+    148,
+    168,
+    0.28,
   );
   createBackgroundGlow(
     new THREE.Vector3(14, 10, -26),
-    new THREE.Vector2(31, 25),
-    52,
-    75,
-    130,
-    0.14,
+    new THREE.Vector2(44, 34),
+    78,
+    118,
+    188,
+    0.24,
   );
 }
 
@@ -4954,13 +4960,15 @@ function forgetPointerLocation(PointerEventData) {
 }
 
 function beginPinchIfNeeded() {
-  if (PointerByIdentifier.size !== 2 || IsPointerAiming || IsKeyboardAiming || IsBurnAiming) {
+  if (PointerByIdentifier.size !== 2 || IsBurnAiming || IsCutAiming) {
     return false;
   }
   const [FirstPointer, SecondPointer] = [...PointerByIdentifier.values()];
   PinchState = {
     startDistance: getPointerClientDistance(FirstPointer, SecondPointer),
-    startScale: CameraZoomScale,
+    startScale: shouldUseSectorPlanningCamera() && !IsScoutMode
+      ? AimZoomScale
+      : CameraZoomScale,
   };
   IsPointerWalking = false;
   IsPointerScouting = false;
@@ -4973,6 +4981,7 @@ function updatePinchZoom() {
     return false;
   }
   const [FirstPointer, SecondPointer] = [...PointerByIdentifier.values()];
+  const UsesPlanningZoom = shouldUseSectorPlanningCamera() && !IsScoutMode;
   const NextScale = getPinchZoomScale(
     PinchState.startDistance,
     getPointerClientDistance(FirstPointer, SecondPointer),
@@ -4982,12 +4991,21 @@ function updatePinchZoom() {
       maximumScale: getActiveMaximumScoutZoomScale(),
     },
   );
+  if (UsesPlanningZoom) {
+    if (NextScale === AimZoomScale) {
+      return false;
+    }
+    AimZoomScale = NextScale;
+    refreshPlanningZoomControls();
+    GameCanvas.dataset.aimZoom = AimZoomScale.toFixed(2);
+    return true;
+  }
   if (NextScale === CameraZoomScale) {
     return false;
   }
   CameraZoomScale = NextScale;
   ScoutZoomScale = NextScale;
-  if (IsScoutMode) updateScoutZoomInterface({ announce: false });
+  refreshPlanningZoomControls();
   GameCanvas.dataset.scoutZoom = CameraZoomScale.toFixed(2);
   resizeRenderer();
   return true;
@@ -7171,13 +7189,41 @@ function releaseAimInteractionCamera() {
   AimInteractionCamera = null;
 }
 
+function rememberPlanningPath(Prediction) {
+  LastPredictedBodyIdentifier = Prediction?.collisionWorldIdentifier
+    || Prediction?.collisionBodyIdentifier
+    || '';
+  const Points = Array.isArray(Prediction?.points) ? Prediction.points : [];
+  if (Points.length < 1) {
+    LastPlanningPathPoints = [];
+    return;
+  }
+  const Sampled = [];
+  const SampleStride = Math.max(1, Math.floor(Points.length / 12));
+  for (let PointIndex = 0; PointIndex < Points.length; PointIndex += SampleStride) {
+    const Point = Points[PointIndex];
+    Sampled.push({ x: Point.x, y: Point.y });
+  }
+  const LastPoint = Points[Points.length - 1];
+  Sampled.push({ x: LastPoint.x, y: LastPoint.y });
+  LastPlanningPathPoints = Sampled;
+}
+
 function getPlanningFocusPoints() {
-  const FocusPoints = WorldDefinitions.map((WorldDefinition) => WorldDefinition.position);
-  for (const BodyDefinition of TacticalBodyDefinitions) {
-    if (BodyDefinition.kind !== 'worldheart') {
-      continue;
-    }
-    FocusPoints.push(calculateBodyPositionAtTime(BodyDefinition, PhysicsElapsedTimeSeconds));
+  const AllowedIdentifiers = new Set(getPlanningFocusWorldIdentifiers({
+    innerClusterLive: isInnerClusterLive(listLiveWorldIdentifiers()),
+    commandRouteAvailable: WorldheartDefinition.routeAvailable === true,
+    predictedBodyIdentifiers: [
+      LastPredictedBodyIdentifier,
+      ...PredictedSlingshotWorldIdentifiers,
+    ],
+    currentWorldIdentifier: CurrentWorldIdentifier ?? '',
+  }));
+  const FocusPoints = WorldDefinitions
+    .filter((WorldDefinition) => AllowedIdentifiers.has(WorldDefinition.id))
+    .map((WorldDefinition) => WorldDefinition.position);
+  if (AllowedIdentifiers.has(WorldheartDefinition.id)) {
+    FocusPoints.push(calculateBodyPositionAtTime(WorldheartDefinition, PhysicsElapsedTimeSeconds));
   }
   return FocusPoints;
 }
@@ -7187,15 +7233,18 @@ function applySectorPlanningCamera() {
     PlanningCameraScale = 1;
     return;
   }
+  const FocusPoints = getPlanningFocusPoints();
   const PlanningCamera = getSectorPlanningCamera({
     runner: SeedPhysicsState.position,
-    focusPoints: getPlanningFocusPoints(),
+    focusPoints: FocusPoints,
+    pathPoints: LastPlanningPathPoints,
     viewportWorldWidth: ActiveSystem.camera?.viewportWorldWidth ?? 20,
     viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
   });
   PlanningCameraLookTarget.set(PlanningCamera.lookX, PlanningCamera.lookY, 0);
   PlanningCameraScale = PlanningCamera.scale;
   GameCanvas.dataset.planningCameraScale = PlanningCamera.scale.toFixed(2);
+  GameCanvas.dataset.planningFocusCount = String(FocusPoints.length);
 }
 
 /** Jumps to the sector aim frame so landed pan/zoom cannot hide the path in fog. */
@@ -7228,6 +7277,8 @@ function clearTrajectoryPreview() {
   TrajectoryGeometry.setDrawRange(0, 0);
   PredictedStardustIdentifiers.clear();
   PredictedSlingshotWorldIdentifiers.clear();
+  LastPlanningPathPoints = [];
+  LastPredictedBodyIdentifier = '';
   if (!shouldUseSectorPlanningCamera()) {
     PlanningCameraScale = 1;
     GameCanvas.dataset.planningCameraScale = '';
@@ -7318,6 +7369,7 @@ function updateFlightPlanningPresentation() {
     ignoredWorldIdentifier: LaunchIgnoredWorldIdentifier,
     ignoredCollisionBodyIdentifier: LaunchIgnoredBodyIdentifier,
   });
+  rememberPlanningPath(TrajectoryPrediction);
   if (TrajectoryPrediction.points.length > 1) {
     renderTrajectoryLine(TrajectoryPrediction.points);
   }
@@ -7388,6 +7440,7 @@ function updateAimPreview(CurrentPointerWorldPosition) {
   GameCanvas.dataset.lastPredictionVisiblePoints = String(VisiblePredictionPoints.length);
   GameCanvas.dataset.lastPredictionTotalPoints = String(TrajectoryPrediction.points.length);
   GameCanvas.dataset.lastPredictionOutcomeVisible = String(IsOutcomeVisible);
+  rememberPlanningPath(TrajectoryPrediction);
   applySectorPlanningCamera();
   const PredictedSlingshotEvents = predictSlingshotEvents(
     TrajectoryPrediction.points,
@@ -7662,9 +7715,10 @@ function beginKeyboardAim() {
   AimPanelElement.hidden = false;
   updateKeyboardAimPreview();
   snapLiveCameraToPlanningView();
+  refreshPlanningZoomControls();
   showInstruction(
     'Keyboard aim ready',
-    'Left/right steer · up/down set power · Shift makes fine adjustments · Enter launches.',
+    'Left/right steer · up/down set power · pinch or wheel to zoom the map · Enter launches.',
   );
   return true;
 }
@@ -7689,6 +7743,7 @@ function cancelAimedLaunch({ announce = true } = {}) {
   if (WasAiming) WorldseedSound.endAim();
   if (WasAiming && announce) showStatusToast('LAUNCH CANCELED', 700);
   if (WasAiming) showRouteChoiceInstruction();
+  refreshPlanningZoomControls();
 }
 
 /** Cancels keyboard aiming without spending a launch. */
@@ -8186,6 +8241,7 @@ function handlePointerDown(PointerEventData) {
     AimPanelElement.hidden = false;
     updateAimPreview(CurrentPointerWorldPosition);
     snapLiveCameraToPlanningView();
+    refreshPlanningZoomControls();
     PointerEventData.preventDefault();
     return;
   }
@@ -8199,7 +8255,7 @@ function handlePointerDown(PointerEventData) {
     if (!showHostileEncounterInstruction()) {
       showInstruction(
         `Walking around ${AttachedWorld.label}`,
-        'Trace the rim to choose a launch point. Grab the ship to aim. Drag empty space to pan.',
+        'Trace the rim to choose a launch point. Grab the ship to aim. Drag empty space to pan. Pinch or wheel to zoom.',
       );
     }
     PointerEventData.preventDefault();
@@ -8336,6 +8392,7 @@ function releaseAimedLaunch() {
   updateBreakerBurnInterface();
   HasLaunchedOnce = true;
   captureCommittedLaunchPrediction(AimLaunchVelocity);
+  refreshPlanningZoomControls();
   LaunchPulseMesh.position.copy(SeedGroup.position);
   LaunchPulseMesh.scale.setScalar(1);
   LaunchPulseMesh.visible = true;
@@ -8692,6 +8749,7 @@ function beginReplayLaunch(Launch) {
   updateBreakerBurnInterface();
   HasLaunchedOnce = true;
   captureCommittedLaunchPrediction({ x: Launch.velocityX, y: Launch.velocityY, z: 0 });
+  refreshPlanningZoomControls();
   LaunchPulseMesh.position.copy(SeedGroup.position);
   LaunchPulseMesh.scale.setScalar(1);
   LaunchPulseMesh.visible = true;
@@ -9406,9 +9464,19 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   }
 }
 
-/** Keeps Scout zoom labels, limits and optional announcements in one shared state. */
-function updateScoutZoomInterface({ announce = false } = {}) {
-  const Presentation = getScoutZoomPresentation(ScoutZoomScale, {
+/** Keeps Scout and aim zoom labels, limits and optional announcements in one shared state. */
+function refreshPlanningZoomControls({ announce = false } = {}) {
+  const Visible = IsScoutMode || shouldUseSectorPlanningCamera();
+  ScoutZoomOutButtonElement.hidden = !Visible;
+  ScoutZoomInButtonElement.hidden = !Visible;
+  if (!Visible) {
+    if (!IsScoutMode) ScoutZoomStatusElement.textContent = '';
+    return;
+  }
+  const Scale = shouldUseSectorPlanningCamera() && !IsScoutMode
+    ? AimZoomScale
+    : (IsScoutMode ? ScoutZoomScale : CameraZoomScale);
+  const Presentation = getScoutZoomPresentation(Scale, {
     minimumScale: MinimumScoutZoomScale,
     maximumScale: getActiveMaximumScoutZoomScale(),
   });
@@ -9417,6 +9485,10 @@ function updateScoutZoomInterface({ announce = false } = {}) {
   ScoutZoomInButtonElement.setAttribute('aria-label', Presentation.zoomInLabel);
   ScoutZoomOutButtonElement.setAttribute('aria-label', Presentation.zoomOutLabel);
   if (announce) ScoutZoomStatusElement.textContent = Presentation.status;
+}
+
+function updateScoutZoomInterface({ announce = false } = {}) {
+  refreshPlanningZoomControls({ announce });
 }
 
 function setScoutMode(Enabled, { snapToRunner = true } = {}) {
@@ -9438,12 +9510,10 @@ function setScoutMode(Enabled, { snapToRunner = true } = {}) {
     );
   ScoutButtonElement.textContent = IsScoutMode ? 'Runner [C]' : 'Scout [C]';
   ScoutButtonElement.setAttribute('aria-pressed', String(IsScoutMode));
-  ScoutZoomOutButtonElement.hidden = !IsScoutMode;
-  ScoutZoomInButtonElement.hidden = !IsScoutMode;
   if (!IsScoutMode) {
     ScoutZoomStatusElement.textContent = WasScoutMode ? 'Scout view off' : '';
   }
-  updateScoutZoomInterface({ announce: IsScoutMode });
+  refreshPlanningZoomControls({ announce: IsScoutMode });
   GameCanvas.dataset.scoutMode = String(IsScoutMode);
   GameCanvas.dataset.scoutZoom = ScoutZoomScale.toFixed(2);
   GameCanvas.classList.toggle('is-scouting', IsScoutMode && IsPointerScouting);
@@ -9465,7 +9535,12 @@ function adjustViewZoom(Direction) {
       MinimumScoutZoomScale,
       MaximumScale,
     );
-    return AimZoomScale !== PreviousScale;
+    const DidChange = AimZoomScale !== PreviousScale;
+    if (DidChange) {
+      refreshPlanningZoomControls({ announce: true });
+      GameCanvas.dataset.aimZoom = AimZoomScale.toFixed(2);
+    }
+    return DidChange;
   }
   const PreviousScale = CameraZoomScale;
   CameraZoomScale = THREE.MathUtils.clamp(
@@ -9501,6 +9576,19 @@ function handleScoutWheel(WheelEventData) {
 function updateCamera(DeltaTimeSeconds) {
   const UsesExplorationCamera = ActiveSystem.camera?.followPlayer === true;
   const UsesPlanningCamera = UsesExplorationCamera && shouldUseSectorPlanningCamera();
+  if (
+    GamePhase !== 'victory'
+    && GamePhase !== 'victoryPending'
+    && Scene.fog
+  ) {
+    const PlanningAtmosphere = getPlanningAtmosphere({
+      isPlanning: UsesPlanningCamera,
+      fogDensity: ActiveSystem.environment.fogDensity,
+      toneMappingExposure: ActiveSystem.environment.toneMappingExposure,
+    });
+    Scene.fog.density = PlanningAtmosphere.fogDensity;
+    Renderer.toneMappingExposure = PlanningAtmosphere.toneMappingExposure;
+  }
   if (UsesExplorationCamera && IsScoutMode) {
     DesiredCameraLookTarget.copy(ScoutCameraTarget);
   } else if (UsesExplorationCamera && RelayRevealLookTarget && !PrefersReducedMotion) {
@@ -9584,6 +9672,8 @@ function resizeRenderer() {
   GameCanvas.dataset.viewport = `${ViewportWidth}x${ViewportHeight}`;
   GameCanvas.dataset.orientation = ViewportWidth >= ViewportHeight ? 'landscape' : 'portrait';
   Camera.aspect = ViewportAspectRatio;
+  Camera.far = 480;
+  Camera.near = 0.1;
 
   const RequiredWorldHeight = ActiveSystem.camera?.viewportWorldHeight ?? 29;
   const RequiredWorldWidth = ActiveSystem.camera?.viewportWorldWidth ?? 25;
@@ -10573,9 +10663,12 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     setPersonalBestGhostEnabled(!IsPersonalBestGhostEnabled, { announce: true });
     return;
   }
-  if (IsScoutMode && (PressedKey === '+' || PressedKey === '=' || PressedKey === '-')) {
+  if (
+    (IsScoutMode || shouldUseSectorPlanningCamera())
+    && (PressedKey === '+' || PressedKey === '=' || PressedKey === '-')
+  ) {
     KeyboardEventData.preventDefault();
-    adjustScoutZoom(PressedKey === '-' ? 1 : -1);
+    adjustViewZoom(PressedKey === '-' ? 1 : -1);
     return;
   }
   if (IsReleaseDiagnosticsEnabled && KeyboardEventData.shiftKey) {

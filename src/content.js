@@ -15,15 +15,15 @@ const RequiredRestorationNumbers = [
 ];
 const SupportedTacticalBodyKinds = new Set(['seedstone', 'hazard', 'worldheart']);
 const DefaultEnvironmentDefinition = {
-  backgroundColor: 0x06101a,
-  fogColor: 0x06101a,
-  fogDensity: 0.012,
-  hemisphereSkyColor: 0xa9c6d8,
-  hemisphereGroundColor: 0x17212a,
+  backgroundColor: 0x0a1826,
+  fogColor: 0x0a1826,
+  fogDensity: 0.007,
+  hemisphereSkyColor: 0xc4dcec,
+  hemisphereGroundColor: 0x1b2a36,
   keyLightColor: 0xfff4dc,
-  fillLightColor: 0x7aa3d1,
-  rimLightColor: 0x83d7ff,
-  toneMappingExposure: 1.15,
+  fillLightColor: 0x8fb4d8,
+  rimLightColor: 0x9ae0ff,
+  toneMappingExposure: 1.22,
 };
 
 function isFiniteVector(VectorValue) {

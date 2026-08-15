@@ -113,6 +113,70 @@ export function getRangeVeilStrength(worldIdentifier, innerClusterLive) {
   return 0;
 }
 
+export const PlanningMinimumZoomScale = 0.22;
+export const PlanningMaximumZoomScale = 3.15;
+export const PlanningNeighbourhoodPadding = 3.4;
+
+/**
+ * Default aim frames the readable neighbourhood, not the whole dark Reach.
+ * Predicted landings and unveiled worlds expand the map; Command waits until it is exposed.
+ */
+export function getPlanningFocusWorldIdentifiers({
+  innerClusterLive = false,
+  commandRouteAvailable = false,
+  predictedBodyIdentifiers = [],
+  currentWorldIdentifier = '',
+} = {}) {
+  if (typeof innerClusterLive !== 'boolean') {
+    throw new Error('Planning focus requires an inner-cluster flag.');
+  }
+  if (typeof commandRouteAvailable !== 'boolean') {
+    throw new Error('Planning focus requires a Command route flag.');
+  }
+  if (!Array.isArray(predictedBodyIdentifiers)) {
+    throw new Error('Planning focus requires a predicted-body list.');
+  }
+  const Identifiers = new Set(InnerClusterWorldIdentifiers);
+  if (innerClusterLive) {
+    for (const WorldIdentifier of FurtherReachWorldIdentifiers) {
+      Identifiers.add(WorldIdentifier);
+    }
+  }
+  if (commandRouteAvailable) {
+    Identifiers.add('worldheart');
+  }
+  if (typeof currentWorldIdentifier === 'string' && currentWorldIdentifier.length > 0) {
+    Identifiers.add(currentWorldIdentifier);
+  }
+  for (const BodyIdentifier of predictedBodyIdentifiers) {
+    if (typeof BodyIdentifier === 'string' && BodyIdentifier.length > 0) {
+      Identifiers.add(BodyIdentifier);
+    }
+  }
+  return [...Identifiers];
+}
+
+/** Lifts exponential fog while aiming or flying so the planning map stays readable. */
+export function getPlanningAtmosphere({
+  isPlanning = false,
+  fogDensity,
+  toneMappingExposure,
+} = {}) {
+  if (!(fogDensity >= 0) || !(fogDensity <= 0.05)) {
+    throw new Error('Planning atmosphere requires a bounded fog density.');
+  }
+  if (!(toneMappingExposure > 0.5) || toneMappingExposure > 2) {
+    throw new Error('Planning atmosphere requires a bounded exposure.');
+  }
+  if (isPlanning !== true) {
+    return { fogDensity, toneMappingExposure };
+  }
+  return {
+    fogDensity: fogDensity * 0.34,
+    toneMappingExposure: Math.min(1.55, toneMappingExposure * 1.16),
+  };
+}
+
 /** Linked houses, busy workshops or circuit festival — never wall-clock prosperity. */
 export function getProsperityStage({
   restored,
@@ -468,9 +532,10 @@ function assertFinitePoint(Point, Label) {
 export function getSectorPlanningCamera({
   runner,
   focusPoints = [],
+  pathPoints = [],
   viewportWorldWidth,
   viewportWorldHeight,
-  padding = 6,
+  padding = PlanningNeighbourhoodPadding,
 } = {}) {
   assertFinitePoint(runner, 'runner');
   if (
@@ -487,12 +552,15 @@ export function getSectorPlanningCamera({
   if (!Array.isArray(focusPoints)) {
     throw new Error('Sector planning camera requires focus points.');
   }
+  if (!Array.isArray(pathPoints)) {
+    throw new Error('Sector planning camera requires path points.');
+  }
 
   let MinimumX = runner.x;
   let MaximumX = runner.x;
   let MinimumY = runner.y;
   let MaximumY = runner.y;
-  for (const FocusPoint of focusPoints) {
+  for (const FocusPoint of [...focusPoints, ...pathPoints]) {
     assertFinitePoint(FocusPoint, 'focus point');
     MinimumX = Math.min(MinimumX, FocusPoint.x);
     MaximumX = Math.max(MaximumX, FocusPoint.x);

@@ -71,12 +71,16 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     PresentationSource.includes('export function getSectorPlanningCamera(')
+      && PresentationSource.includes('export function getPlanningFocusWorldIdentifiers(')
+      && PresentationSource.includes('export function getPlanningAtmosphere(')
       && MainSource.includes('MaximumTrajectoryPredictionSteps = 720')
       && MainSource.includes('applySectorPlanningCamera(')
       && MainSource.includes('snapLiveCameraToPlanningView(')
       && MainSource.includes('PlanningCameraScale * AimZoomScale')
-      && MainSource.includes('updateFlightPlanningPresentation('),
-    'Aiming must frame the whole sector and draw the exact remaining path.',
+      && MainSource.includes('updateFlightPlanningPresentation(')
+      && MainSource.includes('beginPinchIfNeeded()')
+      && MainSource.includes('refreshPlanningZoomControls('),
+    'Aiming must frame the readable neighbourhood, lift fog and keep pinch zoom on the exact remaining path.',
   );
   requireCondition(
     PresentationSource.includes('export function getWorldLifeStage(')

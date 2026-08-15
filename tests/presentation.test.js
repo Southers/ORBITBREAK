@@ -11,6 +11,8 @@ import {
   getRelayCourierTravelProgress,
   getCourierDockWorldRole,
   getRelayLinkOpacity,
+  getPlanningAtmosphere,
+  getPlanningFocusWorldIdentifiers,
   getRelayRevealHoldDurationSeconds,
   getRelayRevealLookTarget,
   getRunUnlockState,
@@ -548,6 +550,63 @@ test('sector planning camera frames the whole Reach while keeping the Runner in 
   assert.throws(
     () => getSectorPlanningCamera({ runner: { x: 0, y: 0 }, viewportWorldWidth: 0, viewportWorldHeight: 24 }),
     /positive viewport/,
+  );
+});
+
+test('default planning focus stays on the neighbourhood until the outer Reach is unveiled', () => {
+  assert.deepEqual(getPlanningFocusWorldIdentifiers({
+    innerClusterLive: false,
+    commandRouteAvailable: false,
+    currentWorldIdentifier: 'meadow',
+  }).sort(), ['ember', 'grove', 'meadow']);
+  assert.ok(getPlanningFocusWorldIdentifiers({
+    innerClusterLive: true,
+    commandRouteAvailable: false,
+  }).includes('tide'));
+  assert.ok(getPlanningFocusWorldIdentifiers({
+    innerClusterLive: true,
+    commandRouteAvailable: true,
+    predictedBodyIdentifiers: ['worldheart'],
+  }).includes('worldheart'));
+  const NeighbourhoodCamera = getSectorPlanningCamera({
+    runner: { x: -22, y: -8 },
+    focusPoints: [
+      { x: -22, y: -8 },
+      { x: -8, y: -13 },
+      { x: 6, y: -4 },
+    ],
+    viewportWorldWidth: 20,
+    viewportWorldHeight: 24,
+  });
+  assert.ok(NeighbourhoodCamera.scale < 2);
+  assert.ok(NeighbourhoodCamera.scale > 1);
+  const PathCamera = getSectorPlanningCamera({
+    runner: { x: -22, y: -8 },
+    focusPoints: [{ x: -22, y: -8 }],
+    pathPoints: [{ x: 6, y: -4 }],
+    viewportWorldWidth: 20,
+    viewportWorldHeight: 24,
+  });
+  assert.ok(PathCamera.scale < NeighbourhoodCamera.scale + 0.2);
+});
+
+test('planning atmosphere lifts fog instead of darkening the aim map', () => {
+  const Rest = getPlanningAtmosphere({
+    isPlanning: false,
+    fogDensity: 0.007,
+    toneMappingExposure: 1.22,
+  });
+  const Aiming = getPlanningAtmosphere({
+    isPlanning: true,
+    fogDensity: 0.007,
+    toneMappingExposure: 1.22,
+  });
+  assert.equal(Rest.fogDensity, 0.007);
+  assert.ok(Aiming.fogDensity < Rest.fogDensity);
+  assert.ok(Aiming.toneMappingExposure > Rest.toneMappingExposure);
+  assert.throws(
+    () => getPlanningAtmosphere({ isPlanning: true, fogDensity: 0.2, toneMappingExposure: 1 }),
+    /bounded fog/,
   );
 });
 
