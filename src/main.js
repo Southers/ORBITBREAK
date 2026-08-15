@@ -38,7 +38,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob77';
+} from './content.js?v=20260815-ob78';
 
 import {
   countRestoredWorlds,
@@ -62,7 +62,7 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260815-ob77';
+} from './physics.js?v=20260815-ob78';
 import { createLeaderboardClient } from './leaderboard-client.js?v=20260814-ob9';
 import {
   connectRelayWorlds,
@@ -101,6 +101,7 @@ import {
   getRelayCourierTravelProgress,
   getRelayLinkOpacity,
   getRelayRevealLookTarget,
+  getSectorPlanningCamera,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
@@ -114,7 +115,7 @@ import {
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob77';
+} from './presentation.js?v=20260815-ob78';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -153,7 +154,7 @@ import {
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260815-ob77';
+} from './scoring.js?v=20260815-ob78';
 
 const PageSearchParameters = new URLSearchParams(window.location.search);
 const RequestedSystemIdentifier = PageSearchParameters.get('system')
@@ -279,7 +280,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob77';
+GameCanvas.dataset.build = '20260815-ob78';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -294,9 +295,9 @@ const MaximumDragDistance = 6.25;
 const LaunchVelocityPerDragUnit = MaximumLaunchSpeed / MaximumDragDistance;
 GameCanvas.dataset.maxLaunchSpeed = String(MaximumLaunchSpeed);
 const MinimumLaunchDragDistance = 0.22;
-const MaximumTrajectoryPredictionSteps = 520;
-const RankedPredictionVisibleSteps = 160;
-GameCanvas.dataset.rankedPredictionSteps = String(RankedPredictionVisibleSteps);
+const MaximumTrajectoryPredictionSteps = 720;
+const TrajectoryPreviewSampleStride = 5;
+GameCanvas.dataset.rankedPredictionSteps = String(MaximumTrajectoryPredictionSteps);
 const OutOfBoundsDistance = ActiveSystem.camera?.outOfBoundsDistance ?? 34;
 const StartingWorldIdentifier = ActiveSystem.startingWorldIdentifier;
 GameCanvas.dataset.currentNode = StartingWorldIdentifier;
@@ -415,6 +416,10 @@ let ScoutZoomScale = 1;
 let IsPersonalBestGhostEnabled = false;
 let HasPersonalBestGhost = false;
 let BaseCameraDistance = 42;
+let CameraDistanceScale = 1;
+let PlanningCameraScale = 1;
+let AimInteractionCamera = null;
+const PlanningCameraLookTarget = new THREE.Vector3();
 let FlightElapsedSeconds = 0;
 let IsBreakerBurnAvailable = false;
 let IsBreakerBurnPending = false;
@@ -4041,7 +4046,9 @@ SeedGroup.add(SeedPointerHitMesh);
  * Launch preview uses a single line plus a terminal landing marker. The final art pass can
  * convert this to a dotted shader or particle trail without touching trajectory logic.
  */
-const MaximumPreviewPointCount = Math.ceil(RankedPredictionVisibleSteps / 4) + 2;
+const MaximumPreviewPointCount = Math.ceil(
+  MaximumTrajectoryPredictionSteps / TrajectoryPreviewSampleStride,
+) + 2;
 const TrajectoryPositionValues = new Float32Array(MaximumPreviewPointCount * 3);
 const TrajectoryGeometry = new THREE.BufferGeometry();
 const TrajectoryPositionAttribute = new THREE.BufferAttribute(TrajectoryPositionValues, 3);
@@ -4161,7 +4168,7 @@ function updateTrailParticleInstance(TrailParticle, Scale) {
  * @param {PointerEvent} PointerEventData - Browser pointer event.
  * @returns {THREE.Vector3|null} Intersection position or null if the ray misses the plane.
  */
-function getPointerWorldPosition(PointerEventData) {
+function getPointerWorldPosition(PointerEventData, UnprojectCamera = Camera) {
   const CanvasBounds = GameCanvas.getBoundingClientRect();
   PointerNormalizedDeviceCoordinates.x = (
     ((PointerEventData.clientX - CanvasBounds.left) / CanvasBounds.width) * 2
@@ -4170,7 +4177,7 @@ function getPointerWorldPosition(PointerEventData) {
     ((PointerEventData.clientY - CanvasBounds.top) / CanvasBounds.height) * 2
   ) + 1;
 
-  PointerRaycaster.setFromCamera(PointerNormalizedDeviceCoordinates, Camera);
+  PointerRaycaster.setFromCamera(PointerNormalizedDeviceCoordinates, UnprojectCamera);
   const IntersectionResult = PointerRaycaster.ray.intersectPlane(OrbitalPlane, PointerWorldPosition);
   return IntersectionResult ? PointerWorldPosition : null;
 }
@@ -5422,6 +5429,7 @@ function restoreWorld(WorldDefinition, ImpactPosition) {
   WorldDefinition.restored = true;
   const WorldRuntime = WorldRuntimeByIdentifier.get(WorldDefinition.id);
   GamePhase = 'restoring';
+  clearTrajectoryPreview();
   WorldRuntime.group.updateWorldMatrix(true, false);
   WorldRuntime.restorationOriginLocal.copy(
     WorldRuntime.group.worldToLocal(new THREE.Vector3(
@@ -5593,6 +5601,7 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
     }
   } else if (WasAlreadyRestored && GamePhase !== 'victory' && GamePhase !== 'victoryPending') {
     GamePhase = 'attached';
+    clearTrajectoryPreview();
     showStatusToast(
       TotalBankedPoints > 0
         ? `+${TotalBankedPoints.toLocaleString('en-GB')} BANKED`
@@ -5767,6 +5776,7 @@ function attachSeedToWorldheart(ImpactPosition, BodyPosition) {
   commitFlightStardust();
   resetFlightFeedback();
   GamePhase = 'attached';
+  clearTrajectoryPreview();
   updateWorldheartObjective();
   const HasSurfaceApproach = beginHostileEncounter(WorldheartDefinition);
   if (ReplayPlaybackState !== null || !HasSurfaceApproach) {
@@ -5954,6 +5964,51 @@ function updateTrailParticles(DeltaTimeSeconds) {
   TrailParticleMesh.instanceMatrix.needsUpdate = true;
 }
 
+function captureAimInteractionCamera() {
+  if (AimInteractionCamera) {
+    return;
+  }
+  AimInteractionCamera = Camera.clone();
+}
+
+function releaseAimInteractionCamera() {
+  AimInteractionCamera = null;
+}
+
+function getPlanningFocusPoints() {
+  const FocusPoints = WorldDefinitions.map((WorldDefinition) => WorldDefinition.position);
+  for (const BodyDefinition of TacticalBodyDefinitions) {
+    if (BodyDefinition.kind !== 'worldheart') {
+      continue;
+    }
+    FocusPoints.push(calculateBodyPositionAtTime(BodyDefinition, PhysicsElapsedTimeSeconds));
+  }
+  return FocusPoints;
+}
+
+function applySectorPlanningCamera() {
+  if (IsScoutMode || !ActiveSystem.camera?.followPlayer) {
+    PlanningCameraScale = 1;
+    return;
+  }
+  const PlanningCamera = getSectorPlanningCamera({
+    runner: SeedPhysicsState.position,
+    focusPoints: getPlanningFocusPoints(),
+    viewportWorldWidth: ActiveSystem.camera?.viewportWorldWidth ?? 20,
+    viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
+  });
+  PlanningCameraLookTarget.set(PlanningCamera.lookX, PlanningCamera.lookY, 0);
+  PlanningCameraScale = PlanningCamera.scale;
+  GameCanvas.dataset.planningCameraScale = PlanningCamera.scale.toFixed(2);
+}
+
+function shouldUseSectorPlanningCamera() {
+  return (IsPointerAiming || IsKeyboardAiming || GamePhase === 'flying')
+    && !IsScoutMode
+    && GamePhase !== 'restoring'
+    && GamePhase !== 'recovering';
+}
+
 /**
  * Clears trajectory presentation after aiming ends.
  */
@@ -5963,10 +6018,66 @@ function clearTrajectoryPreview() {
   TrajectoryGeometry.setDrawRange(0, 0);
   PredictedStardustIdentifiers.clear();
   PredictedSlingshotWorldIdentifiers.clear();
+  if (!shouldUseSectorPlanningCamera()) {
+    PlanningCameraScale = 1;
+    GameCanvas.dataset.planningCameraScale = '';
+  }
+}
+
+function renderTrajectoryLine(PredictionPoints) {
+  const PreviewSampleStride = TrajectoryPreviewSampleStride;
+  let PreviewPointCount = 0;
+  for (
+    let PredictionPointIndex = 0;
+    PredictionPointIndex < PredictionPoints.length;
+    PredictionPointIndex += PreviewSampleStride
+  ) {
+    const PredictionPoint = PredictionPoints[PredictionPointIndex];
+    TrajectoryPositionAttribute.setXYZ(
+      PreviewPointCount,
+      PredictionPoint.x,
+      PredictionPoint.y,
+      0.12,
+    );
+    PreviewPointCount += 1;
+  }
+
+  const FinalVisiblePredictionPoint = PredictionPoints[PredictionPoints.length - 1];
+  const LastPreviewOffset = Math.max(0, (PreviewPointCount - 1) * 3);
+  const FinalPointDifferenceX = TrajectoryPositionValues[LastPreviewOffset] - FinalVisiblePredictionPoint.x;
+  const FinalPointDifferenceY = TrajectoryPositionValues[LastPreviewOffset + 1] - FinalVisiblePredictionPoint.y;
+  if (
+    PreviewPointCount === 0
+    || ((FinalPointDifferenceX * FinalPointDifferenceX) + (FinalPointDifferenceY * FinalPointDifferenceY)) > 0.01
+  ) {
+    TrajectoryPositionAttribute.setXYZ(
+      PreviewPointCount,
+      FinalVisiblePredictionPoint.x,
+      FinalVisiblePredictionPoint.y,
+      0.12,
+    );
+    PreviewPointCount += 1;
+  }
+
+  TrajectoryPositionAttribute.needsUpdate = true;
+  TrajectoryGeometry.setDrawRange(0, PreviewPointCount);
+  TrajectoryGeometry.computeBoundingSphere();
+  TrajectoryLine.visible = PreviewPointCount > 1;
+}
+
+function updateFlightPlanningPresentation() {
+  const TrajectoryPrediction = predictCurrentLaunchTrajectory(SeedPhysicsState.velocity, {
+    ignoredWorldIdentifier: LaunchIgnoredWorldIdentifier,
+    ignoredCollisionBodyIdentifier: LaunchIgnoredBodyIdentifier,
+  });
+  if (TrajectoryPrediction.points.length > 1) {
+    renderTrajectoryLine(TrajectoryPrediction.points);
+  }
+  applySectorPlanningCamera();
 }
 
 /** Keeps every live aim suggestion on the same fixed-step prediction contract. */
-function predictCurrentLaunchTrajectory(InitialVelocity) {
+function predictCurrentLaunchTrajectory(InitialVelocity, PredictionOverrides = {}) {
   return predictTrajectory(
     SeedPhysicsState.position,
     createVector(InitialVelocity.x, InitialVelocity.y, 0),
@@ -5983,6 +6094,7 @@ function predictCurrentLaunchTrajectory(InitialVelocity) {
         ? SeedstoneDefinition.id
         : null,
       startTimeSeconds: PhysicsElapsedTimeSeconds,
+      ...PredictionOverrides,
     },
   );
 }
@@ -6008,19 +6120,18 @@ function updateAimPreview(CurrentPointerWorldPosition) {
 
   if (AimDragVector.length() < MinimumLaunchDragDistance) {
     clearTrajectoryPreview();
+    applySectorPlanningCamera();
     WorldseedSound.updateAim(PowerRatio, false);
     return;
   }
 
   const TrajectoryPrediction = predictCurrentLaunchTrajectory(AimLaunchVelocity);
-  const VisiblePredictionPoints = TrajectoryPrediction.points.slice(
-    0,
-    RankedPredictionVisibleSteps + 1,
-  );
-  const IsOutcomeVisible = TrajectoryPrediction.points.length <= RankedPredictionVisibleSteps + 1;
+  const VisiblePredictionPoints = TrajectoryPrediction.points;
+  const IsOutcomeVisible = TrajectoryPrediction.collisionKind !== null;
   GameCanvas.dataset.lastPredictionVisiblePoints = String(VisiblePredictionPoints.length);
   GameCanvas.dataset.lastPredictionTotalPoints = String(TrajectoryPrediction.points.length);
   GameCanvas.dataset.lastPredictionOutcomeVisible = String(IsOutcomeVisible);
+  applySectorPlanningCamera();
   const PredictedSlingshotEvents = predictSlingshotEvents(
     TrajectoryPrediction.points,
     WorldDefinitions,
@@ -6040,47 +6151,9 @@ function updateAimPreview(CurrentPointerWorldPosition) {
     PredictedStardustIdentifiers.add(StardustIdentifier);
   }
 
-  /** Downsample the fixed-step prediction so a small line buffer remains cheap on mobile. */
-  const PreviewSampleStride = 4;
-  let PreviewPointCount = 0;
-  for (
-    let PredictionPointIndex = 0;
-    PredictionPointIndex < VisiblePredictionPoints.length;
-    PredictionPointIndex += PreviewSampleStride
-  ) {
-    const PredictionPoint = VisiblePredictionPoints[PredictionPointIndex];
-    TrajectoryPositionAttribute.setXYZ(
-      PreviewPointCount,
-      PredictionPoint.x,
-      PredictionPoint.y,
-      0.12,
-    );
-    PreviewPointCount += 1;
-  }
+  renderTrajectoryLine(VisiblePredictionPoints);
 
   const FinalPredictionPoint = TrajectoryPrediction.points[TrajectoryPrediction.points.length - 1];
-  const FinalVisiblePredictionPoint = VisiblePredictionPoints[VisiblePredictionPoints.length - 1];
-  const LastPreviewOffset = Math.max(0, (PreviewPointCount - 1) * 3);
-  const FinalPointDifferenceX = TrajectoryPositionValues[LastPreviewOffset] - FinalVisiblePredictionPoint.x;
-  const FinalPointDifferenceY = TrajectoryPositionValues[LastPreviewOffset + 1] - FinalVisiblePredictionPoint.y;
-  if (
-    PreviewPointCount === 0
-    || ((FinalPointDifferenceX * FinalPointDifferenceX) + (FinalPointDifferenceY * FinalPointDifferenceY)) > 0.01
-  ) {
-    TrajectoryPositionAttribute.setXYZ(
-      PreviewPointCount,
-      FinalVisiblePredictionPoint.x,
-      FinalVisiblePredictionPoint.y,
-      0.12,
-    );
-    PreviewPointCount += 1;
-  }
-
-  TrajectoryPositionAttribute.needsUpdate = true;
-  TrajectoryGeometry.setDrawRange(0, PreviewPointCount);
-  TrajectoryGeometry.computeBoundingSphere();
-  TrajectoryLine.visible = PreviewPointCount > 1;
-
   const PowerPercentage = Math.round(PowerRatio * 100);
   AimPowerFillElement.style.width = `${PowerPercentage}%`;
   AimPowerValueElement.textContent = `${PowerPercentage}%`;
@@ -6183,24 +6256,18 @@ function updateAimPreview(CurrentPointerWorldPosition) {
     );
     LandingMarkerMesh.visible = true;
   } else if (!IsOutcomeVisible) {
-    TrajectoryMaterial.color.set(
-      TrajectoryPrediction.collisionKind === 'hazard' ? 0xff9b77 : 0x9db8c6,
-    );
-    TrajectoryMaterial.opacity = 0.58;
+    TrajectoryMaterial.color.set(0x9db8c6);
+    TrajectoryMaterial.opacity = 0.48;
     LandingMarkerMesh.visible = false;
     AimPanelElement.classList.remove('is-locked');
-    AimLabelElement.textContent = TrajectoryPrediction.collisionKind === 'hazard'
-      ? 'DANGER AHEAD'
-      : 'LONG ARC';
+    AimLabelElement.textContent = PredictedSlingshotEvents.length >= 2 ? 'CHAIN ARC' : 'OPEN ARC';
     showInstruction(
-      TrajectoryPrediction.collisionKind === 'hazard'
-        ? 'Something crosses the hidden path'
-        : 'The ranked preview ends here',
-      TrajectoryPrediction.collisionKind === 'hazard'
-        ? 'Change the angle or timing—the warning is exact, but the impact point stays hidden.'
-        : PredictedSlingshotEvents.length >= 2
-          ? 'Gold rings mark scoring wells. This line already threads a chain—judge the rest of the curve.'
-          : 'Judge the remaining gravity curve, or thread the gold rings to build a scoring chain.',
+      PredictedSlingshotEvents.length >= 2
+        ? 'This line chains multiple worlds'
+        : 'No landing yet',
+      PredictedSlingshotEvents.length >= 2
+        ? 'A long chain is one Warden beat. Nudge the angle until a world locks gold or green.'
+        : 'The whole shot is on the map. Bend it through gold rings to chain worlds in one flight.',
     );
   } else {
     TrajectoryMaterial.color.set(0x9db8c6);
@@ -6210,7 +6277,7 @@ function updateAimPreview(CurrentPointerWorldPosition) {
     AimLabelElement.textContent = 'PULL';
     showInstruction(
       'No landing yet',
-      'Pull farther or change the angle until the path turns gold, green or blue.',
+      'The whole shot is on the map. Pull farther or change the angle until a world locks.',
     );
   }
   PredictedSlingshotWorldIdentifiers.clear();
@@ -6226,9 +6293,11 @@ function updateAimPreview(CurrentPointerWorldPosition) {
       0,
     );
     const ChainPreview = getSlingshotPreviewPresentation(PredictedSlingshotEvents.length);
-    if (ChainPreview && !IsOutcomeVisible) {
-      TrajectoryMaterial.color.setHex(ChainPreview.color);
-      TrajectoryMaterial.opacity = ChainPreview.opacity;
+    if (ChainPreview && TrajectoryPrediction.collisionKind !== 'hazard') {
+      if (!IsOutcomeVisible || TrajectoryPrediction.collisionKind === null) {
+        TrajectoryMaterial.color.setHex(ChainPreview.color);
+        TrajectoryMaterial.opacity = ChainPreview.opacity;
+      }
     }
     AimLabelElement.textContent += ChainPreview
       ? ` · ${ChainPreview.label} +${PredictedPoints.toLocaleString('en-GB')}`
@@ -6466,7 +6535,10 @@ function handlePointerMove(PointerEventData) {
     return;
   }
 
-  const CurrentPointerWorldPosition = getPointerWorldPosition(PointerEventData);
+  const CurrentPointerWorldPosition = getPointerWorldPosition(
+    PointerEventData,
+    (IsPointerAiming && AimInteractionCamera) ? AimInteractionCamera : Camera,
+  );
   if (!CurrentPointerWorldPosition) {
     return;
   }
@@ -6522,6 +6594,7 @@ function handlePointerMove(PointerEventData) {
         'Trace the rim to choose a launch point. Release to stop; pull away to aim.',
       );
     } else if (PointerGestureMode === SurfaceGestureModes.aim) {
+      captureAimInteractionCamera();
       IsPointerAiming = true;
       WorldseedSound.beginAim();
       GameCanvas.classList.add('is-aiming');
@@ -6561,13 +6634,16 @@ function releaseAimedLaunch() {
   ActivePointerIdentifier = null;
   GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
   AimPanelElement.hidden = true;
-  clearTrajectoryPreview();
+  releaseAimInteractionCamera();
 
   if (AimDragVector.length() < MinimumLaunchDragDistance) {
+    clearTrajectoryPreview();
     WorldseedSound.endAim();
     showInstruction('Aim the Runner', 'Drag, or use the arrow keys and press Enter to launch.');
     return false;
   }
+
+  applySectorPlanningCamera();
 
   RunState = releaseRunLaunch(RunState);
   updateLaunchCounter();
@@ -6780,7 +6856,10 @@ function handlePointerUp(PointerEventData) {
     return;
   }
 
-  const CurrentPointerWorldPosition = getPointerWorldPosition(PointerEventData);
+  const CurrentPointerWorldPosition = getPointerWorldPosition(
+    PointerEventData,
+    (IsPointerAiming && AimInteractionCamera) ? AimInteractionCamera : Camera,
+  );
   if (CurrentPointerWorldPosition) {
     LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
     updateAimPreview(CurrentPointerWorldPosition);
@@ -6804,6 +6883,7 @@ function handlePointerCancel(PointerEventData) {
   PointerGestureMode = SurfaceGestureModes.pending;
   GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
   AimPanelElement.hidden = true;
+  releaseAimInteractionCamera();
   clearTrajectoryPreview();
   if (WasAiming) WorldseedSound.endAim();
 }
@@ -6865,6 +6945,7 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
     LaunchIgnoredWorldIdentifier = null;
     LaunchIgnoredBodyIdentifier = null;
     GamePhase = 'attached';
+    clearTrajectoryPreview();
     updateBreakerBurnInterface();
     if (SuppressedWorld) {
       showInstruction(
@@ -6915,6 +6996,7 @@ function beginReplayLaunch(Launch) {
   }
   GamePhase = 'flying';
   FlightElapsedSeconds = 0;
+  applySectorPlanningCamera();
   IsBreakerBurnAvailable = true;
   IsBreakerBurnPending = false;
   updateBreakerBurnInterface();
@@ -7469,6 +7551,7 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   }
 
   if (GamePhase === 'flying') {
+    updateFlightPlanningPresentation();
     TrailEmissionAccumulatorSeconds += DeltaTimeSeconds;
     while (TrailEmissionAccumulatorSeconds >= 0.036) {
       emitTrailParticle();
@@ -7591,10 +7674,13 @@ function handleScoutWheel(WheelEventData) {
  */
 function updateCamera(DeltaTimeSeconds) {
   const UsesExplorationCamera = ActiveSystem.camera?.followPlayer === true;
+  const UsesPlanningCamera = UsesExplorationCamera && shouldUseSectorPlanningCamera();
   if (UsesExplorationCamera && IsScoutMode) {
     DesiredCameraLookTarget.copy(ScoutCameraTarget);
   } else if (UsesExplorationCamera && GamePhase === 'restoring' && RelayRevealLookTarget) {
     DesiredCameraLookTarget.set(RelayRevealLookTarget.x, RelayRevealLookTarget.y, 0);
+  } else if (UsesPlanningCamera) {
+    DesiredCameraLookTarget.copy(PlanningCameraLookTarget);
   } else if (UsesExplorationCamera) {
     DesiredCameraLookTarget.set(
       SeedPhysicsState.position.x,
@@ -7616,6 +7702,14 @@ function updateCamera(DeltaTimeSeconds) {
     : 1 - Math.exp(-DeltaTimeSeconds * (UsesExplorationCamera ? 3.8 : 2.6));
   CameraLookTarget.lerp(DesiredCameraLookTarget, CameraFollowAlpha);
 
+  let DesiredDistanceScale = 1;
+  if (IsScoutMode) {
+    DesiredDistanceScale = ScoutZoomScale;
+  } else if (UsesPlanningCamera) {
+    DesiredDistanceScale = PlanningCameraScale;
+  }
+  CameraDistanceScale += (DesiredDistanceScale - CameraDistanceScale) * CameraFollowAlpha;
+
   let CameraShakeX = 0;
   let CameraShakeY = 0;
   if (CameraImpactLifeSeconds > 0 && !PrefersReducedMotion) {
@@ -7628,6 +7722,7 @@ function updateCamera(DeltaTimeSeconds) {
   }
   Camera.position.x = (UsesExplorationCamera ? CameraLookTarget.x : 0) + CameraShakeX;
   Camera.position.y = (UsesExplorationCamera ? CameraLookTarget.y : 0) + CameraShakeY;
+  Camera.position.z = BaseCameraDistance * CameraDistanceScale;
   Camera.lookAt(CameraLookTarget);
   updateScannerInterface();
 }
@@ -7657,7 +7752,7 @@ function resizeRenderer() {
     2 * Math.tan(HalfVerticalFieldOfViewRadians) * Math.max(ViewportAspectRatio, 0.2)
   );
   BaseCameraDistance = Math.max(DistanceForHeight, DistanceForWidth, 34);
-  Camera.position.z = BaseCameraDistance * (IsScoutMode ? ScoutZoomScale : 1);
+  Camera.position.z = BaseCameraDistance * (IsScoutMode ? ScoutZoomScale : CameraDistanceScale);
   Camera.updateProjectionMatrix();
 }
 
@@ -7793,6 +7888,9 @@ function resetGame() {
   RunnerVisualGroup.rotation.set(0, 0, 0);
   Camera.position.x = 0;
   Camera.position.y = 0;
+  CameraDistanceScale = 1;
+  PlanningCameraScale = 1;
+  releaseAimInteractionCamera();
   GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
   ScoutButtonElement.textContent = 'Scout [C]';
   ScoutButtonElement.setAttribute('aria-pressed', 'false');
@@ -8363,6 +8461,7 @@ function setPageActivity(IsActive) {
     }
     GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
     AimPanelElement.hidden = true;
+    releaseAimInteractionCamera();
     clearTrajectoryPreview();
     WorldseedSound.endAim();
     showInstruction('Aim again', 'Your shot was canceled while the game was in the background.');

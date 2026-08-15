@@ -47,7 +47,7 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   );
   assert.equal(
     BreakerReachSystemDefinition.routeGuidance.grove.meadow,
-    "Walk Grove's far rim, then aim back around Ember. Haven lies beyond preview—hold the long arc to close the gold loop.",
+    "Walk Grove's far rim, then aim back around Ember until the path locks Haven. The whole arc is on the map—hold it to close the gold loop.",
   );
   assert.equal(
     BreakerReachSystemDefinition.routeGuidance.frost.ember,

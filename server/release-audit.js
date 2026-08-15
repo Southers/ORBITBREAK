@@ -69,6 +69,13 @@ export function auditReleaseReadiness() {
     'Launch speed must stay inside the gravity-assist range and show scoring wells while aiming.',
   );
   requireCondition(
+    PresentationSource.includes('export function getSectorPlanningCamera(')
+      && MainSource.includes('MaximumTrajectoryPredictionSteps = 720')
+      && MainSource.includes('applySectorPlanningCamera(')
+      && MainSource.includes('updateFlightPlanningPresentation('),
+    'Aiming must frame the whole sector and draw the exact remaining path.',
+  );
+  requireCondition(
     /id="MotionButton"/.test(IndexHtml)
       && MainSource.includes("window.localStorage.setItem('orbitbreak.motion'")
       && MainSource.includes("PageSearchParameters.get('diagnostics') === '1'"),
@@ -301,7 +308,7 @@ export function auditReleaseReadiness() {
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
       ?.routeGuidance?.grove?.meadow
-      === "Walk Grove's far rim, then aim back around Ember. Haven lies beyond preview—hold the long arc to close the gold loop.",
+      === "Walk Grove's far rim, then aim back around Ember until the path locks Haven. The whole arc is on the map—hold it to close the gold loop.",
     'The selected one-sector candidate must teach the surface line for its first circuit.',
   );
   requireCondition(

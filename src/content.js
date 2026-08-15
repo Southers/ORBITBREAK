@@ -754,14 +754,14 @@ export const FirstLightSystemDefinition = {
 /** ORBITBREAK's first score-attack arena, spanning several camera views. */
 export const BreakerReachSystemDefinition = {
   id: 'breaker-reach',
-  contentVersion: 'breaker-reach-4',
+  contentVersion: 'breaker-reach-5',
   label: "BREAKER'S REACH",
   launchBudget: 8,
   circuitBonusValue: 1250,
   wardenVictoryValuePerStep: 1000,
   openingBroadcast: 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
   wardenArrivalBroadcast: 'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',
-  openingBody: 'Pull back from the Runner and release toward Ember. Landing wakes the world and leaves a relay. Frost is the longer dark-rim Burn if you want a harder first shot.',
+  openingBody: 'Pull back from the Runner to see the whole Reach, then release toward Ember. The visible line is the whole flight—thread gold rings to chain worlds in one shot and stay ahead of the Warden. Landing wakes the world and leaves a relay. Frost is the longer dark-rim Burn if you want a harder first shot.',
   commandApproachLine: 'A network cannot be imprisoned.',
   camera: {
     followPlayer: true,
@@ -786,12 +786,12 @@ export const BreakerReachSystemDefinition = {
   },
   constellation: {
     nodes: [
-      { id: 'meadow', label: 'Haven', x: 18, y: 72 },
-      { id: 'ember', label: 'Ember', x: 58, y: 70 },
-      { id: 'grove', label: 'Grove', x: 104, y: 63 },
-      { id: 'tide', label: 'Tide', x: 164, y: 51 },
-      { id: 'frost', label: 'Frost', x: 68, y: 22 },
-      { id: 'bastion', label: 'Bastion', x: 130, y: 18 },
+      { id: 'meadow', label: 'Haven', x: 22, y: 68 },
+      { id: 'ember', label: 'Ember', x: 62, y: 82 },
+      { id: 'grove', label: 'Grove', x: 108, y: 58 },
+      { id: 'tide', label: 'Tide', x: 164, y: 44 },
+      { id: 'frost', label: 'Frost', x: 62, y: 20 },
+      { id: 'bastion', label: 'Bastion', x: 132, y: 16 },
       { id: 'worldheart', label: 'Command', x: 218, y: 30, isHeart: true },
     ],
     edges: [
@@ -815,7 +815,7 @@ export const BreakerReachSystemDefinition = {
   },
   routeGuidance: {
     grove: {
-      meadow: "Walk Grove's far rim, then aim back around Ember. Haven lies beyond preview—hold the long arc to close the gold loop.",
+      meadow: "Walk Grove's far rim, then aim back around Ember until the path locks Haven. The whole arc is on the map—hold it to close the gold loop.",
     },
     frost: {
       ember: 'Ember is the direct lock; Grove is the alternate arc. Either closes the second gold loop and exposes Command.',
@@ -824,38 +824,38 @@ export const BreakerReachSystemDefinition = {
   worlds: [
     {
       ...FirstLightSystemDefinition.worlds[0],
-      label: 'HAVEN', position: { x: -24, y: -10, z: 0 },
+      label: 'HAVEN', position: { x: -22, y: -8, z: 0 }, gravitationalParameter: 105,
       occupationScarAngles: [-2.62, -2.42, -2.22],
       memory: 'The Runner leaves the last free garden behind.',
     },
     {
       ...FirstLightSystemDefinition.worlds[1],
-      position: { x: -10, y: -9, z: 0 },
+      position: { x: -8, y: -13, z: 0 }, radius: 3.2, gravitationalParameter: 340,
       occupationScarAngles: [2.28, 2.5, 2.72, 2.94],
       memory: 'The furnaces remember who they warmed.',
     },
     {
       ...FirstLightSystemDefinition.worlds[2],
-      position: { x: 4, y: -6, z: 0 },
+      position: { x: 6, y: -4, z: 0 }, radius: 2.5, gravitationalParameter: 220,
       occupationScarAngles: [-0.58, -0.29, 0],
       memory: 'Roots split the perfect grid from below.',
     },
     {
       ...FirstLightSystemDefinition.worlds[4],
-      position: { x: 18, y: -1, z: 0 },
+      position: { x: 18, y: 2, z: 0 }, radius: 2.8, gravitationalParameter: 240,
       occupationScarAngles: [1.18, 1.37, 1.56, 1.75],
       memory: 'The water refuses its ordered orbit.',
     },
     {
       ...FirstLightSystemDefinition.worlds[3],
-      position: { x: -7, y: 10, z: 0 }, radius: 4.2, gravitationalParameter: 135,
+      position: { x: -8, y: 11, z: 0 }, radius: 4.2, gravitationalParameter: 220,
       slingshotValue: 1000, liberationValue: 1400,
       occupationScarAngles: [-2.08, -1.9, -1.72],
       memory: 'A giant ocean turns beneath the ice.',
     },
     {
       id: 'bastion', label: 'BASTION', visualKey: 'vault',
-      position: { x: 11, y: 13, z: 0 }, radius: 2.8, gravitationalParameter: 74,
+      position: { x: 12, y: 14, z: 0 }, radius: 2.8, gravitationalParameter: 200,
       slingshotValue: 650, liberationValue: 1500,
       aliveColor: 0x746fa8, atmosphereColor: 0xb7b7ff, accentColor: 0xf2c1ff,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true,
@@ -881,7 +881,7 @@ export const BreakerReachSystemDefinition = {
     {
       ...FirstLightSystemDefinition.tacticalBodies[1],
       orbit: {
-        centre: { x: 18, y: -1, z: 0 }, radius: 7,
+        centre: { x: 18, y: 2, z: 0 }, radius: 7,
         phaseRadians: -1.05, angularSpeedRadiansPerSecond: 0.28,
       },
     },
@@ -899,9 +899,9 @@ export const BreakerReachSystemDefinition = {
     },
   ],
   stardust: [
-    { id: 'breaker-arc-1', position: { x: -17, y: -3, z: 0 } },
-    { id: 'breaker-arc-2', position: { x: -11, y: 4, z: 0 } },
-    { id: 'breaker-arc-3', position: { x: -3, y: 9, z: 0 } },
+    { id: 'breaker-arc-1', position: { x: -16, y: -1, z: 0 } },
+    { id: 'breaker-arc-2', position: { x: -14, y: 4, z: 0 } },
+    { id: 'breaker-arc-3', position: { x: -6, y: 10, z: 0 } },
   ],
 };
 

@@ -126,6 +126,62 @@ function assertFinitePoint(Point, Label) {
 }
 
 /**
+ * Frames the whole Reach while aiming or flying so a multi-world slingshot chain is visible.
+ * Intimate rest framing returns after landing; this view is the planning map, not Scout.
+ */
+export function getSectorPlanningCamera({
+  runner,
+  focusPoints = [],
+  viewportWorldWidth,
+  viewportWorldHeight,
+  padding = 6,
+} = {}) {
+  assertFinitePoint(runner, 'runner');
+  if (
+    !Number.isFinite(viewportWorldWidth)
+    || viewportWorldWidth <= 0
+    || !Number.isFinite(viewportWorldHeight)
+    || viewportWorldHeight <= 0
+  ) {
+    throw new Error('Sector planning camera requires a positive viewport.');
+  }
+  if (!Number.isFinite(padding) || padding < 0) {
+    throw new Error('Sector planning camera requires a non-negative padding.');
+  }
+  if (!Array.isArray(focusPoints)) {
+    throw new Error('Sector planning camera requires focus points.');
+  }
+
+  let MinimumX = runner.x;
+  let MaximumX = runner.x;
+  let MinimumY = runner.y;
+  let MaximumY = runner.y;
+  for (const FocusPoint of focusPoints) {
+    assertFinitePoint(FocusPoint, 'focus point');
+    MinimumX = Math.min(MinimumX, FocusPoint.x);
+    MaximumX = Math.max(MaximumX, FocusPoint.x);
+    MinimumY = Math.min(MinimumY, FocusPoint.y);
+    MaximumY = Math.max(MaximumY, FocusPoint.y);
+  }
+
+  const FramedWidth = Math.max((MaximumX - MinimumX) + (padding * 2), viewportWorldWidth);
+  const FramedHeight = Math.max((MaximumY - MinimumY) + (padding * 2), viewportWorldHeight);
+  const LookX = (MinimumX + MaximumX) * 0.5;
+  const LookY = (MinimumY + MaximumY) * 0.5;
+  const MaximumOffsetX = FramedWidth * 0.42;
+  const MaximumOffsetY = FramedHeight * 0.42;
+  return {
+    lookX: Math.min(runner.x + MaximumOffsetX, Math.max(runner.x - MaximumOffsetX, LookX)),
+    lookY: Math.min(runner.y + MaximumOffsetY, Math.max(runner.y - MaximumOffsetY, LookY)),
+    scale: Math.max(
+      FramedWidth / viewportWorldWidth,
+      FramedHeight / viewportWorldHeight,
+      1,
+    ),
+  };
+}
+
+/**
  * Pulls the camera toward a new relay without letting the landed Runner leave the viewport.
  * The player should see the worlds answer each other, then regain a Runner-centred shot.
  */

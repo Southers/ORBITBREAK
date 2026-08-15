@@ -6,55 +6,43 @@ import { validateSerializedReplay } from '../src/replay-validator.js';
 const CompletedBreakerReachReplay = JSON.stringify({
   v: 2,
   s: 'breaker-reach',
-  c: 'breaker-reach-4',
+  c: 'breaker-reach-5',
   p: 'orbitbreak-fixed-step-v1',
   h: 120,
   o: 1,
   l: [
-    [0, 'meadow', -20.169758592649977, -9.726411328046426, 18.2388825930985, 0.6369158148206426, null],
-    [45, 'ember', -13.45741319496786, -9.475808784347384, 18.2388825930985, 0.6369158148206426, null],
-    [144, 'grove', 2.172876907139826, -4.235567739034147, -18.205543917241794, -1.2730556458302782, null],
-    [301, 'meadow', -20.8933747416002, -7.742904631196904, 11.235821924693264, 14.381196253322678, null],
-    [422, 'frost', -5.550710296381496, 5.539544938575729, 11.235821924693267, -14.381196253322672, null],
-    [507, 'grove', 1.4600000000000004, -6, 14.478698460315043, 11.109896079409152, null],
+    [0, 'meadow', -18.383711059475825, -9.29153176447292, 12.5, 0, null],
+    [81, 'ember', -9.39128652337041, -9.582336791038667, 8.99174750423314, 8.683229630737465, null],
+    [246, 'grove', 3.5196755693207544, -5.6697576825922, -12.5, -1.5308084989341915e-15, null],
+    [582, 'meadow', -24.941610661576874, -10.468304421196311, 4.592425496802575e-16, 7.5, 612],
+    [854, 'frost', -6.028288379931077, 6.744597165098799, 8.683229630737465, -8.99174750423314, null],
+    [985, 'grove', 3.506030257999854, -2.350692592029089, 8.364132579485728, 9.289310318467429, null],
+    [1119, 'tide', 15.074880278671033, 0.4940867834126872, 11.669755331215022, 4.4795993693162535, null],
   ],
 });
 
-const CompletedSchemaV2BurnRouteReplay = JSON.stringify({
-  v: 2,
-  s: 'breaker-reach',
-  c: 'breaker-reach-4',
-  p: 'orbitbreak-fixed-step-v1',
-  h: 120,
-  o: 1,
-  l: [
-    [0, 'meadow', -20.169758592649977, -9.726411328046426, 17.089583142026537, 0.5967813936127666, 5],
-    [45, 'ember', -13.45741319496786, -9.475808784347384, 18.2388825930985, 0.6369158148206426, null],
-    [144, 'grove', 2.172876907139826, -4.235567739034147, -18.205543917241794, -1.2730556458302782, null],
-    [301, 'meadow', -20.8933747416002, -7.742904631196904, 11.235821924693264, 14.381196253322678, null],
-    [422, 'frost', -5.550710296381496, 5.539544938575729, 11.235821924693267, -14.381196253322672, null],
-    [507, 'grove', 1.4600000000000004, -6, 14.478698460315043, 11.109896079409152, null],
-  ],
-});
+const CompletedSchemaV2BurnRouteReplay = CompletedBreakerReachReplay;
+
+const ExpectedCompletedResult = {
+  systemIdentifier: 'breaker-reach',
+  contentVersion: 'breaker-reach-5',
+  score: 10900,
+  launchesUsed: 7,
+    flightTimeMilliseconds: 11217,
+  slingshotScore: 0,
+  networkScore: 6900,
+  liberationScore: 4400,
+  circuitScore: 2500,
+  victoryScore: 4000,
+  completionBonus: 4000,
+  collectedStardustCount: 0,
+};
 
 test('validator derives the browser-completed route and score from input alone', () => {
   const Validation = validateSerializedReplay(CompletedBreakerReachReplay);
 
   assert.equal(Validation.valid, true);
-  assert.deepEqual(Validation.result, {
-    systemIdentifier: 'breaker-reach',
-    contentVersion: 'breaker-reach-4',
-    score: 11650,
-    launchesUsed: 6,
-    flightTimeMilliseconds: 5925,
-    slingshotScore: 1750,
-    networkScore: 5900,
-    liberationScore: 3400,
-    circuitScore: 2500,
-    victoryScore: 4000,
-    completionBonus: 4000,
-    collectedStardustCount: 2,
-  });
+  assert.deepEqual(Validation.result, ExpectedCompletedResult);
 });
 
 test('validator rejects a forged origin even when the payload parses', () => {
@@ -96,22 +84,22 @@ test('validator ignores a forged claimed total and returns the derived score', (
   const Validation = validateSerializedReplay(JSON.stringify(ForgedReplay));
 
   assert.equal(Validation.valid, true);
-  assert.equal(Validation.result.score, 11650);
+  assert.equal(Validation.result.score, 10900);
 });
 
 test('validator rejects the former direct Command route without two unique circuits', () => {
   const ShortcutReplay = JSON.stringify({
     v: 2,
     s: 'breaker-reach',
-    c: 'breaker-reach-4',
+    c: 'breaker-reach-5',
     p: 'orbitbreak-fixed-step-v1',
     h: 120,
     o: 1,
     l: [
-      [0, 'meadow', -25.622854125084285, -13.480221902220736, 1.1808072956659474, 6.696674801492126, 50],
-      [258, 'frost', -2.373812497227245, 10.771031250462126, 18.001689109936624, 3.0002815183227707, null],
-      [328, 'bastion', 12.471332729194861, 10.057334541610278, 8.161648117874234, -16.323296235748465, null],
-      [394, 'tide', 19.962296546092517, 0.7660668914832669, 13.565118169010786, 12.208606352109706, null],
+      [0, 'meadow', -18.383711059475825, -9.29153176447292, 12.5, 0, null],
+      [81, 'ember', -9.39128652337041, -9.582336791038667, 8.364132579485728, 9.289310318467429, null],
+      [247, 'grove', 3.0988007181811215, -4.723286061785807, 10.112712429686843, 7.347315653655914, null],
+      [753, 'tide', 20.245878648434797, 4.404189904417844, 11.137581552354598, 5.674881246744334, null],
     ],
   });
 
@@ -124,20 +112,7 @@ test('schema-v2 validator derives the repositioned route and its fixed-step Burn
   const Validation = validateSerializedReplay(CompletedSchemaV2BurnRouteReplay);
 
   assert.equal(Validation.valid, true);
-  assert.deepEqual(Validation.result, {
-    systemIdentifier: 'breaker-reach',
-    contentVersion: 'breaker-reach-4',
-    score: 11650,
-    launchesUsed: 6,
-    flightTimeMilliseconds: 5892,
-    slingshotScore: 1750,
-    networkScore: 5900,
-    liberationScore: 3400,
-    circuitScore: 2500,
-    victoryScore: 4000,
-    completionBonus: 4000,
-    collectedStardustCount: 2,
-  });
+  assert.deepEqual(Validation.result, ExpectedCompletedResult);
 });
 
 test('schema-v2 validator rejects forged surface origins and Burns outside a flight', () => {
@@ -148,7 +123,7 @@ test('schema-v2 validator rejects forged surface origins and Burns outside a fli
   assert.match(SurfaceValidation.reason, /outside its recorded surface/);
 
   const LateBurnReplay = JSON.parse(CompletedSchemaV2BurnRouteReplay);
-  LateBurnReplay.l[5][6] = 1000;
+  LateBurnReplay.l[6][6] = 5000;
   const BurnValidation = validateSerializedReplay(JSON.stringify(LateBurnReplay));
   assert.equal(BurnValidation.valid, false);
   assert.match(BurnValidation.reason, /Burn outside its flight/);

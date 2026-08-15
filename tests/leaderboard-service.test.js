@@ -10,15 +10,16 @@ import {
 } from '../server/leaderboard-service.js';
 
 const VerifiedReplay = JSON.stringify({
-  v: 2, s: 'breaker-reach', c: 'breaker-reach-4',
+  v: 2, s: 'breaker-reach', c: 'breaker-reach-5',
   p: 'orbitbreak-fixed-step-v1', h: 120, o: 1,
   l: [
-    [0, 'meadow', -20.169758592649977, -9.726411328046426, 17.089583142026537, 0.5967813936127666, 5],
-    [45, 'ember', -13.45741319496786, -9.475808784347384, 18.2388825930985, 0.6369158148206426, null],
-    [144, 'grove', 2.172876907139826, -4.235567739034147, -18.205543917241794, -1.2730556458302782, null],
-    [301, 'meadow', -20.8933747416002, -7.742904631196904, 11.235821924693264, 14.381196253322678, null],
-    [422, 'frost', -5.550710296381496, 5.539544938575729, 11.235821924693267, -14.381196253322672, null],
-    [507, 'grove', 1.4600000000000004, -6, 14.478698460315043, 11.109896079409152, null],
+    [0, 'meadow', -18.383711059475825, -9.29153176447292, 12.5, 0, null],
+    [81, 'ember', -9.39128652337041, -9.582336791038667, 8.99174750423314, 8.683229630737465, null],
+    [246, 'grove', 3.5196755693207544, -5.6697576825922, -12.5, -1.5308084989341915e-15, null],
+    [582, 'meadow', -24.941610661576874, -10.468304421196311, 4.592425496802575e-16, 7.5, 612],
+    [854, 'frost', -6.028288379931077, 6.744597165098799, 8.683229630737465, -8.99174750423314, null],
+    [985, 'grove', 3.506030257999854, -2.350692592029089, 8.364132579485728, 9.289310318467429, null],
+    [1119, 'tide', 15.074880278671033, 0.4940867834126872, 11.669755331215022, 4.4795993693162535, null],
   ],
 });
 
@@ -41,7 +42,7 @@ test('service accepts a verified replay and stores only its derived result', asy
 
   assert.equal(Submission.accepted, true);
   assert.equal(Submission.entry.callsign, 'RUNNER_7');
-  assert.equal(Submission.entry.score, 11650);
+  assert.equal(Submission.entry.score, 10900);
   assert.equal(Submission.entry.replay, undefined);
   assert.equal(Submission.rank, 1);
   assert.equal((await Service.getReplay(Submission.entry.id)).replay, VerifiedReplay);
@@ -93,9 +94,9 @@ test('HTTP contract supports submit, ranked list, replay fetch and CORS', async 
   assert.equal(SubmitResponse.headers.get('access-control-allow-origin'), 'https://southers.github.io');
 
   const ListResponse = await Handler(new Request(
-    'https://scores.example/api/leaderboard?system=breaker-reach&content=breaker-reach-4',
+    'https://scores.example/api/leaderboard?system=breaker-reach&content=breaker-reach-5',
   ));
-  assert.equal((await ListResponse.json()).entries[0].score, 11650);
+  assert.equal((await ListResponse.json()).entries[0].score, 10900);
 
   const ReplayResponse = await Handler(new Request(
     `https://scores.example/api/replays/${Submission.entry.id}`,

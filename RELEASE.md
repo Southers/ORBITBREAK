@@ -42,7 +42,7 @@ Every successful route leaves a relay behind. Close two unique circuits before t
 
 Capture clean game frames without browser chrome, debug overlays or disposable tuning parameters.
 
-1. **Hero, 16:9:** Breaker's Reach during the high Ember → Grove slingshot, with the Runner, partial trajectory, scanner, UNBANKED score and chain feedback all readable.
+1. **Hero, 16:9:** Breaker's Reach during a planned Ember → Grove slingshot, with the zoomed-out full path, Runner, scanner, UNBANKED score and chain feedback all readable.
 2. **Liberation, 16:9:** a world halfway through the spherical colour wave while the Stillness cage visibly breaks.
 3. **Moving route, 16:9:** Verdant Caravan with Pollen Moon, Crown and the changing trajectory in one composition.
 4. **Mastery, 16:9:** Long Night or Worldheart during a two-body chain with both score callouts visible.
@@ -53,7 +53,7 @@ Capture clean game frames without browser chrome, debug overlays or disposable t
 Suggested 40-second trailer beat sheet:
 
 - 0–4s: title and eight-launch premise.
-- 4–11s: drag, partial prediction and first landing.
+- 4–11s: drag, full-path prediction and first landing.
 - 11–18s: Razor pass and chain score.
 - 18–24s: Stillness cage breaking under liberation.
 - 24–31s: moving moon or Sentinel timing decision.
@@ -84,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob77` passes 166 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob78` passes deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
 - 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
@@ -96,7 +96,7 @@ Suggested 40-second trailer beat sheet:
 - Every fresh run opens with the Warden's `TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE` broadcast over the route coach; desktop and 390×844 portrait then delivered Ember's first answer without overflow or blocked controls.
 - The third relay now answers with the Warden's defining `CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE` broadcast while the complete second answer, target and four-flight forecast remain readable beneath it.
 - Grove's `We thought we were alone` answer now remains in the same instruction as the Warden's target and four-flight arrival forecast instead of being overwritten by it.
-- Once that first network branches, Grove now explains that closing the Haven circuit requires walking its far rim and aiming back around Ember; it also identifies Haven as deliberately beyond the ranked preview, so `LONG ARC` reads as a commitment rather than a failed prediction.
+- Once that first network branches, Grove now explains that closing the Haven circuit requires walking its far rim and aiming back around Ember until the visible path locks Haven.
 - After Haven expands to Frost, the live coach now promotes both valid closures—direct Ember or alternate-arc Grove—and explains that either second gold loop exposes Command instead of hiding the objective behind unrelated suggestions.
 - The composite Warden panel and transient story/status toast are polite atomic live regions, so assistive technology receives each complete update rather than a changed fragment.
 - The Command approach now states `A network cannot be imprisoned`; its final Pulse reveals `WARDEN NODE DISCONNECTED · SECTOR WARDENS: 11`, and the verified result carries the authored reminder that the worlds were never alone.
