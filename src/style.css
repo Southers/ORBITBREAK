@@ -1304,3 +1304,16 @@ button[aria-disabled='true'] {
     flex: 0 0 clamp(112px, 20vw, 148px);
   }
 }
+
+@media (orientation: landscape) and (min-width: 480px) and (max-width: 640px) and (max-height: 520px) {
+  .aim-panel {
+    bottom: max(140px, calc(env(safe-area-inset-bottom) + 134px));
+  }
+
+  .result-actions button {
+    padding: 10px 8px;
+    font-size: 13px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+}

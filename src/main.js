@@ -269,7 +269,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob71';
+GameCanvas.dataset.build = '20260815-ob72';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -4396,14 +4396,18 @@ function updateRouteLabels(InstructionTop) {
     });
   }
 
+  const RouteHorizontalMargin = IsShortLandscape ? 80 : HorizontalMargin;
   const ResolvedLabelPositions = separateOverlappingRouteLabels(LabelPositions, {
-    minimumX: HorizontalMargin,
-    maximumX: window.innerWidth - HorizontalMargin,
+    minimumGap: IsShortLandscape ? 160 : 76,
+    minimumX: RouteHorizontalMargin,
+    maximumX: window.innerWidth - RouteHorizontalMargin,
   });
   const ClearedLabelPositions = separateRouteLabelsFromTacticalLabels(
     ResolvedLabelPositions,
     TacticalLabelScreenPositions,
     {
+      horizontalClearance: IsShortLandscape ? 180 : 100,
+      verticalClearance: IsShortLandscape ? 22 : 30,
       minimumY: LabelVerticalBounds.minimumY,
       maximumY: LabelVerticalBounds.maximumY,
     },
@@ -4488,6 +4492,9 @@ function updateTacticalBodies(ElapsedTimeSeconds, InstructionTop) {
   SeedstoneOrbitLine.visible = ShouldShowTacticalLayer && Boolean(SeedstoneDefinition.orbit);
   SeedstoneOrbitMaterial.opacity = 0.11 + (Math.sin(ElapsedTimeSeconds * 1.5) * 0.025);
 
+  const IsCompactLayout = window.innerWidth <= 640;
+  const IsShortLandscape = window.innerWidth >= window.innerHeight
+    && window.innerHeight <= 520;
   const TacticalLabelDefinitions = [
     SeedstoneUsesRemaining > 0
       ? {
@@ -4505,7 +4512,7 @@ function updateTacticalBodies(ElapsedTimeSeconds, InstructionTop) {
       position: AsteroidPosition,
       text: `${AsteroidDefinition.label} · MOVING`,
     },
-    WorldheartDefinition.routeAvailable
+    WorldheartDefinition.routeAvailable && !IsShortLandscape
       ? {
         definition: WorldheartDefinition,
         position: WorldheartPosition,
@@ -4559,9 +4566,6 @@ function updateTacticalBodies(ElapsedTimeSeconds, InstructionTop) {
     });
     VisibleTacticalLabelElements.push(TacticalLabelElement);
   }
-  const IsCompactLayout = window.innerWidth <= 640;
-  const IsShortLandscape = window.innerWidth >= window.innerHeight
-    && window.innerHeight <= 520;
   const LabelVerticalBounds = getPlayfieldLabelVerticalBounds({
     viewportHeight: window.innerHeight,
     instructionTop: InstructionTop,

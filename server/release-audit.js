@@ -174,6 +174,18 @@ export function auditReleaseReadiness() {
     'Compact landscape labels must remain between the reflowed Warden and instruction HUD.',
   );
   requireCondition(
+    MainSource.includes('minimumGap: IsShortLandscape ? 160 : 76')
+      && MainSource.includes('horizontalClearance: IsShortLandscape ? 180 : 100')
+      && MainSource.includes('verticalClearance: IsShortLandscape ? 22 : 30')
+      && MainSource.includes('WorldheartDefinition.routeAvailable && !IsShortLandscape'),
+    'Short-landscape Command exposure must separate choices and omit its duplicate tactical chip.',
+  );
+  requireCondition(
+    /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-width:\s*640px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.aim-panel\s*\{[^}]*bottom:\s*max\(140px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*134px\)\);/s.test(StyleSheet)
+      && /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-width:\s*640px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.result-actions\s+button\s*\{[^}]*padding:\s*10px\s+8px;[^}]*font-size:\s*13px;[^}]*line-height:\s*1\.2;[^}]*white-space:\s*nowrap;/s.test(StyleSheet),
+    'Narrow-landscape Command aim and result actions must remain separated and compact.',
+  );
+  requireCondition(
     /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
       && /\.objective-panel__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.objective-panel__state\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),

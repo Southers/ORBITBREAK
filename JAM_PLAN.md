@@ -749,6 +749,24 @@ HUD/chip overlap, canvas focus and no page overflow. Focused coverage protects s
 vertical bounds, and the release audit protects the responsive contract. This reliability pass changes
 no label text, world position, input, physics, score, pursuit, replay or leaderboard behavior.
 
+Gauntlet pass 42 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** Completing the authored two-circuit route at 568×320 exposed
+the weakest remaining judge path: Command's route chip collided with Tide, Wayfarer and a redundant
+Command tactical chip, producing six intersections including a 2,200.7px² duplicate-label overlap.
+Short-landscape route separation now uses the available horizontal lanes and omits that redundant
+tactical chip; the four necessary labels occupy two clean rows with zero mutual or HUD intersection.
+Command aiming also overlapped the coach by 2,385.6px², so its compact control panel now sits 5.6px
+above the coach and 15.2px below the Warden. A fresh seven-launch run deliberately used the Haven,
+Ember, Grove and Frost surface arcs, locked the moving Command World, reached Pulse in seven surface
+steps and finished with a verified 12,450 score (2,550 slingshots, 5,900 network, 4,000 victory).
+On that result, compact action targets fell from 66.8px wrapped rows to 44px single-line controls,
+reducing internal scroll by 23px and revealing both score-breakdown values; all three labels also fit
+at the exact 480×320 boundary. Established 844×390, 390×844 and 1280×720 layouts retained their
+responsive arrangement without page or button overflow, replay focus remained intact and the console
+stayed empty. Release checks protect the label spacing, compact aim lane, result controls and build
+contract. This presentation-only pass changes no route, input mapping, camera, physics, score,
+pursuit, replay or leaderboard behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
