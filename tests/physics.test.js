@@ -63,6 +63,19 @@ test('Breaker Burn adds one deterministic impulse along current heading', () => 
   );
 });
 
+test('Breaker Burn can take a dragged direction without changing heading-only burns', () => {
+  const Sideways = applyBreakerBurn(
+    {
+      position: createVector(4, 5, 0),
+      velocity: createVector(3, 4, 0),
+    },
+    BreakerBurnImpulse,
+    { x: 0, y: 2 },
+  );
+  assert.ok(Math.abs(Sideways.velocity.x - 3) < 1e-12);
+  assert.ok(Math.abs(Sideways.velocity.y - (4 + BreakerBurnImpulse)) < 1e-12);
+});
+
 test('collision expands the world radius by the seed radius', () => {
   const WorldDefinitions = [{
     id: 'meadow',

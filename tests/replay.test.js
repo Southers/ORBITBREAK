@@ -44,6 +44,25 @@ test('replay captures exact ordered launch inputs without a claimed score', () =
   assert.deepEqual(parseReplay(SerializedReplay), Replay);
 });
 
+test('directed Burns round-trip without breaking heading-only replays', () => {
+  let Replay = createRecorder();
+  Replay = recordReplayLaunch(Replay, {
+    stepIndex: 10,
+    originIdentifier: 'meadow',
+    originX: 1,
+    originY: 2,
+    velocityX: 8,
+    velocityY: 0,
+  });
+  Replay = recordReplayBurn(Replay, { stepIndex: 24, directionX: 0, directionY: 4 });
+  Replay = finishReplay(Replay, 'complete');
+  const WireReplay = JSON.parse(serializeReplay(Replay));
+  assert.equal(WireReplay.l[0].length, 9);
+  assert.equal(WireReplay.l[0][7], 0);
+  assert.equal(WireReplay.l[0][8], 1);
+  assert.deepEqual(parseReplay(serializeReplay(Replay)), Replay);
+});
+
 test('eight launches stay compact enough for storage and transport', () => {
   let Replay = createRecorder();
   for (let LaunchIndex = 0; LaunchIndex < 8; LaunchIndex += 1) {

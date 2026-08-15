@@ -38,10 +38,11 @@ npm run release:audit
 
 ## Current development controls
 
-- Trace tangentially around the current world to reposition the Runner; pull radially away and release to launch.
-- Drag empty space to pan Scout view. Use the wheel, plus/minus keys or the on-screen zoom buttons to zoom; press `C` or tap Scout/Runner to toggle and snap back.
+- Drag the ship to aim and release away from it to launch. Drag back onto the ship, or press `Escape`, to cancel without spending the flight.
+- Drag the current world's disk (not the ship) to walk the circumference; `Q`/`E` remain the keyboard walk.
+- Drag empty space to pan. Pinch or mouse wheel to zoom. Plus/minus keys and the on-screen zoom buttons still work. `C` snaps the camera back to the Runner.
 - Press `G` or tap Ghost to show or hide the verified local personal-best route while scouting or flying.
-- Tap the Breaker Burn button once during flight, or press `Space`, to spend the flight's deterministic correction.
+- During flight, drag from the ship to aim Breaker Burn in any direction, then release to fire. Tap the Burn button or press `Space` to Burn along heading.
 - Focus the game and use left/right or `A`/`D` to steer.
 - Use up/down or `W`/`S` to adjust power; hold `Shift` for fine control.
 - Press `Q`/`E` to walk around the current world; hostile surface encounters name the shortest key toward their pylons. Press `Enter` or `Space` to launch; `Escape` cancels keyboard aiming.

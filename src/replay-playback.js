@@ -56,5 +56,7 @@ export function consumeDueReplayBurn(PlaybackState, CurrentStepIndex) {
   return {
     playbackState: { ...PlaybackState, burnConsumed: true },
     burn: true,
+    directionX: Number.isFinite(Launch.burnDirectionX) ? Launch.burnDirectionX : null,
+    directionY: Number.isFinite(Launch.burnDirectionY) ? Launch.burnDirectionY : null,
   };
 }

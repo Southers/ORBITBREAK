@@ -11,6 +11,10 @@ import {
   getKeyboardAimDragVector,
   getScoutZoomPresentation,
   getSurfacePosition,
+  clampCameraZoomScale,
+  getPinchZoomScale,
+  getPointerClientDistance,
+  shouldCancelAimedLaunch,
 } from '../src/controls.js';
 
 test('keyboard lead search checks the direct route then nearest alternating offsets', () => {
@@ -112,4 +116,22 @@ test('Scout zoom presentation announces percentage and marks only reached limits
   assert.equal(getScoutZoomPresentation(1.95).percentage, 51);
   assert.equal(getScoutZoomPresentation(1.95).canZoomOut, false);
   assert.throws(() => getScoutZoomPresentation(0.2), /inside valid bounds/);
+});
+
+test('pinch zoom spreads to zoom in and pinches to zoom out', () => {
+  assert.equal(clampCameraZoomScale(0.2), 0.38);
+  assert.equal(clampCameraZoomScale(4), 1.95);
+  assert.ok(getPinchZoomScale(100, 200, 1) < 1);
+  assert.ok(getPinchZoomScale(100, 50, 1) > 1);
+  assert.equal(getPointerClientDistance(
+    { clientX: 0, clientY: 0 },
+    { clientX: 3, clientY: 4 },
+  ), 5);
+});
+
+test('returning the pull onto the ship cancels launch', () => {
+  assert.equal(shouldCancelAimedLaunch({ pointerDistanceFromShip: 0.2 }), true);
+  assert.equal(shouldCancelAimedLaunch({ pointerDistanceFromShip: 0.85 }), true);
+  assert.equal(shouldCancelAimedLaunch({ pointerDistanceFromShip: 0.86 }), false);
+  assert.throws(() => shouldCancelAimedLaunch({ pointerDistanceFromShip: -1 }), /non-negative/);
 });

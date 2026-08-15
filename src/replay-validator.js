@@ -245,7 +245,13 @@ export function validateReplay(Replay) {
       FlightStepCount += 1;
       const SimulationTimeSeconds = CurrentStepIndex * FixedStepSeconds;
       if (Launch.burnStepIndex === CurrentStepIndex) {
-        PhysicsState = applyBreakerBurn(PhysicsState);
+        PhysicsState = applyBreakerBurn(
+          PhysicsState,
+          undefined,
+          Number.isFinite(Launch.burnDirectionX) && Number.isFinite(Launch.burnDirectionY)
+            ? { x: Launch.burnDirectionX, y: Launch.burnDirectionY }
+            : null,
+        );
         BurnApplied = true;
       }
       PhysicsState = simulatePhysicsStep(PhysicsState, Runtime.worlds, FixedStepSeconds);

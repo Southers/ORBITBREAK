@@ -30,7 +30,7 @@ The Warden's ideology is concise and visible:
 2. **Choose:** balance a safe connection, a valuable occupied world, a scoring slingshot or a route that protects the existing network.
 3. **Reposition:** walk clockwise or counter-clockwise around the current world's orbital-plane circumference to choose a launch point or reach a local relay obstacle.
 4. **Launch:** pull away from the Runner and release. The astronaut folds into a launch craft, then a small ship, while retaining one deterministic physics body.
-5. **Fly:** read the exact full-path prediction, chain gravity assists through visible wells and optionally spend one Breaker Burn to thrust along the current heading.
+5. **Fly:** read the exact full-path prediction, chain gravity assists through visible wells and optionally spend one Breaker Burn. Drag from the ship to choose a direction, or fire along heading with Space.
 6. **Land:** unfold back into the Runner. A successful new landing breaks the local cage, activates its relay and establishes a visible link from the origin world. A first traversal between two active relays can also create a missing link.
 7. **Resolve:** bank the flight's score, animate life and trade along connected routes, then advance the Warden one predictable pursuit beat.
 8. **Continue:** expand, reinforce, recapture or attack. Complete resilient links to push the Warden back and open the final confrontation.
@@ -41,10 +41,10 @@ There is no wall-clock countdown during scouting or surface planning.
 
 The game remains one-pointer/touch accessible.
 
-- Drag tangentially around the landed world to walk along its visible circumference.
-- Drag radially away from the Runner to aim and release to launch. Gesture thresholds must make walking and aiming unambiguous.
-- Drag empty space to pan; wheel or pinch to zoom; use a clear control to snap back to the Runner.
-- Tap once during flight to use Breaker Burn. The preview must show whether it remains available, but cannot solve a future player-timed burn.
+- Drag the ship to aim. Release away from it to launch. Drag back onto the ship, or press Escape, to cancel without spending the flight.
+- Drag the current world's disk (not the ship) to walk the orbital-plane circumference. Q/E remain the keyboard walk.
+- Drag empty space to pan. Pinch or mouse wheel to zoom. C snaps the camera back to the Runner.
+- During flight, drag from the ship to aim the one-shot Breaker Burn in any direction, then release to fire. A heading Burn remains available from the Burn button or Space. The preview cannot solve a future player-timed burn at launch time.
 - Use one contextual Breaker Pulse near a hostile pylon, barrier or drone. No manual weapon aiming or health bar is required.
 - Keyboard controls must reach the same deterministic actions as pointer controls.
 
@@ -349,6 +349,21 @@ GitHub Pages being static does not mean the campaign stays quiet. These are the 
 6. **External voices and image APIs.** ElevenLabs / Gemini can replace in-engine voices and generate more portraits when keys are supplied. They will not live in this repo and they are not required for the authored boards to exist.
 
 Do not treat a toast, a HUD chip or a one-line coach as the delivery of those beats.
+
+## Run unlocks (next)
+
+Do not add a permanent meta-upgrade tree, random infinite runs or a second combat game. Unlocks should be a short authored ladder inside one Breaker's Reach run, earned on resolved flights and visible on the ship, then gone on reset.
+
+Proposed ladder, earliest first:
+
+1. **Breaker Burn** — already the first flight verb. Directed drag is the tutorial unlock; heading Space remains the accessible fallback.
+2. **Longer prediction** — the full path is always true; an unlock can hold the camera on a committed chain longer, not invent a second simulator.
+3. **Relay pulse** — after the first live link, a landed Pulse that wakes a dark window or clears one pylon. Same Breaker Pulse, earlier in the run.
+4. **Second Burn charge** — only after the neighbourhood is talking, still one at a time, still recorded. Never a spray.
+5. **Circuit beacon** — after the first loop, a visible gold ghost of the next closing edge. Information, not an auto-aim.
+6. **Command lock** — after both shields crack, keyboard/pointer lead on the moving crown. Already exists; gate it as the finale gift.
+
+Roguelike flavour without roguelike chaos: one or two run-only boons chosen after the Warden arrives (extra Burn **or** a once-per-run recapture pulse). The map, wells and ranked physics stay authored. Score still cannot reward waiting. No HP, no loot, no ship stats that persist between runs.
 
 ## Scope
 

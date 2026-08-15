@@ -85,6 +85,8 @@ export function recordReplayLaunch(Replay, {
       velocityX,
       velocityY,
       burnStepIndex: null,
+      burnDirectionX: null,
+      burnDirectionY: null,
     }
     : { stepIndex, originIdentifier, velocityX, velocityY };
   return {
@@ -97,7 +99,7 @@ export function recordReplayLaunch(Replay, {
 }
 
 /** Records the sole fixed-step Breaker Burn for the current flight. */
-export function recordReplayBurn(Replay, { stepIndex }) {
+export function recordReplayBurn(Replay, { stepIndex, directionX = null, directionY = null }) {
   if (Replay.outcome !== 'recording') {
     throw new Error('A finished replay cannot accept a Burn.');
   }
@@ -115,11 +117,19 @@ export function recordReplayBurn(Replay, { stepIndex }) {
   if (Launch.burnStepIndex !== null) {
     throw new Error('A flight can record only one Burn.');
   }
+  const HasDirectedBurn = Number.isFinite(directionX) && Number.isFinite(directionY)
+    && Math.hypot(directionX, directionY) > 0;
+  const DirectionLength = HasDirectedBurn ? Math.hypot(directionX, directionY) : 0;
   return {
     ...Replay,
     launches: Replay.launches.map((ReplayLaunch, ReplayLaunchIndex) => (
       ReplayLaunchIndex === LaunchIndex
-        ? { ...ReplayLaunch, burnStepIndex: stepIndex }
+        ? {
+          ...ReplayLaunch,
+          burnStepIndex: stepIndex,
+          burnDirectionX: HasDirectedBurn ? directionX / DirectionLength : null,
+          burnDirectionY: HasDirectedBurn ? directionY / DirectionLength : null,
+        }
         : ReplayLaunch
     )),
   };
@@ -147,8 +157,16 @@ export function serializeReplay(Replay) {
     p: Replay.physicsVersion,
     h: Replay.fixedStepHz,
     o: Replay.outcome === 'complete' ? 1 : 0,
-    l: Replay.launches.map((Launch) => Replay.schemaVersion >= 2
-      ? [
+    l: Replay.launches.map((Launch) => {
+      if (Replay.schemaVersion < 2) {
+        return [
+          Launch.stepIndex,
+          Launch.originIdentifier,
+          Launch.velocityX,
+          Launch.velocityY,
+        ];
+      }
+      const LaunchPayload = [
         Launch.stepIndex,
         Launch.originIdentifier,
         Launch.originX,
@@ -156,13 +174,12 @@ export function serializeReplay(Replay) {
         Launch.velocityX,
         Launch.velocityY,
         Launch.burnStepIndex,
-      ]
-      : [
-        Launch.stepIndex,
-        Launch.originIdentifier,
-        Launch.velocityX,
-        Launch.velocityY,
-      ]),
+      ];
+      if (Number.isFinite(Launch.burnDirectionX) && Number.isFinite(Launch.burnDirectionY)) {
+        LaunchPayload.push(Launch.burnDirectionX, Launch.burnDirectionY);
+      }
+      return LaunchPayload;
+    }),
   });
 }
 
@@ -192,7 +209,9 @@ export function parseReplay(SerializedReplay) {
     schemaVersion: WireReplay.v,
   });
   for (const Launch of WireReplay.l) {
-    const ExpectedLength = WireReplay.v >= 2 ? 7 : 4;
+    const ExpectedLength = WireReplay.v >= 2
+      ? (Launch.length === 9 ? 9 : 7)
+      : 4;
     if (!Array.isArray(Launch) || Launch.length !== ExpectedLength) {
       throw new Error('Replay launch payload is invalid.');
     }
@@ -205,7 +224,11 @@ export function parseReplay(SerializedReplay) {
       velocityY: WireReplay.v >= 2 ? Launch[5] : Launch[3],
     });
     if (WireReplay.v >= 2 && Launch[6] !== null) {
-      Replay = recordReplayBurn(Replay, { stepIndex: Launch[6] });
+      Replay = recordReplayBurn(Replay, {
+        stepIndex: Launch[6],
+        directionX: Launch.length === 9 ? Launch[7] : null,
+        directionY: Launch.length === 9 ? Launch[8] : null,
+      });
     }
   }
   return finishReplay(Replay, WireReplay.o === 1 ? 'complete' : 'failed');

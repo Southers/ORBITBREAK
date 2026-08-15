@@ -20,29 +20,7 @@ export function createVector(PositionX = 0, PositionY = 0, PositionZ = 0) {
 
 export const BreakerBurnImpulse = 3.4;
 
-/**
- * Fast enough for adjacent hops, slow enough that a hard pull still has to ride gravity.
- * Full-power darts at ~18 made slingshot chains a fiddly mid-pull instead of a readable shot.
- */
-export const MaximumLaunchSpeed = 12.5;
-
-/** Applies the one-shot Burn along current heading without changing gravity rules. */
-export function applyBreakerBurn(PhysicsState, Impulse = BreakerBurnImpulse) {
-  const Speed = Math.hypot(PhysicsState.velocity.x, PhysicsState.velocity.y);
-  if (!(Speed > 0) || !(Impulse > 0) || !Number.isFinite(Impulse)) {
-    return {
-      position: createVector(
-        PhysicsState.position.x,
-        PhysicsState.position.y,
-        PhysicsState.position.z,
-      ),
-      velocity: createVector(
-        PhysicsState.velocity.x,
-        PhysicsState.velocity.y,
-        PhysicsState.velocity.z,
-      ),
-    };
-  }
+function clonePhysicsState(PhysicsState) {
   return {
     position: createVector(
       PhysicsState.position.x,
@@ -50,12 +28,47 @@ export function applyBreakerBurn(PhysicsState, Impulse = BreakerBurnImpulse) {
       PhysicsState.position.z,
     ),
     velocity: createVector(
-      PhysicsState.velocity.x + ((PhysicsState.velocity.x / Speed) * Impulse),
-      PhysicsState.velocity.y + ((PhysicsState.velocity.y / Speed) * Impulse),
+      PhysicsState.velocity.x,
+      PhysicsState.velocity.y,
       PhysicsState.velocity.z,
     ),
   };
 }
+
+function getBurnDirection(PhysicsState, Direction) {
+  if (
+    Direction
+    && Number.isFinite(Direction.x)
+    && Number.isFinite(Direction.y)
+    && Math.hypot(Direction.x, Direction.y) > 0
+  ) {
+    const Length = Math.hypot(Direction.x, Direction.y);
+    return { x: Direction.x / Length, y: Direction.y / Length };
+  }
+  const Speed = Math.hypot(PhysicsState.velocity.x, PhysicsState.velocity.y);
+  if (!(Speed > 0)) {
+    return null;
+  }
+  return {
+    x: PhysicsState.velocity.x / Speed,
+    y: PhysicsState.velocity.y / Speed,
+  };
+}
+
+/** Applies the one-shot Burn along a dragged direction, or current heading if none is given. */
+export function applyBreakerBurn(PhysicsState, Impulse = BreakerBurnImpulse, Direction = null) {
+  const BurnDirection = getBurnDirection(PhysicsState, Direction);
+  if (!BurnDirection || !(Impulse > 0) || !Number.isFinite(Impulse)) {
+    return clonePhysicsState(PhysicsState);
+  }
+  const NextState = clonePhysicsState(PhysicsState);
+  NextState.velocity.x += BurnDirection.x * Impulse;
+  NextState.velocity.y += BurnDirection.y * Impulse;
+  return NextState;
+}
+
+/** Fast enough for adjacent hops, slow enough that a hard pull still has to ride gravity. */
+export const MaximumLaunchSpeed = 12.5;
 
 /**
  * Calculates the squared distance between two positions.
