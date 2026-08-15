@@ -16,6 +16,8 @@ import {
   getRunnerForm,
   getRunnerPose,
   getScannerAccessibleLabel,
+  getSlingshotBandVisualState,
+  getSlingshotPreviewPresentation,
   getStillnessPresentation,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
@@ -332,6 +334,28 @@ test('world landing aim copy names a new destination without calling it imprison
   assert.equal(getWorldLandingAimLabel('Ember', true), 'Ember TARGET');
   assert.equal(getWorldLandingAimLabel('Ember', false), 'SAFE LANDING');
   assert.throws(() => getWorldLandingAimLabel(' ', true), /requires a destination/);
+});
+
+test('slingshot preview names a chain only after two distinct wells', () => {
+  assert.equal(getSlingshotPreviewPresentation(0), null);
+  assert.deepEqual(getSlingshotPreviewPresentation(1), {
+    color: 0x9be7ff,
+    opacity: 0.84,
+    label: 'ASSIST',
+  });
+  assert.equal(getSlingshotPreviewPresentation(2).label, 'CHAIN ×2');
+  assert.equal(getSlingshotPreviewPresentation(5).label, 'CHAIN ×4');
+  assert.throws(() => getSlingshotPreviewPresentation(-1), /scored event count/);
+});
+
+test('slingshot rings appear only while the shot can still change', () => {
+  assert.deepEqual(getSlingshotBandVisualState({ isAiming: true }), {
+    visible: true,
+    assistOpacity: 0.22,
+    razorOpacity: 0.3,
+  });
+  assert.equal(getSlingshotBandVisualState({ isFlying: true }).visible, true);
+  assert.equal(getSlingshotBandVisualState({}).visible, false);
 });
 
 test('result status distinguishes the current verified run from an older personal best', () => {

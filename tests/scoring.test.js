@@ -8,6 +8,7 @@ import {
   bankFlightScore,
   createScoreState,
   getSlingshotBand,
+  getSlingshotBandRadii,
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
@@ -30,6 +31,15 @@ function positionAtClearance(Clearance, Y = 0) {
     z: 0,
   };
 }
+
+test('slingshot rings sit on the same clearances that score a pass', () => {
+  const Band = getSlingshotBand(TestBody);
+  const Radii = getSlingshotBandRadii(TestBody, RunnerRadius);
+  assert.equal(Radii.assistRadius, TestBody.radius + RunnerRadius + Band.outerClearance);
+  assert.equal(Radii.deepRadius, TestBody.radius + RunnerRadius + Band.deepClearance);
+  assert.equal(Radii.razorRadius, TestBody.radius + RunnerRadius + Band.razorClearance);
+  assert.throws(() => getSlingshotBandRadii(TestBody, 0), /runner radius/);
+});
 
 test('a slingshot scores only after entering and exiting the influence band', () => {
   const ScoreState = createScoreState();

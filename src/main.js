@@ -38,7 +38,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob76';
+} from './content.js?v=20260815-ob77';
 
 import {
   countRestoredWorlds,
@@ -53,6 +53,7 @@ import {
 } from './campaign.js?v=20260814-ob8';
 
 import {
+  MaximumLaunchSpeed,
   applyBreakerBurn,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
@@ -61,7 +62,7 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260814-ob14';
+} from './physics.js?v=20260815-ob77';
 import { createLeaderboardClient } from './leaderboard-client.js?v=20260814-ob9';
 import {
   connectRelayWorlds,
@@ -105,13 +106,15 @@ import {
   getRunnerForm,
   getRunnerPose,
   getScannerAccessibleLabel,
+  getSlingshotBandVisualState,
+  getSlingshotPreviewPresentation,
   getStillnessPresentation,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob76';
+} from './presentation.js?v=20260815-ob77';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -146,10 +149,11 @@ import {
   addVictoryBonus,
   bankFlightScore,
   createScoreState,
+  getSlingshotBandRadii,
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260815-ob22';
+} from './scoring.js?v=20260815-ob77';
 
 const PageSearchParameters = new URLSearchParams(window.location.search);
 const RequestedSystemIdentifier = PageSearchParameters.get('system')
@@ -275,7 +279,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob76';
+GameCanvas.dataset.build = '20260815-ob77';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -287,7 +291,8 @@ const FixedPhysicsStepSeconds = 1 / FixedPhysicsStepHertz;
 const MaximumFrameDeltaSeconds = 0.05;
 const SeedRadius = 0.46;
 const MaximumDragDistance = 6.25;
-const LaunchVelocityPerDragUnit = 2.95;
+const LaunchVelocityPerDragUnit = MaximumLaunchSpeed / MaximumDragDistance;
+GameCanvas.dataset.maxLaunchSpeed = String(MaximumLaunchSpeed);
 const MinimumLaunchDragDistance = 0.22;
 const MaximumTrajectoryPredictionSteps = 520;
 const RankedPredictionVisibleSteps = 160;
@@ -443,6 +448,7 @@ let SeedPhysicsState = {
 };
 let RunState = createRunState(ActiveSystem.launchBudget);
 let ScoreState = createScoreState();
+const PredictedSlingshotWorldIdentifiers = new Set();
 let ReplayState = createReplayRecorder({
   systemIdentifier: ActiveSystem.id,
   contentVersion: ActiveSystem.contentVersion,
@@ -2722,6 +2728,83 @@ function createWorld(WorldDefinition) {
 
 for (const WorldDefinition of WorldDefinitions) {
   createWorld(WorldDefinition);
+}
+
+/** Equatorial scoring wells make slingshot chains readable while aiming and flying. */
+const SlingshotBandRingGeometry = new THREE.RingGeometry(0.96, 1.04, 72);
+const SlingshotAssistMaterial = new THREE.MeshBasicMaterial({
+  color: 0x72e8ff,
+  transparent: true,
+  opacity: 0.22,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+});
+const SlingshotRazorMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffd98a,
+  transparent: true,
+  opacity: 0.3,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+});
+const SlingshotAssistMesh = new THREE.InstancedMesh(
+  SlingshotBandRingGeometry,
+  SlingshotAssistMaterial,
+  WorldDefinitions.length,
+);
+const SlingshotRazorMesh = new THREE.InstancedMesh(
+  SlingshotBandRingGeometry,
+  SlingshotRazorMaterial,
+  WorldDefinitions.length,
+);
+const SlingshotBandTransform = new THREE.Object3D();
+const SlingshotAssistColor = new THREE.Color();
+const SlingshotRazorColor = new THREE.Color();
+SlingshotAssistMesh.frustumCulled = false;
+SlingshotRazorMesh.frustumCulled = false;
+SlingshotAssistMesh.renderOrder = 8;
+SlingshotRazorMesh.renderOrder = 9;
+SlingshotAssistMesh.visible = false;
+SlingshotRazorMesh.visible = false;
+Scene.add(SlingshotAssistMesh);
+Scene.add(SlingshotRazorMesh);
+
+function updateSlingshotBandVisuals(ElapsedTimeSeconds) {
+  const VisualState = getSlingshotBandVisualState({
+    isAiming: IsPointerAiming || IsKeyboardAiming,
+    isFlying: GamePhase === 'flying',
+  });
+  SlingshotAssistMesh.visible = VisualState.visible;
+  SlingshotRazorMesh.visible = VisualState.visible;
+  if (!VisualState.visible) {
+    return;
+  }
+
+  SlingshotAssistMaterial.opacity = VisualState.assistOpacity;
+  SlingshotRazorMaterial.opacity = VisualState.razorOpacity;
+  const BandRotation = PrefersReducedMotion ? 0 : ElapsedTimeSeconds * 0.14;
+  for (let WorldIndex = 0; WorldIndex < WorldDefinitions.length; WorldIndex += 1) {
+    const WorldDefinition = WorldDefinitions[WorldIndex];
+    const Radii = getSlingshotBandRadii(WorldDefinition, SeedRadius);
+    const IsPredicted = PredictedSlingshotWorldIdentifiers.has(WorldDefinition.id);
+    const IsActive = ScoreState.activePasses.has(WorldDefinition.id);
+    SlingshotBandTransform.position.set(WorldDefinition.position.x, WorldDefinition.position.y, 0.08);
+    SlingshotBandTransform.rotation.set(0, 0, BandRotation);
+    SlingshotBandTransform.scale.set(Radii.assistRadius, Radii.assistRadius, 1);
+    SlingshotBandTransform.updateMatrix();
+    SlingshotAssistMesh.setMatrixAt(WorldIndex, SlingshotBandTransform.matrix);
+    SlingshotAssistColor.setHex(IsActive || IsPredicted ? 0xb7f6ff : 0x4d8ea0);
+    SlingshotAssistMesh.setColorAt(WorldIndex, SlingshotAssistColor);
+
+    SlingshotBandTransform.scale.set(Radii.razorRadius, Radii.razorRadius, 1);
+    SlingshotBandTransform.updateMatrix();
+    SlingshotRazorMesh.setMatrixAt(WorldIndex, SlingshotBandTransform.matrix);
+    SlingshotRazorColor.setHex(IsActive || IsPredicted ? 0xfff1c2 : 0xc9a45a);
+    SlingshotRazorMesh.setColorAt(WorldIndex, SlingshotRazorColor);
+  }
+  SlingshotAssistMesh.instanceMatrix.needsUpdate = true;
+  SlingshotRazorMesh.instanceMatrix.needsUpdate = true;
+  if (SlingshotAssistMesh.instanceColor) SlingshotAssistMesh.instanceColor.needsUpdate = true;
+  if (SlingshotRazorMesh.instanceColor) SlingshotRazorMesh.instanceColor.needsUpdate = true;
 }
 
 /** Two pooled meshes pin culture-specific occupation clamps across every silenced world. */
@@ -5879,6 +5962,7 @@ function clearTrajectoryPreview() {
   LandingMarkerMesh.visible = false;
   TrajectoryGeometry.setDrawRange(0, 0);
   PredictedStardustIdentifiers.clear();
+  PredictedSlingshotWorldIdentifiers.clear();
 }
 
 /** Keeps every live aim suggestion on the same fixed-step prediction contract. */
@@ -5938,7 +6022,7 @@ function updateAimPreview(CurrentPointerWorldPosition) {
   GameCanvas.dataset.lastPredictionTotalPoints = String(TrajectoryPrediction.points.length);
   GameCanvas.dataset.lastPredictionOutcomeVisible = String(IsOutcomeVisible);
   const PredictedSlingshotEvents = predictSlingshotEvents(
-    VisiblePredictionPoints,
+    TrajectoryPrediction.points,
     WorldDefinitions,
     {
       runnerRadius: SeedRadius,
@@ -6114,7 +6198,9 @@ function updateAimPreview(CurrentPointerWorldPosition) {
         : 'The ranked preview ends here',
       TrajectoryPrediction.collisionKind === 'hazard'
         ? 'Change the angle or timing—the warning is exact, but the impact point stays hidden.'
-        : 'Judge the remaining gravity curve, or use nearby worlds to build a scoring chain.',
+        : PredictedSlingshotEvents.length >= 2
+          ? 'Gold rings mark scoring wells. This line already threads a chain—judge the rest of the curve.'
+          : 'Judge the remaining gravity curve, or thread the gold rings to build a scoring chain.',
     );
   } else {
     TrajectoryMaterial.color.set(0x9db8c6);
@@ -6127,6 +6213,10 @@ function updateAimPreview(CurrentPointerWorldPosition) {
       'Pull farther or change the angle until the path turns gold, green or blue.',
     );
   }
+  PredictedSlingshotWorldIdentifiers.clear();
+  for (const SlingshotEvent of PredictedSlingshotEvents) {
+    PredictedSlingshotWorldIdentifiers.add(SlingshotEvent.bodyIdentifier);
+  }
   if (PredictedStardustIdentifiers.size > 0) {
     AimLabelElement.textContent += ` · ARC +${PredictedStardustIdentifiers.size}`;
   }
@@ -6135,7 +6225,14 @@ function updateAimPreview(CurrentPointerWorldPosition) {
       (Total, Event) => Total + Event.points,
       0,
     );
-    AimLabelElement.textContent += ` · ASSIST +${PredictedPoints.toLocaleString('en-GB')}`;
+    const ChainPreview = getSlingshotPreviewPresentation(PredictedSlingshotEvents.length);
+    if (ChainPreview && !IsOutcomeVisible) {
+      TrajectoryMaterial.color.setHex(ChainPreview.color);
+      TrajectoryMaterial.opacity = ChainPreview.opacity;
+    }
+    AimLabelElement.textContent += ChainPreview
+      ? ` · ${ChainPreview.label} +${PredictedPoints.toLocaleString('en-GB')}`
+      : ` · ASSIST +${PredictedPoints.toLocaleString('en-GB')}`;
   }
   WorldseedSound.updateAim(
     PowerRatio,
@@ -7907,6 +8004,7 @@ function resetGame() {
     StardustDefinition.collected = false;
   }
   PredictedStardustIdentifiers.clear();
+  PredictedSlingshotWorldIdentifiers.clear();
   FlightCollectedStardustIdentifiers.clear();
   ActiveHostileEncounterState = null;
   CompletedHostileEncounterWorldIdentifiers.clear();
@@ -8214,6 +8312,7 @@ function renderFrame() {
   updateWorldBiomeMotion(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateFinaleRestorationVisuals(ElapsedTimeSeconds);
   updateRelayNetworkVisuals(ElapsedTimeSeconds);
+  updateSlingshotBandVisuals(ElapsedTimeSeconds);
   updateWardenVisuals(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateCamera(DeltaTimeSeconds);

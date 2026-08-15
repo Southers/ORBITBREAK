@@ -804,9 +804,12 @@ HUD type. That was too high. A new player still met endgame jargon (`COMMAND WOR
 shields) before their first landing, so the loop did not exist as play. The opening now teaches one
 shot; after the first relay the coach says one more world will alert the Warden; the objective reads
 `RELAYS`, then `CIRCUITS`, then Command. After a new relay the camera frames the live link during
-liberation and its courier starts at the origin, then control returns to the Runner. Physics, score
-and replay inputs are unchanged. This is the start of making the loop fun, not a claim that it
-already is.
+liberation and its courier starts at the origin, then control returns to the Runner. Full-power
+launches were ~18 and outran every well, so slingshot chains hid behind a fiddly mid-pull. Maximum
+launch speed is now 12.5: adjacent hops still complete, and a near-max opening line can thread Ember
+and Grove into Tide. Scoring rings appear while aiming or flying, and a long-arc preview turns gold
+when it already holds a chain. Gravity, Burn, replay inputs and anti-farming are unchanged. This is
+the start of making the loop fun, not a claim that it already is.
 
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 

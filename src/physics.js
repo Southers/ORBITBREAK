@@ -20,6 +20,12 @@ export function createVector(PositionX = 0, PositionY = 0, PositionZ = 0) {
 
 export const BreakerBurnImpulse = 3.4;
 
+/**
+ * Fast enough for adjacent hops, slow enough that a hard pull still has to ride gravity.
+ * Full-power darts at ~18 made slingshot chains a fiddly mid-pull instead of a readable shot.
+ */
+export const MaximumLaunchSpeed = 12.5;
+
 /** Applies the one-shot Burn along current heading without changing gravity rules. */
 export function applyBreakerBurn(PhysicsState, Impulse = BreakerBurnImpulse) {
   const Speed = Math.hypot(PhysicsState.velocity.x, PhysicsState.velocity.y);

@@ -176,6 +176,41 @@ export function getRelayCourierTravelProgress(
   };
 }
 
+/** Colors a long-arc preview when the visible line already threads scoring wells. */
+export function getSlingshotPreviewPresentation(SlingshotEventCount) {
+  if (!Number.isInteger(SlingshotEventCount) || SlingshotEventCount < 0) {
+    throw new Error('Slingshot preview requires a scored event count.');
+  }
+  if (SlingshotEventCount >= 2) {
+    return {
+      color: 0xffd98a,
+      opacity: 0.92,
+      label: `CHAIN ×${Math.min(SlingshotEventCount, 4)}`,
+    };
+  }
+  if (SlingshotEventCount === 1) {
+    return {
+      color: 0x9be7ff,
+      opacity: 0.84,
+      label: 'ASSIST',
+    };
+  }
+  return null;
+}
+
+/** Gravity wells are visible only while aiming or flying, when they can still change the shot. */
+export function getSlingshotBandVisualState({
+  isAiming = false,
+  isFlying = false,
+} = {}) {
+  const Visible = isAiming === true || isFlying === true;
+  return {
+    visible: Visible,
+    assistOpacity: Visible ? 0.22 : 0,
+    razorOpacity: Visible ? 0.3 : 0,
+  };
+}
+
 /** Publishes the finale presentation without mutating authoritative pursuit state. */
 export function getPublishedWardenState(PursuitStatus, IsCommandDefeated = false) {
   if (typeof PursuitStatus !== 'string' || PursuitStatus.length < 1) {
