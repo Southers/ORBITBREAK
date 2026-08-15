@@ -199,6 +199,7 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
+      && /id="ObjectiveLabel"/.test(IndexHtml)
       && /\.objective-panel__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.objective-panel__state\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),
     'Command World objective updates must remain a complete atomic status with legible type.',
@@ -268,6 +269,19 @@ export function auditReleaseReadiness() {
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
       ?.openingBroadcast === 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
     'The selected one-sector candidate must retain the opening Warden broadcast.',
+  );
+  requireCondition(
+    AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+      ?.openingBody.includes('Pull back from the Runner')
+      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+        ?.openingBody.includes('leaves a relay')
+      && MainSource.includes('getHiddenWardenRouteCoach(')
+      && MainSource.includes('getLoopObjectivePresentation(')
+      && /id="ObjectiveLabel"[^>]*>RELAYS</.test(IndexHtml)
+      && PresentationSource.includes('export function getRelayRevealLookTarget(')
+      && MainSource.includes('getRelayRevealLookTarget(')
+      && MainSource.includes('CourierStartTimesByLinkId'),
+    'The selected sector must teach the first landing and show each new relay before circuits, shields or Command.',
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]

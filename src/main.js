@@ -38,7 +38,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob42';
+} from './content.js?v=20260815-ob76';
 
 import {
   countRestoredWorlds,
@@ -70,6 +70,7 @@ import {
   listLiveRelayCircuits,
   listLiveRelayLinks,
   listProtectedRelayWorlds,
+  listRelayCircuits,
   listRelayLinks,
   listVulnerableRelayWorlds,
   suppressRelayWorld,
@@ -89,12 +90,16 @@ import {
   savePersonalBest,
 } from './records.js?v=20260814-ob8';
 import {
+  getHiddenWardenRouteCoach,
   getLiberationFlashOpacity,
   getLeaderboardActionLabel,
+  getLoopObjectivePresentation,
   getPersonalBestStatus,
   getPlayfieldLabelVerticalBounds,
   getPublishedWardenState,
+  getRelayCourierTravelProgress,
   getRelayLinkOpacity,
+  getRelayRevealLookTarget,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
@@ -106,7 +111,7 @@ import {
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob71';
+} from './presentation.js?v=20260815-ob76';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -216,6 +221,7 @@ const ScannerWardenElement = document.querySelector('#ScannerWarden');
 const ScannerRunnerElement = document.querySelector('#ScannerRunner');
 const StardustCounterElement = document.querySelector('#StardustCounter');
 const ObjectivePanelElement = document.querySelector('#ObjectivePanel');
+const ObjectiveLabelElement = document.querySelector('#ObjectiveLabel');
 const ObjectiveStateElement = document.querySelector('#ObjectiveState');
 const ObjectivePipsElement = document.querySelector('#ObjectivePips');
 const WardenPanelElement = document.querySelector('#WardenPanel');
@@ -269,7 +275,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob74';
+GameCanvas.dataset.build = '20260815-ob76';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -396,6 +402,8 @@ let IsKeyboardAiming = false;
 let ActivePointerIdentifier = null;
 let KeyboardAimState = createKeyboardAimState();
 let IsScoutMode = false;
+let RelayRevealLookTarget = null;
+const CourierStartTimesByLinkId = new Map();
 const MinimumScoutZoomScale = 0.72;
 const MaximumScoutZoomScale = 1.55;
 let ScoutZoomScale = 1;
@@ -3014,17 +3022,14 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
     const Link = Links[LinkIndex];
     const Origin = getWorldDefinition(Link.originWorldIdentifier);
     const Destination = getWorldDefinition(Link.destinationWorldIdentifier);
-    const TravelCycleProgress = (
-      (ElapsedTimeSeconds * 0.11) + (Link.sequenceIndex * 0.37)
-    ) % 2;
-    const IsReturning = TravelCycleProgress > 1;
-    const TravelProgress = IsReturning
-      ? 2 - TravelCycleProgress
-      : TravelCycleProgress;
+    const CourierAgeSeconds = CourierStartTimesByLinkId.has(Link.id)
+      ? Math.max(0, ElapsedTimeSeconds - CourierStartTimesByLinkId.get(Link.id))
+      : ((ElapsedTimeSeconds * 0.11) + (Link.sequenceIndex * 0.37)) / 0.11;
+    const CourierTravel = getRelayCourierTravelProgress(CourierAgeSeconds);
     TradeShipTransform.position.set(
-      THREE.MathUtils.lerp(Origin.position.x, Destination.position.x, TravelProgress),
-      THREE.MathUtils.lerp(Origin.position.y, Destination.position.y, TravelProgress),
-      0.3 + (Math.sin(TravelProgress * Math.PI) * 0.75),
+      THREE.MathUtils.lerp(Origin.position.x, Destination.position.x, CourierTravel.travelProgress),
+      THREE.MathUtils.lerp(Origin.position.y, Destination.position.y, CourierTravel.travelProgress),
+      0.3 + (Math.sin(CourierTravel.travelProgress * Math.PI) * 0.75),
     );
     TradeShipTransform.rotation.set(
       0,
@@ -3032,7 +3037,7 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
       Math.atan2(
         Destination.position.y - Origin.position.y,
         Destination.position.x - Origin.position.x,
-      ) - (Math.PI * 0.5) + (IsReturning ? Math.PI : 0),
+      ) - (Math.PI * 0.5) + (CourierTravel.isReturning ? Math.PI : 0),
     );
     TradeShipTransform.scale.setScalar(1);
     TradeShipTransform.updateMatrix();
@@ -4244,6 +4249,16 @@ function getCurrentRouteChoices(MaximumChoiceCount = 2) {
 
 /** Reveals the nearest useful routes while leaving every physical destination valid. */
 function showRouteChoiceInstruction() {
+  if (WardenPursuitState.status === 'hidden') {
+    const RouteChoices = getCurrentRouteChoices(2);
+    const Coach = getHiddenWardenRouteCoach({
+      liveRelayCount: countLiveRelayWorlds(RelayNetworkState),
+      routeLabels: RouteChoices.map((RouteChoice) => RouteChoice.label),
+      openingBody: ActiveSystem.openingBody,
+    });
+    showInstruction(Coach.title, Coach.body);
+    return;
+  }
   const RouteChoices = getCurrentRouteChoices(2);
   const CircuitChoice = RouteChoices.find((RouteChoice) => (
     wouldCloseRelayCircuit(
@@ -4610,23 +4625,24 @@ function updateStardustCounter() {
   );
 }
 
-/** Keeps the campaign objective visible without crowding the world/mastery counter. */
+/** Keeps the live loop objective on relays, then circuits, then Command. */
 function updateWorldheartObjective() {
-  const RestoredWorldCount = countRestoredWorlds(WorldDefinitions);
-  const IsWorldheartOpen = WorldheartDefinition.routeAvailable;
-  ObjectivePanelElement.classList.toggle('is-open', IsWorldheartOpen);
-  ObjectiveStateElement.textContent = WorldheartDefinition.restored
-    ? 'LIBERATED'
-    : CurrentWorldIdentifier === WorldheartDefinition.id && ActiveHostileEncounterState
-      ? 'CORE LOCKED'
-    : IsWorldheartOpen
-      ? 'COMMAND EXPOSED'
-    : `${Math.min(RestoredWorldCount, WorldheartUnlockThreshold)} / ${WorldheartUnlockThreshold}`;
+  const Presentation = getLoopObjectivePresentation({
+    liveRelayCount: countLiveRelayWorlds(RelayNetworkState),
+    uniqueCircuitCount: listRelayCircuits(RelayNetworkState).length,
+    wardenStatus: WardenPursuitState.status,
+    isOnCommandCore: CurrentWorldIdentifier === WorldheartDefinition.id
+      && Boolean(ActiveHostileEncounterState),
+    isCommandLiberated: WorldheartDefinition.restored,
+  });
+  ObjectiveLabelElement.textContent = Presentation.label;
+  ObjectiveStateElement.textContent = Presentation.state;
+  ObjectivePanelElement.classList.toggle('is-open', Presentation.open);
+  ObjectivePipsElement.classList.toggle('is-binary', Presentation.pipCount === 2);
   for (let PipIndex = 0; PipIndex < ObjectivePipElements.length; PipIndex += 1) {
-    ObjectivePipElements[PipIndex].classList.toggle(
-      'is-filled',
-      PipIndex < RestoredWorldCount,
-    );
+    const PipElement = ObjectivePipElements[PipIndex];
+    PipElement.hidden = PipIndex >= Presentation.pipCount;
+    PipElement.classList.toggle('is-filled', PipIndex < Presentation.filledPips);
   }
 }
 
@@ -5463,6 +5479,7 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
   }
   if (RelayConnection?.created || RelayConnection?.destinationReactivated) {
     synchronizeRelayNetworkVisuals();
+    CourierStartTimesByLinkId.set(RelayConnection.link.id, GameElapsedTimeSeconds);
   }
   GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
   commitFlightStardust();
@@ -5505,6 +5522,24 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
     firstCircuitClosed: RelayConnection?.circuitClosed === true,
     circuit: RelayConnection?.circuit ?? null,
   });
+  if (
+    GamePhase === 'restoring'
+    && LandingOriginWorldIdentifier
+    && (RelayConnection?.created || RelayConnection?.destinationReactivated)
+    && WardenPursuitState.lastEvent !== WardenPursuitEvents.revealed
+  ) {
+    const OriginWorld = getWorldDefinition(LandingOriginWorldIdentifier);
+    if (OriginWorld) {
+      RelayRevealLookTarget = getRelayRevealLookTarget({
+        origin: OriginWorld.position,
+        destination: WorldDefinition.position,
+        runner: SurfaceRestPosition,
+        viewportWorldWidth: ActiveSystem.camera?.viewportWorldWidth ?? 20,
+        viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
+      });
+      GameCanvas.dataset.relayReveal = `${LandingOriginWorldIdentifier}:${WorldDefinition.id}`;
+    }
+  }
   updateBreakerBurnInterface();
 }
 
@@ -7075,6 +7110,8 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
             hideInstruction();
           } else if (GamePhase === 'restoring') {
             GamePhase = 'attached';
+            RelayRevealLookTarget = null;
+            GameCanvas.dataset.relayReveal = '';
             const DidBeginHostileEncounter = beginHostileEncounter(WorldDefinition);
             if (!DidBeginHostileEncounter && !ShouldPreserveWardenReveal) {
               showRouteChoiceInstruction();
@@ -7459,6 +7496,8 @@ function updateCamera(DeltaTimeSeconds) {
   const UsesExplorationCamera = ActiveSystem.camera?.followPlayer === true;
   if (UsesExplorationCamera && IsScoutMode) {
     DesiredCameraLookTarget.copy(ScoutCameraTarget);
+  } else if (UsesExplorationCamera && GamePhase === 'restoring' && RelayRevealLookTarget) {
+    DesiredCameraLookTarget.set(RelayRevealLookTarget.x, RelayRevealLookTarget.y, 0);
   } else if (UsesExplorationCamera) {
     DesiredCameraLookTarget.set(
       SeedPhysicsState.position.x,
@@ -7877,6 +7916,9 @@ function resetGame() {
   PhysicsAccumulatorSeconds = 0;
   PhysicsElapsedTimeSeconds = 0;
   GameElapsedTimeSeconds = 0;
+  RelayRevealLookTarget = null;
+  CourierStartTimesByLinkId.clear();
+  GameCanvas.dataset.relayReveal = '';
   synchronizeSeedstonePosition();
   synchronizeWorldheartPosition();
   updateScannerInterface();

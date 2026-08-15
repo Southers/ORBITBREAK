@@ -119,6 +119,63 @@ export function getRelayLinkOpacity(ElapsedTimeSeconds, { reducedMotion = false 
   return 0.8 + (Math.sin(ElapsedTimeSeconds * 2.4) * 0.1);
 }
 
+function assertFinitePoint(Point, Label) {
+  if (!Point || !Number.isFinite(Point.x) || !Number.isFinite(Point.y)) {
+    throw new Error(`Relay reveal camera requires a finite ${Label}.`);
+  }
+}
+
+/**
+ * Pulls the camera toward a new relay without letting the landed Runner leave the viewport.
+ * The player should see the worlds answer each other, then regain a Runner-centred shot.
+ */
+export function getRelayRevealLookTarget({
+  origin,
+  destination,
+  runner,
+  viewportWorldWidth,
+  viewportWorldHeight,
+} = {}) {
+  assertFinitePoint(origin, 'origin');
+  assertFinitePoint(destination, 'destination');
+  assertFinitePoint(runner, 'runner');
+  if (
+    !Number.isFinite(viewportWorldWidth)
+    || viewportWorldWidth <= 0
+    || !Number.isFinite(viewportWorldHeight)
+    || viewportWorldHeight <= 0
+  ) {
+    throw new Error('Relay reveal camera requires a positive viewport.');
+  }
+  const MidX = (origin.x + destination.x) * 0.5;
+  const MidY = (origin.y + destination.y) * 0.5;
+  const MaximumOffsetX = viewportWorldWidth * 0.38;
+  const MaximumOffsetY = viewportWorldHeight * 0.38;
+  return {
+    x: Math.min(runner.x + MaximumOffsetX, Math.max(runner.x - MaximumOffsetX, MidX)),
+    y: Math.min(runner.y + MaximumOffsetY, Math.max(runner.y - MaximumOffsetY, MidY)),
+  };
+}
+
+/** Starts each new courier at the origin of its live link instead of mid-route. */
+export function getRelayCourierTravelProgress(
+  ElapsedSinceCreatedSeconds,
+  { cycleSpeed = 0.11 } = {},
+) {
+  if (!Number.isFinite(ElapsedSinceCreatedSeconds) || ElapsedSinceCreatedSeconds < 0) {
+    throw new Error('Courier travel requires a non-negative age.');
+  }
+  if (!Number.isFinite(cycleSpeed) || cycleSpeed <= 0) {
+    throw new Error('Courier travel requires a positive cycle speed.');
+  }
+  const CycleProgress = (ElapsedSinceCreatedSeconds * cycleSpeed) % 2;
+  const IsReturning = CycleProgress > 1;
+  return {
+    travelProgress: IsReturning ? 2 - CycleProgress : CycleProgress,
+    isReturning: IsReturning,
+  };
+}
+
 /** Publishes the finale presentation without mutating authoritative pursuit state. */
 export function getPublishedWardenState(PursuitStatus, IsCommandDefeated = false) {
   if (typeof PursuitStatus !== 'string' || PursuitStatus.length < 1) {
@@ -376,3 +433,104 @@ export function getPlayfieldLabelVerticalBounds({
     maximumY: MaximumY,
   };
 }
+
+/**
+ * Maps the live loop to one objective: relays, then circuits, then Command.
+ * Judges should never see the boss counter before they have connected a world.
+ */
+export function getLoopObjectivePresentation({
+  liveRelayCount,
+  uniqueCircuitCount,
+  wardenStatus,
+  isOnCommandCore = false,
+  isCommandLiberated = false,
+  relayRevealCount = 3,
+  circuitExposeCount = 2,
+} = {}) {
+  if (
+    !Number.isInteger(liveRelayCount)
+    || liveRelayCount < 0
+    || !Number.isInteger(uniqueCircuitCount)
+    || uniqueCircuitCount < 0
+    || typeof wardenStatus !== 'string'
+    || wardenStatus.length < 1
+  ) {
+    throw new Error('Loop objective requires relay, circuit and Warden state.');
+  }
+  if (isCommandLiberated) {
+    return {
+      label: 'COMMAND WORLD',
+      state: 'LIBERATED',
+      filledPips: 3,
+      pipCount: 3,
+      open: true,
+    };
+  }
+  if (isOnCommandCore) {
+    return {
+      label: 'COMMAND WORLD',
+      state: 'CORE LOCKED',
+      filledPips: 3,
+      pipCount: 3,
+      open: true,
+    };
+  }
+  if (wardenStatus === 'exposed') {
+    return {
+      label: 'COMMAND WORLD',
+      state: 'COMMAND EXPOSED',
+      filledPips: 3,
+      pipCount: 3,
+      open: true,
+    };
+  }
+  if (wardenStatus !== 'hidden') {
+    const Circuits = Math.min(uniqueCircuitCount, circuitExposeCount);
+    return {
+      label: 'CIRCUITS',
+      state: `${Circuits} / ${circuitExposeCount}`,
+      filledPips: Circuits,
+      pipCount: circuitExposeCount,
+      open: false,
+    };
+  }
+  const Relays = Math.min(liveRelayCount, relayRevealCount);
+  return {
+    label: 'RELAYS',
+    state: `${Relays} / ${relayRevealCount}`,
+    filledPips: Relays,
+    pipCount: relayRevealCount,
+    open: false,
+  };
+}
+
+/** Teaches the first connections before circuits, shields or Command. */
+export function getHiddenWardenRouteCoach({
+  liveRelayCount,
+  routeLabels = [],
+  openingBody = '',
+} = {}) {
+  if (!Number.isInteger(liveRelayCount) || liveRelayCount < 1) {
+    throw new Error('Hidden Warden coach requires a live relay count.');
+  }
+  const First = routeLabels[0];
+  const Second = routeLabels[1];
+  const Title = First && Second
+    ? `Choose ${First} or ${Second}`
+    : First
+      ? `Land on ${First}`
+      : 'Land on the next world';
+  if (liveRelayCount >= 2) {
+    return {
+      title: Title,
+      body: 'One more live world and the Warden notices. Landing leaves another relay.',
+    };
+  }
+  return {
+    title: Title,
+    body: typeof openingBody === 'string' && openingBody.trim() !== ''
+      ? openingBody
+      : 'Pull back from the Runner and release. A safe landing wakes the world and draws a relay.',
+  };
+}
+
