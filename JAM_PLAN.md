@@ -214,8 +214,8 @@ to 10 while the revealed Warden and all controls remained live. That worst mobil
 score remains **8/10**: occupation and liberation now communicate without prose, but inhabitants
 and culture-specific local motion remain the next highest-leverage gap. Milestone 5 remains open.
 
-Checkpoint C — 15 August 2026: restored societies are visibly inhabited. Eighteen two-part figures
-share only two instanced meshes; three per retained culture emerge late in its liberation wave,
+Checkpoint C — 15 August 2026: restored societies are visibly inhabited. Eighteen shaped figures
+share one instanced mesh; three per retained culture emerge late in its liberation wave,
 follow short culture-specific surface patrol rhythms and disappear immediately under suppression.
 Reduced motion preserves the figures but removes stride and bob. Browser evidence showed three
 people on free Haven, six after Ember and nine after Grove, matching the machine-readable population
@@ -228,11 +228,14 @@ Checkpoint D — 15 August 2026: the existing pooled finale core, return links, 
 sparks now respond to every Command defeat rather than only the campaign finale. Breaker's Reach has
 a compact 1.35-second timing profile, the cooled command core answers every restored world and the
 inhabitant pool shifts into a shared celebration rhythm; reduced motion resolves the same response
-immediately. This remains presentation-only and all deterministic tests pass. A fresh browser route
-verified startup and early landings without errors, but scripted high-volume surface input diverged
-before the second circuit and did not reach the final Pulse. Therefore the visual ending gate is not
-claimed yet: Milestone 5 stays open until a complete desktop run and portrait replay prove the new
-collective response and its worst-case draw-call budget.
+immediately. A complete replay-derived browser route reached both circuits, the moving Command World
+and its final Pulse at a verified 12,250 score. That first full gate exposed a 191/190 peak, so the
+tiny inhabitant body and head were consolidated into one shaped instanced silhouette without changing
+their culture-specific motion. The final desktop run held to 186/190 draw calls. A fresh 390×844
+portrait run then reached the same verified ending at 174/190, with no page overflow and every visible
+control at least 44px high. This remains presentation-only and leaves deterministic physics, scoring
+and replay validation unchanged. The screenshots now communicate societies, occupation, connection
+and the Command threat without relying on explanatory copy, so the Milestone 5 exit gate is met.
 
 ## Milestone 6 — Reliability and release readiness
 

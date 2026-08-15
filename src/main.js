@@ -248,7 +248,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob27';
+GameCanvas.dataset.build = '20260815-ob28';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -2764,23 +2764,25 @@ const InhabitantMaterial = new THREE.MeshBasicMaterial({
   vertexColors: true,
   toneMapped: false,
 });
+const InhabitantGeometry = new THREE.LatheGeometry([
+  new THREE.Vector2(0.025, -0.22),
+  new THREE.Vector2(0.085, -0.17),
+  new THREE.Vector2(0.09, 0.1),
+  new THREE.Vector2(0.05, 0.16),
+  new THREE.Vector2(0.075, 0.2),
+  new THREE.Vector2(0.105, 0.27),
+  new THREE.Vector2(0.08, 0.34),
+  new THREE.Vector2(0.02, 0.38),
+], 6);
 const InhabitantMesh = new THREE.InstancedMesh(
-  new THREE.CapsuleGeometry(0.09, 0.18, 2, 5),
-  InhabitantMaterial,
-  InhabitantCapacity,
-);
-const InhabitantHeadMesh = new THREE.InstancedMesh(
-  new THREE.IcosahedronGeometry(0.105, 1),
+  InhabitantGeometry,
   InhabitantMaterial,
   InhabitantCapacity,
 );
 InhabitantMesh.count = InhabitantInstances.length;
-InhabitantHeadMesh.count = InhabitantInstances.length;
 InhabitantMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-InhabitantHeadMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 InhabitantMesh.frustumCulled = false;
-InhabitantHeadMesh.frustumCulled = false;
-Scene.add(InhabitantMesh, InhabitantHeadMesh);
+Scene.add(InhabitantMesh);
 const InhabitantTransform = new THREE.Object3D();
 let VisibleInhabitantCount = -1;
 for (let InhabitantIndex = 0; InhabitantIndex < InhabitantInstances.length; InhabitantIndex += 1) {
@@ -2789,13 +2791,8 @@ for (let InhabitantIndex = 0; InhabitantIndex < InhabitantInstances.length; Inha
     InhabitantIndex,
     Inhabitant.worldDefinition.restoration.waveColor,
   );
-  InhabitantHeadMesh.setColorAt(
-    InhabitantIndex,
-    Inhabitant.worldDefinition.restoration.waveColor,
-  );
 }
 if (InhabitantMesh.instanceColor) InhabitantMesh.instanceColor.needsUpdate = true;
-if (InhabitantHeadMesh.instanceColor) InhabitantHeadMesh.instanceColor.needsUpdate = true;
 GameCanvas.dataset.inhabitantCount = String(InhabitantInstances.length);
 
 function updateInhabitantVisuals(ElapsedTimeSeconds) {
@@ -2841,22 +2838,9 @@ function updateInhabitantVisuals(ElapsedTimeSeconds) {
     );
     InhabitantTransform.updateMatrix();
     InhabitantMesh.setMatrixAt(InhabitantIndex, InhabitantTransform.matrix);
-
-    InhabitantTransform.position.set(
-      Inhabitant.worldDefinition.position.x
-        + (RadialX * (Inhabitant.worldDefinition.radius + 0.43)),
-      Inhabitant.worldDefinition.position.y
-        + (RadialY * (Inhabitant.worldDefinition.radius + 0.43)),
-      0.51 + ((InhabitantIndex % 2) * 0.035),
-    );
-    InhabitantTransform.rotation.set(0, 0, 0);
-    InhabitantTransform.scale.setScalar(EmergenceProgress);
-    InhabitantTransform.updateMatrix();
-    InhabitantHeadMesh.setMatrixAt(InhabitantIndex, InhabitantTransform.matrix);
   }
   if (InhabitantInstances.length > 0) {
     InhabitantMesh.instanceMatrix.needsUpdate = true;
-    InhabitantHeadMesh.instanceMatrix.needsUpdate = true;
   }
   if (VisibleInhabitantCount !== NextVisibleInhabitantCount) {
     VisibleInhabitantCount = NextVisibleInhabitantCount;
