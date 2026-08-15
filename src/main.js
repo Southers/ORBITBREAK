@@ -47,6 +47,7 @@ import { createPlayerVisuals } from './player-visuals.js?v=20260815-ob90';
 import { createStoryDirector } from './story-director.js?v=20260815-ob90';
 import { createHud } from './hud.js?v=20260815-ob90';
 import { createAimPreview } from './aim-preview.js?v=20260815-ob90';
+import { createLandingDirector } from './landing-director.js?v=20260815-ob90';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -56,7 +57,6 @@ import {
 } from './content.js?v=20260815-ob88';
 
 import {
-  countRestoredWorlds,
   getLandingAccolade,
   getRestorableWorlds,
   getRouteChoices,
@@ -128,7 +128,6 @@ import {
   getLandedCameraScale,
   getLiberationFlashOpacity,
   getLeaderboardActionLabel,
-  getLoopObjectivePresentation,
   getLiveLinkShipCount,
   getStoryBoardPresentation,
   getTriggeredCampaignStoryBoardIds,
@@ -148,7 +147,6 @@ import {
   PlanningMinimumZoomScale,
   getRelayLinkOpacity,
   getRelayRevealHoldDurationSeconds,
-  getRelayRevealLookTarget,
   getRunUnlockState,
   getSectorPlanningCamera,
   shouldAssistCommandLock,
@@ -194,7 +192,6 @@ import {
 } from './replay-playback.js?v=20260815-ob83';
 import { validateSerializedReplay } from './replay-validator.js?v=20260815-ob83';
 import {
-  calculateNormalizedSphericalDistance,
   calculateRestorationWaveProgress,
   calculateStagedGrowthProgress,
 } from './restoration.js?v=20260814-ob8';
@@ -205,8 +202,6 @@ import {
   settleRunFlight,
 } from './run.js?v=20260815-ob22';
 import {
-  addCircuitBonus,
-  addVictoryBonus,
   bankFlightScore,
   createScoreState,
   getSlingshotBandRadii,
@@ -2804,577 +2799,151 @@ function updateFlightFeedback() {
 }
 
 
-/**
- * Starts the lightweight greybox restoration animation and marks objective state.
- *
- * @param {object} WorldDefinition - World that has just been awakened.
- * @param {{x:number,y:number,z:number}} ImpactPosition - World-space landing point.
- */
-function restoreWorld(WorldDefinition, ImpactPosition) {
-  if (WorldDefinition.restored) {
-    return;
-  }
+const LandingDirector = createLandingDirector(THREE, {
+  WorldRuntimeByIdentifier,
+  WorldDefinitions,
+  Camera,
+  RouteLabelProjection,
+  LiberationFlashElement,
+  WorldseedSound,
+  GameCanvas,
+  clearTrajectoryPreview,
+  setSurfacePropRestorationProgress,
+  updateWorldCounter,
+  updateCommandWorldAvailability,
+  updateWorldheartObjective,
+  showStatusToast,
+  updateScannerInterface,
+  SeedGroup,
+  ImpactPulseMesh,
+  HostilePylonGroup,
+  FinaleCoreMesh,
+  FinaleLinkMesh,
+  FinalePulseMesh,
+  FinaleSparkMesh,
+  FinaleCoreMaterial,
+  FinaleLinkMaterial,
+  FinalePulseMaterial,
+  FinaleSparkMaterial,
+  FinaleLinkPositionValues,
+  FinaleLinkPositionAttribute,
+  FinalePulseCount,
+  FinalePulseTransform,
+  FinaleSparkCount,
+  FinaleSparkTransform,
+  Scene,
+  Renderer,
+  InitialSceneBackgroundColor,
+  FirstRelayAnswerLine,
+  SecondRelayAnswerLine,
+  ShownStoryBoardIds,
+  CompletedHostileEncounterWorldIdentifiers,
+  CourierStartTimesByLinkId,
+  calculateSurfaceRestPosition,
+  publishAttachedSeedState,
+  listLiveWorldIdentifiers,
+  isLiveInnerCluster,
+  isLiveFurtherReach,
+  getCurrentLandingAccolade,
+  bankCurrentFlight,
+  updateScoreInterface,
+  synchronizeRelayNetworkVisuals,
+  commitFlightStardust,
+  resetFlightFeedback,
+  showInstruction,
+  showRouteChoiceInstruction,
+  settleNonCommandFlight,
+  getWorldDefinition,
+  enqueueCampaignStoryBoards,
+  updateBreakerBurnInterface,
+  hideCutGuide,
+  publishHostileEncounterState,
+  beginCommandDefeat,
+  startWardenEventPulse,
+  publishWardenState,
+  updateVictorySummary,
+  hideInstruction,
+  beginHostileEncounter,
+  getRunnerSurfaceAngle,
+  updateLaunchCounter,
+  revealVictoryPanel,
+  setTimeout: window.setTimeout.bind(window),
+  clearTimeout: window.clearTimeout.bind(window),
+  get GamePhase() { return GamePhase; },
+  set GamePhase(Value) { GamePhase = Value; },
+  get GameElapsedTimeSeconds() { return GameElapsedTimeSeconds; },
+  get LiberationFlashLifeSeconds() { return LiberationFlashLifeSeconds; },
+  set LiberationFlashLifeSeconds(Value) { LiberationFlashLifeSeconds = Value; },
+  get CameraImpactLifeSeconds() { return CameraImpactLifeSeconds; },
+  set CameraImpactLifeSeconds(Value) { CameraImpactLifeSeconds = Value; },
+  get IsBreakerBurnAvailable() { return IsBreakerBurnAvailable; },
+  set IsBreakerBurnAvailable(Value) { IsBreakerBurnAvailable = Value; },
+  get IsBreakerBurnPending() { return IsBreakerBurnPending; },
+  set IsBreakerBurnPending(Value) { IsBreakerBurnPending = Value; },
+  get CommittedPredictionPoints() { return CommittedPredictionPoints; },
+  set CommittedPredictionPoints(Value) { CommittedPredictionPoints = Value; },
+  get FlightOriginWorldIdentifier() { return FlightOriginWorldIdentifier; },
+  get ImpactPulseLifeSeconds() { return ImpactPulseLifeSeconds; },
+  set ImpactPulseLifeSeconds(Value) { ImpactPulseLifeSeconds = Value; },
+  get SeedPhysicsState() { return SeedPhysicsState; },
+  set SeedPhysicsState(Value) { SeedPhysicsState = Value; },
+  get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
+  set CurrentWorldIdentifier(Value) { CurrentWorldIdentifier = Value; },
+  get LastSafeWorldIdentifier() { return LastSafeWorldIdentifier; },
+  set LastSafeWorldIdentifier(Value) { LastSafeWorldIdentifier = Value; },
+  get LastSafeSeedPosition() { return LastSafeSeedPosition; },
+  set LastSafeSeedPosition(Value) { LastSafeSeedPosition = Value; },
+  get LaunchIgnoredWorldIdentifier() { return LaunchIgnoredWorldIdentifier; },
+  set LaunchIgnoredWorldIdentifier(Value) { LaunchIgnoredWorldIdentifier = Value; },
+  get LaunchIgnoredBodyIdentifier() { return LaunchIgnoredBodyIdentifier; },
+  set LaunchIgnoredBodyIdentifier(Value) { LaunchIgnoredBodyIdentifier = Value; },
+  get RelayNetworkState() { return RelayNetworkState; },
+  get ScoreState() { return ScoreState; },
+  get RunState() { return RunState; },
+  set RunState(Value) { RunState = Value; },
+  get RecaptureCutGiftAvailable() { return RecaptureCutGiftAvailable; },
+  get PendingRecaptureCutWorldIdentifier() { return PendingRecaptureCutWorldIdentifier; },
+  set PendingRecaptureCutWorldIdentifier(Value) { PendingRecaptureCutWorldIdentifier = Value; },
+  get ActiveSystem() { return ActiveSystem; },
+  get WorldheartDefinition() { return WorldheartDefinition; },
+  get SeedstoneDefinition() { return SeedstoneDefinition; },
+  get WardenPursuitState() { return WardenPursuitState; },
+  get RelayRevealLookTarget() { return RelayRevealLookTarget; },
+  set RelayRevealLookTarget(Value) { RelayRevealLookTarget = Value; },
+  get ActiveHostileEncounterState() { return ActiveHostileEncounterState; },
+  set ActiveHostileEncounterState(Value) { ActiveHostileEncounterState = Value; },
+  get WorldheartCompletionTimeoutIdentifier() { return WorldheartCompletionTimeoutIdentifier; },
+  set WorldheartCompletionTimeoutIdentifier(Value) { WorldheartCompletionTimeoutIdentifier = Value; },
+  get PendingVictoryAfterStoryBoard() { return PendingVictoryAfterStoryBoard; },
+  set PendingVictoryAfterStoryBoard(Value) { PendingVictoryAfterStoryBoard = Value; },
+  get PrefersReducedMotion() { return PrefersReducedMotion; },
+  get IsCampaignFinale() { return IsCampaignFinale; },
+  get PendingWorldheartBankedPoints() { return PendingWorldheartBankedPoints; },
+  set PendingWorldheartBankedPoints(Value) { PendingWorldheartBankedPoints = Value; },
+  get FinaleRestorationStartedAtSeconds() { return FinaleRestorationStartedAtSeconds; },
+  set FinaleRestorationStartedAtSeconds(Value) { FinaleRestorationStartedAtSeconds = Value; },
+  get AttachedSeedstoneSurfaceOffset() { return AttachedSeedstoneSurfaceOffset; },
+  set AttachedSeedstoneSurfaceOffset(Value) { AttachedSeedstoneSurfaceOffset = Value; },
+  get AttachedWorldheartSurfaceAngle() { return AttachedWorldheartSurfaceAngle; },
+  set AttachedWorldheartSurfaceAngle(Value) { AttachedWorldheartSurfaceAngle = Value; },
+  get ReplayPlaybackState() { return ReplayPlaybackState; },
+});
+const {
+  restoreWorld,
+  suppressWorld,
+  attachSeedToWorld,
+  attachSeedToSeedstone,
+  attachSeedToWorldheart,
+  completeWorldheartLiberation,
+  updateFinaleRestorationVisuals,
+  resetLandingDirector,
+} = LandingDirector;
 
-  WorldDefinition.restored = true;
-  const WorldRuntime = WorldRuntimeByIdentifier.get(WorldDefinition.id);
-  GamePhase = 'restoring';
-  clearTrajectoryPreview();
-  WorldRuntime.group.updateWorldMatrix(true, false);
-  WorldRuntime.restorationOriginLocal.copy(
-    WorldRuntime.group.worldToLocal(new THREE.Vector3(
-      ImpactPosition.x,
-      ImpactPosition.y,
-      ImpactPosition.z,
-    )),
-  ).normalize();
-  WorldRuntime.restorationUniforms.restorationOrigin.value.copy(
-    WorldRuntime.restorationOriginLocal,
-  );
-  WorldRuntime.restorationUniforms.restorationProgress.value = -0.025;
-  WorldRuntime.restorationStartedAtSeconds = GameElapsedTimeSeconds;
-  WorldRuntime.restorationWaveMesh.visible = true;
-  WorldRuntime.contourRingGroup.visible = true;
-  RouteLabelProjection.set(ImpactPosition.x, ImpactPosition.y, ImpactPosition.z).project(Camera);
-  LiberationFlashElement.style.setProperty(
-    '--liberation-x',
-    `${THREE.MathUtils.clamp((RouteLabelProjection.x * 0.5 + 0.5) * 100, 0, 100)}%`,
-  );
-  LiberationFlashElement.style.setProperty(
-    '--liberation-y',
-    `${THREE.MathUtils.clamp((-RouteLabelProjection.y * 0.5 + 0.5) * 100, 0, 100)}%`,
-  );
-  LiberationFlashLifeSeconds = 0.72;
-  CameraImpactLifeSeconds = Math.max(CameraImpactLifeSeconds, 0.34);
-
-  for (const SurfacePropObject of WorldRuntime.surfaceMarkerGroup.children) {
-    SurfacePropObject.userData.restorationDistance = calculateNormalizedSphericalDistance(
-      WorldRuntime.restorationOriginLocal,
-      SurfacePropObject.userData.surfaceDirection,
-    );
-    SurfacePropObject.scale.setScalar(SurfacePropObject.userData.baseScale * 0.05);
-    setSurfacePropRestorationProgress(SurfacePropObject, 0);
-  }
-
-  updateWorldCounter();
-  const RestoredWorldCount = countRestoredWorlds(WorldDefinitions);
-  updateCommandWorldAvailability();
-  updateWorldheartObjective();
-  WorldseedSound.restore(WorldDefinition.id, RestoredWorldCount);
-  showStatusToast(`CONTROL SIGNAL BREAKING · ${WorldDefinition.label}`, 1450);
-}
-
-/** Returns an exposed relay world to its occupied presentation without erasing its route history. */
-function suppressWorld(WorldDefinition) {
-  if (!WorldDefinition.restored) {
-    return false;
-  }
-
-  WorldDefinition.restored = false;
-  const WorldRuntime = WorldRuntimeByIdentifier.get(WorldDefinition.id);
-  WorldRuntime.restorationStartedAtSeconds = null;
-  WorldRuntime.restorationCompleted = false;
-  WorldRuntime.restorationUniforms.restorationProgress.value = -0.1;
-  WorldRuntime.restorationWaveMesh.visible = false;
-  WorldRuntime.atmosphereMaterial.opacity = 0.025;
-  WorldRuntime.atmosphereMesh.scale.setScalar(0.96);
-  WorldRuntime.contourRingGroup.visible = false;
-  const StillnessPresentation = getStillnessPresentation(false);
-  WorldRuntime.stillnessCageGroup.visible = StillnessPresentation.visible;
-  WorldRuntime.stillnessCageGroup.scale.setScalar(StillnessPresentation.scale);
-  WorldRuntime.stillnessCageMaterial.opacity = StillnessPresentation.opacity;
-  WorldRuntime.group.scale.setScalar(1);
-  if (WorldRuntime.ambientMoteGroup) {
-    WorldRuntime.ambientMoteGroup.material.opacity = 0;
-  }
-  for (const SurfacePropObject of WorldRuntime.surfaceMarkerGroup.children) {
-    setSurfacePropRestorationProgress(SurfacePropObject, 0);
-    SurfacePropObject.scale.setScalar(SurfacePropObject.userData.baseScale * 0.05);
-  }
-  updateWorldCounter();
-  updateWorldheartObjective();
-  updateScannerInterface();
-  return true;
-}
-
-/**
- * Places the seed on a world and returns control to the player.
- *
- * @param {object} WorldDefinition - World that received the seed.
- * @param {{x:number,y:number,z:number}} ImpactPosition - Approximate impact position.
- */
-function attachSeedToWorld(WorldDefinition, ImpactPosition) {
-  IsBreakerBurnAvailable = false;
-  IsBreakerBurnPending = false;
-  CommittedPredictionPoints = null;
-  GameCanvas.dataset.predictionHoldActive = 'false';
-  const LandingOriginWorldIdentifier = FlightOriginWorldIdentifier;
-  const SurfaceRestPosition = calculateSurfaceRestPosition(WorldDefinition, ImpactPosition);
-
-  ImpactPulseMesh.material.color.set(0xfff2bc);
-  ImpactPulseMesh.position.set(ImpactPosition.x, ImpactPosition.y, 0.22);
-  ImpactPulseMesh.scale.setScalar(1);
-  ImpactPulseMesh.visible = true;
-  ImpactPulseLifeSeconds = 0.58;
-  CameraImpactLifeSeconds = 0.24;
-  WorldseedSound.impact(WorldDefinition.id);
-  if (!WorldDefinition.restored) {
-    WorldseedSound.haulLane();
-  }
-
-  SeedPhysicsState = {
-    position: SurfaceRestPosition,
-    velocity: createVector(),
-  };
-  SeedGroup.position.set(SurfaceRestPosition.x, SurfaceRestPosition.y, SurfaceRestPosition.z);
-
-  CurrentWorldIdentifier = WorldDefinition.id;
-  publishAttachedSeedState(CurrentWorldIdentifier, SurfaceRestPosition);
-  LastSafeWorldIdentifier = WorldDefinition.id;
-  LastSafeSeedPosition = createVector(
-    SurfaceRestPosition.x,
-    SurfaceRestPosition.y,
-    SurfaceRestPosition.z,
-  );
-  LaunchIgnoredWorldIdentifier = null;
-
-  const LiveWorldsBefore = listLiveWorldIdentifiers();
-  const InnerClusterLiveBefore = isLiveInnerCluster(LiveWorldsBefore);
-  const FurtherReachLiveBefore = isLiveFurtherReach(LiveWorldsBefore);
-  const CommandAvailableBefore = WorldheartDefinition.routeAvailable === true;
-
-  const WasAlreadyRestored = WorldDefinition.restored;
-  const WasSuppressed = RelayNetworkState.suppressedWorldIdentifiers.has(WorldDefinition.id);
-  const LandingAccolade = getCurrentLandingAccolade(
-    WorldDefinition.id,
-    !WasAlreadyRestored && !WasSuppressed,
-  );
-  const BankResult = bankCurrentFlight(
-    WasAlreadyRestored || WasSuppressed ? 0 : (WorldDefinition.liberationValue ?? 1000),
-  );
-  const RelayConnection = LandingOriginWorldIdentifier
-    && LandingOriginWorldIdentifier !== WorldDefinition.id
-    ? connectRelayWorlds(
-      RelayNetworkState,
-      LandingOriginWorldIdentifier,
-      WorldDefinition.id,
-    )
-    : null;
-  const CircuitBonus = RelayConnection?.circuitClosed
-    ? addCircuitBonus(ScoreState, ActiveSystem.circuitBonusValue)
-    : 0;
-  const TotalBankedPoints = BankResult.bankedPoints + CircuitBonus;
-  if (CircuitBonus > 0) {
-    GameCanvas.dataset.lastCircuitBonus = String(CircuitBonus);
-    updateScoreInterface();
-  }
-  if (RelayConnection?.created || RelayConnection?.destinationReactivated) {
-    synchronizeRelayNetworkVisuals();
-    CourierStartTimesByLinkId.set(RelayConnection.link.id, GameElapsedTimeSeconds);
-    WorldseedSound.tradeLane();
-  }
-  if (
-    RelayConnection?.destinationReactivated
-    && RecaptureCutGiftAvailable
-    && !WorldDefinition.hostileEncounter
-    && !CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id)
-  ) {
-    PendingRecaptureCutWorldIdentifier = WorldDefinition.id;
-  }
-  GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
-  commitFlightStardust();
-  resetFlightFeedback();
-  restoreWorld(WorldDefinition, ImpactPosition);
-
-  if (GamePhase === 'restoring') {
-    const AnswerLine = RelayNetworkState.links.size === 1
-      ? FirstRelayAnswerLine
-      : (RelayNetworkState.links.size === 2
-        ? SecondRelayAnswerLine
-        : WorldDefinition.memory);
-    showInstruction(
-      RelayConnection?.destinationReactivated
-        ? `Signal restored: ${WorldDefinition.label}`
-        : RelayConnection?.created
-        ? `Relay linked: ${getWorldDefinition(LandingOriginWorldIdentifier).label} ↔ ${WorldDefinition.label}`
-        : `Life is racing around ${WorldDefinition.label}`,
-      RelayConnection?.destinationReactivated
-        ? 'The original route and courier are live again.'
-        : RelayConnection?.created ? AnswerLine : WorldDefinition.memory,
-    );
-    if (LandingAccolade) {
-      showStatusToast(
-        `${LandingAccolade} · +${TotalBankedPoints.toLocaleString('en-GB')} BANKED`,
-        1450,
-      );
-    }
-  } else if (WasAlreadyRestored && GamePhase !== 'victory' && GamePhase !== 'victoryPending') {
-    GamePhase = 'attached';
-    clearTrajectoryPreview();
-    showStatusToast(
-      TotalBankedPoints > 0
-        ? `+${TotalBankedPoints.toLocaleString('en-GB')} BANKED`
-        : (LandingAccolade ?? 'CLEAN LANDING'),
-      850,
-    );
-    showRouteChoiceInstruction();
-  }
-  const SuppressedWorld = settleNonCommandFlight({
-    firstCircuitClosed: RelayConnection?.circuitClosed === true,
-    circuit: RelayConnection?.circuit ?? null,
-  });
-  if (RunState.status === 'failed' || GamePhase === 'runFailed') {
-    updateBreakerBurnInterface();
-    return;
-  }
-  const LiveWorldsAfter = listLiveWorldIdentifiers();
-  enqueueCampaignStoryBoards(
-    getTriggeredCampaignStoryBoardIds({
-      shownIds: [...ShownStoryBoardIds],
-      createdLinkCount: RelayNetworkState.links.size,
-      linkCreated: RelayConnection?.created === true,
-      linkedWorldIdentifier: WorldDefinition.id,
-      innerClusterJustUnlocked: !InnerClusterLiveBefore
-        && isLiveInnerCluster(LiveWorldsAfter),
-      neighbourhoodJustAwake: isLiveInnerCluster(LiveWorldsAfter)
-        && !FurtherReachLiveBefore
-        && isLiveFurtherReach(LiveWorldsAfter),
-      wardenJustRevealed: WardenPursuitState.lastEvent === WardenPursuitEvents.revealed,
-      circuitJustClosed: RelayConnection?.circuitClosed === true,
-      worldJustSuppressed: Boolean(SuppressedWorld),
-      worldJustRecaptured: RelayConnection?.destinationReactivated === true,
-      commandJustExposed: !CommandAvailableBefore
-        && WorldheartDefinition.routeAvailable === true,
-    }),
-    { world: (SuppressedWorld ?? WorldDefinition).label },
-  );
-  if (
-    GamePhase === 'restoring'
-    && LandingOriginWorldIdentifier
-    && (RelayConnection?.created || RelayConnection?.destinationReactivated)
-    && WardenPursuitState.lastEvent !== WardenPursuitEvents.revealed
-  ) {
-    const OriginWorld = getWorldDefinition(LandingOriginWorldIdentifier);
-    if (OriginWorld) {
-      RelayRevealLookTarget = getRelayRevealLookTarget({
-        origin: OriginWorld.position,
-        destination: WorldDefinition.position,
-        runner: SurfaceRestPosition,
-        viewportWorldWidth: ActiveSystem.camera?.viewportWorldWidth ?? 20,
-        viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
-      });
-      GameCanvas.dataset.relayReveal = `${LandingOriginWorldIdentifier}:${WorldDefinition.id}`;
-    }
-  }
-  updateBreakerBurnInterface();
-}
-
-/** Lands on the one-use launch node without counting it as an awakened world. */
-function attachSeedToSeedstone(ImpactPosition, BodyPosition) {
-  IsBreakerBurnAvailable = false;
-  IsBreakerBurnPending = false;
-  SeedstoneDefinition.position.x = BodyPosition.x;
-  SeedstoneDefinition.position.y = BodyPosition.y;
-  SeedstoneDefinition.position.z = BodyPosition.z;
-  const LandingAccolade = getCurrentLandingAccolade(SeedstoneDefinition.id, true);
-  const SurfaceRestPosition = calculateSurfaceRestPosition(SeedstoneDefinition, ImpactPosition);
-  AttachedSeedstoneSurfaceOffset = createVector(
-    SurfaceRestPosition.x - BodyPosition.x,
-    SurfaceRestPosition.y - BodyPosition.y,
-    SurfaceRestPosition.z - BodyPosition.z,
-  );
-
-  ImpactPulseMesh.material.color.set(0x72d9ff);
-  ImpactPulseMesh.position.set(ImpactPosition.x, ImpactPosition.y, 0.22);
-  ImpactPulseMesh.scale.setScalar(1);
-  ImpactPulseMesh.visible = true;
-  ImpactPulseLifeSeconds = 0.58;
-  CameraImpactLifeSeconds = 0.18;
-  WorldseedSound.impact('seedstone');
-
-  SeedPhysicsState = {
-    position: SurfaceRestPosition,
-    velocity: createVector(),
-  };
-  SeedGroup.position.set(SurfaceRestPosition.x, SurfaceRestPosition.y, SurfaceRestPosition.z);
-  CurrentWorldIdentifier = SeedstoneDefinition.id;
-  publishAttachedSeedState(CurrentWorldIdentifier, SurfaceRestPosition);
-  LaunchIgnoredWorldIdentifier = null;
-  LaunchIgnoredBodyIdentifier = null;
-  GamePhase = 'attached';
-  GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
-  const BankResult = bankCurrentFlight();
-  commitFlightStardust();
-  resetFlightFeedback();
-  showStatusToast(BankResult.bankedPoints > 0
-    ? `+${BankResult.bankedPoints.toLocaleString('en-GB')} BANKED · ${SeedstoneDefinition.label}`
-    : (LandingAccolade
-      ? `${LandingAccolade} · ${SeedstoneDefinition.label} READY`
-      : `${SeedstoneDefinition.label} READY · 1 LAUNCH`), 1100);
-  showInstruction(
-    SeedstoneDefinition.orbit ? 'Moving launch window' : 'Temporary launchpad',
-    SeedstoneDefinition.orbit
-      ? `Ride ${SeedstoneDefinition.label} into position, then launch before it crumbles.`
-      : `Choose the next world carefully — ${SeedstoneDefinition.label} crumbles after launch.`,
-  );
-  settleNonCommandFlight();
-  updateBreakerBurnInterface();
-}
 
 /** Reveals the modal completion summary and moves keyboard focus into it. */
 function revealVictoryPanel() {
   VictoryPanelElement.hidden = false;
   ReplayButtonElement.focus({ preventScroll: true });
-}
-
-/** Completes the command landing only after its lattice teeth are cut. */
-function completeWorldheartLiberation() {
-  if (WorldheartDefinition.restored) return false;
-  CompletedHostileEncounterWorldIdentifiers.add(WorldheartDefinition.id);
-  ActiveHostileEncounterState = null;
-  HostilePylonGroup.visible = false;
-  hideCutGuide();
-  publishHostileEncounterState();
-  WorldheartDefinition.restored = true;
-  const CompletionBonus = addVictoryBonus(
-    ScoreState,
-    WardenPursuitState.distance,
-    ActiveSystem.wardenVictoryValuePerStep,
-  );
-  updateScoreInterface();
-  GameCanvas.dataset.completionBonus = String(CompletionBonus);
-  GameCanvas.dataset.commandPulse = 'fired';
-  beginCommandDefeat(GameElapsedTimeSeconds);
-  startWardenEventPulse(WorldheartDefinition.position, 0x72d9ff, 'defeat');
-  GamePhase = 'victoryPending';
-  updateWorldheartObjective();
-  publishWardenState();
-  updateVictorySummary();
-  hideInstruction();
-  beginFinaleRestoration();
-  if (IsCampaignFinale) {
-    showStatusToast('THE WORLDHEART IS AWAKENING', 2200, 'memory');
-  } else {
-    showStatusToast(
-      ActiveSystem.completion.expansionSting
-        ? `${ActiveSystem.completion.expansionSting} · +${(PendingWorldheartBankedPoints + CompletionBonus).toLocaleString('en-GB')} BANKED`
-        : `COMMAND BROKEN · +${(PendingWorldheartBankedPoints + CompletionBonus).toLocaleString('en-GB')} BANKED`,
-      1800,
-    );
-  }
-
-  const VictoryDelaySeconds = PrefersReducedMotion
-    ? 0.85
-    : ActiveSystem.finale?.victoryDelaySeconds ?? 1.35;
-  WorldheartCompletionTimeoutIdentifier = window.setTimeout(() => {
-    WorldheartCompletionTimeoutIdentifier = null;
-    PendingVictoryAfterStoryBoard = true;
-    if (enqueueCampaignStoryBoards(
-      getTriggeredCampaignStoryBoardIds({
-        shownIds: [...ShownStoryBoardIds],
-        reachJustAnswered: true,
-      }),
-    )) {
-      return;
-    }
-    PendingVictoryAfterStoryBoard = false;
-    revealVictoryPanel();
-    GamePhase = 'victory';
-    WorldseedSound.victory();
-  }, VictoryDelaySeconds * 1000);
-  updateBreakerBurnInterface();
-  return true;
-}
-
-/** Lands on the exposed mobile command body and starts its final surface approach. */
-function attachSeedToWorldheart(ImpactPosition, BodyPosition) {
-  if (!WorldheartDefinition.routeAvailable || WorldheartDefinition.restored) {
-    return;
-  }
-  IsBreakerBurnAvailable = false;
-  IsBreakerBurnPending = false;
-  WorldheartDefinition.position.x = BodyPosition.x;
-  WorldheartDefinition.position.y = BodyPosition.y;
-  WorldheartDefinition.position.z = BodyPosition.z;
-
-  const SurfaceRestPosition = calculateSurfaceRestPosition(WorldheartDefinition, ImpactPosition);
-  const LandingAccolade = getCurrentLandingAccolade(WorldheartDefinition.id, true);
-  ImpactPulseMesh.material.color.set(0xffd678);
-  ImpactPulseMesh.position.set(ImpactPosition.x, ImpactPosition.y, 0.24);
-  ImpactPulseMesh.scale.setScalar(1.2);
-  ImpactPulseMesh.visible = true;
-  ImpactPulseLifeSeconds = 0.58;
-  CameraImpactLifeSeconds = 0.24;
-  WorldseedSound.impact('worldheart');
-
-  SeedPhysicsState = { position: SurfaceRestPosition, velocity: createVector() };
-  SeedGroup.position.set(SurfaceRestPosition.x, SurfaceRestPosition.y, SurfaceRestPosition.z);
-  CurrentWorldIdentifier = WorldheartDefinition.id;
-  publishAttachedSeedState(CurrentWorldIdentifier, SurfaceRestPosition);
-  AttachedWorldheartSurfaceAngle = getRunnerSurfaceAngle(WorldheartDefinition);
-  RunState = settleRunFlight(RunState, { reachedCommandWorld: true });
-  updateLaunchCounter();
-  const BankResult = bankCurrentFlight();
-  PendingWorldheartBankedPoints = BankResult.bankedPoints;
-  GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
-  GameCanvas.dataset.commandPulse = 'required';
-  commitFlightStardust();
-  resetFlightFeedback();
-  GamePhase = 'attached';
-  clearTrajectoryPreview();
-  updateWorldheartObjective();
-  const HasSurfaceApproach = beginHostileEncounter(WorldheartDefinition);
-  if (ReplayPlaybackState !== null || !HasSurfaceApproach) {
-    completeWorldheartLiberation();
-  } else {
-    showStatusToast('COMMAND LANDED · CORE LATTICE ACTIVE', 1500);
-    enqueueCampaignStoryBoards(
-      getTriggeredCampaignStoryBoardIds({
-        shownIds: [...ShownStoryBoardIds],
-        commandJustLanded: true,
-      }),
-    );
-  }
-  updateBreakerBurnInterface();
-}
-
-/** Starts the final system-scale pulse only after the seed physically lands in the core. */
-function beginFinaleRestoration() {
-  FinaleRestorationStartedAtSeconds = GameElapsedTimeSeconds;
-  FinaleCoreMesh.position.set(
-    WorldheartDefinition.position.x,
-    WorldheartDefinition.position.y,
-    0.1,
-  );
-  FinaleCoreMesh.visible = true;
-  FinaleLinkMesh.visible = true;
-  FinalePulseMesh.visible = true;
-  FinaleSparkMesh.visible = true;
-  FinaleLinkMaterial.opacity = 0;
-  FinalePulseMaterial.opacity = 0;
-  FinaleSparkMaterial.opacity = 0;
-  GameCanvas.dataset.finaleRestoration = 'active';
-}
-
-/**
- * Sends the living pulse back through every restored route before revealing the final summary.
- * This is presentation-only; physics and campaign state are already settled at impact.
- */
-function updateFinaleRestorationVisuals(ElapsedTimeSeconds) {
-  if (FinaleRestorationStartedAtSeconds === null) {
-    return;
-  }
-
-  const FinaleDurationSeconds = ActiveSystem.finale?.victoryDelaySeconds ?? 1.35;
-  const FinaleElapsedSeconds = PrefersReducedMotion
-    ? FinaleDurationSeconds
-    : Math.min(
-      FinaleDurationSeconds,
-      Math.max(0, ElapsedTimeSeconds - FinaleRestorationStartedAtSeconds),
-    );
-  const FinaleProgress = THREE.MathUtils.smoothstep(
-    FinaleElapsedSeconds / FinaleDurationSeconds,
-    0,
-    1,
-  );
-  const PulseArrivalProgress = THREE.MathUtils.smoothstep(
-    FinaleElapsedSeconds,
-    IsCampaignFinale ? 0.18 : 0.08,
-    IsCampaignFinale ? 2.25 : 0.82,
-  );
-
-  FinaleCoreMesh.position.set(
-    WorldheartDefinition.position.x,
-    WorldheartDefinition.position.y,
-    0.1,
-  );
-  FinaleCoreMesh.rotation.x = FinaleElapsedSeconds * 0.38;
-  FinaleCoreMesh.rotation.y = FinaleElapsedSeconds * 0.62;
-  FinaleCoreMesh.scale.setScalar(
-    1 + (Math.sin(FinaleElapsedSeconds * 4.2) * 0.08) + (FinaleProgress * 0.18),
-  );
-  FinaleCoreMaterial.emissiveIntensity = 2.4 + (PulseArrivalProgress * 2.2);
-
-  let LinkValueOffset = 0;
-  WorldDefinitions.forEach((WorldDefinition, WorldIndex) => {
-    const WorldPulseProgress = WorldDefinition.restored
-      ? THREE.MathUtils.smoothstep(
-        FinaleElapsedSeconds,
-        IsCampaignFinale ? 0.2 + (WorldIndex * 0.12) : 0.08 + (WorldIndex * 0.045),
-        IsCampaignFinale ? 1.35 + (WorldIndex * 0.12) : 0.62 + (WorldIndex * 0.1),
-      )
-      : 0;
-    FinaleLinkPositionValues[LinkValueOffset] = WorldheartDefinition.position.x;
-    FinaleLinkPositionValues[LinkValueOffset + 1] = WorldheartDefinition.position.y;
-    FinaleLinkPositionValues[LinkValueOffset + 2] = 0.04;
-    FinaleLinkPositionValues[LinkValueOffset + 3] = THREE.MathUtils.lerp(
-      WorldheartDefinition.position.x,
-      WorldDefinition.position.x,
-      WorldPulseProgress,
-    );
-    FinaleLinkPositionValues[LinkValueOffset + 4] = THREE.MathUtils.lerp(
-      WorldheartDefinition.position.y,
-      WorldDefinition.position.y,
-      WorldPulseProgress,
-    );
-    FinaleLinkPositionValues[LinkValueOffset + 5] = 0.04;
-    LinkValueOffset += 6;
-  });
-  FinaleLinkPositionAttribute.needsUpdate = true;
-  FinaleLinkMaterial.opacity = 0.12 + (PulseArrivalProgress * 0.54);
-
-  for (let PulseIndex = 0; PulseIndex < FinalePulseCount; PulseIndex += 1) {
-    const PulseElapsedSeconds = FinaleElapsedSeconds - (PulseIndex * 0.34);
-    const IsPulseActive = PulseElapsedSeconds >= 0;
-    const PulseScale = IsPulseActive
-      ? WorldheartDefinition.radius * (1.2 + (PulseElapsedSeconds * 2.8))
-      : 0.001;
-    FinalePulseTransform.position.set(
-      WorldheartDefinition.position.x,
-      WorldheartDefinition.position.y,
-      0.02 + (PulseIndex * 0.004),
-    );
-    FinalePulseTransform.rotation.set(0, 0, PulseIndex * 0.3);
-    FinalePulseTransform.scale.setScalar(PulseScale);
-    FinalePulseTransform.updateMatrix();
-    FinalePulseMesh.setMatrixAt(PulseIndex, FinalePulseTransform.matrix);
-  }
-  FinalePulseMesh.instanceMatrix.needsUpdate = true;
-  FinalePulseMaterial.opacity = 0.46 * (1 - (FinaleProgress * 0.45));
-
-  for (let SparkIndex = 0; SparkIndex < FinaleSparkCount; SparkIndex += 1) {
-    const SparkFraction = SparkIndex / FinaleSparkCount;
-    const SparkAngle = (SparkIndex * 2.399963) + (FinaleElapsedSeconds * 0.18);
-    const SparkRadius = WorldheartDefinition.radius
-      + (PulseArrivalProgress * (1.4 + (SparkFraction * 8.6)));
-    FinaleSparkTransform.position.set(
-      WorldheartDefinition.position.x + (Math.cos(SparkAngle) * SparkRadius),
-      WorldheartDefinition.position.y + (Math.sin(SparkAngle) * SparkRadius),
-      -0.3 + ((SparkIndex % 9) * 0.08),
-    );
-    FinaleSparkTransform.rotation.set(
-      SparkAngle * 0.5,
-      SparkAngle * 0.32,
-      SparkAngle,
-    );
-    FinaleSparkTransform.scale.setScalar(
-      (0.42 + ((SparkIndex % 5) * 0.09)) * PulseArrivalProgress,
-    );
-    FinaleSparkTransform.updateMatrix();
-    FinaleSparkMesh.setMatrixAt(SparkIndex, FinaleSparkTransform.matrix);
-  }
-  FinaleSparkMesh.instanceMatrix.needsUpdate = true;
-  FinaleSparkMaterial.opacity = 0.28 + (PulseArrivalProgress * 0.62);
-
-  Scene.background.copy(InitialSceneBackgroundColor).lerp(
-    ActiveSystem.finale?.awakenedBackgroundColor ?? InitialSceneBackgroundColor,
-    FinaleProgress,
-  );
-  Renderer.toneMappingExposure = ActiveSystem.environment.toneMappingExposure
-    + (Math.sin(FinaleProgress * Math.PI) * 0.22)
-    + (FinaleProgress * 0.08);
-  if (FinaleProgress >= 1) {
-    GameCanvas.dataset.finaleRestoration = 'complete';
-  }
 }
 
 /**
@@ -5808,10 +5377,7 @@ function resetGame() {
     RunFailureTimeoutIdentifier = null;
   }
   resetHud();
-  if (WorldheartCompletionTimeoutIdentifier !== null) {
-    window.clearTimeout(WorldheartCompletionTimeoutIdentifier);
-    WorldheartCompletionTimeoutIdentifier = null;
-  }
+  resetLandingDirector();
 
   IsPointerAiming = false;
   IsPointerWalking = false;
@@ -5948,50 +5514,6 @@ function resetGame() {
     GameCanvas.dataset.personalBest = '';
   }
 
-  for (const WorldDefinition of WorldDefinitions) {
-    const IsInitiallyRestored = WorldDefinition.initiallyRestored === true;
-    WorldDefinition.restored = IsInitiallyRestored;
-    const WorldRuntime = WorldRuntimeByIdentifier.get(WorldDefinition.id);
-    WorldRuntime.restorationStartedAtSeconds = IsInitiallyRestored ? -Infinity : null;
-    WorldRuntime.restorationCompleted = IsInitiallyRestored;
-    WorldRuntime.restorationOriginLocal.set(1, 0, 0);
-    WorldRuntime.restorationUniforms.restorationOrigin.value.set(1, 0, 0);
-    WorldRuntime.restorationUniforms.restorationProgress.value = IsInitiallyRestored
-      ? 1.2
-      : -0.1;
-    WorldRuntime.restorationWaveMesh.visible = false;
-    WorldRuntime.surfaceMaterial.color.set(0xffffff);
-    WorldRuntime.atmosphereMaterial.opacity = IsInitiallyRestored
-      ? WorldDefinition.restoration.atmosphereOpacity
-      : 0.025;
-    WorldRuntime.atmosphereMesh.scale.setScalar(IsInitiallyRestored ? 1 : 0.96);
-    WorldRuntime.contourRingGroup.visible = IsInitiallyRestored;
-    WorldRuntime.contourRingGroup.rotation.set(0, 0, 0);
-    WorldRuntime.contourRingGroup.scale.setScalar(1);
-    const StillnessPresentation = getStillnessPresentation(IsInitiallyRestored, 1);
-    WorldRuntime.stillnessCageGroup.visible = StillnessPresentation.visible;
-    WorldRuntime.stillnessCageGroup.rotation.set(0, 0, 0);
-    WorldRuntime.stillnessCageGroup.scale.setScalar(StillnessPresentation.scale);
-    WorldRuntime.stillnessCageMaterial.opacity = StillnessPresentation.opacity;
-    WorldRuntime.group.rotation.set(0, 0, 0);
-    WorldRuntime.group.scale.setScalar(1);
-    if (WorldRuntime.ambientMoteGroup) {
-      WorldRuntime.ambientMoteGroup.rotation.set(0, 0, 0);
-      WorldRuntime.ambientMoteGroup.material.opacity = IsInitiallyRestored
-        ? WorldRuntime.ambientMoteGroup.userData.baseOpacity
-        : 0;
-    }
-
-    for (const SurfacePropObject of WorldRuntime.surfaceMarkerGroup.children) {
-      const RestorationProgress = IsInitiallyRestored ? 1 : 0;
-      setSurfacePropRestorationProgress(SurfacePropObject, RestorationProgress);
-      SurfacePropObject.userData.restorationDistance = IsInitiallyRestored ? 0 : 1;
-      SurfacePropObject.scale.setScalar(
-        SurfacePropObject.userData.baseScale * (IsInitiallyRestored ? 1 : 0.05),
-      );
-    }
-  }
-
   for (const TrailParticle of TrailParticlePool) {
     TrailParticle.lifeRemainingSeconds = 0;
     updateTrailParticleInstance(TrailParticle, 0);
@@ -6040,22 +5562,9 @@ function resetGame() {
   SeedstoneCrumbleStartedAtSeconds = null;
   AttachedSeedstoneSurfaceOffset = null;
   AttachedWorldheartSurfaceAngle = null;
-  PendingWorldheartBankedPoints = 0;
   WorldheartDefinition.routeAvailable = WorldheartDefinition.routeAvailableInitially === true;
   WorldheartDefinition.restored = WorldheartDefinition.initiallyRestored === true;
   WorldheartJustUnlocked = false;
-  FinaleRestorationStartedAtSeconds = null;
-  FinaleCoreMesh.visible = false;
-  FinaleCoreMesh.scale.setScalar(1);
-  FinaleLinkMesh.visible = false;
-  FinalePulseMesh.visible = false;
-  FinaleSparkMesh.visible = false;
-  FinaleLinkMaterial.opacity = 0;
-  FinalePulseMaterial.opacity = 0;
-  FinaleSparkMaterial.opacity = 0;
-  Scene.background.copy(InitialSceneBackgroundColor);
-  Renderer.toneMappingExposure = ActiveSystem.environment.toneMappingExposure;
-  GameCanvas.dataset.finaleRestoration = '';
   for (const StardustDefinition of StardustDefinitions) {
     StardustDefinition.collected = false;
   }

@@ -34,6 +34,7 @@ export function auditReleaseReadiness() {
   const PlayerSource = readRepositoryFile('src/player-visuals.js');
   const StoryDirectorSource = readRepositoryFile('src/story-director.js');
   const HudSource = readRepositoryFile('src/hud.js');
+  const LandingDirectorSource = readRepositoryFile('src/landing-director.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -373,7 +374,8 @@ export function auditReleaseReadiness() {
       && HudSource.includes('getLoopObjectivePresentation(')
       && /id="ObjectiveLabel"[^>]*>NEIGHBOURHOOD</.test(IndexHtml)
       && PresentationSource.includes('export function getRelayRevealLookTarget(')
-      && MainSource.includes('getRelayRevealLookTarget(')
+      && LandingDirectorSource.includes('getRelayRevealLookTarget(')
+      && LandingDirectorSource.includes('function restoreWorld(')
       && MainSource.includes('CourierStartTimesByLinkId'),
     'The selected sector must teach the first landing and show each new relay before circuits, shields or Command.',
   );
