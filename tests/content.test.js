@@ -49,6 +49,14 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     'EMBER',
   );
   assert.equal(
+    BreakerReachSystemDefinition.storyBoards.firstTide.pages[0].speaker,
+    'TIDE',
+  );
+  assert.equal(
+    BreakerReachSystemDefinition.storyBoards.reachAnswers.pages[0].title,
+    'You did not save them alone.',
+  );
+  assert.equal(
     BreakerReachSystemDefinition.wardenArrivalBroadcast,
     'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',
   );

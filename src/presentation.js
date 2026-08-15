@@ -1012,6 +1012,9 @@ export const StoryBoardPortraitFiles = Object.freeze({
   orbitbreaker: './assets/orbitbreaker-portrait.jpg',
   ember: './assets/ember-portrait.jpg',
   grove: './assets/grove-portrait.jpg',
+  tide: './assets/tide-portrait.jpg',
+  frost: './assets/frost-portrait.jpg',
+  bastion: './assets/bastion-portrait.jpg',
   command: './assets/command-portrait.jpg',
 });
 
@@ -1022,6 +1025,9 @@ export const StoryBoardPortraitTones = Object.freeze({
   orbitbreaker: 'courier',
   ember: 'ember',
   grove: 'grove',
+  tide: 'tide',
+  frost: 'frost',
+  bastion: 'bastion',
   command: 'command',
 });
 
@@ -1045,6 +1051,7 @@ export function getTriggeredCampaignStoryBoardIds({
   shownIds = [],
   createdLinkCount = 0,
   linkCreated = false,
+  linkedWorldIdentifier = '',
   innerClusterJustUnlocked = false,
   neighbourhoodJustAwake = false,
   wardenJustRevealed = false,
@@ -1052,6 +1059,8 @@ export function getTriggeredCampaignStoryBoardIds({
   worldJustSuppressed = false,
   worldJustRecaptured = false,
   commandJustExposed = false,
+  commandJustLanded = false,
+  reachJustAnswered = false,
   runJustLost = false,
 } = {}) {
   if (!Array.isArray(shownIds)) {
@@ -1067,12 +1076,17 @@ export function getTriggeredCampaignStoryBoardIds({
   maybeQueue('firstAnswer', linkCreated === true && createdLinkCount === 1);
   maybeQueue('secondAnswer', linkCreated === true && createdLinkCount === 2);
   maybeQueue('rangeUnlock', innerClusterJustUnlocked === true);
+  maybeQueue('firstTide', linkCreated === true && linkedWorldIdentifier === 'tide');
+  maybeQueue('firstFrost', linkCreated === true && linkedWorldIdentifier === 'frost');
+  maybeQueue('firstBastion', linkCreated === true && linkedWorldIdentifier === 'bastion');
   maybeQueue('neighbourhood', neighbourhoodJustAwake === true);
   maybeQueue('wardenArrival', wardenJustRevealed === true);
   maybeQueue('circuitClosed', circuitJustClosed === true && commandJustExposed !== true);
   maybeQueue('suppression', worldJustSuppressed === true);
   maybeQueue('recapture', worldJustRecaptured === true);
   maybeQueue('commandExposed', commandJustExposed === true);
+  maybeQueue('commandApproach', commandJustLanded === true);
+  maybeQueue('reachAnswers', reachJustAnswered === true);
   maybeQueue('runLost', runJustLost === true);
   return Triggered;
 }
@@ -1087,7 +1101,7 @@ export function isCampaignStoryBoardReadyToPresent({
   if (briefingActive === true || replayActive === true || relayRevealActive === true) {
     return false;
   }
-  return gamePhase === 'attached';
+  return gamePhase === 'attached' || gamePhase === 'victoryPending';
 }
 
 /** Turns authored briefing pages into one readable story board. */

@@ -61,7 +61,8 @@ function isValidHostileEncounter(Encounter) {
 }
 
 const AllowedStoryBoardPortraits = new Set([
-  'warden', 'runner', 'haven', 'orbitbreaker', 'ember', 'grove', 'command',
+  'warden', 'runner', 'haven', 'orbitbreaker', 'ember', 'grove',
+  'tide', 'frost', 'bastion', 'command',
 ]);
 const RequiredCampaignStoryBoardIds = [
   'firstAnswer', 'secondAnswer', 'rangeUnlock', 'neighbourhood',
@@ -986,6 +987,45 @@ export const BreakerReachSystemDefinition = {
         },
       ],
     },
+    firstTide: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Listen to the water',
+      pages: [
+        {
+          speaker: 'TIDE',
+          kicker: 'SALT ANSWERS',
+          portrait: 'tide',
+          title: 'The water refuses its ordered orbit.',
+          body: 'Jetties remember boats. The haul is gone. We will carry word the way the tide always did.',
+        },
+      ],
+    },
+    firstFrost: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Keep the ice talking',
+      pages: [
+        {
+          speaker: 'FROST',
+          kicker: 'UNDER THE CRUST',
+          portrait: 'frost',
+          title: 'A giant ocean turns beneath the ice.',
+          body: 'The drills are quiet. Sled-skiffs wait on the rim. We were never a still world.',
+        },
+      ],
+    },
+    firstBastion: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Cut if you must',
+      pages: [
+        {
+          speaker: 'BASTION',
+          kicker: 'WATCH OPENS',
+          portrait: 'bastion',
+          title: 'The battery stands down.',
+          body: 'Courier spines remember the legal roads. Walk the rim. Cut what still cages the launch.',
+        },
+      ],
+    },
     wardenArrival: {
       skipLabel: 'Face the hunt',
       continueLabel: 'Outrun it',
@@ -1075,7 +1115,33 @@ export const BreakerReachSystemDefinition = {
           kicker: 'YOUR CHARGE',
           portrait: 'orbitbreaker',
           title: 'A network cannot be imprisoned.',
-          body: 'Track it. Land. Walk the rim. Pulse the lattice. The Reach will answer together.',
+          body: 'Track it. Land. Walk the rim. Cut the lattice. The Reach will answer together.',
+        },
+      ],
+    },
+    commandApproach: {
+      skipLabel: 'Cut the lattice',
+      continueLabel: 'Walk the rim',
+      pages: [
+        {
+          speaker: 'COMMAND',
+          kicker: 'CORE LATTICE',
+          portrait: 'command',
+          title: 'You are on the crown.',
+          body: 'Grab the ship. Drag through the teeth. One cut is enough. Do not make this a second war.',
+        },
+      ],
+    },
+    reachAnswers: {
+      skipLabel: 'See the route',
+      continueLabel: 'Bank the route',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'THE REACH ANSWERS',
+          portrait: 'haven',
+          title: 'You did not save them alone.',
+          body: 'You reminded them they were never alone. The garden, the furnaces, the ice and the watch all speak at once.',
         },
       ],
     },

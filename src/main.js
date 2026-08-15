@@ -43,7 +43,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob84';
+} from './content.js?v=20260815-ob86';
 
 import {
   countRestoredWorlds,
@@ -493,6 +493,7 @@ let ActiveStoryBoardTokens = {};
 let StoryBoardQueue = [];
 const ShownStoryBoardIds = new Set();
 let PendingRunResetAfterStoryBoard = false;
+let PendingVictoryAfterStoryBoard = false;
 let LaunchPulseLifeSeconds = 0;
 let ImpactPulseLifeSeconds = 0;
 let CameraImpactLifeSeconds = 0;
@@ -6145,6 +6146,9 @@ function hideStoryBoardOverlay() {
     'is-runner',
     'is-ember',
     'is-grove',
+    'is-tide',
+    'is-frost',
+    'is-bastion',
     'is-command',
   );
   WorldseedSound.setStoryPaused(false);
@@ -6153,6 +6157,7 @@ function hideStoryBoardOverlay() {
 function hideOpeningBriefing() {
   StoryBoardQueue = [];
   PendingRunResetAfterStoryBoard = false;
+  PendingVictoryAfterStoryBoard = false;
   hideStoryBoardOverlay();
 }
 
@@ -6191,6 +6196,9 @@ function presentStoryBoardPage(PageIndex, { playVoice = false } = {}) {
     'is-runner',
     'is-ember',
     'is-grove',
+    'is-tide',
+    'is-frost',
+    'is-bastion',
     'is-command',
   );
   OpeningBriefingElement.classList.add(`is-${Presentation.tone}`);
@@ -6229,10 +6237,18 @@ function presentNextQueuedStoryBoard() {
   const NextBoard = StoryBoardQueue.shift();
   if (!NextBoard) {
     const ShouldReset = PendingRunResetAfterStoryBoard;
+    const ShouldVictory = PendingVictoryAfterStoryBoard;
     PendingRunResetAfterStoryBoard = false;
+    PendingVictoryAfterStoryBoard = false;
     hideStoryBoardOverlay();
     if (ShouldReset) {
       resetGame();
+      return;
+    }
+    if (ShouldVictory) {
+      revealVictoryPanel();
+      GamePhase = 'victory';
+      WorldseedSound.victory();
       return;
     }
     if (GamePhase === 'attached' || GamePhase === 'restoring') {
@@ -6289,6 +6305,7 @@ function beginOpeningBriefing() {
   StoryBoardQueue = [];
   ShownStoryBoardIds.clear();
   PendingRunResetAfterStoryBoard = false;
+  PendingVictoryAfterStoryBoard = false;
   if ((ActiveSystem.openingBriefing ?? []).length < 1 || ReplayPlaybackState !== null) {
     hideOpeningBriefing();
     return false;
@@ -6670,6 +6687,7 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
       shownIds: [...ShownStoryBoardIds],
       createdLinkCount: RelayNetworkState.links.size,
       linkCreated: RelayConnection?.created === true,
+      linkedWorldIdentifier: WorldDefinition.id,
       innerClusterJustUnlocked: !InnerClusterLiveBefore
         && isInnerClusterLive(LiveWorldsAfter),
       neighbourhoodJustAwake: isInnerClusterLive(LiveWorldsAfter)
@@ -6803,10 +6821,20 @@ function completeWorldheartLiberation() {
     ? 0.85
     : ActiveSystem.finale?.victoryDelaySeconds ?? 1.35;
   WorldheartCompletionTimeoutIdentifier = window.setTimeout(() => {
+    WorldheartCompletionTimeoutIdentifier = null;
+    PendingVictoryAfterStoryBoard = true;
+    if (enqueueCampaignStoryBoards(
+      getTriggeredCampaignStoryBoardIds({
+        shownIds: [...ShownStoryBoardIds],
+        reachJustAnswered: true,
+      }),
+    )) {
+      return;
+    }
+    PendingVictoryAfterStoryBoard = false;
     revealVictoryPanel();
     GamePhase = 'victory';
     WorldseedSound.victory();
-    WorldheartCompletionTimeoutIdentifier = null;
   }, VictoryDelaySeconds * 1000);
   updateBreakerBurnInterface();
   return true;
@@ -6854,6 +6882,12 @@ function attachSeedToWorldheart(ImpactPosition, BodyPosition) {
     completeWorldheartLiberation();
   } else {
     showStatusToast('COMMAND LANDED · CORE LATTICE ACTIVE', 1500);
+    enqueueCampaignStoryBoards(
+      getTriggeredCampaignStoryBoardIds({
+        shownIds: [...ShownStoryBoardIds],
+        commandJustLanded: true,
+      }),
+    );
   }
   updateBreakerBurnInterface();
 }

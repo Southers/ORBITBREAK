@@ -114,6 +114,9 @@ export function auditReleaseReadiness() {
       && AudioSource.includes('TransientSource.disconnect()')
       && PresentationSource.includes('export function getTriggeredCampaignStoryBoardIds(')
       && Credits.includes('assets/ember-portrait.jpg')
+      && Credits.includes('assets/tide-portrait.jpg')
+      && Credits.includes('assets/frost-portrait.jpg')
+      && Credits.includes('assets/bastion-portrait.jpg')
       && Credits.includes('assets/command-portrait.jpg'),
     'The selected sector must keep skippable story boards for first answer, Warden arrival and Command.',
   );

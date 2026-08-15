@@ -385,6 +385,9 @@ export class WorldseedAudio {
       GROVE: { root: 174, type: 'sine', noise: 1280, volume: 0.06 },
       'THE RUN': { root: 311, type: 'triangle', noise: 640, volume: 0.07 },
       'THE NETWORK': { root: 262, type: 'triangle', noise: 880, volume: 0.065 },
+      TIDE: { root: 164, type: 'sine', noise: 720, volume: 0.06 },
+      FROST: { root: 208, type: 'triangle', noise: 1600, volume: 0.06 },
+      BASTION: { root: 98, type: 'sawtooth', noise: 220, volume: 0.07 },
       COMMAND: { root: 52, type: 'sawtooth', noise: 90, volume: 0.11 },
     };
     const Voice = Voices[Speaker] ?? Voices['THE RUNNER'];

@@ -259,6 +259,11 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
     createdLinkCount: 1,
   }), ['firstAnswer']);
   assert.deepEqual(getTriggeredCampaignStoryBoardIds({
+    linkCreated: true,
+    createdLinkCount: 3,
+    linkedWorldIdentifier: 'tide',
+  }), ['firstTide']);
+  assert.deepEqual(getTriggeredCampaignStoryBoardIds({
     neighbourhoodJustAwake: true,
     wardenJustRevealed: true,
   }), ['neighbourhood', 'wardenArrival']);
@@ -280,6 +285,9 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
   }), false);
   assert.equal(isCampaignStoryBoardReadyToPresent({
     gamePhase: 'attached',
+  }), true);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'victoryPending',
   }), true);
 });
 
