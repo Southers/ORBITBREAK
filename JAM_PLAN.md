@@ -438,6 +438,16 @@ checks kept the opening, complete Warden reveal and long Grove mastery clue abov
 no overflow; the longest affected route state peaked at 153/190. This accessibility and onboarding
 pass changes no layout anchors, input, prediction, physics, scoring, pursuit or replay state.
 
+Gauntlet pass 16 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The most prominent gold prediction badge said `NEW WORLD
+LOCKED`, reusing the story's word for Warden imprisonment at the exact moment the player was choosing
+to free a world. New-world prediction now names the destination as a target; the opening reads `EMBER
+TARGET` while restored-world safety copy remains unchanged. Focused presentation coverage guards the
+distinction. The desktop badge became one clear 27.6px row at 147/190 calls; its 390×844 counterpart
+stayed compact at 39.6px, above the route instruction and 44px controls, with no overflow at 131/190.
+This onboarding copy pass changes no target selection, trajectory visibility, input, fixed-step
+prediction, live physics, scoring or replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

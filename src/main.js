@@ -94,7 +94,8 @@ import {
   getRunnerForm,
   getRunnerPose,
   getStillnessPresentation,
-} from './presentation.js?v=20260815-ob44';
+  getWorldLandingAimLabel,
+} from './presentation.js?v=20260815-ob46';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -255,7 +256,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob45';
+GameCanvas.dataset.build = '20260815-ob46';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -5924,7 +5925,10 @@ function updateAimPreview(CurrentPointerWorldPosition) {
     TrajectoryMaterial.opacity = 0.82;
     LandingMarkerMaterial.color.set(IsNewWorldLanding ? 0xffd98a : 0xbceca8);
     AimPanelElement.classList.add('is-locked');
-    AimLabelElement.textContent = IsNewWorldLanding ? 'NEW WORLD LOCKED' : 'SAFE LANDING';
+    AimLabelElement.textContent = getWorldLandingAimLabel(
+      LandingWorldDefinition.label,
+      IsNewWorldLanding,
+    );
     showInstruction(
       (IsNewWorldLanding ? 'Release to awaken ' : 'Release to land on ')
         + LandingWorldDefinition.label,

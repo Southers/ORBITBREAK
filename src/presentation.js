@@ -101,3 +101,11 @@ export function getPersonalBestStatus({
     ? `VERIFIED · NEW PERSONAL BEST · ${runScore.toLocaleString('en-GB')}`
     : `VERIFIED · RUN ${runScore.toLocaleString('en-GB')} · PERSONAL BEST ${personalBestScore.toLocaleString('en-GB')}`;
 }
+
+/** Names a new-world aim target without reusing the Warden fiction's “locked” state. */
+export function getWorldLandingAimLabel(WorldLabel, IsNewWorldLanding) {
+  if (typeof WorldLabel !== 'string' || WorldLabel.trim().length < 1) {
+    throw new Error('World landing aim label requires a destination.');
+  }
+  return IsNewWorldLanding ? `${WorldLabel} TARGET` : 'SAFE LANDING';
+}

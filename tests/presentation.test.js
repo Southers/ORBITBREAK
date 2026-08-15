@@ -9,7 +9,14 @@ import {
   getRunnerForm,
   getRunnerPose,
   getStillnessPresentation,
+  getWorldLandingAimLabel,
 } from '../src/presentation.js';
+
+test('world landing aim copy names a new destination without calling it imprisoned', () => {
+  assert.equal(getWorldLandingAimLabel('Ember', true), 'Ember TARGET');
+  assert.equal(getWorldLandingAimLabel('Ember', false), 'SAFE LANDING');
+  assert.throws(() => getWorldLandingAimLabel(' ', true), /requires a destination/);
+});
 
 test('result status distinguishes the current verified run from an older personal best', () => {
   assert.equal(getPersonalBestStatus({
