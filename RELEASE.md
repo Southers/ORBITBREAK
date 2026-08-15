@@ -7,32 +7,35 @@ quality gates and external-action approvals separate from implementation work.
 
 **Title:** ORBITBREAK
 
-**Tagline:** Break orbit. Break the Stillness. Bank the run.
+**Tagline:** Break orbit. Break isolation. Connect the tiny worlds.
 
-**Short description:** Guide a tiny rebel astronaut through handcrafted planetary systems. Bend through gravity, chain dangerous slingshots, build two resilient circuits and break the Warden's moving Command World.
+**Short description:** Fly a forbidden courier ship between tiny occupied worlds. Bend through gravity, build resilient relay circuits and break the Warden's moving Command World.
 
 **Long description:**
 
-The Stillness has locked living worlds inside silent orbital cages. You are the Runner: one tiny astronaut, eight launches and a route nobody else can fly.
+The Stillness has locked living worlds inside silent orbital cages. You are the Runner: one tiny rebel astronaut, a forbidden courier ship and a route nobody else can fly.
 
-Drag and release—or aim entirely by keyboard—to cross five handcrafted miniature systems. Safe landings bank your score and become new launch points. Close planetary passes earn Assist, Deep and Razor bonuses; threading distinct worlds in one flight multiplies the chain. Miss the landing or strike a moving hazard and every unbanked point from that shot is gone.
+Walk around miniature worlds to choose a launch point, pull back and release—or aim entirely by keyboard—then spend one deterministic Breaker Burn in flight. Safe landings awaken distinct little societies, bank your score and become new launch points. Close planetary passes earn Assist, Deep and Razor bonuses; threading distinct worlds in one flight multiplies the chain. Miss the landing or strike a moving hazard and every unbanked point from that shot is gone.
 
-Each chapter changes the spatial problem without changing the rules: choose a risky opening, time a moving Sentinel, intercept an orbiting moon, commit to a trajectory beyond the ranked preview and finally recombine every lesson at the Worldheart. Runs are short, deterministic and built for immediate replay. The safe route completes the system. The dangerous route reaches the leaderboard.
+Every successful route leaves a relay behind. Close two unique circuits before the pursuing Warden reaches an unprotected world: the first network pushes it back and the second tears open its iron crown. Intercept the moving Command World, circle to its exposed lattice and fire the final Pulse. Runs are short, deterministic and built for immediate replay. The safe route completes the system; deliberate surface position, timing and deeper gravity lines build the strongest score.
 
 **Feature bullets:**
 
 - Five authored planetary systems with distinct routing challenges.
 - Deterministic 120 Hz gravity shared by live flight and trajectory prediction.
+- Tiny cultures that visibly awaken, trade, resist suppression and answer the final Pulse.
+- Resilient relay circuits, a pursuing Warden and a moving Command World finale.
 - Bonus-fuel score attacks with fast miss recovery, transparent banking and Warden-arrival failure.
 - Assist, Deep and Razor slingshots plus distinct-body chain multipliers.
-- Mouse, pen, touch and complete keyboard play using the same ranked rules.
-- Versioned replays that independently re-simulate every verified result.
+- Mouse, pen, touch and complete keyboard play, plus persistent reduced-motion controls.
+- Versioned replays that independently re-simulate every verified result and an optional local-best route ghost.
 - Procedural Three.js art, animation and Web Audio with no downloaded asset pack.
 
 ## Controls copy
 
-- Pointer/touch: drag backwards from the Runner and release.
-- Keyboard: left/right or A/D steer; up/down or W/S set power; Shift enables fine control; Enter/Space launches; Escape cancels.
+- Pointer/touch: trace around a world to walk; pull backwards from the Runner and release to launch; tap Burn once in flight.
+- Keyboard: Q/E walks; left/right or A/D steers; up/down or W/S sets power; Shift enables fine control; Enter/Space launches; Space Burns in flight; Escape cancels.
+- C toggles Scout view; wheel, plus/minus or the visible zoom buttons adjust it. G toggles the verified local-best ghost when available.
 - R resets the attempt. M toggles audio. P cycles System, Reduced and Full motion. Footer buttons provide the same actions on touch screens.
 
 ## Media capture plan
@@ -43,7 +46,7 @@ Capture clean game frames without browser chrome, debug overlays or disposable t
 2. **Liberation, 16:9:** a world halfway through the spherical colour wave while the Stillness cage visibly breaks.
 3. **Moving route, 16:9:** Verdant Caravan with Pollen Moon, Crown and the changing trajectory in one composition.
 4. **Mastery, 16:9:** Long Night or Worldheart during a two-body chain with both score callouts visible.
-5. **Finale, 16:9:** the Worldheart restoration before the results dialog covers the scene.
+5. **Finale, 16:9:** the opened iron crown, final Command Pulse and pooled response before the results dialog covers the scene.
 6. **Results, 16:9:** a Verified score with breakdown, constellation and earned emblem visible.
 7. **Portrait, 9:16:** live 390×844 play showing the scanner, route label, aim meter and reachable touch controls.
 
@@ -54,7 +57,7 @@ Suggested 40-second trailer beat sheet:
 - 11–18s: Razor pass and chain score.
 - 18–24s: Stillness cage breaking under liberation.
 - 24–31s: moving moon or Sentinel timing decision.
-- 31–37s: Worldheart approach and restoration.
+- 31–37s: Command World intercept, circumference approach and final Pulse.
 - 37–40s: Verified result, tagline and platform URL.
 
 ## Automated gates
@@ -68,7 +71,7 @@ Suggested 40-second trailer beat sheet:
 ## Manual release checklist
 
 - Complete the safe and mastery route for every authored system on the candidate commit.
-- Verify pointer, touch and keyboard aim; landing; hazard/void recovery; eight-launch failure; Reset; audio and replay.
+- Verify pointer, touch and keyboard aim; surface walking; Scout zoom; Burn; landing; hazard/void recovery; zero-bonus-fuel continuation; Warden catch; Reset; audio, ghost and replay.
 - Verify desktop, 390×844 portrait and 844×390 landscape without overflow.
 - Verify System, Reduced and Full motion modes, including local persistence and unchanged ranked state.
 - On a local `?diagnostics=1` build, start aiming and press Shift+B; confirm the aim cancels without launching and play resumes.
@@ -78,6 +81,16 @@ Suggested 40-second trailer beat sheet:
 - Confirm the Breakers Board says offline when no endpoint is configured.
 - Re-run credits review after every asset, font, shader, sound or capture is added.
 - Record the final commit SHA, public build URL, leaderboard endpoint status and rules/version used for release.
+
+## Current local candidate evidence
+
+- Build `20260815-ob28` passes 140 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 186/190 peak draw calls.
+- A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
+- 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
+- Explicit reduced motion preserves the deterministic Haven-to-Ember launch and landing.
+- Local-only diagnostics prove background aim cancellation/resume, WebGL loss/restoration and adaptive-quality degradation/recovery.
+- These checks do not approve a public deployment, production leaderboard or jam submission.
 
 ## Known gated items
 

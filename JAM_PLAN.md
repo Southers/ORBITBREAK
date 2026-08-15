@@ -246,6 +246,16 @@ and the Command threat without relying on explanatory copy, so the Milestone 5 e
 - Update the approved GitHub Pages playtest only with explicit approval.
 - Prepare the jam reply and hand it to the user; do not post it.
 
+Checkpoint A — 15 August 2026: the local `ob28` candidate now has an explicit lifecycle and device
+matrix. Browser checks covered 1280×720 desktop, 844×390 landscape and 390×844 portrait resizing;
+both mobile orientations applied the 1.5 pixel-ratio cap. Reduced motion reproduced the deterministic
+18.391, 1.314 Haven-to-Ember launch and landed safely. Local-only diagnostics canceled an active aim
+during backgrounding and resumed without launching, restored a deliberately lost WebGL context to a
+live 165-call scene, and degraded then recovered adaptive quality without touching score or launch
+state. The release brief now reflects surface walking, Scout zoom, Burn, relay circuits, Warden catch,
+the moving Command World and the verified local-best ghost. Credits remain accurate because all new
+art and audio are procedural. No public build or external service was changed.
+
 Exit: the build is cohesive, reliable and ready for repeated judging passes and for the user to decide whether and when to submit.
 
 ## Continuous judging gauntlet
