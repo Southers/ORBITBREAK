@@ -6,7 +6,6 @@ import {
   adjustSurfaceAngle,
   createKeyboardAimState,
   getKeyboardAimDragVector,
-  getScoutZoomPresentation,
   getSurfacePosition,
   shouldCancelAimedLaunch,
 } from './controls.js?v=20260815-ob84';
@@ -44,6 +43,7 @@ import { createStoryDirector } from './story-director.js?v=20260815-ob90';
 import { createHud } from './hud.js?v=20260815-ob90';
 import { createAimPreview } from './aim-preview.js?v=20260815-ob90';
 import { createLandingDirector } from './landing-director.js?v=20260815-ob90';
+import { createCameraController } from './camera-controller.js?v=20260815-ob90';
 import { createInputController } from './input-controller.js?v=20260815-ob90';
 
 import {
@@ -122,7 +122,6 @@ import {
   getCourierDockWorldRole,
   getHiddenWardenRouteCoach,
   getInhabitantSilhouette,
-  getLandedCameraScale,
   getLiberationFlashOpacity,
   getLeaderboardActionLabel,
   getLiveLinkShipCount,
@@ -138,14 +137,11 @@ import {
   getPublishedWardenState,
   getRangeVeilStrength,
   getRelayCourierTravelProgress,
-  getPlanningAtmosphere,
-  getPlanningFocusWorldIdentifiers,
   PlanningMaximumZoomScale,
   PlanningMinimumZoomScale,
   getRelayLinkOpacity,
   getRelayRevealHoldDurationSeconds,
   getRunUnlockState,
-  getSectorPlanningCamera,
   shouldAssistCommandLock,
   shouldHoldCommittedPrediction,
   getRunResourceSummary,
@@ -2866,96 +2862,97 @@ function updateTrailParticles(DeltaTimeSeconds) {
   TrailParticleMesh.instanceMatrix.needsUpdate = true;
 }
 
-function captureAimInteractionCamera() {
-  if (AimInteractionCamera) {
-    return;
-  }
-  AimInteractionCamera = Camera.clone();
-}
+const CameraController = createCameraController(THREE, {
+  Camera,
+  GameCanvas,
+  Scene,
+  Renderer,
+  CameraLookTarget,
+  DesiredCameraLookTarget,
+  PlanningCameraLookTarget,
+  CameraPanOffset,
+  ScoutCameraTarget,
+  ScoutZoomOutButtonElement,
+  ScoutZoomInButtonElement,
+  ScoutZoomStatusElement,
+  ScoutButtonElement,
+  WorldDefinitions,
+  WorldheartDefinition,
+  PredictedSlingshotWorldIdentifiers,
+  TrajectoryMaterial,
+  MinimumScoutZoomScale,
+  isLiveInnerCluster,
+  getSectorClusterRules,
+  calculateBodyPositionAtTime,
+  getWorldDefinition,
+  getActiveMaximumScoutZoomScale,
+  renderTrajectoryLine,
+  predictCurrentLaunchTrajectory,
+  updatePersonalBestGhostVisibility,
+  resizeRenderer,
+  updateScannerInterface,
+  getActiveElement: () => document.activeElement,
+  get ActiveSystem() { return ActiveSystem; },
+  get AimInteractionCamera() { return AimInteractionCamera; },
+  set AimInteractionCamera(Value) { AimInteractionCamera = Value; },
+  get LastPredictedBodyIdentifier() { return LastPredictedBodyIdentifier; },
+  set LastPredictedBodyIdentifier(Value) { LastPredictedBodyIdentifier = Value; },
+  get LastPlanningPathPoints() { return LastPlanningPathPoints; },
+  set LastPlanningPathPoints(Value) { LastPlanningPathPoints = Value; },
+  get IsScoutMode() { return IsScoutMode; },
+  set IsScoutMode(Value) { IsScoutMode = Value; },
+  get PlanningCameraScale() { return PlanningCameraScale; },
+  set PlanningCameraScale(Value) { PlanningCameraScale = Value; },
+  get AimZoomScale() { return AimZoomScale; },
+  set AimZoomScale(Value) { AimZoomScale = Value; },
+  get CameraZoomScale() { return CameraZoomScale; },
+  set CameraZoomScale(Value) { CameraZoomScale = Value; },
+  get ScoutZoomScale() { return ScoutZoomScale; },
+  set ScoutZoomScale(Value) { ScoutZoomScale = Value; },
+  get GamePhase() { return GamePhase; },
+  get IsPointerAiming() { return IsPointerAiming; },
+  get IsKeyboardAiming() { return IsKeyboardAiming; },
+  get IsPointerScouting() { return IsPointerScouting; },
+  get SeedPhysicsState() { return SeedPhysicsState; },
+  get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
+  get PhysicsElapsedTimeSeconds() { return PhysicsElapsedTimeSeconds; },
+  get CameraDistanceScale() { return CameraDistanceScale; },
+  set CameraDistanceScale(Value) { CameraDistanceScale = Value; },
+  get CameraImpactLifeSeconds() { return CameraImpactLifeSeconds; },
+  set CameraImpactLifeSeconds(Value) { CameraImpactLifeSeconds = Value; },
+  get RelayRevealLookTarget() { return RelayRevealLookTarget; },
+  get PrefersReducedMotion() { return PrefersReducedMotion; },
+  get ReplayPlaybackState() { return ReplayPlaybackState; },
+  get CommittedPredictionPoints() { return CommittedPredictionPoints; },
+  get FlightElapsedSeconds() { return FlightElapsedSeconds; },
+  get LaunchIgnoredWorldIdentifier() { return LaunchIgnoredWorldIdentifier; },
+  get LaunchIgnoredBodyIdentifier() { return LaunchIgnoredBodyIdentifier; },
+  get RelayNetworkState() { return RelayNetworkState; },
+  get WardenPursuitState() { return WardenPursuitState; },
+  get RecaptureCutGiftAvailable() { return RecaptureCutGiftAvailable; },
+  get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
+  get GameElapsedTimeSeconds() { return GameElapsedTimeSeconds; },
+  get BaseCameraDistance() { return BaseCameraDistance; },
+  set BaseCameraDistance(Value) { BaseCameraDistance = Value; },
+});
+const {
+  captureAimInteractionCamera,
+  releaseAimInteractionCamera,
+  rememberPlanningPath,
+  getPlanningFocusPoints,
+  applySectorPlanningCamera,
+  snapLiveCameraToPlanningView,
+  shouldUseSectorPlanningCamera,
+  updateFlightPlanningPresentation,
+  refreshPlanningZoomControls,
+  updateScoutZoomInterface,
+  setScoutMode,
+  adjustScoutZoom,
+  adjustViewZoom,
+  handleScoutWheel,
+  updateCamera,
+} = CameraController;
 
-function releaseAimInteractionCamera() {
-  AimInteractionCamera = null;
-}
-
-function rememberPlanningPath(Prediction) {
-  LastPredictedBodyIdentifier = Prediction?.collisionWorldIdentifier
-    || Prediction?.collisionBodyIdentifier
-    || '';
-  const Points = Array.isArray(Prediction?.points) ? Prediction.points : [];
-  if (Points.length < 1) {
-    LastPlanningPathPoints = [];
-    return;
-  }
-  const Sampled = [];
-  const SampleStride = Math.max(1, Math.floor(Points.length / 12));
-  for (let PointIndex = 0; PointIndex < Points.length; PointIndex += SampleStride) {
-    const Point = Points[PointIndex];
-    Sampled.push({ x: Point.x, y: Point.y });
-  }
-  const LastPoint = Points[Points.length - 1];
-  Sampled.push({ x: LastPoint.x, y: LastPoint.y });
-  LastPlanningPathPoints = Sampled;
-}
-
-function getPlanningFocusPoints() {
-  const AllowedIdentifiers = new Set(getPlanningFocusWorldIdentifiers({
-    innerClusterLive: isLiveInnerCluster(),
-    commandRouteAvailable: WorldheartDefinition.routeAvailable === true,
-    predictedBodyIdentifiers: [
-      LastPredictedBodyIdentifier,
-      ...PredictedSlingshotWorldIdentifiers,
-    ],
-    currentWorldIdentifier: CurrentWorldIdentifier ?? '',
-    ...getSectorClusterRules(),
-  }));
-  const FocusPoints = WorldDefinitions
-    .filter((WorldDefinition) => AllowedIdentifiers.has(WorldDefinition.id))
-    .map((WorldDefinition) => WorldDefinition.position);
-  if (AllowedIdentifiers.has(WorldheartDefinition.id)) {
-    FocusPoints.push(calculateBodyPositionAtTime(WorldheartDefinition, PhysicsElapsedTimeSeconds));
-  }
-  return FocusPoints;
-}
-
-function applySectorPlanningCamera() {
-  if (IsScoutMode || !ActiveSystem.camera?.followPlayer) {
-    PlanningCameraScale = 1;
-    return;
-  }
-  const FocusPoints = getPlanningFocusPoints();
-  const PlanningCamera = getSectorPlanningCamera({
-    runner: SeedPhysicsState.position,
-    focusPoints: FocusPoints,
-    pathPoints: LastPlanningPathPoints,
-    viewportWorldWidth: ActiveSystem.camera?.viewportWorldWidth ?? 20,
-    viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
-  });
-  PlanningCameraLookTarget.set(PlanningCamera.lookX, PlanningCamera.lookY, 0);
-  PlanningCameraScale = PlanningCamera.scale;
-  GameCanvas.dataset.planningCameraScale = PlanningCamera.scale.toFixed(2);
-  GameCanvas.dataset.planningFocusCount = String(FocusPoints.length);
-}
-
-/** Jumps to the sector aim frame so landed pan/zoom cannot hide the path in fog. */
-function snapLiveCameraToPlanningView() {
-  applySectorPlanningCamera();
-  CameraLookTarget.copy(PlanningCameraLookTarget);
-  DesiredCameraLookTarget.copy(PlanningCameraLookTarget);
-  CameraDistanceScale = PlanningCameraScale * AimZoomScale;
-  Camera.position.set(
-    CameraLookTarget.x,
-    CameraLookTarget.y,
-    BaseCameraDistance * CameraDistanceScale,
-  );
-  Camera.lookAt(CameraLookTarget);
-}
-
-function shouldUseSectorPlanningCamera() {
-  return (IsPointerAiming || IsKeyboardAiming || GamePhase === 'flying')
-    && !IsScoutMode
-    && GamePhase !== 'restoring'
-    && GamePhase !== 'recovering';
-}
 
 /**
  * Clears trajectory presentation after aiming ends.
@@ -3036,33 +3033,6 @@ function captureCommittedLaunchPrediction(LaunchVelocity) {
     ? TrajectoryPrediction.points.map((Point) => ({ x: Point.x, y: Point.y, z: Point.z ?? 0 }))
     : null;
   GameCanvas.dataset.predictionHoldActive = String(Boolean(CommittedPredictionPoints));
-}
-
-function updateFlightPlanningPresentation() {
-  const LiveRelayCount = countLiveRelayWorlds(RelayNetworkState);
-  if (shouldHoldCommittedPrediction({
-    liveRelayCount: LiveRelayCount,
-    flightElapsedSeconds: FlightElapsedSeconds,
-    prefersReducedMotion: PrefersReducedMotion,
-    committedPointCount: CommittedPredictionPoints?.length ?? 0,
-  })) {
-    renderTrajectoryLine(CommittedPredictionPoints);
-    TrajectoryMaterial.color.set(0xffd98a);
-    TrajectoryMaterial.opacity = 0.86;
-    applySectorPlanningCamera();
-    GameCanvas.dataset.predictionHoldActive = 'true';
-    return;
-  }
-  GameCanvas.dataset.predictionHoldActive = 'false';
-  const TrajectoryPrediction = predictCurrentLaunchTrajectory(SeedPhysicsState.velocity, {
-    ignoredWorldIdentifier: LaunchIgnoredWorldIdentifier,
-    ignoredCollisionBodyIdentifier: LaunchIgnoredBodyIdentifier,
-  });
-  rememberPlanningPath(TrajectoryPrediction);
-  if (TrajectoryPrediction.points.length > 1) {
-    renderTrajectoryLine(TrajectoryPrediction.points);
-  }
-  applySectorPlanningCamera();
 }
 
 /** Keeps every live aim suggestion on the same fixed-step prediction contract. */
@@ -4132,198 +4102,6 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   if (CircuitBeaconLine.visible) {
     CircuitBeaconMaterial.dashOffset -= DeltaTimeSeconds * 0.55;
   }
-}
-
-/** Keeps Scout and aim zoom labels, limits and optional announcements in one shared state. */
-function refreshPlanningZoomControls({ announce = false } = {}) {
-  const Visible = IsScoutMode || shouldUseSectorPlanningCamera();
-  ScoutZoomOutButtonElement.hidden = !Visible;
-  ScoutZoomInButtonElement.hidden = !Visible;
-  if (!Visible) {
-    if (!IsScoutMode) ScoutZoomStatusElement.textContent = '';
-    return;
-  }
-  const Scale = shouldUseSectorPlanningCamera() && !IsScoutMode
-    ? AimZoomScale
-    : (IsScoutMode ? ScoutZoomScale : CameraZoomScale);
-  const Presentation = getScoutZoomPresentation(Scale, {
-    minimumScale: MinimumScoutZoomScale,
-    maximumScale: getActiveMaximumScoutZoomScale(),
-  });
-  ScoutZoomInButtonElement.setAttribute('aria-disabled', String(!Presentation.canZoomIn));
-  ScoutZoomOutButtonElement.setAttribute('aria-disabled', String(!Presentation.canZoomOut));
-  ScoutZoomInButtonElement.setAttribute('aria-label', Presentation.zoomInLabel);
-  ScoutZoomOutButtonElement.setAttribute('aria-label', Presentation.zoomOutLabel);
-  if (announce) ScoutZoomStatusElement.textContent = Presentation.status;
-}
-
-function updateScoutZoomInterface({ announce = false } = {}) {
-  refreshPlanningZoomControls({ announce });
-}
-
-function setScoutMode(Enabled, { snapToRunner = true } = {}) {
-  const CanScout = ActiveSystem.camera?.followPlayer === true
-    && GamePhase === 'attached'
-    && ReplayPlaybackState === null;
-  const WasScoutMode = IsScoutMode;
-  IsScoutMode = Enabled && CanScout;
-  if (IsScoutMode) {
-    ScoutCameraTarget.copy(CameraLookTarget);
-  } else if (snapToRunner) {
-    ScoutCameraTarget.set(SeedPhysicsState.position.x, SeedPhysicsState.position.y, 0);
-    CameraPanOffset.set(0, 0, 0);
-  }
-  const ShouldRestoreScoutButtonFocus = !IsScoutMode
-    && (
-      document.activeElement === ScoutZoomOutButtonElement
-      || document.activeElement === ScoutZoomInButtonElement
-    );
-  ScoutButtonElement.textContent = IsScoutMode ? 'Runner [C]' : 'Scout [C]';
-  ScoutButtonElement.setAttribute('aria-pressed', String(IsScoutMode));
-  if (!IsScoutMode) {
-    ScoutZoomStatusElement.textContent = WasScoutMode ? 'Scout view off' : '';
-  }
-  refreshPlanningZoomControls({ announce: IsScoutMode });
-  GameCanvas.dataset.scoutMode = String(IsScoutMode);
-  GameCanvas.dataset.scoutZoom = ScoutZoomScale.toFixed(2);
-  GameCanvas.classList.toggle('is-scouting', IsScoutMode && IsPointerScouting);
-  if (ShouldRestoreScoutButtonFocus) ScoutButtonElement.focus({ preventScroll: true });
-  updatePersonalBestGhostVisibility();
-  resizeRenderer();
-}
-
-function adjustScoutZoom(Direction) {
-  return adjustViewZoom(Direction);
-}
-
-function adjustViewZoom(Direction) {
-  const MaximumScale = getActiveMaximumScoutZoomScale();
-  if (shouldUseSectorPlanningCamera()) {
-    const PreviousScale = AimZoomScale;
-    AimZoomScale = THREE.MathUtils.clamp(
-      AimZoomScale + (Math.sign(Direction) * 0.1),
-      MinimumScoutZoomScale,
-      MaximumScale,
-    );
-    const DidChange = AimZoomScale !== PreviousScale;
-    if (DidChange) {
-      refreshPlanningZoomControls({ announce: true });
-      GameCanvas.dataset.aimZoom = AimZoomScale.toFixed(2);
-    }
-    return DidChange;
-  }
-  const PreviousScale = CameraZoomScale;
-  CameraZoomScale = THREE.MathUtils.clamp(
-    CameraZoomScale + (Math.sign(Direction) * 0.1),
-    MinimumScoutZoomScale,
-    MaximumScale,
-  );
-  ScoutZoomScale = CameraZoomScale;
-  const DidChange = CameraZoomScale !== PreviousScale;
-  if (IsScoutMode) updateScoutZoomInterface({ announce: DidChange });
-  if (!DidChange) return false;
-  GameCanvas.dataset.scoutZoom = CameraZoomScale.toFixed(2);
-  resizeRenderer();
-  return true;
-}
-
-function handleScoutWheel(WheelEventData) {
-  if (IsOpeningBriefingActive || ReplayPlaybackState !== null) return;
-  if (GamePhase === 'victory' || GamePhase === 'runFailed' || GamePhase === 'victoryPending') {
-    return;
-  }
-  if (adjustViewZoom(WheelEventData.deltaY > 0 ? 1 : -1)) {
-    WheelEventData.preventDefault();
-  }
-}
-
-/**
- * Adds gentle camera follow while the seed is flying without losing the level overview.
- * This is intentionally restrained for motion comfort on phones.
- *
- * @param {number} DeltaTimeSeconds - Real frame delta.
- */
-function updateCamera(DeltaTimeSeconds) {
-  const UsesExplorationCamera = ActiveSystem.camera?.followPlayer === true;
-  const UsesPlanningCamera = UsesExplorationCamera && shouldUseSectorPlanningCamera();
-  if (
-    GamePhase !== 'victory'
-    && GamePhase !== 'victoryPending'
-    && Scene.fog
-  ) {
-    const PlanningAtmosphere = getPlanningAtmosphere({
-      isPlanning: UsesPlanningCamera,
-      fogDensity: ActiveSystem.environment.fogDensity,
-      toneMappingExposure: ActiveSystem.environment.toneMappingExposure,
-    });
-    Scene.fog.density = PlanningAtmosphere.fogDensity;
-    Renderer.toneMappingExposure = PlanningAtmosphere.toneMappingExposure;
-  }
-  if (UsesExplorationCamera && IsScoutMode) {
-    DesiredCameraLookTarget.copy(ScoutCameraTarget);
-  } else if (UsesExplorationCamera && RelayRevealLookTarget && !PrefersReducedMotion) {
-    DesiredCameraLookTarget.set(RelayRevealLookTarget.x, RelayRevealLookTarget.y, 0);
-  } else if (UsesPlanningCamera) {
-    DesiredCameraLookTarget.copy(PlanningCameraLookTarget).add(CameraPanOffset);
-  } else if (UsesExplorationCamera) {
-    DesiredCameraLookTarget.set(
-      SeedPhysicsState.position.x + CameraPanOffset.x,
-      SeedPhysicsState.position.y + CameraPanOffset.y,
-      0,
-    );
-  } else if (GamePhase === 'flying' && !PrefersReducedMotion) {
-    DesiredCameraLookTarget.set(
-      THREE.MathUtils.clamp(SeedPhysicsState.position.x * 0.12, -1.8, 1.8),
-      THREE.MathUtils.clamp(SeedPhysicsState.position.y * 0.12, -1.5, 1.5),
-      0,
-    );
-  } else {
-    DesiredCameraLookTarget.set(0, 0, 0);
-  }
-
-  const CameraFollowAlpha = PrefersReducedMotion
-    ? 1
-    : 1 - Math.exp(-DeltaTimeSeconds * (UsesExplorationCamera ? 3.8 : 2.6));
-  CameraLookTarget.lerp(DesiredCameraLookTarget, CameraFollowAlpha);
-
-  let DesiredDistanceScale = 1;
-  if (IsScoutMode) {
-    DesiredDistanceScale = ScoutZoomScale;
-  } else if (UsesPlanningCamera) {
-    DesiredDistanceScale = PlanningCameraScale * AimZoomScale;
-  } else if (
-    UsesExplorationCamera
-    && (GamePhase === 'attached' || GamePhase === 'restoring')
-  ) {
-    const LandedWorld = getWorldDefinition(CurrentWorldIdentifier);
-    DesiredDistanceScale = LandedWorld
-      ? getLandedCameraScale({
-        worldRadius: LandedWorld.radius,
-        viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
-      })
-      : 0.5;
-    GameCanvas.dataset.landedCameraScale = DesiredDistanceScale.toFixed(2);
-  }
-  if (!IsScoutMode && !UsesPlanningCamera) {
-    DesiredDistanceScale *= CameraZoomScale;
-  }
-  CameraDistanceScale += (DesiredDistanceScale - CameraDistanceScale) * CameraFollowAlpha;
-
-  let CameraShakeX = 0;
-  let CameraShakeY = 0;
-  if (CameraImpactLifeSeconds > 0 && !PrefersReducedMotion) {
-    CameraImpactLifeSeconds = Math.max(0, CameraImpactLifeSeconds - DeltaTimeSeconds);
-    const ShakeStrength = (CameraImpactLifeSeconds / 0.24) * 0.13;
-    CameraShakeX = Math.sin(GameElapsedTimeSeconds * 93) * ShakeStrength;
-    CameraShakeY = Math.cos(GameElapsedTimeSeconds * 77) * ShakeStrength;
-  } else {
-    CameraImpactLifeSeconds = 0;
-  }
-  Camera.position.x = (UsesExplorationCamera ? CameraLookTarget.x : 0) + CameraShakeX;
-  Camera.position.y = (UsesExplorationCamera ? CameraLookTarget.y : 0) + CameraShakeY;
-  Camera.position.z = BaseCameraDistance * CameraDistanceScale;
-  Camera.lookAt(CameraLookTarget);
-  updateScannerInterface();
 }
 
 /**

@@ -36,6 +36,7 @@ export function auditReleaseReadiness() {
   const HudSource = readRepositoryFile('src/hud.js');
   const LandingDirectorSource = readRepositoryFile('src/landing-director.js');
   const InputControllerSource = readRepositoryFile('src/input-controller.js');
+  const CameraSource = readRepositoryFile('src/camera-controller.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -84,7 +85,7 @@ export function auditReleaseReadiness() {
       && MainSource.includes('MaximumTrajectoryPredictionSteps = 720')
       && MainSource.includes('applySectorPlanningCamera(')
       && MainSource.includes('snapLiveCameraToPlanningView(')
-      && MainSource.includes('PlanningCameraScale * AimZoomScale')
+      && CameraSource.includes('host.PlanningCameraScale * host.AimZoomScale')
       && MainSource.includes('updateFlightPlanningPresentation(')
       && InputControllerSource.includes('beginPinchIfNeeded()')
       && MainSource.includes('refreshPlanningZoomControls('),
@@ -98,7 +99,7 @@ export function auditReleaseReadiness() {
       && LivingWorldSource.includes('ExtractionFreighterMesh')
       && LivingWorldSource.includes('visiblePrisonerCount')
       && PlayerSource.includes('RunnerPresentationScale = 0.52')
-      && MainSource.includes('getLandedCameraScale('),
+      && CameraSource.includes('getLandedCameraScale('),
     'Occupied worlds must show tyrant extraction, held people and a tiny Runner so living contrast can read.',
   );
   requireCondition(
@@ -302,12 +303,12 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     /id="ScoutZoomStatus"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
-      && /updateScoutZoomInterface\(\{\s*announce:\s*DidChange\s*\}\)/.test(MainSource)
-      && /ScoutZoomInButtonElement\.setAttribute\('aria-disabled',\s*String\(!Presentation\.canZoomIn\)\)/.test(MainSource)
-      && /ScoutZoomOutButtonElement\.setAttribute\('aria-disabled',\s*String\(!Presentation\.canZoomOut\)\)/.test(MainSource)
-      && /GameCanvas\.dataset\.scoutZoom\s*=\s*ScoutZoomScale\.toFixed\(2\)/.test(MainSource)
-      && /ScoutZoomStatusElement\.textContent\s*=\s*WasScoutMode\s*\?\s*'Scout view off'\s*:\s*''/.test(MainSource)
-      && /if\s*\(ShouldRestoreScoutButtonFocus\)\s*ScoutButtonElement\.focus\(\{\s*preventScroll:\s*true\s*\}\)/.test(MainSource),
+      && /updateScoutZoomInterface\(\{\s*announce:\s*DidChange\s*\}\)/.test(CameraSource)
+      && /ScoutZoomInButtonElement\.setAttribute\('aria-disabled',\s*String\(!Presentation\.canZoomIn\)\)/.test(CameraSource)
+      && /ScoutZoomOutButtonElement\.setAttribute\('aria-disabled',\s*String\(!Presentation\.canZoomOut\)\)/.test(CameraSource)
+      && /GameCanvas\.dataset\.scoutZoom\s*=\s*host\.ScoutZoomScale\.toFixed\(2\)/.test(CameraSource)
+      && /ScoutZoomStatusElement\.textContent\s*=\s*WasScoutMode\s*\?\s*'Scout view off'\s*:\s*''/.test(CameraSource)
+      && /if\s*\(ShouldRestoreScoutButtonFocus\)\s*ScoutButtonElement\.focus\(\{\s*preventScroll:\s*true\s*\}\)/.test(CameraSource),
     'Scout zoom must announce its level and mark deterministic limits without dropping focus.',
   );
   requireCondition(
