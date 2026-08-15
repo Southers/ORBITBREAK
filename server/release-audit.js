@@ -35,6 +35,7 @@ export function auditReleaseReadiness() {
   const StoryDirectorSource = readRepositoryFile('src/story-director.js');
   const HudSource = readRepositoryFile('src/hud.js');
   const LandingDirectorSource = readRepositoryFile('src/landing-director.js');
+  const InputControllerSource = readRepositoryFile('src/input-controller.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -85,7 +86,7 @@ export function auditReleaseReadiness() {
       && MainSource.includes('snapLiveCameraToPlanningView(')
       && MainSource.includes('PlanningCameraScale * AimZoomScale')
       && MainSource.includes('updateFlightPlanningPresentation(')
-      && MainSource.includes('beginPinchIfNeeded()')
+      && InputControllerSource.includes('beginPinchIfNeeded()')
       && MainSource.includes('refreshPlanningZoomControls('),
     'Aiming must frame the readable neighbourhood, lift fog and keep pinch zoom on the exact remaining path.',
   );

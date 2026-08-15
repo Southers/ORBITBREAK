@@ -4,12 +4,8 @@ import { WorldseedAudio } from './audio.js?v=20260815-ob87';
 import {
   SurfaceGestureModes,
   adjustSurfaceAngle,
-  adjustKeyboardAimState,
   createKeyboardAimState,
-  findNearestKeyboardAimAngle,
   getKeyboardAimDragVector,
-  getPinchZoomScale,
-  getPointerClientDistance,
   getScoutZoomPresentation,
   getSurfacePosition,
   shouldCancelAimedLaunch,
@@ -48,6 +44,7 @@ import { createStoryDirector } from './story-director.js?v=20260815-ob90';
 import { createHud } from './hud.js?v=20260815-ob90';
 import { createAimPreview } from './aim-preview.js?v=20260815-ob90';
 import { createLandingDirector } from './landing-director.js?v=20260815-ob90';
+import { createInputController } from './input-controller.js?v=20260815-ob90';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -1418,120 +1415,6 @@ const {
 let NextTrailParticleIndex = 0;
 let TrailEmissionAccumulatorSeconds = 0;
 
-
-/**
- * Converts pointer coordinates into the XY orbital plane.
- *
- * @param {PointerEvent} PointerEventData - Browser pointer event.
- * @returns {THREE.Vector3|null} Intersection position or null if the ray misses the plane.
- */
-function getPointerWorldPosition(PointerEventData, UnprojectCamera = Camera) {
-  const CanvasBounds = GameCanvas.getBoundingClientRect();
-  PointerNormalizedDeviceCoordinates.x = (
-    ((PointerEventData.clientX - CanvasBounds.left) / CanvasBounds.width) * 2
-  ) - 1;
-  PointerNormalizedDeviceCoordinates.y = -(
-    ((PointerEventData.clientY - CanvasBounds.top) / CanvasBounds.height) * 2
-  ) + 1;
-
-  PointerRaycaster.setFromCamera(PointerNormalizedDeviceCoordinates, UnprojectCamera);
-  const IntersectionResult = PointerRaycaster.ray.intersectPlane(OrbitalPlane, PointerWorldPosition);
-  return IntersectionResult ? PointerWorldPosition : null;
-}
-
-/**
- * Returns true when the supplied pointer begins close enough to the visible seed.
- *
- * @param {PointerEvent} PointerEventData - Browser pointer event.
- * @returns {boolean} Whether the user acquired the seed.
- */
-function isPointerOverSeed(PointerEventData) {
-  const CanvasBounds = GameCanvas.getBoundingClientRect();
-  PointerNormalizedDeviceCoordinates.x = (
-    ((PointerEventData.clientX - CanvasBounds.left) / CanvasBounds.width) * 2
-  ) - 1;
-  PointerNormalizedDeviceCoordinates.y = -(
-    ((PointerEventData.clientY - CanvasBounds.top) / CanvasBounds.height) * 2
-  ) + 1;
-  PointerRaycaster.setFromCamera(PointerNormalizedDeviceCoordinates, Camera);
-
-  return PointerRaycaster.intersectObject(SeedPointerHitMesh, false).length > 0;
-}
-
-function isPointerOverAttachedWorld(WorldPosition) {
-  const AttachedWorld = getCurrentAttachedWorld();
-  if (!AttachedWorld || !WorldPosition) {
-    return false;
-  }
-  const Distance = Math.hypot(
-    WorldPosition.x - AttachedWorld.position.x,
-    WorldPosition.y - AttachedWorld.position.y,
-  );
-  return Distance <= AttachedWorld.radius + 0.45;
-}
-
-function rememberPointerLocation(PointerEventData) {
-  PointerByIdentifier.set(PointerEventData.pointerId, {
-    clientX: PointerEventData.clientX,
-    clientY: PointerEventData.clientY,
-  });
-}
-
-function forgetPointerLocation(PointerEventData) {
-  PointerByIdentifier.delete(PointerEventData.pointerId);
-}
-
-function beginPinchIfNeeded() {
-  if (PointerByIdentifier.size !== 2 || IsBurnAiming || IsCutAiming) {
-    return false;
-  }
-  const [FirstPointer, SecondPointer] = [...PointerByIdentifier.values()];
-  PinchState = {
-    startDistance: getPointerClientDistance(FirstPointer, SecondPointer),
-    startScale: shouldUseSectorPlanningCamera() && !IsScoutMode
-      ? AimZoomScale
-      : CameraZoomScale,
-  };
-  IsPointerWalking = false;
-  IsPointerScouting = false;
-  GameCanvas.classList.remove('is-walking', 'is-scouting');
-  return true;
-}
-
-function updatePinchZoom() {
-  if (!PinchState || PointerByIdentifier.size !== 2) {
-    return false;
-  }
-  const [FirstPointer, SecondPointer] = [...PointerByIdentifier.values()];
-  const UsesPlanningZoom = shouldUseSectorPlanningCamera() && !IsScoutMode;
-  const NextScale = getPinchZoomScale(
-    PinchState.startDistance,
-    getPointerClientDistance(FirstPointer, SecondPointer),
-    PinchState.startScale,
-    {
-      minimumScale: MinimumScoutZoomScale,
-      maximumScale: getActiveMaximumScoutZoomScale(),
-    },
-  );
-  if (UsesPlanningZoom) {
-    if (NextScale === AimZoomScale) {
-      return false;
-    }
-    AimZoomScale = NextScale;
-    refreshPlanningZoomControls();
-    GameCanvas.dataset.aimZoom = AimZoomScale.toFixed(2);
-    return true;
-  }
-  if (NextScale === CameraZoomScale) {
-    return false;
-  }
-  CameraZoomScale = NextScale;
-  ScoutZoomScale = NextScale;
-  refreshPlanningZoomControls();
-  GameCanvas.dataset.scoutZoom = CameraZoomScale.toFixed(2);
-  resizeRenderer();
-  return true;
-}
 
 /**
  * Reads the current world definition by identifier.
@@ -3257,995 +3140,192 @@ const {
 } = AimPreview;
 
 
-/** Uses the shared predictor to give keyboard players a bounded lead on the moving Command World. */
-function createSuggestedKeyboardAimState(SuggestedTarget) {
-  const DirectAimState = createKeyboardAimState({
-    directionX: SuggestedTarget.position.x - SeedPhysicsState.position.x,
-    directionY: SuggestedTarget.position.y - SeedPhysicsState.position.y,
-    powerRatio: 1,
-  });
-  const IsMovingCommandTarget = SuggestedTarget.id === WorldheartDefinition.id
-    && Boolean(WorldheartDefinition.orbit)
-    && shouldAssistCommandLock({
-      wardenStatus: WardenPursuitState.status,
-      routeAvailable: WorldheartDefinition.routeAvailable === true,
-    });
-  if (!IsMovingCommandTarget) {
-    GameCanvas.dataset.keyboardAimAssist = WorldheartDefinition.routeAvailable
-      && SuggestedTarget.id === WorldheartDefinition.id
-      ? 'command-direct'
-      : 'route';
-    return DirectAimState;
-  }
+const InputController = createInputController(THREE, {
+  GameCanvas,
+  Camera,
+  PointerRaycaster,
+  PointerNormalizedDeviceCoordinates,
+  OrbitalPlane,
+  PointerWorldPosition,
+  PointerByIdentifier,
+  AimPanelElement,
+  AimLabelElement,
+  AimPowerFillElement,
+  AimPowerValueElement,
+  BurnButtonElement,
+  SeedGroup,
+  SeedPointerHitMesh,
+  LaunchPulseMesh,
+  ImpactPulseMesh,
+  PullGuideLine,
+  CameraPanOffset,
+  PanOffsetStart,
+  ScoutPointerStartWorldPosition,
+  ScoutCameraStartTarget,
+  ScoutCameraTarget,
+  LastAimPointerWorldPosition,
+  PointerGestureStartWorldPosition,
+  AimDragVector,
+  AimLaunchVelocity,
+  WorldseedSound,
+  MaximumDragDistance,
+  LaunchVelocityPerDragUnit,
+  MinimumLaunchDragDistance,
+  LaunchCancelRadius,
+  FixedPhysicsStepHertz,
+  FixedPhysicsStepSeconds,
+  MaximumTrajectoryPredictionSteps,
+  SeedRadius,
+  WorldDefinitions,
+  SeedstoneDefinition,
+  WorldheartDefinition,
+  FlightCollectedStardustIdentifiers,
+  FlightClosePassWorldIdentifiers,
+  HostilePylonGroup,
+  CompletedHostileEncounterWorldIdentifiers,
+  MinimumScoutZoomScale,
+  shouldUseSectorPlanningCamera,
+  getActiveMaximumScoutZoomScale,
+  refreshPlanningZoomControls,
+  resizeRenderer,
+  setScoutMode,
+  getCurrentAttachedWorld,
+  setRunnerSurfaceAngle,
+  moveRunnerAroundSurface,
+  showInstruction,
+  showStatusToast,
+  hideInstruction,
+  showHostileEncounterInstruction,
+  showRouteChoiceInstruction,
+  getCurrentCutPreview,
+  hideCutGuide,
+  publishHostileEncounterState,
+  getShipCutOrigin,
+  getRunnerSurfaceAngle,
+  completeWorldheartLiberation,
+  flushQueuedStoryBoardsIfReady,
+  updateLaunchCounter,
+  captureCommittedLaunchPrediction,
+  captureAimInteractionCamera,
+  releaseAimInteractionCamera,
+  applySectorPlanningCamera,
+  snapLiveCameraToPlanningView,
+  clearTrajectoryPreview,
+  updateAimPreview,
+  updateKeyboardAimPreview,
+  getCurrentRouteChoices,
+  predictCurrentLaunchTrajectory,
+  getActiveTacticalBodyDefinitions,
+  renderTrajectoryLine,
+  getCurrentCutHitIds,
+  getActiveElement: () => document.activeElement,
+  get GamePhase() { return GamePhase; },
+  set GamePhase(Value) { GamePhase = Value; },
+  get IsPointerAiming() { return IsPointerAiming; },
+  set IsPointerAiming(Value) { IsPointerAiming = Value; },
+  get IsPointerWalking() { return IsPointerWalking; },
+  set IsPointerWalking(Value) { IsPointerWalking = Value; },
+  get IsPointerScouting() { return IsPointerScouting; },
+  set IsPointerScouting(Value) { IsPointerScouting = Value; },
+  get PointerGestureMode() { return PointerGestureMode; },
+  set PointerGestureMode(Value) { PointerGestureMode = Value; },
+  get IsKeyboardAiming() { return IsKeyboardAiming; },
+  set IsKeyboardAiming(Value) { IsKeyboardAiming = Value; },
+  get IsBurnAiming() { return IsBurnAiming; },
+  set IsBurnAiming(Value) { IsBurnAiming = Value; },
+  get BurnAimDirection() { return BurnAimDirection; },
+  set BurnAimDirection(Value) { BurnAimDirection = Value; },
+  get IsCutAiming() { return IsCutAiming; },
+  set IsCutAiming(Value) { IsCutAiming = Value; },
+  get CutAimPointer() { return CutAimPointer; },
+  set CutAimPointer(Value) { CutAimPointer = Value; },
+  get ActivePointerIdentifier() { return ActivePointerIdentifier; },
+  set ActivePointerIdentifier(Value) { ActivePointerIdentifier = Value; },
+  get PinchState() { return PinchState; },
+  set PinchState(Value) { PinchState = Value; },
+  get KeyboardAimState() { return KeyboardAimState; },
+  set KeyboardAimState(Value) { KeyboardAimState = Value; },
+  get AimZoomScale() { return AimZoomScale; },
+  set AimZoomScale(Value) { AimZoomScale = Value; },
+  get CameraZoomScale() { return CameraZoomScale; },
+  set CameraZoomScale(Value) { CameraZoomScale = Value; },
+  get ScoutZoomScale() { return ScoutZoomScale; },
+  set ScoutZoomScale(Value) { ScoutZoomScale = Value; },
+  get IsScoutMode() { return IsScoutMode; },
+  set IsScoutMode(Value) { IsScoutMode = Value; },
+  get SeedPhysicsState() { return SeedPhysicsState; },
+  set SeedPhysicsState(Value) { SeedPhysicsState = Value; },
+  get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
+  set CurrentWorldIdentifier(Value) { CurrentWorldIdentifier = Value; },
+  get RunState() { return RunState; },
+  set RunState(Value) { RunState = Value; },
+  get ReplayPlaybackState() { return ReplayPlaybackState; },
+  get ReplayState() { return ReplayState; },
+  set ReplayState(Value) { ReplayState = Value; },
+  get FlightElapsedSeconds() { return FlightElapsedSeconds; },
+  set FlightElapsedSeconds(Value) { FlightElapsedSeconds = Value; },
+  get IsBreakerBurnAvailable() { return IsBreakerBurnAvailable; },
+  set IsBreakerBurnAvailable(Value) { IsBreakerBurnAvailable = Value; },
+  get IsBreakerBurnPending() { return IsBreakerBurnPending; },
+  set IsBreakerBurnPending(Value) { IsBreakerBurnPending = Value; },
+  get FlightOriginWorldIdentifier() { return FlightOriginWorldIdentifier; },
+  set FlightOriginWorldIdentifier(Value) { FlightOriginWorldIdentifier = Value; },
+  get FlightHadAsteroidClosePass() { return FlightHadAsteroidClosePass; },
+  set FlightHadAsteroidClosePass(Value) { FlightHadAsteroidClosePass = Value; },
+  get LaunchIgnoredWorldIdentifier() { return LaunchIgnoredWorldIdentifier; },
+  set LaunchIgnoredWorldIdentifier(Value) { LaunchIgnoredWorldIdentifier = Value; },
+  get LaunchIgnoredBodyIdentifier() { return LaunchIgnoredBodyIdentifier; },
+  set LaunchIgnoredBodyIdentifier(Value) { LaunchIgnoredBodyIdentifier = Value; },
+  get AttachedSeedstoneSurfaceOffset() { return AttachedSeedstoneSurfaceOffset; },
+  set AttachedSeedstoneSurfaceOffset(Value) { AttachedSeedstoneSurfaceOffset = Value; },
+  get SeedstoneUsesRemaining() { return SeedstoneUsesRemaining; },
+  set SeedstoneUsesRemaining(Value) { SeedstoneUsesRemaining = Value; },
+  get SeedstoneCrumbleStartedAtSeconds() { return SeedstoneCrumbleStartedAtSeconds; },
+  set SeedstoneCrumbleStartedAtSeconds(Value) { SeedstoneCrumbleStartedAtSeconds = Value; },
+  get GameElapsedTimeSeconds() { return GameElapsedTimeSeconds; },
+  get HasLaunchedOnce() { return HasLaunchedOnce; },
+  set HasLaunchedOnce(Value) { HasLaunchedOnce = Value; },
+  get HasTaughtBurn() { return HasTaughtBurn; },
+  set HasTaughtBurn(Value) { HasTaughtBurn = Value; },
+  get TrailEmissionAccumulatorSeconds() { return TrailEmissionAccumulatorSeconds; },
+  set TrailEmissionAccumulatorSeconds(Value) { TrailEmissionAccumulatorSeconds = Value; },
+  get LaunchPulseLifeSeconds() { return LaunchPulseLifeSeconds; },
+  set LaunchPulseLifeSeconds(Value) { LaunchPulseLifeSeconds = Value; },
+  get ImpactPulseLifeSeconds() { return ImpactPulseLifeSeconds; },
+  set ImpactPulseLifeSeconds(Value) { ImpactPulseLifeSeconds = Value; },
+  get CameraImpactLifeSeconds() { return CameraImpactLifeSeconds; },
+  set CameraImpactLifeSeconds(Value) { CameraImpactLifeSeconds = Value; },
+  get CommittedPredictionPoints() { return CommittedPredictionPoints; },
+  set CommittedPredictionPoints(Value) { CommittedPredictionPoints = Value; },
+  get ActiveHostileEncounterState() { return ActiveHostileEncounterState; },
+  set ActiveHostileEncounterState(Value) { ActiveHostileEncounterState = Value; },
+  get HasAnnouncedCommandLockGift() { return HasAnnouncedCommandLockGift; },
+  set HasAnnouncedCommandLockGift(Value) { HasAnnouncedCommandLockGift = Value; },
+  get RunnerWalkLifeSeconds() { return RunnerWalkLifeSeconds; },
+  set RunnerWalkLifeSeconds(Value) { RunnerWalkLifeSeconds = Value; },
+  get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
+  get AimInteractionCamera() { return AimInteractionCamera; },
+  get ScannerProjection() { return ScannerProjection; },
+  get PhysicsElapsedTimeSeconds() { return PhysicsElapsedTimeSeconds; },
+  get WardenPursuitState() { return WardenPursuitState; },
+});
+const {
+  handlePointerDown,
+  handlePointerMove,
+  handlePointerUp,
+  handlePointerCancel,
+  handleKeyboardAimKey,
+  updateBreakerBurnInterface,
+  requestBreakerAction,
+  requestBreakerBurn,
+  applyBreakerBurnAtCurrentStep,
+  fireHostileCutFromPreview,
+  fireNearestHostileCut,
+  cancelCutAim,
+  cancelAimedLaunch,
+  beginKeyboardAim,
+} = InputController;
 
-  const MaximumLaunchSpeed = MaximumDragDistance * LaunchVelocityPerDragUnit;
-  let DidFindCommandLock = false;
-  const AssistedAngleRadians = findNearestKeyboardAimAngle(
-    DirectAimState.angleRadians,
-    (CandidateAngleRadians) => {
-      const Prediction = predictCurrentLaunchTrajectory(
-        {
-          x: Math.cos(CandidateAngleRadians) * MaximumLaunchSpeed,
-          y: Math.sin(CandidateAngleRadians) * MaximumLaunchSpeed,
-        },
-      );
-      DidFindCommandLock = Prediction.collisionBodyIdentifier === WorldheartDefinition.id;
-      return DidFindCommandLock;
-    },
-  );
-  GameCanvas.dataset.keyboardAimAssist = DidFindCommandLock ? 'command-lock' : 'command-direct';
-  if (DidFindCommandLock && !HasAnnouncedCommandLockGift) {
-    HasAnnouncedCommandLockGift = true;
-    showStatusToast('COMMAND WORLD LOCKED', 1400);
-  }
-  return { ...DirectAimState, angleRadians: AssistedAngleRadians };
-}
-
-/** Opens keyboard aim toward the first authored route while retaining free steering. */
-function beginKeyboardAim() {
-  if (
-    GamePhase !== 'attached'
-    || ActiveHostileEncounterState !== null
-    || RunState.status !== 'active'
-    || ReplayPlaybackState !== null
-    || IsPointerAiming
-    || IsKeyboardAiming
-  ) {
-    return false;
-  }
-
-  const SuggestedTarget = getCurrentRouteChoices(1)[0];
-  const SuggestedTargetPosition = SuggestedTarget?.position ?? {
-    x: SeedPhysicsState.position.x + 1,
-    y: SeedPhysicsState.position.y,
-  };
-  if (!SuggestedTarget) GameCanvas.dataset.keyboardAimAssist = 'direct';
-  KeyboardAimState = SuggestedTarget
-    ? createSuggestedKeyboardAimState(SuggestedTarget)
-    : createKeyboardAimState({
-      directionX: SuggestedTargetPosition.x - SeedPhysicsState.position.x,
-      directionY: SuggestedTargetPosition.y - SeedPhysicsState.position.y,
-      powerRatio: 1,
-    });
-  IsKeyboardAiming = true;
-  CameraPanOffset.set(0, 0, 0);
-  AimZoomScale = 1;
-  WorldseedSound.beginAim();
-  GameCanvas.classList.add('is-aiming');
-  PullGuideLine.visible = false;
-  AimPanelElement.hidden = false;
-  updateKeyboardAimPreview();
-  snapLiveCameraToPlanningView();
-  refreshPlanningZoomControls();
-  showInstruction(
-    'Keyboard aim ready',
-    'Left/right steer · up/down set power · pinch or wheel to zoom the map · Enter launches.',
-  );
-  return true;
-}
-
-/** Cancels pointer or keyboard aim without spending a launch. */
-function cancelAimedLaunch({ announce = true } = {}) {
-  const WasAiming = IsPointerAiming || IsKeyboardAiming;
-  IsPointerAiming = false;
-  IsKeyboardAiming = false;
-  IsPointerWalking = false;
-  IsPointerScouting = false;
-  PointerGestureMode = SurfaceGestureModes.pending;
-  ActivePointerIdentifier = null;
-  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
-  AimPanelElement.hidden = true;
-  AimPanelElement.classList.remove('is-cancel');
-  GameCanvas.dataset.keyboardAimAngle = '';
-  GameCanvas.dataset.keyboardAimPower = '';
-  GameCanvas.dataset.keyboardAimAssist = '';
-  releaseAimInteractionCamera();
-  clearTrajectoryPreview();
-  if (WasAiming) WorldseedSound.endAim();
-  if (WasAiming && announce) showStatusToast('LAUNCH CANCELED', 700);
-  if (WasAiming) showRouteChoiceInstruction();
-  refreshPlanningZoomControls();
-}
-
-/** Cancels keyboard aiming without spending a launch. */
-function cancelKeyboardAim() {
-  if (!IsKeyboardAiming) {
-    return;
-  }
-  cancelAimedLaunch({ announce: false });
-}
-
-/** Routes focused canvas keys into the same aim and launch state as a pointer gesture. */
-function handleKeyboardAimKey(KeyboardEventData) {
-  if (IsOpeningBriefingActive) {
-    return false;
-  }
-  if (document.activeElement !== GameCanvas) {
-    return false;
-  }
-
-  const PressedKey = KeyboardEventData.key.toLowerCase();
-  if (
-    !IsKeyboardAiming
-    && (PressedKey === 'q' || PressedKey === 'e')
-    && GamePhase === 'attached'
-    && ReplayPlaybackState === null
-  ) {
-    KeyboardEventData.preventDefault();
-    setScoutMode(false);
-    const DidMove = moveRunnerAroundSurface(
-      PressedKey === 'q' ? 1 : -1,
-      KeyboardEventData.shiftKey,
-    );
-    if (DidMove) {
-      RunnerWalkLifeSeconds = 0.34;
-    }
-    if (DidMove && !ActiveHostileEncounterState) {
-      showInstruction(
-        'Launch point moved',
-        'Q/E walk · Shift makes fine steps · arrows aim · Enter launches.',
-      );
-    }
-    return DidMove;
-  }
-  const IsLaunchKey = PressedKey === 'enter' || PressedKey === ' ';
-  const RotationDirection = PressedKey === 'arrowleft' || PressedKey === 'a'
-    ? 1
-    : (PressedKey === 'arrowright' || PressedKey === 'd' ? -1 : 0);
-  const PowerDirection = PressedKey === 'arrowup' || PressedKey === 'w'
-    ? 1
-    : (PressedKey === 'arrowdown' || PressedKey === 's' ? -1 : 0);
-
-  if (PressedKey === 'escape' && (
-    IsKeyboardAiming || IsPointerAiming || IsBurnAiming || IsCutAiming
-  )) {
-    KeyboardEventData.preventDefault();
-    if (IsCutAiming) {
-      cancelCutAim();
-    } else if (IsBurnAiming) {
-      cancelBurnAim();
-    } else {
-      cancelAimedLaunch();
-    }
-    return true;
-  }
-  if (ActiveHostileEncounterState && GamePhase === 'attached') {
-    if (!IsLaunchKey && RotationDirection === 0 && PowerDirection === 0) {
-      return false;
-    }
-    KeyboardEventData.preventDefault();
-    if (IsLaunchKey) {
-      if (KeyboardEventData.repeat) return true;
-      if (IsCutAiming) fireHostileCutFromPreview();
-      else fireNearestHostileCut();
-      return true;
-    }
-    const AttachedWorld = getCurrentAttachedWorld();
-    const Origin = getShipCutOrigin();
-    const BasisPointer = CutAimPointer ?? (
-      AttachedWorld
-        ? getNearestClampCut(
-          ActiveHostileEncounterState,
-          Origin,
-          AttachedWorld,
-          getRunnerSurfaceAngle(AttachedWorld),
-        )?.end
-        : null
-    ) ?? { x: Origin.x + 1, y: Origin.y };
-    KeyboardAimState = createKeyboardAimState({
-      directionX: BasisPointer.x - Origin.x,
-      directionY: BasisPointer.y - Origin.y,
-      powerRatio: Math.min(
-        1,
-        Math.max(
-          0.2,
-          Math.hypot(BasisPointer.x - Origin.x, BasisPointer.y - Origin.y)
-            / ActiveHostileEncounterState.maxCutLength,
-        ),
-      ),
-    });
-    IsCutAiming = true;
-    GameCanvas.classList.add('is-aiming');
-    AimPanelElement.hidden = false;
-    KeyboardAimState = adjustKeyboardAimState(KeyboardAimState, {
-      rotationDirection: RotationDirection,
-      powerDirection: PowerDirection,
-      fine: KeyboardEventData.shiftKey,
-    });
-    const Drag = getKeyboardAimDragVector(
-      KeyboardAimState,
-      ActiveHostileEncounterState.maxCutLength,
-    );
-    updateCutAimPreview({
-      x: Origin.x + Drag.x,
-      y: Origin.y + Drag.y,
-    });
-    return true;
-  }
-  if (!IsLaunchKey && RotationDirection === 0 && PowerDirection === 0) {
-    return false;
-  }
-  if (IsLaunchKey && KeyboardEventData.repeat) {
-    KeyboardEventData.preventDefault();
-    return true;
-  }
-  if (!IsKeyboardAiming && !beginKeyboardAim()) {
-    return false;
-  }
-
-  KeyboardEventData.preventDefault();
-  if (IsLaunchKey) {
-    if (IsKeyboardAiming) {
-      releaseAimedLaunch();
-    }
-    return true;
-  }
-
-  KeyboardAimState = adjustKeyboardAimState(KeyboardAimState, {
-    rotationDirection: RotationDirection,
-    powerDirection: PowerDirection,
-    fine: KeyboardEventData.shiftKey,
-  });
-  updateKeyboardAimPreview();
-  return true;
-}
-
-function beginCameraPan(WorldPosition) {
-  IsPointerScouting = true;
-  ScoutPointerStartWorldPosition.copy(WorldPosition);
-  if (IsScoutMode) {
-    ScoutCameraStartTarget.copy(ScoutCameraTarget);
-  } else {
-    PanOffsetStart.copy(CameraPanOffset);
-  }
-  GameCanvas.classList.add('is-scouting');
-}
-
-function updateCameraPan(WorldPosition) {
-  const NextX = (IsScoutMode ? ScoutCameraStartTarget.x : PanOffsetStart.x)
-    + (ScoutPointerStartWorldPosition.x - WorldPosition.x);
-  const NextY = (IsScoutMode ? ScoutCameraStartTarget.y : PanOffsetStart.y)
-    + (ScoutPointerStartWorldPosition.y - WorldPosition.y);
-  if (IsScoutMode) {
-    ScoutCameraTarget.set(
-      ScannerProjection
-        ? THREE.MathUtils.clamp(
-          NextX,
-          ScannerProjection.minimumX,
-          ScannerProjection.minimumX + ScannerProjection.width,
-        )
-        : NextX,
-      ScannerProjection
-        ? THREE.MathUtils.clamp(
-          NextY,
-          ScannerProjection.minimumY,
-          ScannerProjection.minimumY + ScannerProjection.height,
-        )
-        : NextY,
-      0,
-    );
-    GameCanvas.dataset.scoutX = ScoutCameraTarget.x.toFixed(2);
-    GameCanvas.dataset.scoutY = ScoutCameraTarget.y.toFixed(2);
-    return;
-  }
-  CameraPanOffset.set(NextX, NextY, 0);
-  GameCanvas.dataset.scoutX = CameraPanOffset.x.toFixed(2);
-  GameCanvas.dataset.scoutY = CameraPanOffset.y.toFixed(2);
-}
-
-function beginCutAim(WorldPosition) {
-  if (!ActiveHostileEncounterState || GamePhase !== 'attached') return false;
-  IsCutAiming = true;
-  CutAimPointer = { x: WorldPosition.x, y: WorldPosition.y };
-  GameCanvas.classList.add('is-aiming');
-  AimPanelElement.hidden = false;
-  AimLabelElement.textContent = 'CUT';
-  updateCutAimPreview(WorldPosition);
-  return true;
-}
-
-function updateCutAimPreview(WorldPosition) {
-  if (!IsCutAiming || !ActiveHostileEncounterState) return;
-  CutAimPointer = { x: WorldPosition.x, y: WorldPosition.y };
-  const Preview = getCurrentCutPreview();
-  const WillCancel = Boolean(Preview?.willCancel);
-  const HitCount = Preview && !WillCancel ? Preview.hits.length : 0;
-  AimPanelElement.classList.toggle('is-cancel', WillCancel);
-  AimLabelElement.textContent = WillCancel ? 'RELEASE TO CANCEL' : 'CUT';
-  const PowerRatio = THREE.MathUtils.clamp(
-    (Preview?.distance ?? 0) / ActiveHostileEncounterState.maxCutLength,
-    0,
-    1,
-  );
-  AimPowerFillElement.style.width = WillCancel ? '0%' : `${Math.round(PowerRatio * 100)}%`;
-  AimPowerFillElement.style.transform = 'none';
-  AimPowerValueElement.textContent = WillCancel
-    ? 'CANCEL'
-    : (HitCount > 0 ? `${HitCount} HIT` : 'MISS');
-  publishHostileEncounterState();
-  updateBreakerBurnInterface();
-}
-
-function cancelCutAim({ announce = true } = {}) {
-  const WasAiming = IsCutAiming;
-  IsCutAiming = false;
-  CutAimPointer = null;
-  ActivePointerIdentifier = null;
-  GameCanvas.classList.remove('is-aiming');
-  AimPanelElement.hidden = true;
-  AimPanelElement.classList.remove('is-cancel');
-  hideCutGuide();
-  if (WasAiming && announce) showStatusToast('CUT CANCELED', 650);
-  if (ActiveHostileEncounterState) {
-    publishHostileEncounterState();
-    updateBreakerBurnInterface();
-    showHostileEncounterInstruction();
-  }
-}
-
-function applyHostileCut(Origin, End) {
-  const AttachedWorld = getCurrentAttachedWorld();
-  if (!AttachedWorld || !ActiveHostileEncounterState || ReplayPlaybackState !== null) {
-    return false;
-  }
-  const Resolved = resolveHostileCut(
-    ActiveHostileEncounterState,
-    Origin,
-    End,
-    AttachedWorld,
-  );
-  if (Resolved.hitIds.length < 1) {
-    showStatusToast('MISSED', 700);
-    showHostileEncounterInstruction();
-    return false;
-  }
-  ActiveHostileEncounterState = Resolved.state;
-  const LastHit = Resolved.hitIds.at(-1);
-  const HitClamp = Resolved.state.clamps[LastHit];
-  if (HitClamp) {
-    const HitPosition = {
-      x: AttachedWorld.position.x
-        + (Math.cos(HitClamp.surfaceAngle) * (AttachedWorld.radius + 0.3)),
-      y: AttachedWorld.position.y
-        + (Math.sin(HitClamp.surfaceAngle) * (AttachedWorld.radius + 0.3)),
-    };
-    ImpactPulseMesh.material.color.set(0xffd678);
-    ImpactPulseMesh.position.set(HitPosition.x, HitPosition.y, 0.28);
-    ImpactPulseMesh.scale.setScalar(1.2);
-    ImpactPulseMesh.visible = true;
-    ImpactPulseLifeSeconds = 0.58;
-  }
-  WorldseedSound.impact(AttachedWorld.id);
-  GameCanvas.dataset.lastHostileWorld = AttachedWorld.id;
-  if (Resolved.state.completed) {
-    CompletedHostileEncounterWorldIdentifiers.add(AttachedWorld.id);
-    ActiveHostileEncounterState = null;
-    HostilePylonGroup.visible = false;
-    hideCutGuide();
-    publishHostileEncounterState();
-    if (AttachedWorld.kind === 'worldheart') {
-      return completeWorldheartLiberation();
-    }
-    updateBreakerBurnInterface();
-    showStatusToast('THE RIM IS CLEAR', 1350);
-    showInstruction(
-      `${AttachedWorld.label} can fly.`,
-      'Grab the ship and launch. Drag empty space to look around.',
-    );
-    flushQueuedStoryBoardsIfReady();
-    return true;
-  }
-  publishHostileEncounterState();
-  updateBreakerBurnInterface();
-  const RemainingCount = getRemainingClamps(Resolved.state).length;
-  showStatusToast(
-    Resolved.hitIds.length > 1
-      ? `${Resolved.hitIds.length} CLAMPS GONE`
-      : 'CLAMP GONE',
-    900,
-  );
-  showInstruction(
-    `${RemainingCount} left on ${AttachedWorld.label}.`,
-    RemainingCount === 1
-      ? 'One tooth remains. Drag through it.'
-      : 'A longer drag can take more than one.',
-  );
-  return true;
-}
-
-function fireHostileCutFromPreview() {
-  const Preview = getCurrentCutPreview();
-  if (!Preview || Preview.willCancel) {
-    cancelCutAim({ announce: true });
-    return false;
-  }
-  IsCutAiming = false;
-  CutAimPointer = null;
-  ActivePointerIdentifier = null;
-  GameCanvas.classList.remove('is-aiming');
-  AimPanelElement.hidden = true;
-  AimPanelElement.classList.remove('is-cancel');
-  hideCutGuide();
-  return applyHostileCut(Preview.origin, Preview.end);
-}
-
-function releaseCutAim() {
-  return fireHostileCutFromPreview();
-}
-
-function fireNearestHostileCut() {
-  const AttachedWorld = getCurrentAttachedWorld();
-  if (!AttachedWorld || !ActiveHostileEncounterState) return false;
-  CutAimPointer = null;
-  const Preview = getCurrentCutPreview();
-  if (!Preview || Preview.hits.length < 1) {
-    showStatusToast('TOO FAR', 700);
-    showHostileEncounterInstruction();
-    return false;
-  }
-  return applyHostileCut(Preview.origin, Preview.end);
-}
-
-function beginBurnAim(WorldPosition) {
-  IsBurnAiming = true;
-  BurnAimDirection = {
-    x: WorldPosition.x - SeedPhysicsState.position.x,
-    y: WorldPosition.y - SeedPhysicsState.position.y,
-  };
-  GameCanvas.classList.add('is-aiming');
-  AimPanelElement.hidden = false;
-  AimLabelElement.textContent = 'BREAK';
-  updateBurnAimPreview(WorldPosition);
-}
-
-function updateBurnAimPreview(WorldPosition) {
-  BurnAimDirection = {
-    x: WorldPosition.x - SeedPhysicsState.position.x,
-    y: WorldPosition.y - SeedPhysicsState.position.y,
-  };
-  const Distance = Math.hypot(BurnAimDirection.x, BurnAimDirection.y);
-  const WillCancel = shouldCancelAimedLaunch({
-    pointerDistanceFromShip: Distance,
-    cancelRadius: LaunchCancelRadius,
-  });
-  AimPanelElement.classList.toggle('is-cancel', WillCancel);
-  AimLabelElement.textContent = WillCancel ? 'RELEASE TO CANCEL' : 'BREAK';
-  const PowerRatio = THREE.MathUtils.clamp(Distance / MaximumDragDistance, 0, 1);
-  AimPowerFillElement.style.width = WillCancel ? '0%' : `${Math.round(PowerRatio * 100)}%`;
-  AimPowerFillElement.style.transform = 'none';
-  AimPowerValueElement.textContent = WillCancel ? 'CANCEL' : `${Math.round(PowerRatio * 100)}%`;
-  if (WillCancel || Distance < 0.001) {
-    clearTrajectoryPreview();
-    return;
-  }
-  const BurnedState = applyBreakerBurn(SeedPhysicsState, undefined, BurnAimDirection);
-  const TrajectoryPrediction = predictTrajectory(
-    BurnedState.position,
-    BurnedState.velocity,
-    WorldDefinitions,
-    {
-      seedRadius: SeedRadius,
-      fixedStepSeconds: FixedPhysicsStepSeconds,
-      maximumSteps: MaximumTrajectoryPredictionSteps,
-      ignoredWorldIdentifier: FlightOriginWorldIdentifier,
-      collisionBodyDefinitions: getActiveTacticalBodyDefinitions(),
-      startTimeSeconds: PhysicsElapsedTimeSeconds,
-    },
-  );
-  if (TrajectoryPrediction.points.length > 1) {
-    renderTrajectoryLine(TrajectoryPrediction.points);
-  }
-}
-
-function cancelBurnAim({ announce = true } = {}) {
-  IsBurnAiming = false;
-  BurnAimDirection = null;
-  ActivePointerIdentifier = null;
-  GameCanvas.classList.remove('is-aiming');
-  AimPanelElement.hidden = true;
-  AimPanelElement.classList.remove('is-cancel');
-  clearTrajectoryPreview();
-  if (announce) showStatusToast('BREAK CANCELED', 650);
-}
-
-function releaseBurnAim() {
-  const Direction = BurnAimDirection;
-  const Distance = Math.hypot(Direction?.x ?? 0, Direction?.y ?? 0);
-  const WillCancel = shouldCancelAimedLaunch({
-    pointerDistanceFromShip: Distance,
-    cancelRadius: LaunchCancelRadius,
-  });
-  IsBurnAiming = false;
-  ActivePointerIdentifier = null;
-  GameCanvas.classList.remove('is-aiming');
-  AimPanelElement.hidden = true;
-  AimPanelElement.classList.remove('is-cancel');
-  clearTrajectoryPreview();
-  if (WillCancel || !Direction) {
-    BurnAimDirection = null;
-    showStatusToast('BREAK CANCELED', 650);
-    return false;
-  }
-  BurnAimDirection = Direction;
-  return requestBreakerBurn();
-}
-
-/**
- * Begins a slingshot drag when the seed is attached and the pointer acquired it.
- *
- * @param {PointerEvent} PointerEventData - Browser pointer event.
- */
-function handlePointerDown(PointerEventData) {
-  if (IsOpeningBriefingActive) {
-    return;
-  }
-  if (RunState.status !== 'active' || ReplayPlaybackState !== null) {
-    return;
-  }
-
-  rememberPointerLocation(PointerEventData);
-  if (beginPinchIfNeeded()) {
-    PointerEventData.preventDefault();
-    return;
-  }
-  if (ActivePointerIdentifier !== null || PinchState) {
-    return;
-  }
-
-  const CurrentPointerWorldPosition = getPointerWorldPosition(PointerEventData);
-  if (!CurrentPointerWorldPosition) {
-    return;
-  }
-
-  GameCanvas.focus({ preventScroll: true });
-  ActivePointerIdentifier = PointerEventData.pointerId;
-  GameCanvas.setPointerCapture(PointerEventData.pointerId);
-
-  if (GamePhase === 'flying') {
-    if (isPointerOverSeed(PointerEventData) && IsBreakerBurnAvailable && !IsBreakerBurnPending) {
-      beginBurnAim(CurrentPointerWorldPosition);
-    } else {
-      beginCameraPan(CurrentPointerWorldPosition);
-    }
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (GamePhase !== 'attached') {
-    ActivePointerIdentifier = null;
-    if (GameCanvas.hasPointerCapture(PointerEventData.pointerId)) {
-      GameCanvas.releasePointerCapture(PointerEventData.pointerId);
-    }
-    return;
-  }
-
-  cancelKeyboardAim();
-  if (isPointerOverSeed(PointerEventData) && ActiveHostileEncounterState) {
-    setScoutMode(false);
-    PointerGestureMode = SurfaceGestureModes.aim;
-    beginCutAim(CurrentPointerWorldPosition);
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (isPointerOverSeed(PointerEventData) && !ActiveHostileEncounterState) {
-    setScoutMode(false);
-    PointerGestureMode = SurfaceGestureModes.aim;
-    PointerGestureStartWorldPosition.copy(CurrentPointerWorldPosition);
-    LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
-    captureAimInteractionCamera();
-    CameraPanOffset.set(0, 0, 0);
-    AimZoomScale = 1;
-    IsPointerAiming = true;
-    WorldseedSound.beginAim();
-    GameCanvas.classList.add('is-aiming');
-    AimPanelElement.hidden = false;
-    updateAimPreview(CurrentPointerWorldPosition);
-    snapLiveCameraToPlanningView();
-    refreshPlanningZoomControls();
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (isPointerOverAttachedWorld(CurrentPointerWorldPosition)) {
-    setScoutMode(false);
-    PointerGestureMode = SurfaceGestureModes.walk;
-    IsPointerWalking = true;
-    GameCanvas.classList.add('is-walking');
-    const AttachedWorld = getCurrentAttachedWorld();
-    if (!showHostileEncounterInstruction()) {
-      showInstruction(
-        `Walking around ${AttachedWorld.label}`,
-        'Trace the rim to choose a launch point. Grab the ship to aim. Drag empty space to pan. Pinch or wheel to zoom.',
-      );
-    }
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  beginCameraPan(CurrentPointerWorldPosition);
-  PointerEventData.preventDefault();
-}
-
-/**
- * Updates a slingshot drag.
- *
- * @param {PointerEvent} PointerEventData - Browser pointer event.
- */
-function handlePointerMove(PointerEventData) {
-  rememberPointerLocation(PointerEventData);
-  if (PinchState) {
-    updatePinchZoom();
-    PointerEventData.preventDefault();
-    return;
-  }
-  if (PointerEventData.pointerId !== ActivePointerIdentifier) {
-    return;
-  }
-
-  const CurrentPointerWorldPosition = getPointerWorldPosition(
-    PointerEventData,
-    (IsPointerAiming && AimInteractionCamera) ? AimInteractionCamera : Camera,
-  );
-  if (!CurrentPointerWorldPosition) {
-    return;
-  }
-
-  if (IsCutAiming) {
-    updateCutAimPreview(CurrentPointerWorldPosition);
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (IsBurnAiming) {
-    updateBurnAimPreview(CurrentPointerWorldPosition);
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (IsPointerScouting) {
-    updateCameraPan(CurrentPointerWorldPosition);
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (IsPointerWalking) {
-    const AttachedWorld = getCurrentAttachedWorld();
-    const SurfaceAngle = Math.atan2(
-      CurrentPointerWorldPosition.y - AttachedWorld.position.y,
-      CurrentPointerWorldPosition.x - AttachedWorld.position.x,
-    );
-    setRunnerSurfaceAngle(SurfaceAngle);
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (IsPointerAiming) {
-    LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
-    updateAimPreview(CurrentPointerWorldPosition);
-  }
-  PointerEventData.preventDefault();
-}
-
-/** Launches the current pointer or keyboard aim through the shared deterministic path. */
-function releaseAimedLaunch() {
-  IsPointerAiming = false;
-  IsPointerWalking = false;
-  IsPointerScouting = false;
-  PointerGestureMode = SurfaceGestureModes.pending;
-  IsKeyboardAiming = false;
-  setScoutMode(false);
-  FlightElapsedSeconds = 0;
-  IsBreakerBurnAvailable = false;
-  IsBreakerBurnPending = false;
-  ActivePointerIdentifier = null;
-  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
-  AimPanelElement.hidden = true;
-  AimPanelElement.classList.remove('is-cancel');
-  releaseAimInteractionCamera();
-
-  if (AimDragVector.length() < MinimumLaunchDragDistance) {
-    clearTrajectoryPreview();
-    WorldseedSound.endAim();
-    showInstruction('Aim the Runner', 'Drag, or use the arrow keys and press Enter to launch.');
-    return false;
-  }
-
-  applySectorPlanningCamera();
-
-  RunState = releaseRunLaunch(RunState);
-  updateLaunchCounter();
-
-  SeedPhysicsState.velocity = createVector(
-    AimLaunchVelocity.x,
-    AimLaunchVelocity.y,
-    0,
-  );
-  ReplayState = recordReplayLaunch(ReplayState, {
-    stepIndex: Math.round(PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz),
-    originIdentifier: CurrentWorldIdentifier,
-    originX: SeedPhysicsState.position.x,
-    originY: SeedPhysicsState.position.y,
-    velocityX: AimLaunchVelocity.x,
-    velocityY: AimLaunchVelocity.y,
-  });
-  GameCanvas.dataset.replayLaunchCount = String(ReplayState.launches.length);
-  GameCanvas.dataset.lastLaunchVelocityX = AimLaunchVelocity.x.toFixed(3);
-  GameCanvas.dataset.lastLaunchVelocityY = AimLaunchVelocity.y.toFixed(3);
-  GameCanvas.dataset.lastLaunchTime = PhysicsElapsedTimeSeconds.toFixed(3);
-  const IsLaunchingFromSeedstone = CurrentWorldIdentifier === SeedstoneDefinition.id;
-  FlightOriginWorldIdentifier = IsLaunchingFromSeedstone ? null : CurrentWorldIdentifier;
-  FlightCollectedStardustIdentifiers.clear();
-  FlightHadAsteroidClosePass = false;
-  FlightClosePassWorldIdentifiers.clear();
-  LaunchIgnoredWorldIdentifier = IsLaunchingFromSeedstone ? null : CurrentWorldIdentifier;
-  LaunchIgnoredBodyIdentifier = IsLaunchingFromSeedstone ? SeedstoneDefinition.id : null;
-  if (IsLaunchingFromSeedstone) {
-    AttachedSeedstoneSurfaceOffset = null;
-    SeedstoneUsesRemaining = 0;
-    SeedstoneCrumbleStartedAtSeconds = GameElapsedTimeSeconds;
-    showStatusToast(`${SeedstoneDefinition.label} SPENT`, 650);
-  }
-  GamePhase = 'flying';
-  FlightElapsedSeconds = 0;
-  IsBreakerBurnAvailable = true;
-  IsBreakerBurnPending = false;
-  updateBreakerBurnInterface();
-  HasLaunchedOnce = true;
-  captureCommittedLaunchPrediction(AimLaunchVelocity);
-  refreshPlanningZoomControls();
-  LaunchPulseMesh.position.copy(SeedGroup.position);
-  LaunchPulseMesh.scale.setScalar(1);
-  LaunchPulseMesh.visible = true;
-  LaunchPulseLifeSeconds = 0.42;
-  TrailEmissionAccumulatorSeconds = 0;
-  WorldseedSound.launch(THREE.MathUtils.clamp(
-    AimDragVector.length() / MaximumDragDistance,
-    0,
-    1,
-  ));
-  if (!HasTaughtBurn) {
-    HasTaughtBurn = true;
-    showInstruction(
-      'Break ready',
-      'Drag from the ship to break your line any direction. Drag back onto it, or press Escape, to cancel.',
-    );
-  } else {
-    hideInstruction();
-  }
-  return true;
-}
-
-function updateBreakerBurnInterface() {
-  const IsHostileCut = Boolean(ActiveHostileEncounterState);
-  const RemainingCount = IsHostileCut
-    ? getRemainingClamps(ActiveHostileEncounterState).length
-    : 0;
-  const PreviewHitCount = IsHostileCut ? getCurrentCutHitIds().length : 0;
-  if (IsHostileCut) publishHostileEncounterState();
-  BurnButtonElement.hidden = GamePhase !== 'flying' && !IsHostileCut;
-  BurnButtonElement.classList.toggle('is-pulse', IsHostileCut);
-  BurnButtonElement.classList.toggle(
-    'is-spent',
-    IsHostileCut ? RemainingCount < 1 : !IsBreakerBurnAvailable,
-  );
-  BurnButtonElement.disabled = IsHostileCut ? RemainingCount < 1 : !IsBreakerBurnAvailable;
-  BurnButtonElement.querySelector('span').textContent = IsHostileCut ? 'CUT' : 'BREAK';
-  BurnButtonElement.querySelector('strong').textContent = IsHostileCut
-    ? (PreviewHitCount > 0 ? `${PreviewHitCount} HIT` : `${RemainingCount} LEFT`)
-    : IsBreakerBurnAvailable
-      ? (IsBreakerBurnPending ? 'ARMED' : 'READY')
-      : 'SPENT';
-  BurnButtonElement.setAttribute(
-    'aria-label',
-    IsHostileCut
-      ? `Cut ${RemainingCount} clamp${RemainingCount === 1 ? '' : 's'} remaining`
-      : `Break ${IsBreakerBurnAvailable ? 'ready' : 'spent'}`,
-  );
-  GameCanvas.dataset.breakerBurn = GamePhase !== 'flying'
-    ? 'stowed'
-    : (IsBreakerBurnAvailable ? (IsBreakerBurnPending ? 'armed' : 'ready') : 'spent');
-}
-
-function requestBreakerPulse() {
-  if (IsCutAiming) return fireHostileCutFromPreview();
-  return fireNearestHostileCut();
-}
-
-function requestBreakerAction() {
-  return ActiveHostileEncounterState
-    ? requestBreakerPulse()
-    : requestBreakerBurn();
-}
-
-/** Queues input for the next authoritative fixed step rather than mutating between frames. */
-function requestBreakerBurn() {
-  if (
-    GamePhase !== 'flying'
-    || !IsBreakerBurnAvailable
-    || IsBreakerBurnPending
-    || ReplayPlaybackState !== null
-  ) {
-    return false;
-  }
-  IsBreakerBurnPending = true;
-  updateBreakerBurnInterface();
-  return true;
-}
-
-function applyBreakerBurnAtCurrentStep({ record = false } = {}) {
-  if (!IsBreakerBurnAvailable) return false;
-  SeedPhysicsState = applyBreakerBurn(SeedPhysicsState, undefined, BurnAimDirection);
-  IsBreakerBurnAvailable = false;
-  IsBreakerBurnPending = false;
-  CommittedPredictionPoints = null;
-  GameCanvas.dataset.predictionHoldActive = 'false';
-  if (record) {
-    ReplayState = recordReplayBurn(ReplayState, {
-      stepIndex: Math.round(PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz),
-      directionX: BurnAimDirection?.x ?? null,
-      directionY: BurnAimDirection?.y ?? null,
-    });
-  }
-  GameCanvas.dataset.breakerBurnStep = String(
-    Math.round(PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz),
-  );
-  GameCanvas.dataset.breakerBurnSpeed = Math.hypot(
-    SeedPhysicsState.velocity.x,
-    SeedPhysicsState.velocity.y,
-  ).toFixed(3);
-  LaunchPulseMesh.position.copy(SeedGroup.position);
-  LaunchPulseMesh.scale.setScalar(1.3);
-  LaunchPulseMesh.visible = true;
-  LaunchPulseLifeSeconds = 0.5;
-  showStatusToast('BREAK', 650);
-  BurnAimDirection = null;
-  updateBreakerBurnInterface();
-  return true;
-}
-
-/**
- * Converts the final drag vector into launch velocity, or cancels if the gesture was tiny.
- *
- * @param {PointerEvent} PointerEventData - Browser pointer event.
- */
-function handlePointerUp(PointerEventData) {
-  forgetPointerLocation(PointerEventData);
-  if (PinchState && PointerByIdentifier.size < 2) {
-    PinchState = null;
-    if (PointerEventData.pointerId === ActivePointerIdentifier) {
-      ActivePointerIdentifier = null;
-    }
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (PointerEventData.pointerId !== ActivePointerIdentifier) {
-    return;
-  }
-
-  if (GameCanvas.hasPointerCapture(PointerEventData.pointerId)) {
-    GameCanvas.releasePointerCapture(PointerEventData.pointerId);
-  }
-
-  if (IsCutAiming) {
-    const CurrentCutPointerWorldPosition = getPointerWorldPosition(PointerEventData);
-    if (CurrentCutPointerWorldPosition) {
-      updateCutAimPreview(CurrentCutPointerWorldPosition);
-    }
-    releaseCutAim();
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (IsBurnAiming) {
-    const CurrentPointerWorldPosition = getPointerWorldPosition(PointerEventData);
-    if (CurrentPointerWorldPosition) {
-      updateBurnAimPreview(CurrentPointerWorldPosition);
-    }
-    releaseBurnAim();
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (IsPointerScouting) {
-    IsPointerScouting = false;
-    ActivePointerIdentifier = null;
-    GameCanvas.classList.remove('is-scouting');
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (IsPointerWalking) {
-    IsPointerWalking = false;
-    ActivePointerIdentifier = null;
-    PointerGestureMode = SurfaceGestureModes.pending;
-    GameCanvas.classList.remove('is-walking');
-    if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  if (!IsPointerAiming) {
-    ActivePointerIdentifier = null;
-    PointerGestureMode = SurfaceGestureModes.pending;
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  const CurrentPointerWorldPosition = getPointerWorldPosition(
-    PointerEventData,
-    (IsPointerAiming && AimInteractionCamera) ? AimInteractionCamera : Camera,
-  );
-  if (CurrentPointerWorldPosition) {
-    LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
-    updateAimPreview(CurrentPointerWorldPosition);
-  }
-
-  if (shouldCancelAimedLaunch({
-    pointerDistanceFromShip: AimDragVector.length(),
-    cancelRadius: LaunchCancelRadius,
-  })) {
-    cancelAimedLaunch();
-    PointerEventData.preventDefault();
-    return;
-  }
-
-  releaseAimedLaunch();
-  PointerGestureMode = SurfaceGestureModes.pending;
-  PointerEventData.preventDefault();
-}
-
-function handlePointerCancel(PointerEventData) {
-  forgetPointerLocation(PointerEventData);
-  if (PinchState && PointerByIdentifier.size < 2) {
-    PinchState = null;
-  }
-  if (PointerEventData.pointerId !== ActivePointerIdentifier) return;
-  if (GameCanvas.hasPointerCapture(PointerEventData.pointerId)) {
-    GameCanvas.releasePointerCapture(PointerEventData.pointerId);
-  }
-  if (IsCutAiming) {
-    cancelCutAim();
-    return;
-  }
-  if (IsBurnAiming) {
-    cancelBurnAim();
-    return;
-  }
-  const WasAiming = IsPointerAiming;
-  IsPointerAiming = false;
-  IsPointerWalking = false;
-  IsPointerScouting = false;
-  ActivePointerIdentifier = null;
-  PointerGestureMode = SurfaceGestureModes.pending;
-  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
-  AimPanelElement.hidden = true;
-  AimPanelElement.classList.remove('is-cancel');
-  releaseAimInteractionCamera();
-  clearTrajectoryPreview();
-  if (WasAiming) WorldseedSound.endAim();
-}
 
 /**
  * Returns the seed to its last safe world after a miss. Recovery is intentionally fast so
