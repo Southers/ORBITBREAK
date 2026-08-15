@@ -561,6 +561,18 @@ playback, hid the cue, restored recording state and retained canvas focus. The b
 warnings or errors. The release audit protects both semantic and type-size floors. This accessibility
 pass changes no replay schedule, fixed-step input, physics, score, pursuit or submission behavior.
 
+Gauntlet pass 27 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The Warden panel's state and target—the persistent forecast for
+the game's central pressure system—still used 8px type while its flight count used 13px, leaving
+`WARDEN APPROACH`, `NETWORK BLOCKED` and named targets visibly subordinate to decorative tactical
+labels on portrait mobile. Both forecast lines now use a 10px/12px single-line floor while retaining
+the stronger flight-count hierarchy. A fresh four-launch route revealed the Warden, closed Haven's
+first circuit and advanced to Frost. At 390×844 the panel remained a compact 142×63.2px with a 102px
+gap from the scanner; at 1280×720 it remained 174×67.2px. Both `NETWORK BLOCKED` and `NEXT: FROST`
+stayed unwrapped, both layouts stayed overflow-free and the browser reported no warnings or errors.
+The release audit protects the forecast floor. This legibility pass changes no target selection,
+pursuit timing, input, fixed-step physics, scoring or replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

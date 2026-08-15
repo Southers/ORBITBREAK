@@ -94,6 +94,10 @@ export function auditReleaseReadiness() {
     'Replay progress must remain an atomic live status at a legible type floor.',
   );
   requireCondition(
+    /\.warden-panel\s+span,\s*\.warden-panel\s+small\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;[^}]*white-space:\s*nowrap;/s.test(StyleSheet),
+    'Warden state and target forecasts must retain their legible single-line floor.',
+  );
+  requireCondition(
     /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),
     'Release diagnostics must remain restricted to local development hosts.',
   );
