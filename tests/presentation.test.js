@@ -11,6 +11,7 @@ import {
   getRelayCourierTravelProgress,
   getRelayLinkOpacity,
   getRelayRevealLookTarget,
+  getSectorPlanningCamera,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
@@ -328,6 +329,26 @@ test('relay links retain a bright bounded pulse for system-scale readability', (
   assert.equal(getRelayLinkOpacity(4, { reducedMotion: true }), 0.8);
   assert.equal(getRelayLinkOpacity(40, { reducedMotion: true }), 0.8);
   assert.throws(() => getRelayLinkOpacity(Number.NaN), /finite time/);
+});
+
+test('sector planning camera frames the whole Reach while keeping the Runner in view', () => {
+  const PlanningCamera = getSectorPlanningCamera({
+    runner: { x: -22, y: -8 },
+    focusPoints: [
+      { x: -22, y: -8 },
+      { x: 18, y: 2 },
+      { x: 12, y: 14 },
+      { x: 24, y: 8 },
+    ],
+    viewportWorldWidth: 20,
+    viewportWorldHeight: 24,
+  });
+  assert.ok(PlanningCamera.scale > 2);
+  assert.ok(Math.abs(PlanningCamera.lookX - (-22)) < PlanningCamera.scale * 20 * 0.42 + 1e-9);
+  assert.throws(
+    () => getSectorPlanningCamera({ runner: { x: 0, y: 0 }, viewportWorldWidth: 0, viewportWorldHeight: 24 }),
+    /positive viewport/,
+  );
 });
 
 test('world landing aim copy names a new destination without calling it imprisoned', () => {

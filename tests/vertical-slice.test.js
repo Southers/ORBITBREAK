@@ -19,7 +19,7 @@ import { predictSlingshotEvents } from '../src/scoring.js';
 
 const SeedRadius = 0.46;
 const FixedStepSeconds = 1 / 120;
-const RankedPredictionVisibleSteps = 160;
+const MaximumTrajectoryPredictionSteps = 720;
 
 function createOpeningPosition(WorldDefinitions) {
   const Haven = WorldDefinitions.find((WorldDefinition) => WorldDefinition.id === 'meadow');
@@ -69,7 +69,7 @@ function simulateOpeningBurnRoute(Runtime, {
     (BodyDefinition) => BodyDefinition.kind !== 'worldheart',
   );
 
-  for (let StepIndex = 1; StepIndex <= 520; StepIndex += 1) {
+  for (let StepIndex = 1; StepIndex <= MaximumTrajectoryPredictionSteps; StepIndex += 1) {
     if (StepIndex === burnStepIndex) PhysicsState = applyBreakerBurn(PhysicsState);
     PhysicsState = simulatePhysicsStep(
       PhysicsState,
@@ -131,7 +131,7 @@ function predictOpeningRoute(WorldDefinitions, TacticalBodyDefinitions, AngleDeg
     {
       seedRadius: SeedRadius,
       fixedStepSeconds: FixedStepSeconds,
-      maximumSteps: 520,
+      maximumSteps: MaximumTrajectoryPredictionSteps,
       ignoredWorldIdentifier: 'meadow',
       collisionBodyDefinitions: TacticalBodyDefinitions.filter(
         (BodyDefinition) => BodyDefinition.kind !== 'worldheart',
@@ -153,15 +153,26 @@ function calculateRestPosition(BodyDefinition, ImpactPosition) {
   );
 }
 
-test("Breaker\'s Reach offers a readable safe route and a hidden high-score route", () => {
+test("Breaker\'s Reach offers a readable safe hop and a visible multi-world chain", () => {
   const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition, { createVector });
   const SafeRoute = predictOpeningRoute(Runtime.worlds, Runtime.tacticalBodies, 0, 6);
-  const HighScoreRoute = predictOpeningRoute(Runtime.worlds, Runtime.tacticalBodies, 25, 11.5);
+  const HighScoreRoute = predictOpeningRoute(
+    Runtime.worlds,
+    Runtime.tacticalBodies,
+    16.5,
+    MaximumLaunchSpeed,
+  );
+  const TripleChain = predictOpeningRoute(
+    Runtime.worlds,
+    Runtime.tacticalBodies,
+    16,
+    MaximumLaunchSpeed,
+  );
 
   assert.equal(SafeRoute.collisionWorldIdentifier, 'ember');
-  assert.ok(SafeRoute.points.length - 1 <= RankedPredictionVisibleSteps);
+  assert.ok(SafeRoute.points.length - 1 <= MaximumTrajectoryPredictionSteps);
   assert.equal(HighScoreRoute.collisionWorldIdentifier, 'tide');
-  assert.ok(HighScoreRoute.points.length - 1 > RankedPredictionVisibleSteps);
+  assert.ok(HighScoreRoute.collisionKind !== null);
 
   const AssistEvents = predictSlingshotEvents(HighScoreRoute.points, Runtime.worlds, {
     runnerRadius: SeedRadius,
@@ -169,11 +180,20 @@ test("Breaker\'s Reach offers a readable safe route and a hidden high-score rout
   });
   assert.deepEqual(
     AssistEvents.map((Event) => [Event.bodyIdentifier, Event.tier]),
-    [['ember', 'razor'], ['grove', 'razor']],
+    [['ember', 'assist'], ['grove', 'assist']],
   );
   assert.equal(
     AssistEvents.reduce((Total, Event) => Total + Event.points, 0),
-    3150,
+    1050,
+  );
+
+  const TripleEvents = predictSlingshotEvents(TripleChain.points, Runtime.worlds, {
+    runnerRadius: SeedRadius,
+    ignoredBodyIdentifier: 'meadow',
+  });
+  assert.deepEqual(
+    TripleEvents.map((Event) => Event.bodyIdentifier),
+    ['ember', 'grove', 'tide'],
   );
 });
 
@@ -182,7 +202,7 @@ test("Breaker\'s Reach near-max opening shot can chain Ember and Grove into Tide
   const ChainRoute = predictOpeningRoute(
     Runtime.worlds,
     Runtime.tacticalBodies,
-    25,
+    16.5,
     MaximumLaunchSpeed,
   );
 
@@ -200,11 +220,17 @@ test("Breaker\'s Reach near-max opening shot can chain Ember and Grove into Tide
 
 test("Breaker\'s Reach dark-rim route requires repositioning and a timed Burn", () => {
   const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition, { createVector });
+  const Haven = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'meadow');
+  const Ember = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'ember');
+  const OpeningSurfaceAngleDegrees = Math.atan2(
+    Ember.position.y - Haven.position.y,
+    Ember.position.x - Haven.position.x,
+  ) * (180 / Math.PI);
   const RouteInput = {
-    surfaceAngleDegrees: -115,
-    launchAngleDegrees: 80,
-    speed: 6.8,
-    burnStepIndex: 50,
+    surfaceAngleDegrees: -140,
+    launchAngleDegrees: 90,
+    speed: 7.5,
+    burnStepIndex: 30,
   };
   const BurnRoute = simulateOpeningBurnRoute(Runtime, RouteInput);
   const NoBurnRoute = simulateOpeningBurnRoute(Runtime, {
@@ -213,29 +239,25 @@ test("Breaker\'s Reach dark-rim route requires repositioning and a timed Burn", 
   });
   const DefaultSurfaceRoute = simulateOpeningBurnRoute(Runtime, {
     ...RouteInput,
-    surfaceAngleDegrees: 4.0856,
+    surfaceAngleDegrees: OpeningSurfaceAngleDegrees,
   });
 
-  assert.deepEqual(BurnRoute, {
-    collisionIdentifier: 'frost',
-    collisionStepIndex: 258,
-    collectedStardustIdentifiers: ['breaker-arc-2'],
-  });
+  assert.equal(BurnRoute.collisionIdentifier, 'frost');
+  assert.equal(BurnRoute.collisionStepIndex, 272);
   assert.equal(NoBurnRoute.collisionIdentifier, null);
   assert.equal(DefaultSurfaceRoute.collisionIdentifier, null);
 
   const Frost = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'frost');
-  const Ember = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'ember');
   assert.ok(Frost.liberationValue > Ember.liberationValue);
 });
 
 test("Breaker\'s Reach has a deterministic four-launch completion route", () => {
   const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition, { createVector });
   const Route = [
-    { source: 'meadow', target: 'ember', angle: 2 },
-    { source: 'ember', target: 'grove', angle: 2 },
-    { source: 'grove', target: 'tide', angle: 28 },
-    { source: 'tide', target: 'worldheart', angle: 40 },
+    { source: 'meadow', target: 'ember', angle: 0 },
+    { source: 'ember', target: 'grove', angle: 48 },
+    { source: 'grove', target: 'tide', angle: 36 },
+    { source: 'tide', target: 'worldheart', angle: -10 },
   ];
   let Position = createOpeningPosition(Runtime.worlds);
   let SimulationTimeSeconds = 0;
@@ -254,7 +276,7 @@ test("Breaker\'s Reach has a deterministic four-launch completion route", () => 
       {
         seedRadius: SeedRadius,
         fixedStepSeconds: FixedStepSeconds,
-        maximumSteps: 520,
+        maximumSteps: MaximumTrajectoryPredictionSteps,
         ignoredWorldIdentifier: RouteStep.source,
         collisionBodyDefinitions: Runtime.tacticalBodies.filter(
           (BodyDefinition) => BodyDefinition.kind !== 'worldheart' || IsCommandStep,

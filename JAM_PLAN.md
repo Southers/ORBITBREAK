@@ -811,6 +811,15 @@ and Grove into Tide. Scoring rings appear while aiming or flying, and a long-arc
 when it already holds a chain. Gravity, Burn, replay inputs and anti-farming are unchanged. This is
 the start of making the loop fun, not a claim that it already is.
 
+Gameplay honesty check — 15 August 2026, later: even with a 12.5 speed cap and gold chain tint, aiming
+stayed glued to the Runner and the ranked preview still hid the rest of the shot. A Tide lock and a
+three-world chain were physically possible but invisible. Aiming now pulls the camera out to the whole
+Reach and draws the exact remaining path. Breaker's Reach wells were packed and strengthened so a
+readable opening still hits Ember, a committed near-max line can sling Ember and Grove into Tide, and
+a slightly tighter angle chains three worlds in one flight. One resolved flight is still one Warden
+beat, so a visible chain is the faster escape. This is a planning rewrite, not a claim that Gameplay
+is already a 9.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
