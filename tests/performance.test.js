@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   SmoothSamplesBeforeUpgrade,
   advanceAdaptivePixelRatio,
+  getAdaptivePresentationTier,
   getViewportPixelRatioCap,
 } from '../src/performance.js';
 
@@ -75,4 +76,11 @@ test('background and middling samples cannot change quality', () => {
     ),
     { cap: 1.5, smoothSamples: 0, action: 'steady' },
   );
+});
+
+test('presentation tiers cut shadows and sway before dropping below a readable floor', () => {
+  assert.equal(getAdaptivePresentationTier(2), 'high');
+  assert.equal(getAdaptivePresentationTier(1.5), 'balanced');
+  assert.equal(getAdaptivePresentationTier(1.25), 'degraded');
+  assert.equal(getAdaptivePresentationTier(1), 'degraded');
 });

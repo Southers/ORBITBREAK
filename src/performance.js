@@ -1,3 +1,20 @@
+export const QualityPresentationTiers = Object.freeze({
+  high: 'high',
+  balanced: 'balanced',
+  degraded: 'degraded',
+});
+
+/** Maps the live pixel-ratio cap onto presentation cost: shadows, motes and sway. */
+export function getAdaptivePresentationTier(cap) {
+  if (!(cap > 1.25)) {
+    return QualityPresentationTiers.degraded;
+  }
+  if (!(cap > 1.5)) {
+    return QualityPresentationTiers.balanced;
+  }
+  return QualityPresentationTiers.high;
+}
+
 export const MinimumAdaptivePixelRatio = 1;
 export const AdaptivePixelRatioStep = 0.25;
 export const SlowFrameThresholdSeconds = 1 / 34;

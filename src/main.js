@@ -36,8 +36,10 @@ import {
 import {
   SmoothSamplesBeforeUpgrade,
   advanceAdaptivePixelRatio,
+  getAdaptivePresentationTier,
   getViewportPixelRatioCap,
 } from './performance.js?v=20260814-ob13';
+import { addEnvironment } from './environment.js?v=20260815-ob89';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -95,8 +97,8 @@ import {
   findCircuitBeaconLink,
   getRelayDegree,
   isRelayWorldLive,
-  listLiveRelayCircuits,
-  listLiveRelayLinks,
+  listLiveRelayCircuits as listAuthoredLiveRelayCircuits,
+  listLiveRelayLinks as listAuthoredLiveRelayLinks,
   listProtectedRelayWorlds,
   listRelayCircuits,
   listRelayLinks,
@@ -448,6 +450,10 @@ let IsPageActive = !document.hidden;
 let IsWebGLContextAvailable = true;
 let AdaptivePixelRatioCap = 2;
 let SmoothPerformanceSampleCount = 0;
+let PresentationQualityTier = 'high';
+let CachedInstructionPanelTop = 0;
+let FrameLiveRelayLinks = null;
+let FrameLiveRelayCircuits = null;
 let PerformanceSampleElapsedSeconds = 0;
 let PerformanceSampleFrameCount = 0;
 let PerformanceSampleDeltaSeconds = 0;
@@ -761,125 +767,8 @@ function updateScannerInterface() {
  * Adds restrained scene lighting. The tiny-world art pass can later replace this with a
  * more authored lighting rig without changing gameplay code.
  */
-function createLighting() {
-  const HemisphereLight = new THREE.HemisphereLight(
-    ActiveSystem.environment.hemisphereSkyColor,
-    ActiveSystem.environment.hemisphereGroundColor,
-    1.55,
-  );
-  Scene.add(HemisphereLight);
-
-  const KeyLight = new THREE.DirectionalLight(ActiveSystem.environment.keyLightColor, 3.2);
-  KeyLight.position.set(-12, 18, 24);
-  KeyLight.castShadow = true;
-  KeyLight.shadow.mapSize.set(1024, 1024);
-  KeyLight.shadow.camera.left = -24;
-  KeyLight.shadow.camera.right = 24;
-  KeyLight.shadow.camera.top = 24;
-  KeyLight.shadow.camera.bottom = -24;
-  KeyLight.shadow.camera.near = 4;
-  KeyLight.shadow.camera.far = 80;
-  KeyLight.shadow.bias = -0.0004;
-  KeyLight.shadow.normalBias = 0.035;
-  Scene.add(KeyLight);
-
-  const FillLight = new THREE.DirectionalLight(ActiveSystem.environment.fillLightColor, 1.0);
-  FillLight.position.set(18, -10, 14);
-  Scene.add(FillLight);
-
-  const RimLight = new THREE.DirectionalLight(ActiveSystem.environment.rimLightColor, 1.15);
-  RimLight.position.set(8, 12, -18);
-  Scene.add(RimLight);
-}
-
-/** Adds a soft generated colour field behind the stars without an external texture. */
-function createBackgroundGlow(Position, Scale, InnerRed, InnerGreen, InnerBlue, InnerAlpha) {
-  const GlowCanvas = document.createElement('canvas');
-  GlowCanvas.width = 128;
-  GlowCanvas.height = 128;
-  const GlowContext = GlowCanvas.getContext('2d');
-  const GlowGradient = GlowContext.createRadialGradient(64, 64, 0, 64, 64, 64);
-  GlowGradient.addColorStop(
-    0,
-    `rgba(${InnerRed}, ${InnerGreen}, ${InnerBlue}, ${InnerAlpha})`,
-  );
-  GlowGradient.addColorStop(
-    0.45,
-    `rgba(${InnerRed}, ${InnerGreen}, ${InnerBlue}, ${InnerAlpha * 0.36})`,
-  );
-  GlowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  GlowContext.fillStyle = GlowGradient;
-  GlowContext.fillRect(0, 0, 128, 128);
-
-  const GlowTexture = new THREE.CanvasTexture(GlowCanvas);
-  GlowTexture.colorSpace = THREE.SRGBColorSpace;
-  const GlowMaterial = new THREE.SpriteMaterial({
-    map: GlowTexture,
-    transparent: true,
-    opacity: 0.8,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  });
-  const GlowSprite = new THREE.Sprite(GlowMaterial);
-  GlowSprite.position.copy(Position);
-  GlowSprite.scale.set(Scale.x, Scale.y, 1);
-  Scene.add(GlowSprite);
-}
-
-/**
- * Creates a deterministic star field using a small seeded pseudo-random generator. The
- * fixed layout avoids visual popping between resets and keeps screenshots reproducible.
- */
-function createStarField() {
-  let RandomState = 732451;
-
-  function nextRandomValue() {
-    RandomState = (RandomState * 1664525 + 1013904223) % 4294967296;
-    return RandomState / 4294967296;
-  }
-
-  const StarCount = 880;
-  const StarPositions = new Float32Array(StarCount * 3);
-
-  for (let StarIndex = 0; StarIndex < StarCount; StarIndex += 1) {
-    const PositionOffset = StarIndex * 3;
-    StarPositions[PositionOffset] = (nextRandomValue() - 0.5) * 168;
-    StarPositions[PositionOffset + 1] = (nextRandomValue() - 0.5) * 124;
-    StarPositions[PositionOffset + 2] = -8 - (nextRandomValue() * 42);
-  }
-
-  const StarGeometry = new THREE.BufferGeometry();
-  StarGeometry.setAttribute('position', new THREE.BufferAttribute(StarPositions, 3));
-
-  const StarMaterial = new THREE.PointsMaterial({
-    color: 0xe4eef4,
-    size: 0.1,
-    sizeAttenuation: true,
-    transparent: true,
-    opacity: 0.84,
-    depthWrite: false,
-  });
-
-  const StarField = new THREE.Points(StarGeometry, StarMaterial);
-  Scene.add(StarField);
-
-  createBackgroundGlow(
-    new THREE.Vector3(-15, -9, -24),
-    new THREE.Vector2(48, 36),
-    58,
-    148,
-    168,
-    0.28,
-  );
-  createBackgroundGlow(
-    new THREE.Vector3(14, 10, -26),
-    new THREE.Vector2(44, 34),
-    78,
-    118,
-    188,
-    0.24,
-  );
-}
+const EnvironmentLights = addEnvironment(THREE, Scene, ActiveSystem.environment);
+const KeyLight = EnvironmentLights.keyLight;
 
 /**
  * Creates simple contour rings around a world. These are placeholder composition tools,
@@ -3163,6 +3052,8 @@ ProsperityBuildingMesh.frustumCulled = false;
 Scene.add(ProsperityBuildingMesh);
 const ProsperityBuildingTransform = new THREE.Object3D();
 const ProsperityBuildingColor = new THREE.Color();
+const ProsperityCircuitWarmColor = new THREE.Color(0xffe7b0);
+const ProsperityDockLitColor = new THREE.Color(0xfff4c8);
 const ProsperityWindowCapacity = Math.max(1, OccupationScarCapacity * 2);
 const ProsperityWindowMaterial = new THREE.MeshBasicMaterial({
   color: 0xffe29a,
@@ -3196,9 +3087,9 @@ function getTradeCourierDwellRatio() {
 function refreshDockedTradeState(ElapsedTimeSeconds) {
   DockedWorldIdentifiers.clear();
   DockGatherAngleByWorldId.clear();
-  const Links = listLiveRelayLinks(RelayNetworkState);
+  const Links = getFrameLiveRelayLinks();
   const LiveCircuitLinkIdentifiers = new Set(
-    listLiveRelayCircuits(RelayNetworkState).flatMap((Circuit) => Circuit.linkIdentifiers),
+    getFrameLiveRelayCircuits().flatMap((Circuit) => Circuit.linkIdentifiers),
   );
   for (const Link of Links) {
     const Origin = getWorldDefinition(Link.originWorldIdentifier);
@@ -3291,10 +3182,10 @@ function updateProsperityBuildingVisuals(ElapsedTimeSeconds) {
       ProsperityBuildingMesh.setMatrixAt(ScarIndex, ProsperityBuildingTransform.matrix);
       ProsperityBuildingColor.set(Scar.worldDefinition.restoration.waveColor);
       if (ProsperityStage === 'circuit') {
-        ProsperityBuildingColor.lerp(new THREE.Color(0xffe7b0), 0.35);
+        ProsperityBuildingColor.lerp(ProsperityCircuitWarmColor, 0.35);
       }
       if (IsDockLit) {
-        ProsperityBuildingColor.lerp(new THREE.Color(0xfff4c8), 0.55);
+        ProsperityBuildingColor.lerp(ProsperityDockLitColor, 0.55);
       }
       ProsperityBuildingMesh.setColorAt(ScarIndex, ProsperityBuildingColor);
 
@@ -3362,7 +3253,7 @@ function updateProsperityBuildingVisuals(ElapsedTimeSeconds) {
     }
   }
   ProsperityWindowMesh.count = OccupationScarInstances.length * 2;
-  const HasLiveCircuit = listLiveRelayCircuits(RelayNetworkState).length > 0;
+  const HasLiveCircuit = getFrameLiveRelayCircuits().length > 0;
   const WindowPulse = PrefersReducedMotion
     ? 0.38
     : 0.28 + (Math.sin(ElapsedTimeSeconds * (HasLiveCircuit ? 4.2 : 2.4)) * 0.16);
@@ -3390,6 +3281,7 @@ const InhabitantProfiles = {
 const InhabitantGuardColor = new THREE.Color(0x6a1c22);
 const InhabitantPrisonerColor = new THREE.Color(0x6e5a52);
 const InhabitantFreeColor = new THREE.Color();
+const InhabitantChildTintColor = new THREE.Color(0xffffff);
 const InhabitantInstances = WorldDefinitions.flatMap((WorldDefinition, WorldIndex) => {
   const MineAngles = WorldDefinition.occupationScarAngles;
   if (!MineAngles) {
@@ -3537,7 +3429,7 @@ function updateInhabitantVisuals(ElapsedTimeSeconds) {
     InhabitantMesh.setMatrixAt(InhabitantIndex, InhabitantTransform.matrix);
     InhabitantFreeColor.set(Inhabitant.worldDefinition.restoration.waveColor);
     if (Silhouette.kind === 'child') {
-      InhabitantFreeColor.lerp(new THREE.Color(0xffffff), 0.18);
+      InhabitantFreeColor.lerp(InhabitantChildTintColor, 0.18);
     } else if (Silhouette.kind === 'pack') {
       InhabitantFreeColor.offsetHSL(0.04, 0.08, -0.08);
     }
@@ -3599,6 +3491,7 @@ const TradeShipMesh = new THREE.InstancedMesh(
 );
 const TradeShipTransform = new THREE.Object3D();
 const TradeShipColor = new THREE.Color();
+const TradeShipDockTintColor = new THREE.Color(0xfff4c8);
 TradeShipMesh.count = 0;
 TradeShipMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 TradeShipMesh.frustumCulled = false;
@@ -3606,8 +3499,8 @@ Scene.add(TradeShipMesh);
 
 function publishRelayNetworkState() {
   const Links = listRelayLinks(RelayNetworkState);
-  const LiveLinks = listLiveRelayLinks(RelayNetworkState);
-  const LiveCircuits = listLiveRelayCircuits(RelayNetworkState);
+  const LiveLinks = getFrameLiveRelayLinks();
+  const LiveCircuits = getFrameLiveRelayCircuits();
   GameCanvas.dataset.relayLinkCount = String(Links.length);
   GameCanvas.dataset.relayLinks = Links.map((Link) => Link.id).join(',');
   GameCanvas.dataset.relayLiveLinkCount = String(LiveLinks.length);
@@ -3667,8 +3560,8 @@ function synchronizeCircuitBeacon() {
 }
 
 function synchronizeRelayNetworkVisuals() {
-  const Links = listLiveRelayLinks(RelayNetworkState);
-  const HasLiveCircuit = listLiveRelayCircuits(RelayNetworkState).length > 0;
+  const Links = getFrameLiveRelayLinks();
+  const HasLiveCircuit = getFrameLiveRelayCircuits().length > 0;
   RelayLinkMaterial.color.setHex(HasLiveCircuit ? 0xffd98a : 0x72e8ff);
   for (let LinkIndex = 0; LinkIndex < Links.length; LinkIndex += 1) {
     const Link = Links[LinkIndex];
@@ -3689,9 +3582,9 @@ function synchronizeRelayNetworkVisuals() {
 }
 
 function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
-  const Links = listLiveRelayLinks(RelayNetworkState);
+  const Links = getFrameLiveRelayLinks();
   const LiveCircuitLinkIdentifiers = new Set(
-    listLiveRelayCircuits(RelayNetworkState).flatMap((Circuit) => Circuit.linkIdentifiers),
+    getFrameLiveRelayCircuits().flatMap((Circuit) => Circuit.linkIdentifiers),
   );
   RelayLinkMaterial.opacity = getRelayLinkOpacity(ElapsedTimeSeconds, {
     reducedMotion: PrefersReducedMotion,
@@ -3758,7 +3651,7 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
       TradeShipMesh.setMatrixAt(ShipIndex, TradeShipTransform.matrix);
       TradeShipColor.setHex(getTradeHullColor(HullKind, InLiveCircuit));
       if (CourierTravel.isDocked) {
-        TradeShipColor.lerp(new THREE.Color(0xfff4c8), 0.4);
+        TradeShipColor.lerp(TradeShipDockTintColor, 0.4);
       }
       TradeShipMesh.setColorAt(ShipIndex, TradeShipColor);
       ShipIndex += 1;
@@ -4063,7 +3956,7 @@ function publishWardenState() {
     ? 'COMMAND WORLD'
     : TargetWorld
     ? `NEXT: ${TargetWorld.label}`
-    : listLiveRelayCircuits(RelayNetworkState).length > 0
+    : getFrameLiveRelayCircuits().length > 0
       ? 'NETWORK BLOCKED'
       : 'TARGET UNKNOWN';
   GameCanvas.dataset.wardenStatus = PublishedWardenState.status;
@@ -4080,6 +3973,29 @@ function listLiveWorldIdentifiers() {
   return [...RelayNetworkState.activeWorldIdentifiers].filter(
     (WorldIdentifier) => isRelayWorldLive(RelayNetworkState, WorldIdentifier),
   );
+}
+
+function invalidateLiveRelayQueryCache() {
+  FrameLiveRelayLinks = null;
+  FrameLiveRelayCircuits = null;
+}
+
+function getFrameLiveRelayLinks() {
+  if (!FrameLiveRelayLinks) {
+    FrameLiveRelayLinks = listAuthoredLiveRelayLinks(RelayNetworkState);
+  }
+  return FrameLiveRelayLinks;
+}
+
+function getFrameLiveRelayCircuits() {
+  if (!FrameLiveRelayCircuits) {
+    FrameLiveRelayCircuits = listAuthoredLiveRelayCircuits(RelayNetworkState);
+  }
+  return FrameLiveRelayCircuits;
+}
+
+function refreshInstructionPanelBounds() {
+  CachedInstructionPanelTop = InstructionPanelElement.getBoundingClientRect().top;
 }
 
 function getSectorClusterRules() {
@@ -4119,7 +4035,7 @@ function getWardenRevealFlag() {
 }
 
 function isWorldInLiveCircuit(WorldIdentifier) {
-  return listLiveRelayCircuits(RelayNetworkState).some(
+  return getFrameLiveRelayCircuits().some(
     (Circuit) => Circuit.worldIdentifiers.includes(WorldIdentifier),
   );
 }
@@ -6220,6 +6136,7 @@ function showInstruction(Title, Body) {
   InstructionBodyElement.textContent = Body;
   InstructionPanelElement.classList.remove('is-hidden');
   InstructionPanelElement.setAttribute('aria-hidden', 'false');
+  refreshInstructionPanelBounds();
 }
 
 function hideStoryBoardOverlay() {
@@ -6559,6 +6476,7 @@ function updateFlightFeedback() {
 function hideInstruction() {
   InstructionPanelElement.classList.add('is-hidden');
   InstructionPanelElement.setAttribute('aria-hidden', 'true');
+  refreshInstructionPanelBounds();
 }
 
 /**
@@ -9632,6 +9550,7 @@ function resizeRenderer() {
   AdaptivePixelRatioCap = Math.min(AdaptivePixelRatioCap, DevicePixelRatioCap);
   applyAdaptivePixelRatio();
   Renderer.setSize(ViewportWidth, ViewportHeight, false);
+  refreshInstructionPanelBounds();
   GameCanvas.dataset.viewport = `${ViewportWidth}x${ViewportHeight}`;
   GameCanvas.dataset.orientation = ViewportWidth >= ViewportHeight ? 'landscape' : 'portrait';
   Camera.aspect = ViewportAspectRatio;
@@ -9663,9 +9582,18 @@ function applyAdaptiveQualityState(QualityState) {
   const DidCapChange = QualityState.cap !== AdaptivePixelRatioCap;
   AdaptivePixelRatioCap = QualityState.cap;
   SmoothPerformanceSampleCount = QualityState.smoothSamples;
+  const NextPresentationTier = getAdaptivePresentationTier(AdaptivePixelRatioCap);
+  const DidTierChange = NextPresentationTier !== PresentationQualityTier;
+  PresentationQualityTier = NextPresentationTier;
+  const ShadowsEnabled = PresentationQualityTier === 'high';
+  if (KeyLight.castShadow !== ShadowsEnabled) {
+    KeyLight.castShadow = ShadowsEnabled;
+    Renderer.shadowMap.enabled = ShadowsEnabled;
+  }
   GameCanvas.dataset.adaptiveQuality = QualityState.action;
+  GameCanvas.dataset.presentationTier = PresentationQualityTier;
   GameCanvas.dataset.smoothPerformanceSamples = String(SmoothPerformanceSampleCount);
-  if (!DidCapChange) return;
+  if (!DidCapChange && !DidTierChange) return;
   applyAdaptivePixelRatio();
   Renderer.setSize(window.innerWidth, window.innerHeight, false);
 }
@@ -9681,7 +9609,10 @@ function updatePerformanceBudget(DeltaTimeSeconds) {
   const PreviousMaximumDrawCalls = MaximumObservedDrawCalls;
   MaximumObservedDrawCalls = Math.max(PreviousMaximumDrawCalls, Renderer.info.render.calls);
 
-  if (PerformanceSampleFrameCount === 1 || MaximumObservedDrawCalls > PreviousMaximumDrawCalls) {
+  if (
+    IsReleaseDiagnosticsEnabled
+    && (PerformanceSampleFrameCount === 1 || MaximumObservedDrawCalls > PreviousMaximumDrawCalls)
+  ) {
     GameCanvas.dataset.drawCalls = String(Renderer.info.render.calls);
     GameCanvas.dataset.maxDrawCalls = String(MaximumObservedDrawCalls);
     GameCanvas.dataset.triangles = String(Renderer.info.render.triangles);
@@ -10319,6 +10250,7 @@ function renderFrame() {
   const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
   GameElapsedTimeSeconds += DeltaTimeSeconds;
   const ElapsedTimeSeconds = GameElapsedTimeSeconds;
+  invalidateLiveRelayQueryCache();
 
   PhysicsAccumulatorSeconds += DeltaTimeSeconds;
   while (PhysicsAccumulatorSeconds >= FixedPhysicsStepSeconds) {
@@ -10332,7 +10264,9 @@ function renderFrame() {
   updateProsperityBuildingVisuals(ElapsedTimeSeconds);
   updateExtractionFreighterVisuals(ElapsedTimeSeconds);
   updateInhabitantVisuals(ElapsedTimeSeconds);
-  updateWorldBiomeMotion(DeltaTimeSeconds, ElapsedTimeSeconds);
+  if (PresentationQualityTier !== 'degraded' && !PrefersReducedMotion) {
+    updateWorldBiomeMotion(DeltaTimeSeconds, ElapsedTimeSeconds);
+  }
   updateFinaleRestorationVisuals(ElapsedTimeSeconds);
   updateRelayNetworkVisuals(ElapsedTimeSeconds);
   updateSlingshotBandVisuals(ElapsedTimeSeconds);
@@ -10349,10 +10283,9 @@ function renderFrame() {
     flushQueuedStoryBoardsIfReady();
   }
   updateCamera(DeltaTimeSeconds);
-  const InstructionTop = InstructionPanelElement.getBoundingClientRect().top;
-  updateTacticalBodies(ElapsedTimeSeconds, InstructionTop);
+  updateTacticalBodies(ElapsedTimeSeconds, CachedInstructionPanelTop);
   updateStardustVisuals(ElapsedTimeSeconds);
-  updateRouteLabels(InstructionTop);
+  updateRouteLabels(CachedInstructionPanelTop);
   updateFlightAudio();
   updateWorldLifeAudio();
   updatePersonalBestGhostVisibility();
@@ -10709,8 +10642,6 @@ GhostButtonElement.addEventListener('click', () => {
 });
 BurnButtonElement.addEventListener('click', requestBreakerAction);
 
-createLighting();
-createStarField();
 resizeRenderer();
 resetGame();
 applyMotionPreference();

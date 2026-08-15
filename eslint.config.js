@@ -47,7 +47,7 @@ export default [
   },
   {
     files: ['src/**/*.js'],
-    ignores: ['src/main.js', 'src/audio.js'],
+    ignores: ['src/main.js', 'src/audio.js', 'src/environment.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',

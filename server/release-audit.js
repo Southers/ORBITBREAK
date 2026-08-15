@@ -257,8 +257,8 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     MainSource.includes('getPlayfieldLabelVerticalBounds({')
-      && MainSource.includes('const InstructionTop = InstructionPanelElement.getBoundingClientRect().top;')
-      && MainSource.includes('instructionTop: InstructionTop')
+      && MainSource.includes('function refreshInstructionPanelBounds()')
+      && MainSource.includes('updateRouteLabels(CachedInstructionPanelTop)')
       && PresentationSource.includes('if (wardenVisible && isShortLandscape) return 140;')
       && PresentationSource.includes('? Math.min(BaseMaximumY, instructionTop - 16)'),
     'Compact landscape labels must remain between the reflowed Warden and instruction HUD.',

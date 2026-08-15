@@ -109,13 +109,14 @@ export class WorldseedAudio {
     this.lastStoryMusicStage = 'quiet';
   }
 
-  setStoryMusicStage(Stage) {
+  setStoryMusicStage(Stage, { force = false } = {}) {
     if (!this.context || !this.storyLayerGains) {
       return;
     }
     const SafeStage = ['quiet', 'hope', 'hunt', 'crown'].includes(Stage) ? Stage : 'quiet';
+    const StageUnchanged = this.lastStoryMusicStage === SafeStage;
     this.lastStoryMusicStage = SafeStage;
-    if (this.storyPaused) {
+    if (this.storyPaused || (StageUnchanged && !force)) {
       return;
     }
     const Now = this.context.currentTime;
@@ -148,17 +149,21 @@ export class WorldseedAudio {
     }
   }
 
-  setWorldLifeMix(Mix) {
+  setWorldLifeMix(Mix, { force = false } = {}) {
     if (!this.context || !this.lifeLayerGains) {
       return;
     }
     const SafeMix = Mix ?? { rumble: 0, garden: 0, dock: 0 };
+    const MixUnchanged = this.lastWorldLifeMix
+      && this.lastWorldLifeMix.rumble === SafeMix.rumble
+      && this.lastWorldLifeMix.garden === SafeMix.garden
+      && this.lastWorldLifeMix.dock === SafeMix.dock;
     this.lastWorldLifeMix = {
       rumble: SafeMix.rumble,
       garden: SafeMix.garden,
       dock: SafeMix.dock,
     };
-    if (this.storyPaused) {
+    if (this.storyPaused || (MixUnchanged && !force)) {
       return;
     }
     const Now = this.context.currentTime;
@@ -604,8 +609,8 @@ export class WorldseedAudio {
       return;
     }
     this.setRestoredWorldCount(this.lastRestoredWorldCount);
-    this.setWorldLifeMix(this.lastWorldLifeMix);
-    this.setStoryMusicStage(this.lastStoryMusicStage);
+    this.setWorldLifeMix(this.lastWorldLifeMix, { force: true });
+    this.setStoryMusicStage(this.lastStoryMusicStage, { force: true });
   }
 
   toggleMute() {
