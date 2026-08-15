@@ -322,15 +322,57 @@ export function getScannerAccessibleLabel({
 }
 
 /** Reserves the upper HUD band once the Warden forecast appears. */
-export function getPlayfieldLabelTopMargin({ isCompact, wardenVisible, isTactical }) {
+export function getPlayfieldLabelTopMargin({
+  isCompact,
+  isShortLandscape = false,
+  wardenVisible,
+  isTactical,
+}) {
   if (
     typeof isCompact !== 'boolean'
+    || typeof isShortLandscape !== 'boolean'
     || typeof wardenVisible !== 'boolean'
     || typeof isTactical !== 'boolean'
   ) {
     throw new Error('Playfield label margin requires boolean layout state.');
   }
+  if (wardenVisible && isShortLandscape) return 140;
   if (wardenVisible) return isCompact ? (isTactical ? 246 : 244) : 212;
   if (isCompact) return isTactical ? 116 : 172;
   return isTactical ? 70 : 78;
+}
+
+/** Keeps projected chips inside the real HUD corridor on short landscape screens. */
+export function getPlayfieldLabelVerticalBounds({
+  viewportHeight,
+  instructionTop,
+  isCompact,
+  isShortLandscape,
+  wardenVisible,
+  isTactical,
+}) {
+  if (
+    !Number.isFinite(viewportHeight)
+    || viewportHeight <= 0
+    || !Number.isFinite(instructionTop)
+  ) {
+    throw new Error('Playfield label bounds require a finite viewport and instruction edge.');
+  }
+  const MinimumY = getPlayfieldLabelTopMargin({
+    isCompact,
+    isShortLandscape,
+    wardenVisible,
+    isTactical,
+  });
+  const BaseMaximumY = viewportHeight - (isCompact ? 112 : 82);
+  const MaximumY = Math.max(
+    0,
+    isShortLandscape
+      ? Math.min(BaseMaximumY, instructionTop - 16)
+      : BaseMaximumY,
+  );
+  return {
+    minimumY: Math.min(MinimumY, MaximumY),
+    maximumY: MaximumY,
+  };
 }

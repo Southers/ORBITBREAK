@@ -1286,17 +1286,21 @@ button[aria-disabled='true'] {
   }
 }
 
-@media (orientation: landscape) and (min-width: 760px) and (max-height: 520px) {
+@media (orientation: landscape) and (min-width: 480px) and (max-height: 520px) {
+  .warden-panel {
+    top: 62px;
+  }
+
   .instruction-panel {
     flex-direction: row;
     align-items: center;
     gap: 14px;
-    width: min(64vw, 540px);
+    width: min(92vw, 540px);
     padding: 9px 14px;
     text-align: left;
   }
 
   .instruction-panel strong {
-    flex: 0 0 148px;
+    flex: 0 0 clamp(112px, 20vw, 148px);
   }
 }

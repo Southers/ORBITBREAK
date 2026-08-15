@@ -24,6 +24,7 @@ export function auditReleaseReadiness() {
   };
   const IndexHtml = readRepositoryFile('index.html');
   const MainSource = readRepositoryFile('src/main.js');
+  const PresentationSource = readRepositoryFile('src/presentation.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -121,7 +122,7 @@ export function auditReleaseReadiness() {
       && /\.counter__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.counter__label\s*\{[^}]*font-size:\s*10px;/s.test(StyleSheet)
       && MainSource.includes('getScannerAccessibleLabel({')
-      && MainSource.includes('getPlayfieldLabelTopMargin({')
+      && MainSource.includes('getPlayfieldLabelVerticalBounds({')
       && MainSource.includes("ScannerPanelElement.setAttribute('aria-label', ScannerAccessibleLabel)"),
     'Navigation HUD labels must remain legible and the visual scanner must expose a semantic snapshot.',
   );
@@ -159,9 +160,18 @@ export function auditReleaseReadiness() {
     'Rankings callsigns, replay actions and submission focus must stay accessible.',
   );
   requireCondition(
-    /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*760px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.instruction-panel\s*\{[^}]*flex-direction:\s*row;[^}]*gap:\s*14px;[^}]*width:\s*min\(64vw,\s*540px\);[^}]*padding:\s*9px\s+14px;[^}]*text-align:\s*left;/s.test(StyleSheet)
-      && /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*760px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.instruction-panel\s+strong\s*\{[^}]*flex:\s*0\s+0\s+148px;/s.test(StyleSheet),
-    'Wide compact landscape must preserve a shallow two-column instruction card.',
+    /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.instruction-panel\s*\{[^}]*flex-direction:\s*row;[^}]*gap:\s*14px;[^}]*width:\s*min\(92vw,\s*540px\);[^}]*padding:\s*9px\s+14px;[^}]*text-align:\s*left;/s.test(StyleSheet)
+      && /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.warden-panel\s*\{[^}]*top:\s*62px;/s.test(StyleSheet)
+      && /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.instruction-panel\s+strong\s*\{[^}]*flex:\s*0\s+0\s+clamp\(112px,\s*20vw,\s*148px\);/s.test(StyleSheet),
+    'Compact landscape must preserve a shallow fluid two-column instruction card.',
+  );
+  requireCondition(
+    MainSource.includes('getPlayfieldLabelVerticalBounds({')
+      && MainSource.includes('const InstructionTop = InstructionPanelElement.getBoundingClientRect().top;')
+      && MainSource.includes('instructionTop: InstructionTop')
+      && PresentationSource.includes('if (wardenVisible && isShortLandscape) return 140;')
+      && PresentationSource.includes('? Math.min(BaseMaximumY, instructionTop - 16)'),
+    'Compact landscape labels must remain between the reflowed Warden and instruction HUD.',
   );
   requireCondition(
     /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)

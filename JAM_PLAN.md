@@ -733,6 +733,22 @@ original centred column treatment and dimensions, and the browser reported no er
 audit protects the compact hierarchy. This responsive presentation pass changes no camera, world
 position, input, physics, score, pursuit, replay or leaderboard behavior.
 
+Gauntlet pass 41 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The opposite landscape edge exposed a deeper responsive
+failure: at 568×320 the stacked 440×92.8px coach began only 5.2px below the Runner, and the third
+relay then asked projected labels to occupy an impossible y246–208 range, throwing on every render
+frame. The fluid two-column coach now extends down to 480px. At 568×320 it is 522.6×68.2px and begins
+29.8px below the Runner while preserving the full 12px instructions and its existing 2px footer gap;
+the exact 480px boundary has the same height and clearance. Short-landscape Warden state now uses the
+free top-right header lane, and a pure vertical-bounds mapping caps route and tactical chips against
+the live instruction edge instead of portrait-only constants. Replaying Haven–Ember–Grove placed the
+142×63.2px Warden at y62–125.2 and all four visible chips inside y129.2–180.8, with zero intersection
+against the Warden, coach or one another. The console stayed empty through the reveal and subsequent
+390×844 portrait and 1280×720 desktop resizes; both retained their original Warden positions, zero
+HUD/chip overlap, canvas focus and no page overflow. Focused coverage protects short and ordinary
+vertical bounds, and the release audit protects the responsive contract. This reliability pass changes
+no label text, world position, input, physics, score, pursuit, replay or leaderboard behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

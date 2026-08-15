@@ -92,7 +92,7 @@ import {
   getLiberationFlashOpacity,
   getLeaderboardActionLabel,
   getPersonalBestStatus,
-  getPlayfieldLabelTopMargin,
+  getPlayfieldLabelVerticalBounds,
   getPublishedWardenState,
   getRelayLinkOpacity,
   getRunResourceSummary,
@@ -106,7 +106,7 @@ import {
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob66';
+} from './presentation.js?v=20260815-ob71';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -269,7 +269,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob70';
+GameCanvas.dataset.build = '20260815-ob71';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -4340,18 +4340,22 @@ function updateTargetBeacons(ElapsedTimeSeconds) {
 }
 
 /** Projects suggested world names into the HUD without spending WebGL draw calls. */
-function updateRouteLabels() {
+function updateRouteLabels(InstructionTop) {
   const RouteChoices = GamePhase === 'attached'
     ? getCurrentRouteChoices(RouteLabelElements.length)
     : [];
   const IsCompactLayout = window.innerWidth <= 640;
+  const IsShortLandscape = window.innerWidth >= window.innerHeight
+    && window.innerHeight <= 520;
   const HorizontalMargin = IsCompactLayout ? 48 : 58;
-  const TopMargin = getPlayfieldLabelTopMargin({
+  const LabelVerticalBounds = getPlayfieldLabelVerticalBounds({
+    viewportHeight: window.innerHeight,
+    instructionTop: InstructionTop,
     isCompact: IsCompactLayout,
+    isShortLandscape: IsShortLandscape,
     wardenVisible: !WardenPanelElement.hidden,
     isTactical: false,
   });
-  const BottomMargin = IsCompactLayout ? 112 : 82;
   const LabelPositions = [];
 
   for (let LabelIndex = 0; LabelIndex < RouteLabelElements.length; LabelIndex += 1) {
@@ -4386,8 +4390,8 @@ function updateRouteLabels() {
       ),
       y: Math.round(THREE.MathUtils.clamp(
         (-RouteLabelProjection.y * 0.5 + 0.5) * window.innerHeight,
-        TopMargin,
-        window.innerHeight - BottomMargin,
+        LabelVerticalBounds.minimumY,
+        LabelVerticalBounds.maximumY,
       )),
     });
   }
@@ -4400,8 +4404,8 @@ function updateRouteLabels() {
     ResolvedLabelPositions,
     TacticalLabelScreenPositions,
     {
-      minimumY: TopMargin,
-      maximumY: window.innerHeight - BottomMargin,
+      minimumY: LabelVerticalBounds.minimumY,
+      maximumY: LabelVerticalBounds.maximumY,
     },
   );
   for (let LabelIndex = 0; LabelIndex < ClearedLabelPositions.length; LabelIndex += 1) {
@@ -4411,7 +4415,7 @@ function updateRouteLabels() {
 }
 
 /** Updates deterministic tactical-body transforms and their world-space HUD labels. */
-function updateTacticalBodies(ElapsedTimeSeconds) {
+function updateTacticalBodies(ElapsedTimeSeconds, InstructionTop) {
   const ShouldShowTacticalLayer = ![
     'restoring',
     'victoryPending',
@@ -4555,17 +4559,24 @@ function updateTacticalBodies(ElapsedTimeSeconds) {
     });
     VisibleTacticalLabelElements.push(TacticalLabelElement);
   }
+  const IsCompactLayout = window.innerWidth <= 640;
+  const IsShortLandscape = window.innerWidth >= window.innerHeight
+    && window.innerHeight <= 520;
+  const LabelVerticalBounds = getPlayfieldLabelVerticalBounds({
+    viewportHeight: window.innerHeight,
+    instructionTop: InstructionTop,
+    isCompact: IsCompactLayout,
+    isShortLandscape: IsShortLandscape,
+    wardenVisible: !WardenPanelElement.hidden,
+    isTactical: true,
+  });
   const ResolvedTacticalLabelPositions = separateOverlappingTacticalLabels(
     ProjectedTacticalLabelPositions,
     {
       horizontalClearance: 160,
       verticalClearance: 28,
-      minimumY: getPlayfieldLabelTopMargin({
-        isCompact: window.innerWidth <= 640,
-        wardenVisible: !WardenPanelElement.hidden,
-        isTactical: true,
-      }),
-      maximumY: window.innerHeight - (window.innerWidth <= 640 ? 112 : 82),
+      minimumY: LabelVerticalBounds.minimumY,
+      maximumY: LabelVerticalBounds.maximumY,
     },
   );
   TacticalLabelScreenPositions.push(...ResolvedTacticalLabelPositions);
@@ -8159,9 +8170,10 @@ function renderFrame() {
   updateWardenVisuals(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds);
   updateCamera(DeltaTimeSeconds);
-  updateTacticalBodies(ElapsedTimeSeconds);
+  const InstructionTop = InstructionPanelElement.getBoundingClientRect().top;
+  updateTacticalBodies(ElapsedTimeSeconds, InstructionTop);
   updateStardustVisuals(ElapsedTimeSeconds);
-  updateRouteLabels();
+  updateRouteLabels(InstructionTop);
   updateFlightAudio();
   updatePersonalBestGhostVisibility();
 
