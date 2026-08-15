@@ -1154,3 +1154,11 @@ button:focus-visible,
     bottom: max(126px, calc(env(safe-area-inset-bottom) + 120px));
   }
 }
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .burn-button {
+    right: max(18px, env(safe-area-inset-right));
+    left: auto;
+    transform: none;
+  }
+}

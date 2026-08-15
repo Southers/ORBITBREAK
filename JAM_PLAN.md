@@ -500,6 +500,17 @@ collision at 148/190 calls. A desktop first relay kept its already-clear labels 
 390×844 retained separated labels, 44px controls, no overflow and a 156/190 peak. This changes no
 route choice, beacon, camera, input, fixed-step physics, score, pursuit or replay state.
 
+Gauntlet pass 22 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** At 844×390 the centred 148×52 Breaker control left only
+about 11px between its top edge and the opening ship centre; an 18px silhouette-margin sampler found
+nine obstructed flight samples. Short landscape now moves that control to the right safe edge while
+preserving its full size. The identical sampler reported zero intersections at x=678–826, and a real
+pointer activation recorded the fixed-step Burn before a live Ember landing. Desktop retained its
+centred x=566–714 control and first relay at 150/190 calls; portrait retained its centred x=121–269
+control, 44px minimum actions, no overflow and a 156/190 peak. The release audit protects the
+responsive safe-edge rule. This changes no input handler, Burn timing, camera, physics, score,
+pursuit or replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

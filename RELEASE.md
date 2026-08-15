@@ -84,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob51` passes 153 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob52` passes 153 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
 - 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
@@ -107,6 +107,7 @@ Suggested 40-second trailer beat sheet:
 - Permanent relay links now pulse within a brighter 70–90% opacity range, keeping the cyan network and protected gold circuits readable at portrait scale without extra draw calls.
 - The permanent masthead now says `connect the tiny worlds` in legible desktop type, placing the jam theme and the player’s core action above the opening diorama instead of relying on the internal `Stillness` term.
 - Suggested-world labels now preserve a 76px centre gap when their projected positions converge, keeping both authored route choices readable after surface repositioning in short landscape without moving their worlds or camera.
+- At short landscape heights the 148×52 Breaker control moves to the right safe edge, clearing the central flight corridor while portrait and desktop retain their centred placement.
 - Explicit Reduced motion holds relay luminance at the same readable 80% midpoint instead of continuously pulsing it.
 - Final Pulse publication now reports `defeated` and `command-world-disabled`, matching the visible Warden panel and verified result without mutating authoritative pursuit state.
 - Two-ring world contours and Haven's three-blade grass tufts preserve their silhouettes in one draw call each, restoring headroom during fast liberation and Command transitions.

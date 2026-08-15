@@ -74,6 +74,10 @@ export function auditReleaseReadiness() {
     'Critical instruction body copy must retain its legible contrast, size and line height.',
   );
   requireCondition(
+    /@media\s*\(orientation:\s*landscape\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.burn-button\s*\{[^}]*right:\s*max\(18px,\s*env\(safe-area-inset-right\)\);[^}]*left:\s*auto;[^}]*transform:\s*none;/s.test(StyleSheet),
+    'Short-landscape Breaker controls must remain on the safe edge of the flight view.',
+  );
+  requireCondition(
     /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),
     'Release diagnostics must remain restricted to local development hosts.',
   );
