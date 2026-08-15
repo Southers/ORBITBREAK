@@ -84,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob44` passes 149 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob45` passes 149 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
 - 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
@@ -102,6 +102,7 @@ Suggested 40-second trailer beat sheet:
 - The Command approach now states `A network cannot be imprisoned`; its final Pulse reveals `WARDEN NODE DISCONNECTED · SECTOR WARDENS: 11`, and the verified result carries the authored reminder that the worlds were never alone.
 - Hostile surface guidance now names the current shortest `Q` or `E` direction in both visible copy and the accessible Pulse control; a fresh 390×844 Command approach reached Pulse range in seven prompted steps.
 - A verified result now labels its own run score separately from a stronger stored personal best, preventing the prominent record badge from contradicting the score and breakdown beside it.
+- Critical route and story instructions now use 12px type, stronger contrast and an explicit 1.35 line height; the release audit protects that readability floor.
 - Two-ring world contours and Haven's three-blade grass tufts preserve their silhouettes in one draw call each, restoring headroom during fast liberation and Command transitions.
 - These checks do not approve a public deployment, production leaderboard or jam submission.
 

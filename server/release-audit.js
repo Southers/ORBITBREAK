@@ -24,6 +24,7 @@ export function auditReleaseReadiness() {
   };
   const IndexHtml = readRepositoryFile('index.html');
   const MainSource = readRepositoryFile('src/main.js');
+  const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
 
@@ -67,6 +68,10 @@ export function auditReleaseReadiness() {
     /id="WardenPanel"[^>]+aria-live="polite"[^>]+aria-atomic="true"/.test(IndexHtml)
       && /id="StatusToast"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/.test(IndexHtml),
     'Warden and transient status updates must remain atomic assistive announcements.',
+  );
+  requireCondition(
+    /\.instruction-panel span\s*\{[^}]*color:\s*rgba\(226, 235, 241, 0\.78\);[^}]*font-size:\s*12px;[^}]*line-height:\s*1\.35;/s.test(StyleSheet),
+    'Critical instruction body copy must retain its legible contrast, size and line height.',
   );
   requireCondition(
     /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),

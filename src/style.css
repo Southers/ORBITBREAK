@@ -474,8 +474,9 @@ button:focus-visible,
 }
 
 .instruction-panel span {
-  color: rgba(226, 235, 241, 0.61);
-  font-size: 11px;
+  color: rgba(226, 235, 241, 0.78);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .instruction-panel.is-hidden {

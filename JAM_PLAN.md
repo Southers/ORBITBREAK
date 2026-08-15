@@ -428,6 +428,16 @@ unverified runs remain fail-closed. A fresh desktop completion produced the exac
 its three actions remained 45.2px high. This presentation-only pass does not change ranking, local
 storage, replay validation, scoring or deterministic simulation.
 
+Gauntlet pass 15 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The visual audit found that the route coach's critical body
+copy—where the game teaches circuits, surface position and long arcs—was only 11px at 61% opacity.
+That hierarchy undersold the game's most important onboarding layer against the dark sector. The body
+copy now uses 12px type, 78% opacity and an explicit 1.35 line height, with a release-audited floor.
+The desktop opening panel remained clear with 12px footer separation at 144/190 calls. Fresh 390×844
+checks kept the opening, complete Warden reveal and long Grove mastery clue above 44px controls with
+no overflow; the longest affected route state peaked at 153/190. This accessibility and onboarding
+pass changes no layout anchors, input, prediction, physics, scoring, pursuit or replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
