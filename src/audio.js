@@ -16,6 +16,7 @@ export class WorldseedAudio {
     this.isMuted = false;
     this.wasLandingLocked = false;
     this.closePassPlayed = false;
+    this.lifeLayerGains = null;
   }
 
   /** Creates the graph lazily inside a trusted pointer or button gesture. */
@@ -77,7 +78,80 @@ export class WorldseedAudio {
       Oscillator.start();
       this.musicLayerGains.push({ gain: Gain, volume: LayerDefinition.volume });
     }
+    this.createLifeBeds();
     this.setRestoredWorldCount(0);
+  }
+
+  createLifeBeds() {
+    const LifeLayerDefinitions = [
+      { key: 'rumble', frequency: 38, type: 'sawtooth', volume: 0.028 },
+      { key: 'garden', frequency: 196, type: 'sine', volume: 0.016 },
+      { key: 'dock', frequency: 262, type: 'triangle', volume: 0.02 },
+    ];
+    this.lifeLayerGains = {};
+    for (const LayerDefinition of LifeLayerDefinitions) {
+      const Oscillator = this.context.createOscillator();
+      const Gain = this.context.createGain();
+      Oscillator.type = LayerDefinition.type;
+      Oscillator.frequency.value = LayerDefinition.frequency;
+      Gain.gain.value = 0;
+      Oscillator.connect(Gain).connect(this.masterGain);
+      Oscillator.start();
+      this.lifeLayerGains[LayerDefinition.key] = {
+        gain: Gain,
+        volume: LayerDefinition.volume,
+      };
+    }
+  }
+
+  setWorldLifeMix(Mix) {
+    if (!this.context || !this.lifeLayerGains) {
+      return;
+    }
+    const Now = this.context.currentTime;
+    const SafeMix = Mix ?? { rumble: 0, garden: 0, dock: 0 };
+    for (const [LayerKey, LayerStrength] of [
+      ['rumble', SafeMix.rumble],
+      ['garden', SafeMix.garden],
+      ['dock', SafeMix.dock],
+    ]) {
+      const LifeLayer = this.lifeLayerGains[LayerKey];
+      if (!LifeLayer || !Number.isFinite(LayerStrength)) continue;
+      LifeLayer.gain.gain.cancelScheduledValues(Now);
+      LifeLayer.gain.gain.setTargetAtTime(
+        LifeLayer.volume * Math.max(0, Math.min(1, LayerStrength)),
+        Now,
+        0.7,
+      );
+    }
+  }
+
+  tradeLane() {
+    this.playTone({
+      frequency: 520,
+      endFrequency: 780,
+      duration: 0.22,
+      volume: 0.05,
+      type: 'triangle',
+    });
+    this.playTone({
+      frequency: 780,
+      endFrequency: 1040,
+      duration: 0.18,
+      volume: 0.03,
+      delay: 0.08,
+    });
+  }
+
+  haulLane() {
+    this.playNoise({ duration: 0.32, volume: 0.08, frequency: 140 });
+    this.playTone({
+      frequency: 64,
+      endFrequency: 48,
+      duration: 0.36,
+      volume: 0.07,
+      type: 'sawtooth',
+    });
   }
 
   setRestoredWorldCount(RestoredWorldCount) {
@@ -391,6 +465,7 @@ export class WorldseedAudio {
     }
     this.transientSources.clear();
     this.setRestoredWorldCount(0);
+    this.setWorldLifeMix({ rumble: 0, garden: 0, dock: 0 });
     this.closePassPlayed = false;
     this.wasLandingLocked = false;
   }

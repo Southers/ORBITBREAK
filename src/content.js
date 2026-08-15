@@ -71,6 +71,7 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
   }
   for (const OptionalStoryField of [
     'openingBroadcast', 'wardenArrivalBroadcast', 'commandApproachLine',
+    'rangeUnlockLine', 'furtherLandingLine',
   ]) {
     if (
       SystemDefinition[OptionalStoryField] !== undefined
@@ -555,6 +556,8 @@ export function createAuthoredSystemRuntime(
     openingBody: SystemDefinition.openingBody,
     openingBroadcast: SystemDefinition.openingBroadcast ?? null,
     wardenArrivalBroadcast: SystemDefinition.wardenArrivalBroadcast ?? null,
+    rangeUnlockLine: SystemDefinition.rangeUnlockLine ?? null,
+    furtherLandingLine: SystemDefinition.furtherLandingLine ?? null,
     commandApproachLine: SystemDefinition.commandApproachLine ?? null,
     camera: SystemDefinition.camera ? { ...SystemDefinition.camera } : null,
     environment: {
@@ -754,14 +757,16 @@ export const FirstLightSystemDefinition = {
 /** ORBITBREAK's first score-attack arena, spanning several camera views. */
 export const BreakerReachSystemDefinition = {
   id: 'breaker-reach',
-  contentVersion: 'breaker-reach-5',
+  contentVersion: 'breaker-reach-6',
   label: "BREAKER'S REACH",
   launchBudget: 8,
   circuitBonusValue: 1250,
   wardenVictoryValuePerStep: 1000,
   openingBroadcast: 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
   wardenArrivalBroadcast: 'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',
-  openingBody: 'Pull back from the Runner to see the whole Reach, then release toward Ember. The visible line is the whole flight—thread gold rings to chain worlds in one shot and stay ahead of the Warden. Landing wakes the world and leaves a relay. Frost is the longer dark-rim Burn if you want a harder first shot.',
+  openingBody: 'They are still out there. Carry the first word.',
+  rangeUnlockLine: 'The dark is not as wide as they said.',
+  furtherLandingLine: 'A whole neighbourhood is talking.',
   commandApproachLine: 'A network cannot be imprisoned.',
   camera: {
     followPlayer: true,

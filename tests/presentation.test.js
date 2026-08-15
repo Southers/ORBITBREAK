@@ -21,6 +21,17 @@ import {
   getSlingshotPreviewPresentation,
   getStillnessPresentation,
   getWorldLifeStage,
+  getProsperityStage,
+  getTradeHullKind,
+  getLiveLinkShipCount,
+  getTradeHullScale,
+  getTradeHullColor,
+  getProsperityPresence,
+  getInhabitantSilhouette,
+  getWorldLifeAudioMix,
+  isInnerClusterLive,
+  isFurtherReachLive,
+  getRangeVeilStrength,
   getTyrantOccupationStrength,
   getExtractionFreighterTravelProgress,
   getLandedCameraScale,
@@ -80,23 +91,28 @@ test('published Warden state distinguishes exposure from final defeat', () => {
   );
 });
 
-test('loop objective teaches relays, then circuits, then Command', () => {
+test('loop objective teaches the neighbourhood before circuits and Command', () => {
   assert.deepEqual(getLoopObjectivePresentation({
     liveRelayCount: 1,
     uniqueCircuitCount: 0,
     wardenStatus: 'hidden',
   }), {
-    label: 'RELAYS',
-    state: '1 / 3',
-    filledPips: 1,
-    pipCount: 3,
+    label: 'NEIGHBOURHOOD',
+    state: 'QUIET',
+    filledPips: 0,
+    pipCount: 0,
     open: false,
   });
-  assert.deepEqual(getLoopObjectivePresentation({
+  assert.equal(getLoopObjectivePresentation({
     liveRelayCount: 2,
     uniqueCircuitCount: 0,
     wardenStatus: 'hidden',
-  }).state, '2 / 3');
+  }).state, 'WAKING');
+  assert.equal(getLoopObjectivePresentation({
+    liveRelayCount: 3,
+    uniqueCircuitCount: 0,
+    wardenStatus: 'hidden',
+  }).state, 'TALKING');
   assert.deepEqual(getLoopObjectivePresentation({
     liveRelayCount: 3,
     uniqueCircuitCount: 0,
@@ -175,21 +191,30 @@ test('new relay couriers depart from the origin of the live link', () => {
   assert.throws(() => getRelayCourierTravelProgress(-1), /non-negative age/);
 });
 
-test('hidden Warden coach teaches the first shot then the triangulation beat', () => {
+test('hidden Warden coach teaches purpose, then waking, then range', () => {
   assert.deepEqual(getHiddenWardenRouteCoach({
     liveRelayCount: 1,
     routeLabels: ['EMBER', 'FROST'],
-    openingBody: 'Pull back from the Runner and release toward Ember.',
+    openingBody: 'They are still out there. Carry the first word.',
   }), {
     title: 'Choose EMBER or FROST',
-    body: 'Pull back from the Runner and release toward Ember.',
+    body: 'They are still out there. Carry the first word.',
   });
   assert.deepEqual(getHiddenWardenRouteCoach({
     liveRelayCount: 2,
     routeLabels: ['GROVE', 'FROST'],
   }), {
     title: 'Choose GROVE or FROST',
-    body: 'One more live world and the Warden notices. Landing leaves another relay.',
+    body: 'Land on another world. Watch it wake.',
+  });
+  assert.deepEqual(getHiddenWardenRouteCoach({
+    liveRelayCount: 3,
+    routeLabels: ['TIDE', 'FROST'],
+    rangeUnlockLine: 'The dark is not as wide as they said.',
+    innerClusterLive: true,
+  }), {
+    title: 'Choose TIDE or FROST',
+    body: 'The dark is not as wide as they said.',
   });
 });
 
@@ -471,6 +496,67 @@ test('world life stages distinguish tyrant, isolated and living art', () => {
   assert.equal(getWorldLifeStage({ restored: true, liveLinkCount: 0 }), 'isolated');
   assert.equal(getWorldLifeStage({ restored: true, liveLinkCount: 1 }), 'living');
   assert.throws(() => getWorldLifeStage({ restored: 'yes' }), /restored flag/);
+});
+
+test('prosperity densifies from a first link to busy routes and circuits', () => {
+  assert.equal(getProsperityStage({ restored: false, liveLinkCount: 2 }), 'tyrant');
+  assert.equal(getProsperityStage({ restored: true, liveLinkCount: 0 }), 'isolated');
+  assert.equal(getProsperityStage({ restored: true, liveLinkCount: 1 }), 'linked');
+  assert.equal(getProsperityStage({ restored: true, liveLinkCount: 2 }), 'busy');
+  assert.equal(getProsperityStage({
+    restored: true,
+    liveLinkCount: 1,
+    inLiveCircuit: true,
+  }), 'circuit');
+  assert.equal(getTradeHullKind('ember', 'meadow'), 'barge');
+  assert.equal(getTradeHullKind('grove', 'tide'), 'sail');
+  assert.equal(getTradeHullKind('frost', 'bastion'), 'sled');
+  assert.equal(getLiveLinkShipCount({
+    originDegree: 1,
+    destinationDegree: 1,
+    inLiveCircuit: false,
+  }), 1);
+  assert.equal(getLiveLinkShipCount({
+    originDegree: 2,
+    destinationDegree: 1,
+    inLiveCircuit: false,
+  }), 2);
+  assert.equal(getLiveLinkShipCount({
+    originDegree: 1,
+    destinationDegree: 1,
+    inLiveCircuit: true,
+  }), 2);
+  assert.equal(getTradeHullScale('sail').y > getTradeHullScale('barge').y, true);
+  assert.equal(getTradeHullColor('barge'), 0xff8a3a);
+  assert.equal(getTradeHullColor('sail', true), 0xffe7b8);
+  assert.equal(getProsperityPresence('isolated'), 0);
+  assert.equal(getProsperityPresence('linked'), 0.78);
+  assert.equal(getProsperityPresence('busy'), 1);
+  assert.equal(getProsperityPresence('circuit'), 1.12);
+  assert.equal(getInhabitantSilhouette(0).kind, 'worker');
+  assert.equal(getInhabitantSilhouette(1).kind, 'child');
+  assert.equal(getInhabitantSilhouette(2).kind, 'pack');
+  assert.ok(getInhabitantSilhouette(1).scale.y < getInhabitantSilhouette(0).scale.y);
+  assert.deepEqual(getWorldLifeAudioMix({
+    tyrantWorldCount: 3,
+    isolatedWorldCount: 1,
+    livingWorldCount: 0,
+  }), {
+    rumble: 0.75,
+    garden: 0.25,
+    dock: 0,
+  });
+});
+
+test('range veil lifts only after Haven, Ember and Grove are live', () => {
+  assert.equal(isInnerClusterLive(['meadow', 'ember']), false);
+  assert.equal(isInnerClusterLive(['meadow', 'ember', 'grove']), true);
+  assert.equal(isFurtherReachLive(['meadow', 'ember', 'grove']), false);
+  assert.equal(isFurtherReachLive(['meadow', 'ember', 'grove', 'tide']), true);
+  assert.equal(getRangeVeilStrength('frost', false), 1);
+  assert.equal(getRangeVeilStrength('frost', true), 0);
+  assert.equal(getRangeVeilStrength('ember', false), 0);
+  assert.equal(getRangeVeilStrength('worldheart', false), 1);
 });
 
 test('tyrant occupation collapses through the liberation wave and never returns a haul', () => {

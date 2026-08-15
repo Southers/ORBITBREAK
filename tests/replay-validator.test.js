@@ -6,7 +6,7 @@ import { validateSerializedReplay } from '../src/replay-validator.js';
 const CompletedBreakerReachReplay = JSON.stringify({
   v: 2,
   s: 'breaker-reach',
-  c: 'breaker-reach-5',
+  c: 'breaker-reach-6',
   p: 'orbitbreak-fixed-step-v1',
   h: 120,
   o: 1,
@@ -25,7 +25,7 @@ const CompletedSchemaV2BurnRouteReplay = CompletedBreakerReachReplay;
 
 const ExpectedCompletedResult = {
   systemIdentifier: 'breaker-reach',
-  contentVersion: 'breaker-reach-5',
+  contentVersion: 'breaker-reach-6',
   score: 10900,
   launchesUsed: 7,
     flightTimeMilliseconds: 11217,
@@ -91,7 +91,7 @@ test('validator rejects the former direct Command route without two unique circu
   const ShortcutReplay = JSON.stringify({
     v: 2,
     s: 'breaker-reach',
-    c: 'breaker-reach-5',
+    c: 'breaker-reach-6',
     p: 'orbitbreak-fixed-step-v1',
     h: 120,
     o: 1,

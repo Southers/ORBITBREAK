@@ -7,31 +7,58 @@ import {
   createWardenPursuitState,
   resetWardenAfterSuppression,
   resolveWardenPursuit,
+  shouldRevealWarden,
   shouldWardenCatchRunner,
 } from '../src/warden.js';
 
-test('the third active relay reveals the Warden without also advancing it', () => {
+test('the Warden stays hidden until the inner cluster and one further world are live', () => {
+  assert.equal(shouldRevealWarden({ innerClusterLive: false, furtherWorldLive: false }), false);
+  assert.equal(shouldRevealWarden({ innerClusterLive: true, furtherWorldLive: false }), false);
+  assert.equal(shouldRevealWarden({ innerClusterLive: false, furtherWorldLive: true }), false);
+  assert.equal(shouldRevealWarden({ innerClusterLive: true, furtherWorldLive: true }), true);
+
   let State = createWardenPursuitState({ startingDistance: 4 });
-  State = resolveWardenPursuit(State, { activeRelayCount: 2, targetWorldIdentifier: 'ember' });
+  State = resolveWardenPursuit(State, { activeRelayCount: 3, targetWorldIdentifier: 'grove' });
   assert.equal(State.status, 'hidden');
   assert.equal(State.distance, 4);
 
-  State = resolveWardenPursuit(State, { activeRelayCount: 3, targetWorldIdentifier: 'grove' });
+  State = resolveWardenPursuit(State, {
+    activeRelayCount: 4,
+    targetWorldIdentifier: 'tide',
+    shouldReveal: true,
+  });
   assert.equal(State.status, 'pursuing');
   assert.equal(State.distance, 4);
-  assert.equal(State.targetWorldIdentifier, 'grove');
+  assert.equal(State.targetWorldIdentifier, 'tide');
   assert.equal(State.lastEvent, WardenPursuitEvents.revealed);
+});
+
+test('circuits closed before the hunt still break shields without revealing', () => {
+  let State = createWardenPursuitState({ startingDistance: 4 });
+  State = resolveWardenPursuit(State, {
+    activeRelayCount: 3,
+    targetWorldIdentifier: 'grove',
+    firstCircuitClosed: true,
+  });
+  assert.equal(State.status, 'hidden');
+  assert.equal(State.shieldLayers, 1);
+  assert.equal(State.distance, 4);
+  assert.equal(State.lastEvent, WardenPursuitEvents.retreated);
 });
 
 test('later resolved flights advance once while a first circuit closure retreats once', () => {
   let State = createWardenPursuitState({ startingDistance: 3 });
-  State = resolveWardenPursuit(State, { activeRelayCount: 3, targetWorldIdentifier: 'grove' });
-  State = resolveWardenPursuit(State, { activeRelayCount: 3, targetWorldIdentifier: 'grove' });
+  State = resolveWardenPursuit(State, {
+    activeRelayCount: 4,
+    targetWorldIdentifier: 'grove',
+    shouldReveal: true,
+  });
+  State = resolveWardenPursuit(State, { activeRelayCount: 4, targetWorldIdentifier: 'grove' });
   assert.equal(State.distance, 2);
   assert.equal(State.lastEvent, WardenPursuitEvents.advanced);
 
   State = resolveWardenPursuit(State, {
-    activeRelayCount: 3,
+    activeRelayCount: 4,
     targetWorldIdentifier: 'grove',
     firstCircuitClosed: true,
   });
@@ -53,8 +80,9 @@ test('later resolved flights advance once while a first circuit closure retreats
 test('breaking the second shield exposes the command and freezes pursuit', () => {
   let State = createWardenPursuitState({ startingDistance: 3 });
   State = resolveWardenPursuit(State, {
-    activeRelayCount: 3,
+    activeRelayCount: 4,
     targetWorldIdentifier: 'grove',
+    shouldReveal: true,
   });
   State = resolveWardenPursuit(State, {
     activeRelayCount: 3,
@@ -94,11 +122,12 @@ test('the authored frontier nearest the command edge is targeted deterministical
 test('arrival catches only the unprotected Runner on the targeted world', () => {
   let State = createWardenPursuitState({ startingDistance: 1 });
   State = resolveWardenPursuit(State, {
-    activeRelayCount: 3,
+    activeRelayCount: 4,
     targetWorldIdentifier: 'grove',
+    shouldReveal: true,
   });
   State = resolveWardenPursuit(State, {
-    activeRelayCount: 3,
+    activeRelayCount: 4,
     targetWorldIdentifier: 'grove',
   });
   assert.equal(shouldWardenCatchRunner(State, 'grove'), true);

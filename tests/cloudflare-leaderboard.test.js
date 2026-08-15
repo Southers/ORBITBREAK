@@ -5,7 +5,7 @@ import { createD1LeaderboardStore } from '../server/cloudflare/d1-store.js';
 import Worker from '../server/cloudflare/worker.js';
 
 const VerifiedReplay = JSON.stringify({
-  v: 2, s: 'breaker-reach', c: 'breaker-reach-5',
+  v: 2, s: 'breaker-reach', c: 'breaker-reach-6',
   p: 'orbitbreak-fixed-step-v1', h: 120, o: 1,
   l: [
     [0, 'meadow', -18.383711059475825, -9.29153176447292, 12.5, 0, null],

@@ -870,6 +870,36 @@ Runner visual scale is 0.52, landed follow frames one world, and Scout zoom now 
 Physics identity, scoring and replay inputs are unchanged. Art is still not a 9: living routes
 remain a luminous segment plus one cone, and prosperity houses are the next checkpoint.
 
+Checkpoint 2 — 15 August 2026: the opening is one purpose line, *They are still out there. Carry
+the first word.*, under the existing Warden broadcast. Hidden-Warden HUD uses neighbourhood
+language instead of counting relays toward a hunt. Coaches stay one line: purpose, then wake,
+then the range veil. Hunt copy waits until pursuit exists.
+
+Checkpoint 3 — 15 August 2026: free walkers share the inhabitant draw with worker, child-scale
+and pack silhouettes. Isolated Haven stays three people; tyrant worlds keep two guards and four
+held; living worlds can show all six. Reduced motion freezes stride and keeps the silhouettes.
+
+Checkpoint 4–5 — 15 August 2026: live links grow instanced houses on occupation-scar angles, so
+merged-landmark Grove, Tide and Bastion densify without meadow prop groups. Culture-true hull
+scales and colours replace the shared cone; degree 2 and live circuits add an offset second hull
+and taller workshops. Suppression still collapses prosperity and restores the tyrant kit. One extra
+prosperity draw; trade stays one instanced mesh. Draw-call ceiling remains 190 pending a measured
+390×844 peak.
+
+Checkpoint 6 — 15 August 2026: Tide, Frost, Bastion and Command sit behind a stillness veil until
+Haven, Ember and Grove are live. That landing recedes the veil, raises Scout zoom-out from 1.45 to
+1.95, and teaches *The dark is not as wide as they said.* The Warden reveals only after one further
+world is live. Pre-hunt circuits still break shields so Command exposure stays honest. Content
+version is `breaker-reach-6`.
+
+Checkpoint 7 — 15 August 2026: mine rumble, quiet garden and dock layers follow life-stage mix.
+New lanes chime as trade; tyrant landings haul. After restoration the camera holds the new lane
+for 0.85s without blocking input; reduced motion skips the hold. Pursuit still advances on the
+resolved flight, not the hold.
+
+Checkpoint 8 — skipped. Checkpoint 1's 0.52 Runner and landed follow already make the courier a
+visitor. No radius/GM restance and no further `contentVersion` bump for stance.
+
 Keep `main` playable. Do not add a second sector, free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until Bastion is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

@@ -32,6 +32,7 @@ import {
   createRelayNetworkState,
   listProtectedRelayWorlds,
   listVulnerableRelayWorlds,
+  isRelayWorldLive,
   suppressRelayWorld,
 } from './network.js';
 import {
@@ -40,8 +41,13 @@ import {
   createWardenPursuitState,
   resetWardenAfterSuppression,
   resolveWardenPursuit,
+  shouldRevealWarden,
   shouldWardenCatchRunner,
 } from './warden.js';
+import {
+  isFurtherReachLive,
+  isInnerClusterLive,
+} from './presentation.js';
 
 const RunnerRadius = 0.46;
 const StardustRadius = 0.22;
@@ -376,10 +382,17 @@ export function validateReplay(Replay) {
         Runtime.worlds,
         listVulnerableRelayWorlds(RelayNetworkState),
       );
+      const LiveWorldIdentifiers = [...RelayNetworkState.activeWorldIdentifiers].filter(
+        (WorldIdentifier) => isRelayWorldLive(RelayNetworkState, WorldIdentifier),
+      );
       WardenState = resolveWardenPursuit(WardenState, {
         activeRelayCount: Math.max(1, countLiveRelayWorlds(RelayNetworkState)),
         targetWorldIdentifier: TargetWorldIdentifier,
         firstCircuitClosed: CircuitClosedThisFlight,
+        shouldReveal: shouldRevealWarden({
+          innerClusterLive: isInnerClusterLive(LiveWorldIdentifiers),
+          furtherWorldLive: isFurtherReachLive(LiveWorldIdentifiers),
+        }),
       });
       if (WardenState.lastEvent === WardenPursuitEvents.arrived) {
         const SuppressedWorldIdentifier = WardenState.targetWorldIdentifier;
