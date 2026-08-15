@@ -75,3 +75,29 @@ export function getRunResourceSummary(RunState) {
     : `${BonusFuelRemaining} bonus fuel left`;
   return `${LaunchesUsed} ${LaunchLabel} · ${FuelLabel}`;
 }
+
+/** Keeps the completed run score distinct from an older, stronger local record. */
+export function getPersonalBestStatus({
+  isReplayVerified,
+  runScore,
+  personalBestScore = null,
+  isNewPersonalBest = false,
+}) {
+  if (!isReplayVerified) {
+    return 'UNVERIFIED REPLAY · LOCAL BEST NOT UPDATED';
+  }
+  if (personalBestScore === null) {
+    return 'RANKED · LOCAL BEST UNAVAILABLE';
+  }
+  if (
+    !Number.isInteger(runScore)
+    || runScore < 0
+    || !Number.isInteger(personalBestScore)
+    || personalBestScore < 0
+  ) {
+    throw new Error('Personal-best status requires valid scores.');
+  }
+  return isNewPersonalBest
+    ? `VERIFIED · NEW PERSONAL BEST · ${runScore.toLocaleString('en-GB')}`
+    : `VERIFIED · RUN ${runScore.toLocaleString('en-GB')} · PERSONAL BEST ${personalBestScore.toLocaleString('en-GB')}`;
+}

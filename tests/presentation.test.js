@@ -3,12 +3,35 @@ import assert from 'node:assert/strict';
 
 import {
   getLiberationFlashOpacity,
+  getPersonalBestStatus,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
   getRunnerPose,
   getStillnessPresentation,
 } from '../src/presentation.js';
+
+test('result status distinguishes the current verified run from an older personal best', () => {
+  assert.equal(getPersonalBestStatus({
+    isReplayVerified: true,
+    runScore: 11250,
+    personalBestScore: 12250,
+  }), 'VERIFIED · RUN 11,250 · PERSONAL BEST 12,250');
+  assert.equal(getPersonalBestStatus({
+    isReplayVerified: true,
+    runScore: 12250,
+    personalBestScore: 12250,
+    isNewPersonalBest: true,
+  }), 'VERIFIED · NEW PERSONAL BEST · 12,250');
+  assert.equal(getPersonalBestStatus({
+    isReplayVerified: false,
+    runScore: 0,
+  }), 'UNVERIFIED REPLAY · LOCAL BEST NOT UPDATED');
+  assert.equal(getPersonalBestStatus({
+    isReplayVerified: true,
+    runScore: 0,
+  }), 'RANKED · LOCAL BEST UNAVAILABLE');
+});
 
 test('run resource copy treats fuel as a bonus rather than a failure timer', () => {
   assert.equal(

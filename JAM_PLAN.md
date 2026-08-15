@@ -418,6 +418,16 @@ Pulse control, 44px footer controls, no overflow and a 169/190 peak; desktop pea
 hypothesis held without changing surface step size, encounter range, fixed-step flight, prediction,
 scoring or replay input.
 
+Gauntlet pass 14 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** A verified 11,650 run beneath an existing 12,250 record showed
+only `PERSONAL BEST 12,250` in its prominent result badge, making the result appear to contradict its
+11,650 score and matching breakdown. Result presentation now distinguishes `RUN 11,650` from
+`PERSONAL BEST 12,250`, while new records retain the stronger `NEW PERSONAL BEST` celebration and
+unverified runs remain fail-closed. A fresh desktop completion produced the exact separate scores at
+175/190 peak calls. The same live result fit in a 390×844 portrait panel without wrapping or overflow;
+its three actions remained 45.2px high. This presentation-only pass does not change ranking, local
+storage, replay validation, scoring or deterministic simulation.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

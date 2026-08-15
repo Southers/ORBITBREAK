@@ -88,12 +88,13 @@ import {
 } from './records.js?v=20260814-ob8';
 import {
   getLiberationFlashOpacity,
+  getPersonalBestStatus,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
   getRunnerPose,
   getStillnessPresentation,
-} from './presentation.js?v=20260815-ob30';
+} from './presentation.js?v=20260815-ob44';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -254,7 +255,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob43';
+GameCanvas.dataset.build = '20260815-ob44';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -4715,13 +4716,12 @@ function updateVictorySummary() {
     savePersonalBestGhost(GameCanvas.dataset.replayPayload);
   }
   const PersonalBestScore = PersonalBestUpdate?.personalBest.score ?? RunResult.score;
-  PersonalBestLabelElement.textContent = !IsReplayVerified
-    ? 'UNVERIFIED REPLAY · LOCAL BEST NOT UPDATED'
-    : PersonalBestUpdate === null
-    ? 'RANKED · LOCAL BEST UNAVAILABLE'
-    : PersonalBestUpdate.isNewPersonalBest
-      ? `VERIFIED · NEW PERSONAL BEST · ${RunResult.score.toLocaleString('en-GB')}`
-      : `VERIFIED · PERSONAL BEST · ${PersonalBestScore.toLocaleString('en-GB')}`;
+  PersonalBestLabelElement.textContent = getPersonalBestStatus({
+    isReplayVerified: IsReplayVerified,
+    runScore: RunResult.score,
+    personalBestScore: PersonalBestUpdate?.personalBest.score ?? null,
+    isNewPersonalBest: PersonalBestUpdate?.isNewPersonalBest === true,
+  });
   ResultSlingshotScoreElement.textContent = ScoreState.bankedSlingshotScore.toLocaleString('en-GB');
   ResultLiberationScoreElement.textContent = ScoreState.networkScore.toLocaleString('en-GB');
   ResultCompletionBonusElement.textContent = ScoreState.victoryScore.toLocaleString('en-GB');
