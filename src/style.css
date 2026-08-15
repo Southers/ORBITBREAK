@@ -127,8 +127,8 @@ button:focus-visible,
 }
 
 .brand__subtitle {
-  color: rgba(224, 235, 240, 0.48);
-  font-size: 10px;
+  color: rgba(224, 235, 240, 0.68);
+  font-size: 11px;
   letter-spacing: 0.08em;
 }
 

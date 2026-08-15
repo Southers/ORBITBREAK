@@ -100,6 +100,11 @@ export function auditReleaseReadiness() {
     requireCondition(Pattern.test(IndexHtml), `index.html is missing ${Label}.`);
   }
   requireCondition(
+    IndexHtml.includes('<span class="brand__subtitle">connect the tiny worlds</span>')
+      && /\.brand__subtitle\s*\{[^}]*color:\s*rgba\(224,\s*235,\s*240,\s*0\.68\);[^}]*font-size:\s*11px;/s.test(StyleSheet),
+    'The masthead must state the legible Tiny Worlds promise.',
+  );
+  requireCondition(
     !IndexHtml.includes('launches expire')
       && IndexHtml.includes("Warden's moving Command World"),
     'Page metadata must describe the current Command World and bonus-fuel rules.',

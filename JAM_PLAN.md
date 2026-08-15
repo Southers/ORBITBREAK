@@ -479,6 +479,17 @@ score and validator output matched exactly at a 172/190 peak. The same result re
 at 390×844 with three 45.2px actions. This state-coherence pass changes no pursuit transition,
 simulation, score, replay payload or validator rule.
 
+Gauntlet pass 20 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The permanent desktop masthead still said `break the
+Stillness`, an internal cage term that did not communicate the jam theme or the game’s defining
+action as clearly as the locked pitch. It now says `connect the tiny worlds` at 11px and 68% opacity,
+placing that promise above the opening Haven diorama while the compact mobile header remains
+unchanged. A fresh 1280×720 load kept the phrase visible through Ember's first answer and relay at
+a 150/190 peak. The same live connection at 390×844 remained overflow-free with 44px controls and
+a 154/190 peak. The release audit protects both the exact phrase and its legibility floor. This
+presentation-only change does not alter controls, layout anchors, simulation, scoring, pursuit or
+replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
