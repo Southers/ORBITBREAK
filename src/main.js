@@ -42,6 +42,8 @@ import {
 import { addEnvironment } from './environment.js?v=20260815-ob89';
 import { createWorldVisuals } from './world-geometry.js?v=20260815-ob90';
 import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260815-ob90';
+import { createWardenVisuals } from './warden-visuals.js?v=20260815-ob90';
+import { createPlayerVisuals } from './player-visuals.js?v=20260815-ob90';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -816,222 +818,40 @@ const {
 } = LivingWorldVisuals;
 
 
-/** Spread clamps on a hostile rim. Drag through them to tear the cage. */
-const HostilePylonGroup = new THREE.Group();
-const HostilePylonTemplateMaterial = new THREE.MeshStandardMaterial({
-  color: 0x5b1d29,
-  emissive: 0xff493f,
-  emissiveIntensity: 1.2,
-  roughness: 0.48,
-  metalness: 0.62,
+const WardenVisuals = createWardenVisuals(THREE, Scene, {
+  WorldheartDefinition,
+  GameCanvas,
+  getWorldDefinition,
+  projectScannerPosition,
+  ScannerWardenElement,
+  get ScannerProjection() { return ScannerProjection; },
+  get PrefersReducedMotion() { return PrefersReducedMotion; },
+  get WardenPursuitState() { return WardenPursuitState; },
+  get GameElapsedTimeSeconds() { return GameElapsedTimeSeconds; },
 });
-const MaximumHostileClampCount = 5;
-for (let ClampIndex = 0; ClampIndex < MaximumHostileClampCount; ClampIndex += 1) {
-  const ClampMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.22, 0.82, 0.22),
-    HostilePylonTemplateMaterial.clone(),
-  );
-  ClampMesh.visible = false;
-  HostilePylonGroup.add(ClampMesh);
-}
-HostilePylonGroup.visible = false;
-Scene.add(HostilePylonGroup);
-
-function positionHostilePylons(WorldDefinition, EncounterState, HighlightedIds = []) {
-  const HighlightedIdSet = HighlightedIds instanceof Set
-    ? HighlightedIds
-    : new Set(HighlightedIds);
-  if (!WorldDefinition || !EncounterState) {
-    HostilePylonGroup.visible = false;
-    return;
-  }
-  let AnyVisible = false;
-  for (const ClampMesh of HostilePylonGroup.children) {
-    ClampMesh.visible = false;
-  }
-  for (const Clamp of EncounterState.clamps) {
-    const ClampMesh = HostilePylonGroup.children[Clamp.id];
-    if (!ClampMesh) continue;
-    if (!Clamp.remaining) {
-      ClampMesh.visible = false;
-      continue;
-    }
-    const ClampDistance = WorldDefinition.radius + 0.3;
-    ClampMesh.position.set(
-      WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
-      WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
-      0.34,
-    );
-    ClampMesh.rotation.z = Clamp.surfaceAngle - (Math.PI * 0.5);
-    ClampMesh.visible = true;
-    AnyVisible = true;
-    const IsHighlighted = HighlightedIdSet.has(Clamp.id);
-    ClampMesh.material.emissive.setHex(IsHighlighted ? 0xffd678 : 0xff493f);
-    ClampMesh.material.emissiveIntensity = IsHighlighted ? 2.15 : 1.2;
-    ClampMesh.scale.setScalar(IsHighlighted ? 1.18 : 1);
-  }
-  HostilePylonGroup.visible = AnyVisible;
-}
-
-/** The pursuing command vessel is a corrupted miniature world, not a timer overlay. */
-const WardenVisualGroup = new THREE.Group();
-const WardenCoreMaterial = new THREE.MeshStandardMaterial({
-  color: 0x35191f,
-  emissive: 0xff3b33,
-  emissiveIntensity: 0.75,
-  roughness: 0.7,
-  metalness: 0.42,
-});
-const WardenCoreMesh = new THREE.Mesh(
-  new THREE.IcosahedronGeometry(1.05, 2),
+const {
+  HostilePylonGroup,
+  positionHostilePylons,
+  WardenVisualGroup,
   WardenCoreMaterial,
-);
-WardenVisualGroup.add(WardenCoreMesh);
-const WardenArmorMaterial = new THREE.MeshStandardMaterial({
-  color: 0x160f18,
-  emissive: 0x6e1018,
-  emissiveIntensity: 0.38,
-  roughness: 0.38,
-  metalness: 0.86,
-});
-const WardenArmorPanelCount = 8;
-const WardenArmorMesh = new THREE.InstancedMesh(
-  new THREE.BoxGeometry(0.58, 0.16, 0.42),
   WardenArmorMaterial,
-  WardenArmorPanelCount,
-);
-const WardenArmorTransform = new THREE.Object3D();
-WardenArmorMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-WardenVisualGroup.add(WardenArmorMesh);
-
-const WardenCitadelGroup = new THREE.Group();
-const WardenCitadelMaterial = new THREE.MeshStandardMaterial({
-  color: 0x25131b,
-  emissive: 0xb51f25,
-  emissiveIntensity: 0.54,
-  roughness: 0.42,
-  metalness: 0.8,
-});
-const WardenCitadelMesh = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.2, 0.38, 0.78, 6),
   WardenCitadelMaterial,
-);
-WardenCitadelMesh.position.y = 1.06;
-WardenCitadelGroup.add(WardenCitadelMesh);
-const WardenBeaconMaterial = new THREE.MeshBasicMaterial({ color: 0xff5148 });
-const WardenBeaconMesh = new THREE.Mesh(
-  new THREE.OctahedronGeometry(0.16, 0),
   WardenBeaconMaterial,
-);
-WardenBeaconMesh.position.y = 1.53;
-WardenCitadelGroup.add(WardenBeaconMesh);
-WardenVisualGroup.add(WardenCitadelGroup);
-
-const WardenShieldMoonMaterial = new THREE.MeshStandardMaterial({
-  color: 0x2a161d,
-  emissive: 0xff4138,
-  emissiveIntensity: 1.15,
-  roughness: 0.5,
-  metalness: 0.7,
-});
-const WardenShieldMoonMesh = new THREE.InstancedMesh(
-  new THREE.IcosahedronGeometry(0.24, 1),
-  WardenShieldMoonMaterial,
-  2,
-);
-const WardenShieldMoonTransform = new THREE.Object3D();
-WardenShieldMoonMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-WardenVisualGroup.add(WardenShieldMoonMesh);
-
-const WardenExposureLatticeGroup = new THREE.Group();
-const WardenExposureLatticeMaterial = new THREE.MeshBasicMaterial({
-  color: 0xffd678,
-  transparent: true,
-  opacity: 0.68,
-  depthWrite: false,
-});
-for (const LatticeRotation of [0, Math.PI / 3, -Math.PI / 3]) {
-  const LatticeArc = new THREE.Mesh(
-    new THREE.TorusGeometry(1.12, 0.025, 6, 36),
-    WardenExposureLatticeMaterial,
-  );
-  LatticeArc.rotation.y = LatticeRotation;
-  WardenExposureLatticeGroup.add(LatticeArc);
-}
-WardenExposureLatticeGroup.visible = false;
-WardenVisualGroup.add(WardenExposureLatticeGroup);
-
-const WardenShieldRings = [];
-const WardenShieldRingMaterials = [];
-for (const RingRotation of [0, Math.PI * 0.5]) {
-  const RingMaterial = new THREE.MeshBasicMaterial({
-    color: 0xff675f,
-    transparent: true,
-    opacity: 0.82,
-  });
-  const Ring = new THREE.Mesh(
-    new THREE.TorusGeometry(1.38, 0.06, 8, 40),
-    RingMaterial,
-  );
-  Ring.rotation.x = RingRotation;
-  WardenVisualGroup.add(Ring);
-  WardenShieldRings.push(Ring);
-  WardenShieldRingMaterials.push(RingMaterial);
-}
-WardenVisualGroup.visible = false;
-Scene.add(WardenVisualGroup);
-
-const WardenEventPulseMaterial = new THREE.MeshBasicMaterial({
-  color: 0xff5148,
-  transparent: true,
-  opacity: 0,
-  side: THREE.DoubleSide,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-});
-const WardenEventPulseMesh = new THREE.Mesh(
-  new THREE.RingGeometry(0.82, 0.9, 64),
+  WardenShieldRings,
+  WardenShieldMoonMesh,
+  WardenExposureLatticeGroup,
+  WardenExposureLatticeMaterial,
+  WardenForecastLine,
+  WardenEntryPosition,
+  WardenApproachStartPosition,
+  WardenEventPulseMesh,
   WardenEventPulseMaterial,
-);
-WardenEventPulseMesh.visible = false;
-Scene.add(WardenEventPulseMesh);
-let WardenEventPulseStartedAtSeconds = null;
-let CommandDefeatStartedAtSeconds = null;
+  startWardenEventPulse,
+  updateWardenVisuals,
+  beginCommandDefeat,
+  resetWardenVisuals,
+} = WardenVisuals;
 
-function startWardenEventPulse(Position, Color, Beat) {
-  WardenEventPulseMesh.position.set(Position.x, Position.y, 0.42);
-  WardenEventPulseMesh.scale.setScalar(1);
-  WardenEventPulseMaterial.color.setHex(Color);
-  WardenEventPulseMaterial.opacity = 0.88;
-  WardenEventPulseMesh.visible = true;
-  WardenEventPulseStartedAtSeconds = GameElapsedTimeSeconds;
-  GameCanvas.dataset.wardenVisualBeat = Beat;
-}
-
-const WardenForecastPositions = new Float32Array(6);
-const WardenForecastGeometry = new THREE.BufferGeometry();
-const WardenForecastAttribute = new THREE.BufferAttribute(WardenForecastPositions, 3);
-WardenForecastAttribute.setUsage(THREE.DynamicDrawUsage);
-WardenForecastGeometry.setAttribute('position', WardenForecastAttribute);
-const WardenForecastMaterial = new THREE.LineDashedMaterial({
-  color: 0xff675f,
-  transparent: true,
-  opacity: 0.58,
-  dashSize: 0.45,
-  gapSize: 0.3,
-  depthWrite: false,
-});
-const WardenForecastLine = new THREE.Line(WardenForecastGeometry, WardenForecastMaterial);
-WardenForecastLine.visible = false;
-WardenForecastLine.frustumCulled = false;
-Scene.add(WardenForecastLine);
-const WardenEntryPosition = new THREE.Vector3(
-  WorldheartDefinition.position.x + 8,
-  WorldheartDefinition.position.y + 6,
-  0.35,
-);
-const WardenApproachStartPosition = WardenEntryPosition.clone();
-WardenVisualGroup.position.copy(WardenEntryPosition);
 
 /** Opens the command route only after both authored progress gates are satisfied. */
 function updateCommandWorldAvailability() {
@@ -1291,144 +1111,6 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
   return SuppressedWorld;
 }
 
-function updateWardenEventPulse(ElapsedTimeSeconds) {
-  if (WardenEventPulseStartedAtSeconds === null) return;
-  const PulseDurationSeconds = PrefersReducedMotion ? 0.7 : 1.15;
-  const PulseProgress = THREE.MathUtils.clamp(
-    (ElapsedTimeSeconds - WardenEventPulseStartedAtSeconds) / PulseDurationSeconds,
-    0,
-    1,
-  );
-  const MaximumPulseScale = PrefersReducedMotion ? 1.7 : 3.6;
-  WardenEventPulseMesh.scale.setScalar(
-    THREE.MathUtils.lerp(1, MaximumPulseScale, PulseProgress),
-  );
-  WardenEventPulseMaterial.opacity = (1 - PulseProgress) * 0.88;
-  if (PulseProgress >= 1) {
-    WardenEventPulseMesh.visible = false;
-    WardenEventPulseStartedAtSeconds = null;
-    GameCanvas.dataset.wardenVisualBeat = '';
-  }
-}
-
-function updateWardenVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
-  updateWardenEventPulse(ElapsedTimeSeconds);
-  if (WardenPursuitState.status === 'hidden') return;
-  const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
-  const IsCommandExposed = WardenPursuitState.status === 'exposed';
-  if (!TargetWorld && !IsCommandExposed) return;
-  const ApproachProgress = 1 - (
-    WardenPursuitState.distance / WardenPursuitState.maximumDistance
-  );
-  if (IsCommandExposed) {
-    TemporaryThreeVector.set(
-      WorldheartDefinition.position.x,
-      WorldheartDefinition.position.y,
-      0.35,
-    );
-  } else {
-    TemporaryThreeVector.set(
-      THREE.MathUtils.lerp(
-        WardenApproachStartPosition.x,
-        TargetWorld.position.x,
-        ApproachProgress,
-      ),
-      THREE.MathUtils.lerp(
-        WardenApproachStartPosition.y,
-        TargetWorld.position.y,
-        ApproachProgress,
-      ),
-      0.35,
-    );
-  }
-  if (IsCommandExposed) {
-    WardenVisualGroup.position.copy(TemporaryThreeVector);
-  } else {
-    WardenVisualGroup.position.lerp(
-      TemporaryThreeVector,
-      1 - Math.exp(-DeltaTimeSeconds * 2.8),
-    );
-  }
-  WardenVisualGroup.rotation.y += DeltaTimeSeconds * 0.32;
-  WardenVisualGroup.rotation.z = Math.sin(ElapsedTimeSeconds * 0.7) * 0.08;
-  const IsCommandDefeated = CommandDefeatStartedAtSeconds !== null;
-  const DefeatProgress = IsCommandDefeated
-    ? THREE.MathUtils.clamp((ElapsedTimeSeconds - CommandDefeatStartedAtSeconds) / 1.1, 0, 1)
-    : 0;
-  const ArmorRadius = IsCommandDefeated
-    ? THREE.MathUtils.lerp(1.38, 1.82, DefeatProgress)
-    : (IsCommandExposed ? 1.38 : 1.08);
-  for (let PanelIndex = 0; PanelIndex < WardenArmorPanelCount; PanelIndex += 1) {
-    const PanelAngle = (PanelIndex / WardenArmorPanelCount) * Math.PI * 2;
-    WardenArmorTransform.position.set(
-      Math.cos(PanelAngle) * ArmorRadius,
-      Math.sin(PanelAngle) * ArmorRadius,
-      (PanelIndex % 2 === 0 ? 0.22 : -0.22),
-    );
-    WardenArmorTransform.rotation.set(
-      0,
-      DefeatProgress * (PanelIndex % 2 === 0 ? 0.8 : -0.8),
-      PanelAngle + (Math.PI * 0.5) + (DefeatProgress * 0.55),
-    );
-    WardenArmorTransform.scale.setScalar(
-      IsCommandExposed ? THREE.MathUtils.lerp(0.88, 0.62, DefeatProgress) : 1,
-    );
-    WardenArmorTransform.updateMatrix();
-    WardenArmorMesh.setMatrixAt(PanelIndex, WardenArmorTransform.matrix);
-  }
-  WardenArmorMesh.instanceMatrix.needsUpdate = true;
-
-  for (let MoonIndex = 0; MoonIndex < WardenShieldMoonMesh.count; MoonIndex += 1) {
-    const MoonDirection = MoonIndex === 0 ? 1 : -1;
-    const MoonAngle = (ElapsedTimeSeconds * (0.82 + (MoonIndex * 0.18)) * MoonDirection)
-      + (MoonIndex * Math.PI);
-    WardenShieldMoonTransform.position.set(
-      Math.cos(MoonAngle) * 1.82,
-      Math.sin(MoonAngle) * 1.42,
-      Math.sin(MoonAngle * 1.7) * 0.52,
-    );
-    WardenShieldMoonTransform.rotation.set(MoonAngle, MoonAngle * 0.7, 0);
-    WardenShieldMoonTransform.scale.setScalar(0.92 + (Math.sin(MoonAngle * 2) * 0.08));
-    WardenShieldMoonTransform.updateMatrix();
-    WardenShieldMoonMesh.setMatrixAt(MoonIndex, WardenShieldMoonTransform.matrix);
-  }
-  if (WardenShieldMoonMesh.count > 0) {
-    WardenShieldMoonMesh.instanceMatrix.needsUpdate = true;
-  }
-  for (let RingIndex = 0; RingIndex < WardenShieldRings.length; RingIndex += 1) {
-    WardenShieldRings[RingIndex].rotation.z += DeltaTimeSeconds * (RingIndex === 0 ? 0.34 : -0.27);
-    WardenShieldRingMaterials[RingIndex].opacity = 0.7
-      + (Math.sin((ElapsedTimeSeconds * 3.2) + RingIndex) * 0.16);
-  }
-  WardenExposureLatticeGroup.rotation.y += DeltaTimeSeconds * 0.46;
-  WardenExposureLatticeGroup.rotation.z -= DeltaTimeSeconds * 0.22;
-  WardenBeaconMesh.scale.setScalar(0.86 + (Math.sin(ElapsedTimeSeconds * 5.2) * 0.16));
-  WardenCoreMaterial.emissiveIntensity = IsCommandDefeated
-    ? THREE.MathUtils.lerp(2.4, 0.28, DefeatProgress)
-    : 0.72 + (Math.sin(ElapsedTimeSeconds * 4) * 0.16);
-  if (IsCommandDefeated) {
-    WardenCoreMaterial.color.setHex(0x17363a);
-    WardenCoreMaterial.emissive.setHex(0x72d9ff);
-    WardenArmorMaterial.emissive.setHex(0x17363a);
-    WardenCitadelMaterial.emissive.setHex(0x72d9ff);
-    WardenBeaconMaterial.color.setHex(0xc6f4ff);
-    WardenExposureLatticeMaterial.opacity = (1 - DefeatProgress) * 0.68;
-    WardenVisualGroup.scale.setScalar(THREE.MathUtils.lerp(1, 0.9, DefeatProgress));
-  }
-  if (TargetWorld) {
-    WardenForecastPositions.set([
-      WardenVisualGroup.position.x, WardenVisualGroup.position.y, 0.18,
-      TargetWorld.position.x, TargetWorld.position.y, 0.18,
-    ]);
-    WardenForecastAttribute.needsUpdate = true;
-    WardenForecastLine.computeLineDistances();
-  }
-  if (ScannerProjection) {
-    const Marker = projectScannerPosition(WardenVisualGroup.position);
-    ScannerWardenElement.setAttribute('cx', String(Marker.x));
-    ScannerWardenElement.setAttribute('cy', String(Marker.y));
-  }
-}
 
 /** Two instanced beacons reveal suggested branches without turning choice into a menu. */
 const TargetBeaconGeometry = new THREE.RingGeometry(1, 1.04, 72);
@@ -1623,338 +1305,76 @@ for (let StardustIndex = 0; StardustIndex < StardustDefinitions.length; Stardust
 StardustMesh.instanceColor.needsUpdate = true;
 Scene.add(StardustMesh);
 
-/** A compact procedural Runner stays tiny on the world; collision radius is unchanged. */
-const SeedGroup = new THREE.Group();
-const RunnerVisualGroup = new THREE.Group();
-const RunnerPresentationScale = 0.52;
-const ShipPresentationScale = 0.58;
-RunnerVisualGroup.scale.setScalar(RunnerPresentationScale);
-GameCanvas.dataset.runnerVisualScale = String(RunnerPresentationScale);
-const RunnerSuitMaterial = new THREE.MeshStandardMaterial({
-  color: 0xe9f2f4,
-  emissive: 0x4f8fa0,
-  emissiveIntensity: 0.28,
-  roughness: 0.38,
-  metalness: 0.08,
+const PlayerVisuals = createPlayerVisuals(THREE, Scene, {
+  SeedRadius,
+  GameCanvas,
+  MaximumTrajectoryPredictionSteps,
+  TrajectoryPreviewSampleStride,
 });
-const RunnerDarkMaterial = new THREE.MeshStandardMaterial({
-  color: 0x193646,
-  emissive: 0x0d2633,
-  emissiveIntensity: 0.4,
-  roughness: 0.32,
-  metalness: 0.28,
-});
-const RunnerVisorMaterial = new THREE.MeshStandardMaterial({
-  color: 0xffbf62,
-  emissive: 0xff7a38,
-  emissiveIntensity: 1.25,
-  roughness: 0.2,
-  metalness: 0.3,
-});
-
-const RunnerBackpackMesh = new THREE.Mesh(
-  new THREE.BoxGeometry(0.34, 0.38, 0.2),
-  RunnerDarkMaterial,
-);
-RunnerBackpackMesh.position.set(0, -0.11, -0.13);
-RunnerVisualGroup.add(RunnerBackpackMesh);
-
-const RunnerTorsoMesh = new THREE.Mesh(
-  new THREE.SphereGeometry(0.24, 16, 12),
+const {
+  SeedGroup,
+  RunnerVisualGroup,
+  RunnerPresentationScale,
+  ShipPresentationScale,
   RunnerSuitMaterial,
-);
-RunnerTorsoMesh.position.y = -0.12;
-RunnerTorsoMesh.scale.set(0.88, 1.08, 0.72);
-RunnerTorsoMesh.castShadow = true;
-RunnerVisualGroup.add(RunnerTorsoMesh);
-
-const RunnerHelmetMesh = new THREE.Mesh(
-  new THREE.SphereGeometry(0.27, 20, 14),
-  RunnerSuitMaterial,
-);
-RunnerHelmetMesh.position.y = 0.17;
-RunnerHelmetMesh.castShadow = true;
-RunnerVisualGroup.add(RunnerHelmetMesh);
-
-const RunnerVisorMesh = new THREE.Mesh(
-  new THREE.SphereGeometry(0.19, 16, 10),
-  RunnerVisorMaterial,
-);
-RunnerVisorMesh.position.set(0, 0.18, 0.2);
-RunnerVisorMesh.scale.set(1, 0.7, 0.34);
-RunnerVisualGroup.add(RunnerVisorMesh);
-
-const RunnerLimbGeometry = new THREE.CylinderGeometry(0.052, 0.065, 0.24, 8);
-const RunnerArmMeshes = [];
-const RunnerLegMeshes = [];
-for (const Side of [-1, 1]) {
-  const ArmMesh = new THREE.Mesh(RunnerLimbGeometry, RunnerSuitMaterial);
-  ArmMesh.position.set(Side * 0.245, -0.12, 0);
-  ArmMesh.rotation.z = Side * -0.22;
-  ArmMesh.userData.side = Side;
-  RunnerArmMeshes.push(ArmMesh);
-  RunnerVisualGroup.add(ArmMesh);
-
-  const LegMesh = new THREE.Mesh(RunnerLimbGeometry, RunnerSuitMaterial);
-  LegMesh.position.set(Side * 0.095, -0.34, 0);
-  LegMesh.rotation.z = Side * -0.08;
-  LegMesh.userData.side = Side;
-  RunnerLegMeshes.push(LegMesh);
-  RunnerVisualGroup.add(LegMesh);
-}
-
-const RunnerThrusterMaterial = new THREE.MeshBasicMaterial({
-  color: 0x7deaff,
-  transparent: true,
-  opacity: 0.82,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-});
-const RunnerThrusterGroup = new THREE.Group();
-for (const Side of [-1, 1]) {
-  const ThrusterFlame = new THREE.Mesh(
-    new THREE.ConeGeometry(0.065, 0.3, 8),
-    RunnerThrusterMaterial,
-  );
-  ThrusterFlame.position.set(Side * 0.09, -0.5, -0.07);
-  ThrusterFlame.rotation.z = Math.PI;
-  RunnerThrusterGroup.add(ThrusterFlame);
-}
-RunnerThrusterGroup.visible = false;
-RunnerVisualGroup.add(RunnerThrusterGroup);
-
-const RunnerAntennaStem = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.018, 0.018, 0.16, 6),
   RunnerDarkMaterial,
-);
-RunnerAntennaStem.position.set(0.16, 0.42, 0);
-RunnerAntennaStem.rotation.z = -0.22;
-RunnerVisualGroup.add(RunnerAntennaStem);
-const RunnerAntennaLight = new THREE.Mesh(
-  new THREE.SphereGeometry(0.045, 10, 8),
   RunnerVisorMaterial,
-);
-RunnerAntennaLight.position.set(0.18, 0.5, 0);
-RunnerVisualGroup.add(RunnerAntennaLight);
-SeedGroup.add(RunnerVisualGroup);
-
-/** The Orbitbreaker unfolds around the same physics body; only its silhouette changes. */
-const ShipVisualGroup = new THREE.Group();
-const ShipHullMaterial = new THREE.MeshStandardMaterial({
-  color: 0xddecef,
-  emissive: 0x2a7f99,
-  emissiveIntensity: 0.42,
-  roughness: 0.3,
-  metalness: 0.46,
-});
-const ShipAccentMaterial = new THREE.MeshStandardMaterial({
-  color: 0xffa85d,
-  emissive: 0xff623b,
-  emissiveIntensity: 1.1,
-  roughness: 0.26,
-  metalness: 0.34,
-});
-const ShipHullMesh = new THREE.Mesh(
-  new THREE.CapsuleGeometry(0.22, 0.44, 6, 12),
-  ShipHullMaterial,
-);
-ShipHullMesh.scale.set(0.9, 1, 0.72);
-ShipHullMesh.castShadow = true;
-ShipVisualGroup.add(ShipHullMesh);
-const ShipNoseMesh = new THREE.Mesh(
-  new THREE.ConeGeometry(0.22, 0.3, 12),
-  ShipAccentMaterial,
-);
-ShipNoseMesh.position.y = 0.5;
-ShipVisualGroup.add(ShipNoseMesh);
-for (const Side of [-1, 1]) {
-  const WingMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.32, 0.2, 0.055),
-    ShipHullMaterial,
-  );
-  WingMesh.position.set(Side * 0.28, -0.15, 0);
-  WingMesh.rotation.z = Side * -0.32;
-  ShipVisualGroup.add(WingMesh);
-}
-const ShipWindowMesh = new THREE.Mesh(
-  new THREE.SphereGeometry(0.13, 12, 8),
-  RunnerVisorMaterial,
-);
-ShipWindowMesh.position.set(0, 0.16, 0.2);
-ShipWindowMesh.scale.set(1, 1.18, 0.38);
-ShipVisualGroup.add(ShipWindowMesh);
-const ShipThrusterMesh = new THREE.Mesh(
-  new THREE.ConeGeometry(0.12, 0.44, 10),
+  RunnerBackpackMesh,
+  RunnerTorsoMesh,
+  RunnerHelmetMesh,
+  RunnerVisorMesh,
+  RunnerLimbGeometry,
+  RunnerArmMeshes,
+  RunnerLegMeshes,
   RunnerThrusterMaterial,
-);
-ShipThrusterMesh.position.y = -0.56;
-ShipThrusterMesh.rotation.z = Math.PI;
-ShipVisualGroup.add(ShipThrusterMesh);
-ShipVisualGroup.visible = false;
-SeedGroup.add(ShipVisualGroup);
-
-const SeedHaloGeometry = new THREE.SphereGeometry(SeedRadius * 1.65, 24, 16);
-const SeedHaloMaterial = new THREE.MeshBasicMaterial({
-  color: 0x6de8ff,
-  transparent: true,
-  opacity: 0.12,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-});
-const SeedHaloMesh = new THREE.Mesh(SeedHaloGeometry, SeedHaloMaterial);
-SeedGroup.add(SeedHaloMesh);
-
-const SeedPointLight = new THREE.PointLight(0x72dcff, 2.1, 6, 2);
-SeedGroup.add(SeedPointLight);
-Scene.add(SeedGroup);
-
-/**
- * An enlarged invisible sphere makes pointer acquisition forgiving on touchscreens.
- */
-const SeedPointerHitGeometry = new THREE.SphereGeometry(SeedRadius * 3.6, 12, 8);
-const SeedPointerHitMaterial = new THREE.MeshBasicMaterial({
-  transparent: true,
-  opacity: 0,
-  depthWrite: false,
-});
-const SeedPointerHitMesh = new THREE.Mesh(SeedPointerHitGeometry, SeedPointerHitMaterial);
-SeedGroup.add(SeedPointerHitMesh);
-
-/**
- * Launch preview uses a single line plus a terminal landing marker. The final art pass can
- * convert this to a dotted shader or particle trail without touching trajectory logic.
- */
-const MaximumPreviewPointCount = Math.ceil(
-  MaximumTrajectoryPredictionSteps / TrajectoryPreviewSampleStride,
-) + 2;
-const TrajectoryPositionValues = new Float32Array(MaximumPreviewPointCount * 3);
-const TrajectoryGeometry = new THREE.BufferGeometry();
-const TrajectoryPositionAttribute = new THREE.BufferAttribute(TrajectoryPositionValues, 3);
-TrajectoryPositionAttribute.setUsage(THREE.DynamicDrawUsage);
-TrajectoryGeometry.setAttribute('position', TrajectoryPositionAttribute);
-TrajectoryGeometry.setDrawRange(0, 0);
-const TrajectoryMaterial = new THREE.LineBasicMaterial({
-  color: 0xd9f6cc,
-  transparent: true,
-  opacity: 0.62,
-  depthWrite: false,
-});
-const TrajectoryLine = new THREE.Line(TrajectoryGeometry, TrajectoryMaterial);
-TrajectoryLine.visible = false;
-TrajectoryLine.frustumCulled = false;
-Scene.add(TrajectoryLine);
-
-const LandingMarkerGeometry = new THREE.RingGeometry(0.42, 0.58, 32);
-const LandingMarkerMaterial = new THREE.MeshBasicMaterial({
-  color: 0xd9f6cc,
-  transparent: true,
-  opacity: 0.82,
-  side: THREE.DoubleSide,
-  depthWrite: false,
-});
-const LandingMarkerMesh = new THREE.Mesh(LandingMarkerGeometry, LandingMarkerMaterial);
-LandingMarkerMesh.visible = false;
-LandingMarkerMesh.position.z = 0.18;
-Scene.add(LandingMarkerMesh);
-
-/** Reused rings provide launch snap and landing impact without allocating during play. */
-const FeedbackPulseGeometry = new THREE.RingGeometry(0.42, 0.55, 36);
-function createFeedbackPulse(Color) {
-  const PulseMaterial = new THREE.MeshBasicMaterial({
-    color: Color,
-    transparent: true,
-    opacity: 0,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  });
-  const PulseMesh = new THREE.Mesh(FeedbackPulseGeometry, PulseMaterial);
-  PulseMesh.visible = false;
-  Scene.add(PulseMesh);
-  return PulseMesh;
-}
-
-const LaunchPulseMesh = createFeedbackPulse(0xd9f6cc);
-const ImpactPulseMesh = createFeedbackPulse(0xfff2bc);
-
-/** A dotted pull guide points away from the first target before the first launch. */
-const PullGuideGeometry = new THREE.BufferGeometry();
-const PullGuideMaterial = new THREE.LineDashedMaterial({
-  color: 0xd9f6cc,
-  transparent: true,
-  opacity: 0.42,
-  dashSize: 0.22,
-  gapSize: 0.14,
-  depthWrite: false,
-  depthTest: false,
-});
-const PullGuideLine = new THREE.Line(PullGuideGeometry, PullGuideMaterial);
-PullGuideLine.visible = false;
-PullGuideLine.renderOrder = 20;
-Scene.add(PullGuideLine);
-
-const CutGuideGeometry = new THREE.BufferGeometry();
-const CutGuideMaterial = new THREE.LineDashedMaterial({
-  color: 0xffd678,
-  transparent: true,
-  opacity: 0.92,
-  dashSize: 0.16,
-  gapSize: 0.1,
-  depthWrite: false,
-  depthTest: false,
-});
-const CutGuideLine = new THREE.Line(CutGuideGeometry, CutGuideMaterial);
-CutGuideLine.visible = false;
-CutGuideLine.renderOrder = 21;
-Scene.add(CutGuideLine);
-
-
-/**
- * Creates a small trail behind the flying seed as one instanced draw call. Pooling avoids
- * allocation spikes and protects the restoration draw-call budget during flight.
- */
-const TrailParticlePool = [];
-const TrailParticleCount = 22;
-const TrailParticleGeometry = new THREE.SphereGeometry(0.10, 6, 4);
-const TrailParticleMaterial = new THREE.MeshBasicMaterial({
-  color: 0xc9efb8,
-  transparent: true,
-  opacity: 0.45,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-});
-const TrailParticleMesh = new THREE.InstancedMesh(
+  RunnerThrusterGroup,
+  RunnerAntennaStem,
+  RunnerAntennaLight,
+  ShipVisualGroup,
+  ShipHullMaterial,
+  ShipAccentMaterial,
+  ShipHullMesh,
+  ShipNoseMesh,
+  ShipWindowMesh,
+  ShipThrusterMesh,
+  SeedHaloGeometry,
+  SeedHaloMaterial,
+  SeedHaloMesh,
+  SeedPointLight,
+  SeedPointerHitGeometry,
+  SeedPointerHitMaterial,
+  SeedPointerHitMesh,
+  MaximumPreviewPointCount,
+  TrajectoryPositionValues,
+  TrajectoryGeometry,
+  TrajectoryPositionAttribute,
+  TrajectoryMaterial,
+  TrajectoryLine,
+  LandingMarkerGeometry,
+  LandingMarkerMaterial,
+  LandingMarkerMesh,
+  FeedbackPulseGeometry,
+  LaunchPulseMesh,
+  ImpactPulseMesh,
+  PullGuideGeometry,
+  PullGuideMaterial,
+  PullGuideLine,
+  CutGuideGeometry,
+  CutGuideMaterial,
+  CutGuideLine,
+  TrailParticlePool,
+  TrailParticleCount,
   TrailParticleGeometry,
   TrailParticleMaterial,
-  TrailParticleCount,
-);
-const TrailParticleTransform = new THREE.Object3D();
-TrailParticleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-TrailParticleMesh.frustumCulled = false;
-Scene.add(TrailParticleMesh);
-
-for (let TrailParticleIndex = 0; TrailParticleIndex < TrailParticleCount; TrailParticleIndex += 1) {
-  const TrailParticle = {
-    index: TrailParticleIndex,
-    position: new THREE.Vector3(),
-    lifeRemainingSeconds: 0,
-    maximumLifeSeconds: 0.42,
-  };
-  TrailParticlePool.push(TrailParticle);
-  updateTrailParticleInstance(TrailParticle, 0);
-}
-TrailParticleMesh.instanceMatrix.needsUpdate = true;
+  TrailParticleMesh,
+  TrailParticleTransform,
+  createFeedbackPulse,
+  updateTrailParticleInstance,
+} = PlayerVisuals;
 
 let NextTrailParticleIndex = 0;
 let TrailEmissionAccumulatorSeconds = 0;
 
-/** Writes one pooled trail particle into the shared instanced mesh. */
-function updateTrailParticleInstance(TrailParticle, Scale) {
-  TrailParticleTransform.position.copy(TrailParticle.position);
-  TrailParticleTransform.scale.setScalar(Scale);
-  TrailParticleTransform.updateMatrix();
-  TrailParticleMesh.setMatrixAt(TrailParticle.index, TrailParticleTransform.matrix);
-}
 
 /**
  * Converts pointer coordinates into the XY orbital plane.
@@ -3947,7 +3367,7 @@ function completeWorldheartLiberation() {
   updateScoreInterface();
   GameCanvas.dataset.completionBonus = String(CompletionBonus);
   GameCanvas.dataset.commandPulse = 'fired';
-  CommandDefeatStartedAtSeconds = GameElapsedTimeSeconds;
+  beginCommandDefeat(GameElapsedTimeSeconds);
   startWardenEventPulse(WorldheartDefinition.position, 0x72d9ff, 'defeat');
   GamePhase = 'victoryPending';
   updateWorldheartObjective();
@@ -6922,19 +6342,7 @@ function resetGame() {
   RelayNetworkState = createRelayNetworkState(StartingWorldIdentifier);
   synchronizeRelayNetworkVisuals();
   WardenPursuitState = createWardenPursuitState();
-  WardenEventPulseStartedAtSeconds = null;
-  CommandDefeatStartedAtSeconds = null;
-  WardenEventPulseMesh.visible = false;
-  WardenEventPulseMaterial.opacity = 0;
-  GameCanvas.dataset.wardenVisualBeat = '';
-  WardenVisualGroup.position.copy(WardenEntryPosition);
-  WardenVisualGroup.rotation.set(0, 0, 0);
-  WardenShieldRings.forEach((Ring, RingIndex) => {
-    Ring.rotation.x = RingIndex === 0 ? 0 : Math.PI * 0.5;
-    Ring.rotation.y = 0;
-    Ring.rotation.z = 0;
-  });
-  WardenApproachStartPosition.copy(WardenEntryPosition);
+  resetWardenVisuals();
   GameCanvas.dataset.lastSuppressedWorld = '';
   GameCanvas.dataset.wardenCaughtWorld = '';
   GameCanvas.dataset.wardenArrivalAnswer = '';

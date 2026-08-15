@@ -31,6 +31,7 @@ export function auditReleaseReadiness() {
   const SectorSource = readRepositoryFile('src/sector.js');
   const FlightResolverSource = readRepositoryFile('src/flight-resolver.js');
   const LivingWorldSource = readRepositoryFile('src/living-world-visuals.js');
+  const PlayerSource = readRepositoryFile('src/player-visuals.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -92,7 +93,7 @@ export function auditReleaseReadiness() {
       && LivingWorldSource.includes('OccupationFumeMesh')
       && LivingWorldSource.includes('ExtractionFreighterMesh')
       && LivingWorldSource.includes('visiblePrisonerCount')
-      && MainSource.includes('RunnerPresentationScale = 0.52')
+      && PlayerSource.includes('RunnerPresentationScale = 0.52')
       && MainSource.includes('getLandedCameraScale('),
     'Occupied worlds must show tyrant extraction, held people and a tiny Runner so living contrast can read.',
   );
