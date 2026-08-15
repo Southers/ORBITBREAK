@@ -37,6 +37,18 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     BreakerReachSystemDefinition.openingBroadcast,
     'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
   );
+  assert.equal(
+    BreakerReachSystemDefinition.commandApproachLine,
+    'A network cannot be imprisoned.',
+  );
+  assert.equal(
+    BreakerReachSystemDefinition.completion.endingReveal,
+    'You did not save them alone. You reminded them they were never alone.',
+  );
+  assert.equal(
+    BreakerReachSystemDefinition.completion.expansionSting,
+    'WARDEN NODE DISCONNECTED · SECTOR WARDENS: 11',
+  );
   const WorldXs = BreakerReachSystemDefinition.worlds.map(
     (WorldDefinition) => WorldDefinition.position.x,
   );
@@ -83,6 +95,23 @@ test('authored opening broadcasts fail closed when present but empty', () => {
   InvalidSystemDefinition.openingBroadcast = '   ';
   assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
     'Authored system openingBroadcast must be a non-empty string when present.',
+  ));
+});
+
+test('authored final story anchors fail closed when present but empty', () => {
+  const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  InvalidSystemDefinition.commandApproachLine = ' ';
+  InvalidSystemDefinition.completion.endingReveal = '';
+  InvalidSystemDefinition.completion.expansionSting = '   ';
+  const Errors = validateAuthoredSystemDefinition(InvalidSystemDefinition);
+  assert.ok(Errors.includes(
+    'Authored system commandApproachLine must be a non-empty string when present.',
+  ));
+  assert.ok(Errors.includes(
+    'Authored system completion.endingReveal must be a non-empty string when present.',
+  ));
+  assert.ok(Errors.includes(
+    'Authored system completion.expansionSting must be a non-empty string when present.',
   ));
 });
 

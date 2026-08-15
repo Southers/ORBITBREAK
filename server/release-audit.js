@@ -110,6 +110,15 @@ export function auditReleaseReadiness() {
     'The selected one-sector candidate must retain the opening Warden broadcast.',
   );
   requireCondition(
+    AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+      ?.commandApproachLine === 'A network cannot be imprisoned.'
+      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+        ?.completion.endingReveal === 'You did not save them alone. You reminded them they were never alone.'
+      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+        ?.completion.expansionSting === 'WARDEN NODE DISCONNECTED · SECTOR WARDENS: 11',
+    'The selected one-sector candidate must retain its final resistance and ending reveals.',
+  );
+  requireCondition(
     AuthoredCampaignSystemIdentifiers.length === 5,
     'The release campaign must contain exactly five authored systems.',
   );

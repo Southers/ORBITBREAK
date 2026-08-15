@@ -78,6 +78,15 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
   ) {
     Errors.push('Authored system openingBroadcast must be a non-empty string when present.');
   }
+  if (
+    SystemDefinition.commandApproachLine !== undefined
+    && (
+      typeof SystemDefinition.commandApproachLine !== 'string'
+      || SystemDefinition.commandApproachLine.trim() === ''
+    )
+  ) {
+    Errors.push('Authored system commandApproachLine must be a non-empty string when present.');
+  }
   if (!Number.isInteger(SystemDefinition.launchBudget) || SystemDefinition.launchBudget < 1) {
     Errors.push('Authored system requires a positive integer launchBudget.');
   }
@@ -151,6 +160,19 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     && typeof CompletionDefinition.continueToNextSystem !== 'boolean'
   ) {
     Errors.push('Authored system completion.continueToNextSystem must be boolean when present.');
+  }
+  for (const OptionalCompletionField of ['endingReveal', 'expansionSting']) {
+    if (
+      CompletionDefinition?.[OptionalCompletionField] !== undefined
+      && (
+        typeof CompletionDefinition[OptionalCompletionField] !== 'string'
+        || CompletionDefinition[OptionalCompletionField].trim() === ''
+      )
+    ) {
+      Errors.push(
+        `Authored system completion.${OptionalCompletionField} must be a non-empty string when present.`,
+      );
+    }
   }
 
   const WorldDefinitions = Array.isArray(SystemDefinition.worlds)
@@ -490,6 +512,7 @@ export function createAuthoredSystemRuntime(
     contentVersion: SystemDefinition.contentVersion,
     openingBody: SystemDefinition.openingBody,
     openingBroadcast: SystemDefinition.openingBroadcast ?? null,
+    commandApproachLine: SystemDefinition.commandApproachLine ?? null,
     camera: SystemDefinition.camera ? { ...SystemDefinition.camera } : null,
     environment: {
       ...EnvironmentDefinition,
@@ -692,6 +715,7 @@ export const BreakerReachSystemDefinition = {
   wardenVictoryValuePerStep: 1000,
   openingBroadcast: 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
   openingBody: 'Build relays. Three active worlds reveal the Warden; two circuits break its shields. Start low toward Ember, or walk Haven\'s dark rim and Burn toward Frost.',
+  commandApproachLine: 'A network cannot be imprisoned.',
   camera: {
     followPlayer: true,
     viewportWorldHeight: 24,
@@ -704,6 +728,8 @@ export const BreakerReachSystemDefinition = {
     perfectTitle: 'Every signal in the Reach is free.',
     body: 'The Runner banks the route while the freed worlds answer one another.',
     perfectBody: 'The entire Reach shines beyond the Stillness.',
+    endingReveal: 'You did not save them alone. You reminded them they were never alone.',
+    expansionSting: 'WARDEN NODE DISCONNECTED · SECTOR WARDENS: 11',
     emblems: {
       heart: { title: 'COMMAND', subtitle: 'DEFEATED' },
       bloom: { title: 'SOLIDARITY', subtitle: 'ALL WORLDS' },

@@ -35,7 +35,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob33';
+} from './content.js?v=20260815-ob36';
 
 import {
   countRestoredWorlds,
@@ -251,7 +251,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob33';
+GameCanvas.dataset.build = '20260815-ob36';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -743,25 +743,35 @@ function createStarField() {
  */
 function createWorldContourRings(WorldRadius, RingColor) {
   const RingGroup = new THREE.Group();
+  const RingGeometries = [];
 
   for (let RingIndex = 0; RingIndex < 2; RingIndex += 1) {
-    const RingGeometry = new THREE.TorusGeometry(
+    const RingSourceGeometry = new THREE.TorusGeometry(
       WorldRadius * (1.01 + (RingIndex * 0.008)),
       0.015,
       4,
       96,
     );
-    const RingMaterial = new THREE.MeshBasicMaterial({
-      color: RingColor,
-      transparent: true,
-      opacity: RingIndex === 0 ? 0.12 : 0.07,
-      depthWrite: false,
-    });
-    const RingMesh = new THREE.Mesh(RingGeometry, RingMaterial);
-    RingMesh.rotation.x = Math.PI * (0.42 + (RingIndex * 0.19));
-    RingMesh.rotation.y = Math.PI * (0.12 + (RingIndex * 0.17));
-    RingGroup.add(RingMesh);
+    const RingGeometry = RingSourceGeometry.index
+      ? RingSourceGeometry.toNonIndexed()
+      : RingSourceGeometry.clone();
+    RingSourceGeometry.dispose();
+    RingGeometry.rotateX(Math.PI * (0.42 + (RingIndex * 0.19)));
+    RingGeometry.rotateY(Math.PI * (0.12 + (RingIndex * 0.17)));
+    addRestorationGeometryAttributes(RingGeometry, null, 1);
+    RingGeometries.push(RingGeometry);
   }
+
+  const RingMaterial = new THREE.MeshBasicMaterial({
+    color: RingColor,
+    transparent: true,
+    opacity: 0.095,
+    depthWrite: false,
+  });
+  RingGroup.add(new THREE.Mesh(
+    mergeRestorationGeometries(RingGeometries),
+    RingMaterial,
+  ));
 
   return RingGroup;
 }
@@ -2014,14 +2024,26 @@ function createMeadowFlowers(WorldDefinition, SurfaceDirection, FlowerColor, Pha
 function createMeadowGrass(WorldDefinition, SurfaceDirection, Scale, Phase) {
   const Grass = new THREE.Group();
   const GrassMaterial = new THREE.MeshStandardMaterial({ color: 0x9acc68, roughness: 0.96 });
-  const BladeGeometry = new THREE.ConeGeometry(0.045, 0.34, 4);
+  const BladeSourceGeometry = new THREE.ConeGeometry(0.045, 0.34, 4);
+  const BladeGeometries = [];
 
   for (let BladeIndex = 0; BladeIndex < 3; BladeIndex += 1) {
-    const Blade = new THREE.Mesh(BladeGeometry, GrassMaterial);
-    Blade.position.set((BladeIndex - 1) * 0.08, 0.17, 0);
-    Blade.rotation.z = (BladeIndex - 1) * -0.15;
-    Grass.add(Blade);
+    const BladeGeometry = BladeSourceGeometry.index
+      ? BladeSourceGeometry.toNonIndexed()
+      : BladeSourceGeometry.clone();
+    const BladeTransform = new THREE.Object3D();
+    BladeTransform.position.set((BladeIndex - 1) * 0.08, 0.17, 0);
+    BladeTransform.rotation.z = (BladeIndex - 1) * -0.15;
+    BladeTransform.updateMatrix();
+    BladeGeometry.applyMatrix4(BladeTransform.matrix);
+    addRestorationGeometryAttributes(BladeGeometry, null, 1);
+    BladeGeometries.push(BladeGeometry);
   }
+  BladeSourceGeometry.dispose();
+  Grass.add(new THREE.Mesh(
+    mergeRestorationGeometries(BladeGeometries),
+    GrassMaterial,
+  ));
 
   placeSurfaceProp(Grass, SurfaceDirection, WorldDefinition.radius, Scale, 0.02);
   registerRestorableMaterial(Grass, GrassMaterial);
@@ -4683,7 +4705,10 @@ function updateVictorySummary() {
   ResultLiberationScoreElement.textContent = ScoreState.networkScore.toLocaleString('en-GB');
   ResultCompletionBonusElement.textContent = ScoreState.victoryScore.toLocaleString('en-GB');
   ResultFlightTimeElement.textContent = formatFlightTime(RunResult.flightTimeMilliseconds);
-  VictoryBodyElement.textContent = `${CompletionBody} ${getRunResourceSummary(
+  const EndingReveal = ActiveSystem.completion.endingReveal
+    ? ` ${ActiveSystem.completion.endingReveal}`
+    : '';
+  VictoryBodyElement.textContent = `${CompletionBody}${EndingReveal} ${getRunResourceSummary(
     RunState,
   )} · ${formatFlightTime(RunResult.flightTimeMilliseconds)} flight time.`;
   GameCanvas.dataset.personalBest = String(PersonalBestScore);
@@ -4865,10 +4890,13 @@ function publishHostileEncounterState() {
 function showHostileEncounterInstruction() {
   const AttachedWorld = getCurrentAttachedWorld();
   if (!AttachedWorld || !ActiveHostileEncounterState) return false;
+  const IsCommandApproach = AttachedWorld.kind === 'worldheart';
+  const CommandApproachTitle = ActiveSystem.commandApproachLine
+    ?? 'Command core in range.';
   const RunnerSurfaceAngle = getRunnerSurfaceAngle(AttachedWorld);
   if (isHostilePulseReady(ActiveHostileEncounterState, RunnerSurfaceAngle)) {
     showInstruction(
-      AttachedWorld.kind === 'worldheart' ? 'Command core in range.' : 'Pylon in range.',
+      IsCommandApproach ? CommandApproachTitle : 'Pylon in range.',
       'Press Space or tap BREAKER PULSE to disable the barrier without spending a launch.',
     );
   } else {
@@ -4876,10 +4904,10 @@ function showHostileEncounterInstruction() {
       getHostileEncounterAngularDistance(ActiveHostileEncounterState, RunnerSurfaceAngle),
     ));
     showInstruction(
-      AttachedWorld.kind === 'worldheart'
-        ? 'Circle the moving Command World.'
+      IsCommandApproach
+        ? CommandApproachTitle
         : `${AttachedWorld.label} blocks the relay.`,
-      `Walk the rim with Q/E or trace toward the red pylons · ${DistanceDegrees}° away.`,
+      `${IsCommandApproach ? 'Circle the moving Command World' : 'Walk the rim'} with Q/E or trace toward the red pylons · ${DistanceDegrees}° away.`,
     );
   }
   return true;
@@ -5424,8 +5452,10 @@ function completeWorldheartLiberation() {
     showStatusToast('THE WORLDHEART IS AWAKENING', 2200, 'memory');
   } else {
     showStatusToast(
-      `COMMAND BROKEN · +${(PendingWorldheartBankedPoints + CompletionBonus).toLocaleString('en-GB')} BANKED`,
-      1600,
+      ActiveSystem.completion.expansionSting
+        ? `${ActiveSystem.completion.expansionSting} · +${(PendingWorldheartBankedPoints + CompletionBonus).toLocaleString('en-GB')} BANKED`
+        : `COMMAND BROKEN · +${(PendingWorldheartBankedPoints + CompletionBonus).toLocaleString('en-GB')} BANKED`,
+      1800,
     );
   }
 

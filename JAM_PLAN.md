@@ -326,6 +326,20 @@ Portrait Scout retained 44×44 zoom controls, the first connection stayed within
 and browser diagnostics reported no errors. The change is authored copy and presentation only, so
 fixed-step live, prediction and replay physics are unchanged.
 
+Gauntlet pass 6 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The required final resistance, ending reveal and expansion
+sting existed only in `DESIGN.md`; the live Command approach and result used generic inherited copy.
+Breaker’s Reach now authors `A network cannot be imprisoned`, the reminder that the worlds were
+never alone and `WARDEN NODE DISCONNECTED · SECTOR WARDENS: 11`. Empty optional anchors fail content
+validation, and the release audit protects the selected sector's exact beats. The first full browser
+gate also exposed a 194-call transition peak. Merging each world’s two contour rings and each of
+Haven’s eight three-blade grass tufts preserves the same geometry and group-level animation while
+removing up to 20 redundant calls. The corrected live seven-launch desktop route closed both circuits,
+boarded the moving Command World, displayed all three story beats and produced a replay-verified
+12,250 result at 176/190 peak calls. Its 390×844 result retained the full reveal, no overflow and
+45.2px actions. This presentation and batching pass does not alter fixed-step physics, inputs, score
+or replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
