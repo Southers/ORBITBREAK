@@ -60,6 +60,13 @@ import {
   separateOverlappingRouteLabels,
   separateRouteLabelsFromTacticalLabels,
 } from '../src/presentation.js';
+import { BreakerReachSystemDefinition } from '../src/content.js';
+
+const BreakerReachCluster = {
+  innerClusterWorldIdentifiers: BreakerReachSystemDefinition.innerClusterWorldIdentifiers,
+  furtherReachWorldIdentifiers: BreakerReachSystemDefinition.furtherReachWorldIdentifiers,
+  commandWorldIdentifier: 'worldheart',
+};
 
 test('published Warden state distinguishes exposure from final defeat', () => {
   assert.deepEqual(getPublishedWardenState('hidden'), {
@@ -558,15 +565,18 @@ test('default planning focus stays on the neighbourhood until the outer Reach is
     innerClusterLive: false,
     commandRouteAvailable: false,
     currentWorldIdentifier: 'meadow',
+    ...BreakerReachCluster,
   }).sort(), ['ember', 'grove', 'meadow']);
   assert.ok(getPlanningFocusWorldIdentifiers({
     innerClusterLive: true,
     commandRouteAvailable: false,
+    ...BreakerReachCluster,
   }).includes('tide'));
   assert.ok(getPlanningFocusWorldIdentifiers({
     innerClusterLive: true,
     commandRouteAvailable: true,
     predictedBodyIdentifiers: ['worldheart'],
+    ...BreakerReachCluster,
   }).includes('worldheart'));
   const NeighbourhoodCamera = getSectorPlanningCamera({
     runner: { x: -22, y: -8 },
@@ -808,14 +818,14 @@ test('prosperity densifies from a first link to busy routes and circuits', () =>
 });
 
 test('range veil lifts only after Haven, Ember and Grove are live', () => {
-  assert.equal(isInnerClusterLive(['meadow', 'ember']), false);
-  assert.equal(isInnerClusterLive(['meadow', 'ember', 'grove']), true);
-  assert.equal(isFurtherReachLive(['meadow', 'ember', 'grove']), false);
-  assert.equal(isFurtherReachLive(['meadow', 'ember', 'grove', 'tide']), true);
-  assert.equal(getRangeVeilStrength('frost', false), 1);
-  assert.equal(getRangeVeilStrength('frost', true), 0);
-  assert.equal(getRangeVeilStrength('ember', false), 0);
-  assert.equal(getRangeVeilStrength('worldheart', false), 1);
+  assert.equal(isInnerClusterLive(['meadow', 'ember'], BreakerReachCluster.innerClusterWorldIdentifiers), false);
+  assert.equal(isInnerClusterLive(['meadow', 'ember', 'grove'], BreakerReachCluster.innerClusterWorldIdentifiers), true);
+  assert.equal(isFurtherReachLive(['meadow', 'ember', 'grove'], BreakerReachCluster.furtherReachWorldIdentifiers), false);
+  assert.equal(isFurtherReachLive(['meadow', 'ember', 'grove', 'tide'], BreakerReachCluster.furtherReachWorldIdentifiers), true);
+  assert.equal(getRangeVeilStrength('frost', false, BreakerReachCluster), 1);
+  assert.equal(getRangeVeilStrength('frost', true, BreakerReachCluster), 0);
+  assert.equal(getRangeVeilStrength('ember', false, BreakerReachCluster), 0);
+  assert.equal(getRangeVeilStrength('worldheart', false, BreakerReachCluster), 1);
 });
 
 test('tyrant occupation collapses through the liberation wave and never returns a haul', () => {

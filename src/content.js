@@ -304,6 +304,34 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     Errors.push('The starting world must be initially restored.');
   }
 
+  const AuthoredWorldIdentifiers = new Set(
+    WorldDefinitions.map((WorldDefinition) => WorldDefinition.id).filter(Boolean),
+  );
+  const validateWorldIdentifierList = (List, Label) => {
+    if (!Array.isArray(List) || List.length < 1) {
+      Errors.push(`Authored system ${Label} must be a non-empty array of world ids.`);
+      return;
+    }
+    const SeenClusterIdentifiers = new Set();
+    for (const Identifier of List) {
+      if (typeof Identifier !== 'string' || !AuthoredWorldIdentifiers.has(Identifier)) {
+        Errors.push(`Authored system ${Label} references unknown world ${Identifier}.`);
+      }
+      if (SeenClusterIdentifiers.has(Identifier)) {
+        Errors.push(`Authored system ${Label} contains duplicate world ${Identifier}.`);
+      }
+      SeenClusterIdentifiers.add(Identifier);
+    }
+  };
+  validateWorldIdentifierList(
+    SystemDefinition.innerClusterWorldIdentifiers,
+    'innerClusterWorldIdentifiers',
+  );
+  validateWorldIdentifierList(
+    SystemDefinition.furtherReachWorldIdentifiers,
+    'furtherReachWorldIdentifiers',
+  );
+
   const OpeningGuideTargetDefinition = WorldDefinitions.find(
     (WorldDefinition) => WorldDefinition.id === SystemDefinition.openingGuideTargetIdentifier,
   );
@@ -718,6 +746,10 @@ export function createAuthoredSystemRuntime(
     },
     startingWorldIdentifier: SystemDefinition.startingWorldIdentifier,
     openingGuideTargetIdentifier: SystemDefinition.openingGuideTargetIdentifier,
+    innerClusterWorldIdentifiers: [...SystemDefinition.innerClusterWorldIdentifiers],
+    furtherReachWorldIdentifiers: [...SystemDefinition.furtherReachWorldIdentifiers],
+    commandWorldIdentifier: TacticalBodies.find((Body) => Body.kind === 'worldheart')?.id
+      ?? null,
     launchBudget: SystemDefinition.launchBudget,
     circuitBonusValue: SystemDefinition.circuitBonusValue ?? 1000,
     wardenVictoryValuePerStep: SystemDefinition.wardenVictoryValuePerStep ?? 1000,
@@ -771,6 +803,8 @@ export const FirstLightSystemDefinition = {
   },
   startingWorldIdentifier: 'meadow',
   openingGuideTargetIdentifier: 'ember',
+  innerClusterWorldIdentifiers: ['meadow', 'ember', 'grove'],
+  furtherReachWorldIdentifiers: ['tide', 'frost'],
   worldheartUnlockThreshold: 3,
   routeSuggestions: {
     meadow: ['grove', 'ember'],
@@ -1208,6 +1242,8 @@ export const BreakerReachSystemDefinition = {
   },
   startingWorldIdentifier: 'meadow',
   openingGuideTargetIdentifier: 'ember',
+  innerClusterWorldIdentifiers: ['meadow', 'ember', 'grove'],
+  furtherReachWorldIdentifiers: ['tide', 'frost', 'bastion'],
   worldheartUnlockThreshold: 3,
   commandWorldRequiresShieldBreaks: true,
   routeSuggestions: {
@@ -1367,6 +1403,8 @@ export const BrokenBeltSystemDefinition = {
   },
   startingWorldIdentifier: 'relay',
   openingGuideTargetIdentifier: 'kiln',
+  innerClusterWorldIdentifiers: ['relay', 'kiln', 'loom'],
+  furtherReachWorldIdentifiers: ['shard', 'drift', 'vault'],
   worldheartUnlockThreshold: 3,
   routeSuggestions: {
     relay: ['loom', 'kiln'],
@@ -1534,6 +1572,8 @@ export const WanderingGardenSystemDefinition = {
   },
   startingWorldIdentifier: 'bower',
   openingGuideTargetIdentifier: 'lantern',
+  innerClusterWorldIdentifiers: ['bower', 'lantern', 'canopy'],
+  furtherReachWorldIdentifiers: ['crown', 'dew', 'nest'],
   worldheartUnlockThreshold: 3,
   routeSuggestions: {
     bower: ['canopy', 'lantern'],
@@ -1706,6 +1746,8 @@ export const LongNightSystemDefinition = {
   },
   startingWorldIdentifier: 'vigil',
   openingGuideTargetIdentifier: 'pyre',
+  innerClusterWorldIdentifiers: ['vigil', 'pyre', 'hollow'],
+  furtherReachWorldIdentifiers: ['beacon', 'umbra', 'lumen'],
   worldheartUnlockThreshold: 3,
   routeSuggestions: {
     vigil: ['hollow', 'pyre'],
@@ -1879,6 +1921,8 @@ export const WorldheartSystemDefinition = {
   },
   startingWorldIdentifier: 'confluence',
   openingGuideTargetIdentifier: 'kindle',
+  innerClusterWorldIdentifiers: ['confluence', 'kindle', 'memory'],
+  furtherReachWorldIdentifiers: ['starwell', 'dawn', 'chorus'],
   worldheartUnlockThreshold: 3,
   routeSuggestions: {
     confluence: ['memory', 'kindle'],

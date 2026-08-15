@@ -2,41 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { validateSerializedReplay } from '../src/replay-validator.js';
+import {
+  loadReplayFixture,
+  loadSerializedReplayFixture,
+} from './fixtures/load-fixture.js';
 
-const CompletedBreakerReachReplay = JSON.stringify({
-  v: 2,
-  s: 'breaker-reach',
-  c: 'breaker-reach-6',
-  p: 'orbitbreak-fixed-step-v1',
-  h: 120,
-  o: 1,
-  l: [
-    [0, 'meadow', -18.383711059475825, -9.29153176447292, 12.5, 0, null],
-    [81, 'ember', -9.39128652337041, -9.582336791038667, 8.99174750423314, 8.683229630737465, null],
-    [246, 'grove', 3.5196755693207544, -5.6697576825922, -12.5, -1.5308084989341915e-15, null],
-    [582, 'meadow', -24.941610661576874, -10.468304421196311, 4.592425496802575e-16, 7.5, 612],
-    [854, 'frost', -6.028288379931077, 6.744597165098799, 8.683229630737465, -8.99174750423314, null],
-    [985, 'grove', 3.506030257999854, -2.350692592029089, 8.364132579485728, 9.289310318467429, null],
-    [1119, 'tide', 15.074880278671033, 0.4940867834126872, 11.669755331215022, 4.4795993693162535, null],
-  ],
-});
-
+const CompletedBreakerReachReplay = loadSerializedReplayFixture(
+  'breaker-reach-complete.v2.json',
+);
 const CompletedSchemaV2BurnRouteReplay = CompletedBreakerReachReplay;
-
-const ExpectedCompletedResult = {
-  systemIdentifier: 'breaker-reach',
-  contentVersion: 'breaker-reach-6',
-  score: 10900,
-  launchesUsed: 7,
-    flightTimeMilliseconds: 11217,
-  slingshotScore: 0,
-  networkScore: 6900,
-  liberationScore: 4400,
-  circuitScore: 2500,
-  victoryScore: 4000,
-  completionBonus: 4000,
-  collectedStardustCount: 0,
-};
+const ExpectedCompletedResult = loadReplayFixture(
+  'breaker-reach-complete.v2.result.json',
+);
+const ShortcutReplay = loadSerializedReplayFixture(
+  'breaker-reach-command-shortcut.v2.json',
+);
 
 test('validator derives the browser-completed route and score from input alone', () => {
   const Validation = validateSerializedReplay(CompletedBreakerReachReplay);
@@ -88,21 +68,6 @@ test('validator ignores a forged claimed total and returns the derived score', (
 });
 
 test('validator rejects the former direct Command route without two unique circuits', () => {
-  const ShortcutReplay = JSON.stringify({
-    v: 2,
-    s: 'breaker-reach',
-    c: 'breaker-reach-6',
-    p: 'orbitbreak-fixed-step-v1',
-    h: 120,
-    o: 1,
-    l: [
-      [0, 'meadow', -18.383711059475825, -9.29153176447292, 12.5, 0, null],
-      [81, 'ember', -9.39128652337041, -9.582336791038667, 8.364132579485728, 9.289310318467429, null],
-      [247, 'grove', 3.0988007181811215, -4.723286061785807, 10.112712429686843, 7.347315653655914, null],
-      [753, 'tide', 20.245878648434797, 4.404189904417844, 11.137581552354598, 5.674881246744334, null],
-    ],
-  });
-
   const Validation = validateSerializedReplay(ShortcutReplay);
   assert.equal(Validation.valid, false);
   assert.match(Validation.reason, /Command World/);

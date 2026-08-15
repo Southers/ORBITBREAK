@@ -1,117 +1,32 @@
-import { isWorldheartUnlocked } from './campaign.js';
-import {
-  createAuthoredSystemRuntime,
-  getAuthoredSystemDefinition,
-} from './content.js';
-import {
-  applyBreakerBurn,
-  calculateBodyPositionAtTime,
-  calculateDistanceSquared,
-  createVector,
-  findCollidingBody,
-  findCollidingWorld,
-  simulatePhysicsStep,
-} from './physics.js';
+import { createAuthoredSystemRuntime, getAuthoredSystemDefinition } from './content.js';
+import { calculateBodyPositionAtTime, createVector } from './physics.js';
 import {
   PhysicsModelVersion,
   ReplaySchemaVersion,
   parseReplay,
 } from './replay.js';
+import { createScoreState } from './scoring.js';
+import { createRunState, releaseRunLaunch } from './run.js';
+import { createRelayNetworkState } from './network.js';
+import { createWardenPursuitState } from './warden.js';
 import {
-  addCircuitBonus,
-  addVictoryBonus,
-  bankFlightScore,
-  createScoreState,
-  rollbackFlightScore,
-  sampleSlingshotBodies,
-} from './scoring.js';
-import { createRunState, releaseRunLaunch, settleRunFlight } from './run.js';
+  advanceSimulatedFlightStep,
+  applyFlightBreakerBurn,
+  createStartingPosition,
+  getActiveTacticalBodies,
+  resolveWardenAfterNonCommandFlight,
+  settleCommandLanding,
+  settleFailedFlight,
+  settleSeedstoneLanding,
+  settleWorldLanding,
+} from './flight-resolver.js';
 import {
-  connectRelayWorlds,
-  countLiveRelayWorlds,
-  createRelayNetworkState,
-  listProtectedRelayWorlds,
-  listVulnerableRelayWorlds,
-  isRelayWorldLive,
-  suppressRelayWorld,
-} from './network.js';
-import {
-  WardenPursuitEvents,
-  chooseWardenTarget,
-  createWardenPursuitState,
-  resetWardenAfterSuppression,
-  resolveWardenPursuit,
-  shouldRevealWarden,
-  shouldWardenCatchRunner,
-} from './warden.js';
-import {
-  isFurtherReachLive,
-  isInnerClusterLive,
-} from './presentation.js';
-
-const RunnerRadius = 0.46;
-const StardustRadius = 0.22;
-const StardustCollectionRadiusSquared = (RunnerRadius + StardustRadius) ** 2;
-const MaximumValidatedFlightSteps = 15000;
-
-function calculateSurfaceRestPosition(BodyDefinition, ImpactPosition, BodyPosition) {
-  const DifferenceX = ImpactPosition.x - BodyPosition.x;
-  const DifferenceY = ImpactPosition.y - BodyPosition.y;
-  const Distance = Math.hypot(DifferenceX, DifferenceY) || 1;
-  const SurfaceDistance = BodyDefinition.radius + RunnerRadius + 0.03;
-  return createVector(
-    BodyPosition.x + ((DifferenceX / Distance) * SurfaceDistance),
-    BodyPosition.y + ((DifferenceY / Distance) * SurfaceDistance),
-    0,
-  );
-}
-
-function createStartingPosition(Runtime) {
-  const StartingWorld = Runtime.worlds.find(
-    (World) => World.id === Runtime.startingWorldIdentifier,
-  );
-  const OpeningTarget = Runtime.worlds.find(
-    (World) => World.id === Runtime.openingGuideTargetIdentifier,
-  );
-  const DifferenceX = OpeningTarget.position.x - StartingWorld.position.x;
-  const DifferenceY = OpeningTarget.position.y - StartingWorld.position.y;
-  const Distance = Math.hypot(DifferenceX, DifferenceY) || 1;
-  const SurfaceDistance = StartingWorld.radius + RunnerRadius + 0.03;
-  return createVector(
-    StartingWorld.position.x + ((DifferenceX / Distance) * SurfaceDistance),
-    StartingWorld.position.y + ((DifferenceY / Distance) * SurfaceDistance),
-    0,
-  );
-}
-
-function getActiveTacticalBodies(Runtime, SeedstoneUsesRemaining, IsWorldheartOpen) {
-  return Runtime.tacticalBodies.filter((Body) => (
-    Body.kind === 'hazard'
-    || (Body.kind === 'seedstone' && SeedstoneUsesRemaining > 0)
-    || (Body.kind === 'worldheart' && IsWorldheartOpen)
-  ));
-}
-
-function collectStardust(Runtime, Position, FlightCollectedIdentifiers) {
-  for (const Stardust of Runtime.stardust) {
-    if (
-      !Stardust.collected
-      && calculateDistanceSquared(Position, Stardust.position)
-        <= StardustCollectionRadiusSquared
-    ) {
-      Stardust.collected = true;
-      FlightCollectedIdentifiers.add(Stardust.id);
-    }
-  }
-}
-
-function rollbackStardust(Runtime, FlightCollectedIdentifiers) {
-  for (const Stardust of Runtime.stardust) {
-    if (FlightCollectedIdentifiers.has(Stardust.id)) {
-      Stardust.collected = false;
-    }
-  }
-}
+  FixedPhysicsStepHertz,
+  MaximumValidatedFlightSteps,
+  RunnerRadius,
+  SurfaceOriginTolerance,
+  SurfaceRestLift,
+} from './sim-constants.js';
 
 function invalid(Reason) {
   return { valid: false, reason: Reason, result: null };
@@ -139,7 +54,7 @@ export function validateReplay(Replay) {
   if (
     AuthoredSystem.id !== Replay.systemIdentifier
     || AuthoredSystem.contentVersion !== Replay.contentVersion
-    || Replay.fixedStepHz !== 120
+    || Replay.fixedStepHz !== FixedPhysicsStepHertz
   ) {
     return invalid('Replay content or fixed-step version does not match.');
   }
@@ -209,12 +124,12 @@ export function validateReplay(Replay) {
       if (!LaunchBodyDefinition || !LaunchBodyPosition) {
         return invalid(`Launch ${LaunchIndex + 1} has no valid surface origin.`);
       }
-      const SurfaceDistance = LaunchBodyDefinition.radius + RunnerRadius + 0.03;
+      const SurfaceDistance = LaunchBodyDefinition.radius + RunnerRadius + SurfaceRestLift;
       const RecordedSurfaceDistance = Math.hypot(
         Launch.originX - LaunchBodyPosition.x,
         Launch.originY - LaunchBodyPosition.y,
       );
-      if (Math.abs(RecordedSurfaceDistance - SurfaceDistance) > 0.015) {
+      if (Math.abs(RecordedSurfaceDistance - SurfaceDistance) > SurfaceOriginTolerance) {
         return invalid(`Launch ${LaunchIndex + 1} leaves from outside its recorded surface.`);
       }
       CurrentPosition = createVector(Launch.originX, Launch.originY, 0);
@@ -245,133 +160,114 @@ export function validateReplay(Replay) {
       FlightStepCount += 1;
       const SimulationTimeSeconds = CurrentStepIndex * FixedStepSeconds;
       if (Launch.burnStepIndex === CurrentStepIndex) {
-        PhysicsState = applyBreakerBurn(
+        PhysicsState = applyFlightBreakerBurn(
           PhysicsState,
-          undefined,
           Number.isFinite(Launch.burnDirectionX) && Number.isFinite(Launch.burnDirectionY)
             ? { x: Launch.burnDirectionX, y: Launch.burnDirectionY }
             : null,
         );
         BurnApplied = true;
       }
-      PhysicsState = simulatePhysicsStep(PhysicsState, Runtime.worlds, FixedStepSeconds);
-      collectStardust(Runtime, PhysicsState.position, FlightCollectedStardust);
-
-      if (IgnoredWorldIdentifier) {
-        const OriginWorld = Runtime.worlds.find((World) => World.id === IgnoredWorldIdentifier);
-        const ClearDistance = OriginWorld.radius + RunnerRadius + 0.35;
-        if (calculateDistanceSquared(PhysicsState.position, OriginWorld.position) > ClearDistance ** 2) {
-          IgnoredWorldIdentifier = null;
-        }
-      }
-      if (IgnoredBodyIdentifier) {
-        const OriginBodyPosition = calculateBodyPositionAtTime(Seedstone, SimulationTimeSeconds);
-        const ClearDistance = Seedstone.radius + RunnerRadius + 0.35;
-        if (calculateDistanceSquared(PhysicsState.position, OriginBodyPosition) > ClearDistance ** 2) {
-          IgnoredBodyIdentifier = null;
-        }
-      }
-
-      sampleSlingshotBodies(ScoreState, PhysicsState.position, Runtime.worlds, {
-        runnerRadius: RunnerRadius,
-        ignoredBodyIdentifier: FlightOriginWorldIdentifier,
+      const StepResult = advanceSimulatedFlightStep({
+        physicsState: PhysicsState,
+        worlds: Runtime.worlds,
+        tacticalBodies: getActiveTacticalBodies(
+          Runtime,
+          SeedstoneUsesRemaining,
+          IsWorldheartOpen,
+        ),
+        stardust: Runtime.stardust,
+        scoreState: ScoreState,
+        fixedStepSeconds: FixedStepSeconds,
+        simulationTimeSeconds: SimulationTimeSeconds,
+        ignoredWorldIdentifier: IgnoredWorldIdentifier,
+        ignoredBodyIdentifier: IgnoredBodyIdentifier,
+        ignoredBodyDefinition: IgnoredBodyIdentifier ? Seedstone : null,
+        flightOriginWorldIdentifier: FlightOriginWorldIdentifier,
+        flightCollectedStardust: FlightCollectedStardust,
+        outOfBoundsDistance: OutOfBoundsDistance,
       });
-      const CollisionWorld = findCollidingWorld(
-        PhysicsState.position,
-        RunnerRadius,
-        Runtime.worlds,
-        IgnoredWorldIdentifier,
-      );
-      const CollisionBody = findCollidingBody(
-        PhysicsState.position,
-        RunnerRadius,
-        getActiveTacticalBodies(Runtime, SeedstoneUsesRemaining, IsWorldheartOpen),
-        SimulationTimeSeconds,
-        IgnoredBodyIdentifier,
-      );
+      PhysicsState = StepResult.physicsState;
+      IgnoredWorldIdentifier = StepResult.ignoredWorldIdentifier;
+      IgnoredBodyIdentifier = StepResult.ignoredBodyIdentifier;
 
-      if (CollisionBody?.definition.kind === 'hazard') {
-        RunState = settleRunFlight(RunState);
-        rollbackFlightScore(ScoreState);
-        rollbackStardust(Runtime, FlightCollectedStardust);
-        CurrentNodeIdentifier = LastSafeNodeIdentifier;
-        CurrentPosition = createVector(LastSafePosition.x, LastSafePosition.y, LastSafePosition.z);
+      if (StepResult.collisionBody?.definition.kind === 'hazard') {
+        const Failed = settleFailedFlight({
+          runState: RunState,
+          scoreState: ScoreState,
+          stardust: Runtime.stardust,
+          flightCollectedStardust: FlightCollectedStardust,
+          lastSafeNodeIdentifier: LastSafeNodeIdentifier,
+          lastSafePosition: LastSafePosition,
+        });
+        RunState = Failed.runState;
+        CurrentNodeIdentifier = Failed.nodeIdentifier;
+        CurrentPosition = Failed.position;
         FlightSettled = true;
-      } else if (CollisionBody?.definition.kind === 'seedstone') {
-        const BodyPosition = CollisionBody.position;
-        CurrentPosition = calculateSurfaceRestPosition(
-          CollisionBody.definition,
-          PhysicsState.position,
-          BodyPosition,
-        );
-        AttachedSeedstoneOffset = createVector(
-          CurrentPosition.x - BodyPosition.x,
-          CurrentPosition.y - BodyPosition.y,
-          CurrentPosition.z - BodyPosition.z,
-        );
-        CurrentNodeIdentifier = Seedstone.id;
-        bankFlightScore(ScoreState);
-        RunState = settleRunFlight(RunState);
+      } else if (StepResult.collisionBody?.definition.kind === 'seedstone') {
+        const SeedstoneLanding = settleSeedstoneLanding({
+          seedstone: Seedstone,
+          scoreState: ScoreState,
+          runState: RunState,
+          impactPosition: PhysicsState.position,
+          bodyPosition: StepResult.collisionBody.position,
+        });
+        AttachedSeedstoneOffset = SeedstoneLanding.attachedOffset;
+        CurrentPosition = SeedstoneLanding.position;
+        CurrentNodeIdentifier = SeedstoneLanding.nodeIdentifier;
+        RunState = SeedstoneLanding.runState;
         FlightSettled = true;
-      } else if (CollisionBody?.definition.kind === 'worldheart') {
+      } else if (StepResult.collisionBody?.definition.kind === 'worldheart') {
         if (
           Runtime.commandWorldRequiresShieldBreaks
           && WardenState.status !== 'exposed'
         ) {
           return invalid('Replay reaches the Command World before breaking both shields.');
         }
-        bankFlightScore(ScoreState);
-        RunState = settleRunFlight(RunState, { reachedCommandWorld: true });
-        addVictoryBonus(
-          ScoreState,
-          WardenState.distance,
-          Runtime.wardenVictoryValuePerStep,
-        );
-        CurrentNodeIdentifier = Worldheart.id;
+        const CommandLanding = settleCommandLanding({
+          runtime: Runtime,
+          worldheart: Worldheart,
+          scoreState: ScoreState,
+          runState: RunState,
+          wardenState: WardenState,
+        });
+        RunState = CommandLanding.runState;
+        CurrentNodeIdentifier = CommandLanding.nodeIdentifier;
         ReachedCommandThisFlight = true;
         FlightSettled = true;
-      } else if (CollisionWorld) {
-        const WasRestored = CollisionWorld.restored;
-        const WasSuppressed = RelayNetworkState.suppressedWorldIdentifiers.has(
-          CollisionWorld.id,
-        );
-        const RelayConnection = FlightOriginWorldIdentifier
-          && FlightOriginWorldIdentifier !== CollisionWorld.id
-          ? connectRelayWorlds(
-            RelayNetworkState,
-            FlightOriginWorldIdentifier,
-            CollisionWorld.id,
-          )
-          : null;
-        CircuitClosedThisFlight = RelayConnection?.circuitClosed === true;
-        CollisionWorld.restored = true;
-        CurrentPosition = calculateSurfaceRestPosition(
-          CollisionWorld,
-          PhysicsState.position,
-          CollisionWorld.position,
-        );
-        CurrentNodeIdentifier = CollisionWorld.id;
-        LastSafeNodeIdentifier = CollisionWorld.id;
-        LastSafePosition = createVector(CurrentPosition.x, CurrentPosition.y, CurrentPosition.z);
-        bankFlightScore(ScoreState, {
-          landingBonus: WasRestored || WasSuppressed
-            ? 0
-            : (CollisionWorld.liberationValue ?? 1000),
+      } else if (StepResult.collisionWorld) {
+        const WorldLanding = settleWorldLanding({
+          runtime: Runtime,
+          networkState: RelayNetworkState,
+          scoreState: ScoreState,
+          runState: RunState,
+          world: StepResult.collisionWorld,
+          impactPosition: PhysicsState.position,
+          flightOriginWorldIdentifier: FlightOriginWorldIdentifier,
         });
-        if (CircuitClosedThisFlight) {
-          addCircuitBonus(ScoreState, Runtime.circuitBonusValue);
-        }
-        RunState = settleRunFlight(RunState);
+        CircuitClosedThisFlight = WorldLanding.circuitClosed;
+        CurrentPosition = WorldLanding.position;
+        CurrentNodeIdentifier = WorldLanding.nodeIdentifier;
+        LastSafeNodeIdentifier = WorldLanding.nodeIdentifier;
+        LastSafePosition = createVector(
+          CurrentPosition.x,
+          CurrentPosition.y,
+          CurrentPosition.z,
+        );
+        RunState = WorldLanding.runState;
         FlightSettled = true;
-      } else if (
-        (PhysicsState.position.x ** 2) + (PhysicsState.position.y ** 2)
-        > OutOfBoundsDistance ** 2
-      ) {
-        RunState = settleRunFlight(RunState);
-        rollbackFlightScore(ScoreState);
-        rollbackStardust(Runtime, FlightCollectedStardust);
-        CurrentNodeIdentifier = LastSafeNodeIdentifier;
-        CurrentPosition = createVector(LastSafePosition.x, LastSafePosition.y, LastSafePosition.z);
+      } else if (StepResult.outOfBounds) {
+        const Failed = settleFailedFlight({
+          runState: RunState,
+          scoreState: ScoreState,
+          stardust: Runtime.stardust,
+          flightCollectedStardust: FlightCollectedStardust,
+          lastSafeNodeIdentifier: LastSafeNodeIdentifier,
+          lastSafePosition: LastSafePosition,
+        });
+        RunState = Failed.runState;
+        CurrentNodeIdentifier = Failed.nodeIdentifier;
+        CurrentPosition = Failed.position;
         FlightSettled = true;
       }
 
@@ -384,55 +280,19 @@ export function validateReplay(Replay) {
       return invalid(`Launch ${LaunchIndex + 1} did not settle within the validation limit.`);
     }
     if (!ReachedCommandThisFlight) {
-      const TargetWorldIdentifier = chooseWardenTarget(
-        Runtime.worlds,
-        listVulnerableRelayWorlds(RelayNetworkState),
-      );
-      const LiveWorldIdentifiers = [...RelayNetworkState.activeWorldIdentifiers].filter(
-        (WorldIdentifier) => isRelayWorldLive(RelayNetworkState, WorldIdentifier),
-      );
-      WardenState = resolveWardenPursuit(WardenState, {
-        activeRelayCount: Math.max(1, countLiveRelayWorlds(RelayNetworkState)),
-        targetWorldIdentifier: TargetWorldIdentifier,
+      const WardenResolution = resolveWardenAfterNonCommandFlight({
+        runtime: Runtime,
+        networkState: RelayNetworkState,
+        wardenState: WardenState,
+        currentNodeIdentifier: CurrentNodeIdentifier,
         firstCircuitClosed: CircuitClosedThisFlight,
-        shouldReveal: shouldRevealWarden({
-          innerClusterLive: isInnerClusterLive(LiveWorldIdentifiers),
-          furtherWorldLive: isFurtherReachLive(LiveWorldIdentifiers),
-        }),
+        isWorldheartOpen: IsWorldheartOpen,
       });
-      if (WardenState.lastEvent === WardenPursuitEvents.arrived) {
-        const SuppressedWorldIdentifier = WardenState.targetWorldIdentifier;
-        if (shouldWardenCatchRunner(
-          WardenState,
-          CurrentNodeIdentifier,
-          listProtectedRelayWorlds(RelayNetworkState),
-        )) {
-          return invalid('Replay is caught by the Warden before completion.');
-        }
-        if (SuppressedWorldIdentifier) {
-          suppressRelayWorld(RelayNetworkState, SuppressedWorldIdentifier);
-          const SuppressedWorld = Runtime.worlds.find(
-            (World) => World.id === SuppressedWorldIdentifier,
-          );
-          if (SuppressedWorld) SuppressedWorld.restored = false;
-        }
-        WardenState = resetWardenAfterSuppression(
-          WardenState,
-          chooseWardenTarget(
-            Runtime.worlds,
-            listVulnerableRelayWorlds(RelayNetworkState),
-          ),
-        );
+      WardenState = WardenResolution.wardenState;
+      if (WardenResolution.caught) {
+        return invalid('Replay is caught by the Warden before completion.');
       }
-      if (!IsWorldheartOpen) {
-        IsWorldheartOpen = isWorldheartUnlocked(
-          Runtime.worlds,
-          Runtime.worldheartUnlockThreshold,
-        ) && (
-          !Runtime.commandWorldRequiresShieldBreaks
-          || WardenState.status === 'exposed'
-        );
-      }
+      IsWorldheartOpen = WardenResolution.isWorldheartOpen;
     }
     if (Launch.burnStepIndex !== undefined && Launch.burnStepIndex !== null && !BurnApplied) {
       return invalid(`Launch ${LaunchIndex + 1} records a Burn outside its flight.`);

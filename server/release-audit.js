@@ -28,6 +28,8 @@ export function auditReleaseReadiness() {
   const PhysicsSource = readRepositoryFile('src/physics.js');
   const ScoringSource = readRepositoryFile('src/scoring.js');
   const AudioSource = readRepositoryFile('src/audio.js');
+  const SectorSource = readRepositoryFile('src/sector.js');
+  const FlightResolverSource = readRepositoryFile('src/flight-resolver.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -135,7 +137,11 @@ export function auditReleaseReadiness() {
       && PresentationSource.includes('export function shouldShowInhabitantSlot(')
       && PresentationSource.includes('export function getCourierDockWorldRole(')
       && PresentationSource.includes('export function shouldRevealWarden(') === false
-      && MainSource.includes('shouldReveal: getWardenRevealFlag()')
+      && MainSource.includes('resolveWardenAfterNonCommandFlight(')
+      && MainSource.includes('getWardenRevealFlag()')
+      && SectorSource.includes('export function getSectorWardenRevealFlag(')
+      && SectorSource.includes('export function isInnerClusterLive(')
+      && FlightResolverSource.includes('export function advanceSimulatedFlightStep(')
       && PresentationSource.includes('export function getStoryMusicStage(')
       && MainSource.includes('setStoryMusicStage(')
       && PresentationSource.includes('export function getRangeVeilStrength(')

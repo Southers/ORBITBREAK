@@ -1,3 +1,9 @@
+import {
+  getRangeVeilStrength as getAuthoredRangeVeilStrength,
+  isFurtherReachLive,
+  isInnerClusterLive,
+} from './sector.js';
+
 /** Maps gameplay state to one legible Runner animation state. */
 export function getRunnerAnimationState(GamePhase, IsPointerAiming, IsWalking = false) {
   if (GamePhase === 'runFailed' || GamePhase === 'recovering') {
@@ -75,42 +81,14 @@ export function getWorldLifeStage({ restored, liveLinkCount = 0 } = {}) {
   return liveLinkCount >= 1 ? 'living' : 'isolated';
 }
 
-export const InnerClusterWorldIdentifiers = Object.freeze(['meadow', 'ember', 'grove']);
-export const FurtherReachWorldIdentifiers = Object.freeze(['tide', 'frost', 'bastion']);
+export { isFurtherReachLive, isInnerClusterLive };
 
-export function isInnerClusterLive(liveWorldIdentifiers = []) {
-  if (!Array.isArray(liveWorldIdentifiers)) {
-    throw new Error('Inner cluster check requires live world identifiers.');
-  }
-  const Live = new Set(liveWorldIdentifiers);
-  return InnerClusterWorldIdentifiers.every((WorldIdentifier) => Live.has(WorldIdentifier));
-}
-
-export function isFurtherReachLive(liveWorldIdentifiers = []) {
-  if (!Array.isArray(liveWorldIdentifiers)) {
-    throw new Error('Further reach check requires live world identifiers.');
-  }
-  const Live = new Set(liveWorldIdentifiers);
-  return FurtherReachWorldIdentifiers.some((WorldIdentifier) => Live.has(WorldIdentifier));
-}
-
-export function getRangeVeilStrength(worldIdentifier, innerClusterLive) {
-  if (typeof worldIdentifier !== 'string' || worldIdentifier.length < 1) {
-    throw new Error('Range veil requires a world identifier.');
-  }
-  if (typeof innerClusterLive !== 'boolean') {
-    throw new Error('Range veil requires an inner-cluster flag.');
-  }
-  if (innerClusterLive) {
-    return 0;
-  }
-  if (
-    worldIdentifier === 'worldheart'
-    || FurtherReachWorldIdentifiers.includes(worldIdentifier)
-  ) {
-    return 1;
-  }
-  return 0;
+export function getRangeVeilStrength(
+  worldIdentifier,
+  innerClusterLive,
+  SectorRules = {},
+) {
+  return getAuthoredRangeVeilStrength(worldIdentifier, innerClusterLive, SectorRules);
 }
 
 export const PlanningMinimumZoomScale = 0.22;
@@ -126,6 +104,9 @@ export function getPlanningFocusWorldIdentifiers({
   commandRouteAvailable = false,
   predictedBodyIdentifiers = [],
   currentWorldIdentifier = '',
+  innerClusterWorldIdentifiers = [],
+  furtherReachWorldIdentifiers = [],
+  commandWorldIdentifier = 'worldheart',
 } = {}) {
   if (typeof innerClusterLive !== 'boolean') {
     throw new Error('Planning focus requires an inner-cluster flag.');
@@ -136,14 +117,17 @@ export function getPlanningFocusWorldIdentifiers({
   if (!Array.isArray(predictedBodyIdentifiers)) {
     throw new Error('Planning focus requires a predicted-body list.');
   }
-  const Identifiers = new Set(InnerClusterWorldIdentifiers);
+  if (!Array.isArray(innerClusterWorldIdentifiers) || !Array.isArray(furtherReachWorldIdentifiers)) {
+    throw new Error('Planning focus requires authored cluster identifier lists.');
+  }
+  const Identifiers = new Set(innerClusterWorldIdentifiers);
   if (innerClusterLive) {
-    for (const WorldIdentifier of FurtherReachWorldIdentifiers) {
+    for (const WorldIdentifier of furtherReachWorldIdentifiers) {
       Identifiers.add(WorldIdentifier);
     }
   }
-  if (commandRouteAvailable) {
-    Identifiers.add('worldheart');
+  if (commandRouteAvailable && typeof commandWorldIdentifier === 'string') {
+    Identifiers.add(commandWorldIdentifier);
   }
   if (typeof currentWorldIdentifier === 'string' && currentWorldIdentifier.length > 0) {
     Identifiers.add(currentWorldIdentifier);

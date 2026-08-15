@@ -5,4 +5,8 @@ Thumbs.db
 dist/
 coverage/
 captures/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 *.log

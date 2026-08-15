@@ -55,7 +55,6 @@ import {
   getTrajectoryPickupIdentifiers,
   isSystemRestored,
   isWorldheartUnlocked,
-  rollbackFlightPickups,
 } from './campaign.js?v=20260814-ob8';
 
 import {
@@ -69,6 +68,25 @@ import {
   predictTrajectory,
   simulatePhysicsStep,
 } from './physics.js?v=20260815-ob83';
+import {
+  FixedPhysicsStepHertz,
+  FixedPhysicsStepSeconds,
+  RunnerRadius,
+  StardustCollectionRadius,
+  StardustPickupRadius,
+} from './sim-constants.js?v=20260815-ob89';
+import {
+  getSectorWardenRevealFlag,
+  isFurtherReachLive,
+  isInnerClusterLive,
+} from './sector.js?v=20260815-ob89';
+import {
+  advanceSimulatedFlightStep,
+  calculateSurfaceRestPosition as calculateSharedSurfaceRestPosition,
+  collectFlightStardust,
+  resolveWardenAfterNonCommandFlight,
+  rollbackFlightStardust as rollbackSharedFlightStardust,
+} from './flight-resolver.js?v=20260815-ob89';
 import { createLeaderboardClient } from './leaderboard-client.js?v=20260814-ob9';
 import {
   connectRelayWorlds,
@@ -82,18 +100,11 @@ import {
   listProtectedRelayWorlds,
   listRelayCircuits,
   listRelayLinks,
-  listVulnerableRelayWorlds,
-  suppressRelayWorld,
   wouldCloseRelayCircuit,
 } from './network.js?v=20260815-ob87';
 import {
   WardenPursuitEvents,
-  chooseWardenTarget,
   createWardenPursuitState,
-  resetWardenAfterSuppression,
-  resolveWardenPursuit,
-  shouldRevealWarden,
-  shouldWardenCatchRunner,
 } from './warden.js?v=20260815-ob81';
 import {
   createRunResult,
@@ -149,8 +160,6 @@ import {
   getWorldLifeAudioMix,
   getStoryMusicStage,
   getWorldLifeStage,
-  isFurtherReachLive,
-  isInnerClusterLive,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
   separateOverlappingRouteLabels,
@@ -337,10 +346,8 @@ GameCanvas.dataset.pageActive = String(!document.hidden);
 GameCanvas.dataset.webglAvailable = 'true';
 
 /** Fixed-step physics makes live movement and trajectory prediction agree across frame rates. */
-const FixedPhysicsStepHertz = 120;
-const FixedPhysicsStepSeconds = 1 / FixedPhysicsStepHertz;
+const SeedRadius = RunnerRadius;
 const MaximumFrameDeltaSeconds = 0.05;
-const SeedRadius = 0.46;
 const MaximumDragDistance = 6.25;
 const LaunchVelocityPerDragUnit = MaximumLaunchSpeed / MaximumDragDistance;
 GameCanvas.dataset.maxLaunchSpeed = String(MaximumLaunchSpeed);
@@ -354,8 +361,6 @@ const StartingWorldIdentifier = ActiveSystem.startingWorldIdentifier;
 GameCanvas.dataset.currentNode = StartingWorldIdentifier;
 const MaximumDrawCallBudget = 190;
 const WorldheartUnlockThreshold = ActiveSystem.worldheartUnlockThreshold;
-const StardustPickupRadius = 0.22;
-const StardustCollectionRadius = SeedRadius + StardustPickupRadius;
 const WorldClosePassClearance = 1.35;
 const AsteroidClosePassClearance = 1.05;
 const ReducedMotionMediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -4077,18 +4082,40 @@ function listLiveWorldIdentifiers() {
   );
 }
 
+function getSectorClusterRules() {
+  return {
+    innerClusterWorldIdentifiers: ActiveSystem.innerClusterWorldIdentifiers,
+    furtherReachWorldIdentifiers: ActiveSystem.furtherReachWorldIdentifiers,
+    commandWorldIdentifier: ActiveSystem.commandWorldIdentifier,
+  };
+}
+
+function isLiveInnerCluster(LiveWorldIdentifiers = listLiveWorldIdentifiers()) {
+  return isInnerClusterLive(
+    LiveWorldIdentifiers,
+    ActiveSystem.innerClusterWorldIdentifiers,
+  );
+}
+
+function isLiveFurtherReach(LiveWorldIdentifiers = listLiveWorldIdentifiers()) {
+  return isFurtherReachLive(
+    LiveWorldIdentifiers,
+    ActiveSystem.furtherReachWorldIdentifiers,
+  );
+}
+
 function getActiveMaximumScoutZoomScale() {
-  return isInnerClusterLive(listLiveWorldIdentifiers())
+  return isLiveInnerCluster()
     ? MaximumScoutZoomScaleOpen
     : MaximumScoutZoomScaleVeiled;
 }
 
 function getWardenRevealFlag() {
-  const LiveWorldIdentifiers = listLiveWorldIdentifiers();
-  return shouldRevealWarden({
-    innerClusterLive: isInnerClusterLive(LiveWorldIdentifiers),
-    furtherWorldLive: isFurtherReachLive(LiveWorldIdentifiers),
-  });
+  return getSectorWardenRevealFlag(
+    listLiveWorldIdentifiers(),
+    ActiveSystem.innerClusterWorldIdentifiers,
+    ActiveSystem.furtherReachWorldIdentifiers,
+  );
 }
 
 function isWorldInLiveCircuit(WorldIdentifier) {
@@ -4098,58 +4125,45 @@ function isWorldInLiveCircuit(WorldIdentifier) {
 }
 
 function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit = null } = {}) {
-  const TargetWorldIdentifier = chooseWardenTarget(
-    WorldDefinitions,
-    listVulnerableRelayWorlds(RelayNetworkState),
-  );
-  WardenPursuitState = resolveWardenPursuit(WardenPursuitState, {
-    activeRelayCount: Math.max(1, countLiveRelayWorlds(RelayNetworkState)),
-    targetWorldIdentifier: TargetWorldIdentifier,
+  const Resolution = resolveWardenAfterNonCommandFlight({
+    runtime: ActiveSystem,
+    networkState: RelayNetworkState,
+    wardenState: WardenPursuitState,
+    currentNodeIdentifier: CurrentWorldIdentifier,
     firstCircuitClosed,
-    shouldReveal: getWardenRevealFlag(),
+    isWorldheartOpen: WorldheartDefinition.routeAvailable === true,
   });
+  WardenPursuitState = Resolution.wardenState;
   const CommandWorldJustExposed = updateCommandWorldAvailability();
-  let SuppressedWorld = null;
-  if (WardenPursuitState.lastEvent === WardenPursuitEvents.arrived) {
+  let SuppressedWorld = Resolution.suppressedWorld;
+  if (Resolution.caught && SuppressedWorld === null) {
     SuppressedWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
-    if (shouldWardenCatchRunner(
-      WardenPursuitState,
-      CurrentWorldIdentifier,
-      listProtectedRelayWorlds(RelayNetworkState),
-    )) {
-      WardenVisualGroup.position.set(
-        SuppressedWorld.position.x,
-        SuppressedWorld.position.y,
-        0.35,
-      );
-      GameCanvas.dataset.wardenCaughtWorld = SuppressedWorld.id;
-      publishWardenState();
-      RunState = failRunToWarden(RunState);
-      scheduleRunFailure(`THE WARDEN REACHED ${SuppressedWorld.label}`);
-      return null;
+  }
+  if (Resolution.caught) {
+    WardenVisualGroup.position.set(
+      SuppressedWorld.position.x,
+      SuppressedWorld.position.y,
+      0.35,
+    );
+    GameCanvas.dataset.wardenCaughtWorld = SuppressedWorld.id;
+    publishWardenState();
+    RunState = failRunToWarden(RunState);
+    scheduleRunFailure(`THE WARDEN REACHED ${SuppressedWorld.label}`);
+    return null;
+  }
+  if (SuppressedWorld) {
+    WardenVisualGroup.position.set(
+      SuppressedWorld.position.x,
+      SuppressedWorld.position.y,
+      0.35,
+    );
+    WardenApproachStartPosition.copy(WardenVisualGroup.position);
+    suppressWorld(SuppressedWorld);
+    if (CurrentWorldIdentifier === SuppressedWorld.id && GamePhase === 'restoring') {
+      GamePhase = 'attached';
     }
-    if (SuppressedWorld && suppressRelayWorld(RelayNetworkState, SuppressedWorld.id)) {
-      WardenVisualGroup.position.set(
-        SuppressedWorld.position.x,
-        SuppressedWorld.position.y,
-        0.35,
-      );
-      WardenApproachStartPosition.copy(WardenVisualGroup.position);
-      suppressWorld(SuppressedWorld);
-      if (CurrentWorldIdentifier === SuppressedWorld.id && GamePhase === 'restoring') {
-        GamePhase = 'attached';
-      }
-      synchronizeRelayNetworkVisuals();
-      const NextTargetWorldIdentifier = chooseWardenTarget(
-        WorldDefinitions,
-        listVulnerableRelayWorlds(RelayNetworkState),
-      );
-      WardenPursuitState = resetWardenAfterSuppression(
-        WardenPursuitState,
-        NextTargetWorldIdentifier,
-      );
-      GameCanvas.dataset.lastSuppressedWorld = SuppressedWorld.id;
-    }
+    synchronizeRelayNetworkVisuals();
+    GameCanvas.dataset.lastSuppressedWorld = SuppressedWorld.id;
   }
   publishWardenState();
   const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
@@ -5157,7 +5171,7 @@ function showRouteChoiceInstruction() {
       routeLabels: RouteChoices.map((RouteChoice) => RouteChoice.label),
       openingBody: ActiveSystem.openingBody,
       rangeUnlockLine: ActiveSystem.rangeUnlockLine,
-      innerClusterLive: isInnerClusterLive(listLiveWorldIdentifiers()),
+      innerClusterLive: isLiveInnerCluster(),
     });
     showInstruction(Coach.title, Coach.body);
     return;
@@ -5400,7 +5414,7 @@ function updateTacticalBodies(ElapsedTimeSeconds, InstructionTop) {
   TacticalBodyMesh.setMatrixAt(2, TacticalBodyTransform.matrix);
   TacticalBodyMesh.setColorAt(
     2,
-    isInnerClusterLive(listLiveWorldIdentifiers())
+    isLiveInnerCluster()
       ? (WorldheartDefinition.routeAvailable ? WorldheartOpenColor : WorldheartLockedColor)
       : WorldheartLockedColor,
   );
@@ -5791,26 +5805,7 @@ function updateVictorySummary() {
 }
 
 /** Collects any optional stardust touched by the live fixed-step seed position. */
-function collectStardustAtPosition(SeedPosition) {
-  let NewlyCollectedCount = 0;
-  for (const StardustDefinition of StardustDefinitions) {
-    if (
-      StardustDefinition.collected
-      || calculateDistanceSquared(SeedPosition, StardustDefinition.position)
-        > (StardustCollectionRadius * StardustCollectionRadius)
-    ) {
-      continue;
-    }
-
-    StardustDefinition.collected = true;
-    FlightCollectedStardustIdentifiers.add(StardustDefinition.id);
-    NewlyCollectedCount += 1;
-  }
-
-  if (NewlyCollectedCount === 0) {
-    return;
-  }
-
+function announceCollectedStardust() {
   const CollectedStardustCount = StardustDefinitions.filter(
     (StardustDefinition) => StardustDefinition.collected,
   ).length;
@@ -5829,6 +5824,20 @@ function collectStardustAtPosition(SeedPosition) {
   }
 }
 
+/** Collects any optional stardust touched by the live fixed-step seed position. */
+function collectStardustAtPosition(SeedPosition) {
+  const CollectedBefore = FlightCollectedStardustIdentifiers.size;
+  collectFlightStardust(
+    StardustDefinitions,
+    SeedPosition,
+    FlightCollectedStardustIdentifiers,
+  );
+  if (FlightCollectedStardustIdentifiers.size === CollectedBefore) {
+    return;
+  }
+  announceCollectedStardust();
+}
+
 /** Commits pickups only when the current shot reaches a valid landing. */
 function commitFlightStardust() {
   FlightCollectedStardustIdentifiers.clear();
@@ -5839,7 +5848,7 @@ function rollbackFlightStardust() {
   if (FlightCollectedStardustIdentifiers.size === 0) {
     return;
   }
-  rollbackFlightPickups(StardustDefinitions, FlightCollectedStardustIdentifiers);
+  rollbackSharedFlightStardust(StardustDefinitions, FlightCollectedStardustIdentifiers);
   FlightCollectedStardustIdentifiers.clear();
   updateStardustCounter();
 }
@@ -5895,24 +5904,8 @@ function updateStardustVisuals(ElapsedTimeSeconds) {
  * @param {{x:number,y:number,z:number}} ImpactPosition - Approximate collision position.
  * @returns {{x:number,y:number,z:number}} Snapped seed position on the surface.
  */
-function calculateSurfaceRestPosition(WorldDefinition, ImpactPosition) {
-  TemporaryThreeVector.set(
-    ImpactPosition.x - WorldDefinition.position.x,
-    ImpactPosition.y - WorldDefinition.position.y,
-    0,
-  );
-
-  if (TemporaryThreeVector.lengthSq() < 0.0001) {
-    TemporaryThreeVector.set(1, 0, 0);
-  }
-
-  TemporaryThreeVector.normalize().multiplyScalar(WorldDefinition.radius + SeedRadius + 0.03);
-
-  return createVector(
-    WorldDefinition.position.x + TemporaryThreeVector.x,
-    WorldDefinition.position.y + TemporaryThreeVector.y,
-    0,
-  );
+function calculateSurfaceRestPosition(WorldDefinition, ImpactPosition, BodyPosition = WorldDefinition.position) {
+  return calculateSharedSurfaceRestPosition(WorldDefinition, ImpactPosition, BodyPosition);
 }
 
 function getCurrentAttachedWorld() {
@@ -6702,8 +6695,8 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
   LaunchIgnoredWorldIdentifier = null;
 
   const LiveWorldsBefore = listLiveWorldIdentifiers();
-  const InnerClusterLiveBefore = isInnerClusterLive(LiveWorldsBefore);
-  const FurtherReachLiveBefore = isFurtherReachLive(LiveWorldsBefore);
+  const InnerClusterLiveBefore = isLiveInnerCluster(LiveWorldsBefore);
+  const FurtherReachLiveBefore = isLiveFurtherReach(LiveWorldsBefore);
   const CommandAvailableBefore = WorldheartDefinition.routeAvailable === true;
 
   const WasAlreadyRestored = WorldDefinition.restored;
@@ -6798,10 +6791,10 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
       linkCreated: RelayConnection?.created === true,
       linkedWorldIdentifier: WorldDefinition.id,
       innerClusterJustUnlocked: !InnerClusterLiveBefore
-        && isInnerClusterLive(LiveWorldsAfter),
-      neighbourhoodJustAwake: isInnerClusterLive(LiveWorldsAfter)
+        && isLiveInnerCluster(LiveWorldsAfter),
+      neighbourhoodJustAwake: isLiveInnerCluster(LiveWorldsAfter)
         && !FurtherReachLiveBefore
-        && isFurtherReachLive(LiveWorldsAfter),
+        && isLiveFurtherReach(LiveWorldsAfter),
       wardenJustRevealed: WardenPursuitState.lastEvent === WardenPursuitEvents.revealed,
       circuitJustClosed: RelayConnection?.circuitClosed === true,
       worldJustSuppressed: Boolean(SuppressedWorld),
@@ -7211,13 +7204,14 @@ function rememberPlanningPath(Prediction) {
 
 function getPlanningFocusPoints() {
   const AllowedIdentifiers = new Set(getPlanningFocusWorldIdentifiers({
-    innerClusterLive: isInnerClusterLive(listLiveWorldIdentifiers()),
+    innerClusterLive: isLiveInnerCluster(),
     commandRouteAvailable: WorldheartDefinition.routeAvailable === true,
     predictedBodyIdentifiers: [
       LastPredictedBodyIdentifier,
       ...PredictedSlingshotWorldIdentifiers,
     ],
     currentWorldIdentifier: CurrentWorldIdentifier ?? '',
+    ...getSectorClusterRules(),
   }));
   const FocusPoints = WorldDefinitions
     .filter((WorldDefinition) => AllowedIdentifiers.has(WorldDefinition.id))
@@ -8832,56 +8826,37 @@ function simulateSeedFixedStep() {
   RunFlightTimeSeconds += FixedPhysicsStepSeconds;
   FlightElapsedSeconds += FixedPhysicsStepSeconds;
 
-  SeedPhysicsState = simulatePhysicsStep(
-    SeedPhysicsState,
-    WorldDefinitions,
-    FixedPhysicsStepSeconds,
-  );
-  collectStardustAtPosition(SeedPhysicsState.position);
-
-  if (LaunchIgnoredWorldIdentifier) {
-    const StartingWorldDefinition = getWorldDefinition(LaunchIgnoredWorldIdentifier);
-    const ClearDistance = StartingWorldDefinition.radius + SeedRadius + 0.35;
-    if (
-      calculateDistanceSquared(SeedPhysicsState.position, StartingWorldDefinition.position)
-      > (ClearDistance * ClearDistance)
-    ) {
-      LaunchIgnoredWorldIdentifier = null;
-    }
-  }
-
-  if (LaunchIgnoredBodyIdentifier) {
-    const StartingBodyDefinition = TacticalBodyDefinitions.find(
+  const CollectedStardustBefore = FlightCollectedStardustIdentifiers.size;
+  const IgnoredBodyDefinition = LaunchIgnoredBodyIdentifier
+    ? TacticalBodyDefinitions.find(
       (BodyDefinition) => BodyDefinition.id === LaunchIgnoredBodyIdentifier,
-    );
-    if (!StartingBodyDefinition) {
-      LaunchIgnoredBodyIdentifier = null;
-    } else {
-      const StartingBodyPosition = calculateBodyPositionAtTime(
-        StartingBodyDefinition,
-        PhysicsElapsedTimeSeconds,
-      );
-      const ClearDistance = StartingBodyDefinition.radius + SeedRadius + 0.35;
-      if (
-        calculateDistanceSquared(SeedPhysicsState.position, StartingBodyPosition)
-        > (ClearDistance * ClearDistance)
-      ) {
-        LaunchIgnoredBodyIdentifier = null;
-      }
-    }
+    ) ?? null
+    : null;
+  const StepResult = advanceSimulatedFlightStep({
+    physicsState: SeedPhysicsState,
+    worlds: WorldDefinitions,
+    tacticalBodies: getActiveTacticalBodyDefinitions(),
+    stardust: StardustDefinitions,
+    scoreState: ScoreState,
+    fixedStepSeconds: FixedPhysicsStepSeconds,
+    simulationTimeSeconds: PhysicsElapsedTimeSeconds,
+    ignoredWorldIdentifier: LaunchIgnoredWorldIdentifier,
+    ignoredBodyIdentifier: LaunchIgnoredBodyIdentifier,
+    ignoredBodyDefinition: IgnoredBodyDefinition,
+    flightOriginWorldIdentifier: FlightOriginWorldIdentifier,
+    flightCollectedStardust: FlightCollectedStardustIdentifiers,
+    outOfBoundsDistance: OutOfBoundsDistance,
+  });
+  SeedPhysicsState = StepResult.physicsState;
+  LaunchIgnoredWorldIdentifier = StepResult.ignoredWorldIdentifier;
+  LaunchIgnoredBodyIdentifier = StepResult.ignoredBodyIdentifier;
+  if (FlightCollectedStardustIdentifiers.size > CollectedStardustBefore) {
+    announceCollectedStardust();
   }
 
   updateFlightFeedback();
 
-  const SlingshotEvents = sampleSlingshotBodies(
-    ScoreState,
-    SeedPhysicsState.position,
-    WorldDefinitions,
-    {
-      runnerRadius: SeedRadius,
-      ignoredBodyIdentifier: FlightOriginWorldIdentifier,
-    },
-  );
+  const SlingshotEvents = StepResult.slingshotEvents;
   if (SlingshotEvents.length > 0) {
     const SlingshotEvent = SlingshotEvents[SlingshotEvents.length - 1];
     updateScoreInterface();
@@ -8895,20 +8870,8 @@ function simulateSeedFixedStep() {
     );
   }
 
-  const CollisionWorldDefinition = findCollidingWorld(
-    SeedPhysicsState.position,
-    SeedRadius,
-    WorldDefinitions,
-    LaunchIgnoredWorldIdentifier,
-  );
-
-  const CollisionBody = findCollidingBody(
-    SeedPhysicsState.position,
-    SeedRadius,
-    getActiveTacticalBodyDefinitions(),
-    PhysicsElapsedTimeSeconds,
-    LaunchIgnoredBodyIdentifier,
-  );
+  const CollisionWorldDefinition = StepResult.collisionWorld;
+  const CollisionBody = StepResult.collisionBody;
 
   if (CollisionBody?.definition.kind === 'hazard') {
     ImpactPulseMesh.material.color.set(0xff766d);
@@ -8940,17 +8903,17 @@ function simulateSeedFixedStep() {
     return;
   }
 
-  if (
-    (SeedPhysicsState.position.x * SeedPhysicsState.position.x)
-    + (SeedPhysicsState.position.y * SeedPhysicsState.position.y)
-    > (OutOfBoundsDistance * OutOfBoundsDistance)
-  ) {
+  if (StepResult.outOfBounds) {
     recoverSeedFromVoid();
   }
 }
 
 function applyRangeVeilToWorld(WorldRuntime, WorldDefinition, InnerClusterLive) {
-  const VeilStrength = getRangeVeilStrength(WorldDefinition.id, InnerClusterLive);
+  const VeilStrength = getRangeVeilStrength(
+    WorldDefinition.id,
+    InnerClusterLive,
+    getSectorClusterRules(),
+  );
   if (VeilStrength <= 0) {
     return 0;
   }
@@ -8971,7 +8934,7 @@ function applyRangeVeilToWorld(WorldRuntime, WorldDefinition, InnerClusterLive) 
  * @param {number} ElapsedTimeSeconds - Total elapsed game time.
  */
 function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
-  const InnerClusterLive = isInnerClusterLive(listLiveWorldIdentifiers());
+  const InnerClusterLive = isLiveInnerCluster();
   const VeiledWorldIdentifiers = [];
   GameCanvas.dataset.innerClusterLive = String(InnerClusterLive);
   for (const WorldDefinition of WorldDefinitions) {
@@ -9178,7 +9141,7 @@ function updateWorldLifeAudio() {
     livingWorldCount: LivingWorldCount,
   }));
   const MusicStage = getStoryMusicStage({
-    innerClusterLive: isInnerClusterLive(listLiveWorldIdentifiers()),
+    innerClusterLive: isLiveInnerCluster(),
     wardenStatus: WardenPursuitState.status,
   });
   WorldseedSound.setStoryMusicStage(MusicStage);

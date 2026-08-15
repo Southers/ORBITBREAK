@@ -23,7 +23,9 @@ export function createWardenPursuitState({ startingDistance = 4 } = {}) {
   };
 }
 
-/** True once the inner neighbourhood is live and the Runner has landed further. */
+/** True once the inner neighbourhood is live and the Runner has landed further.
+ * @param {{ innerClusterLive?: boolean, furtherWorldLive?: boolean }} [flags]
+ */
 export function shouldRevealWarden({ innerClusterLive, furtherWorldLive } = {}) {
   if (typeof innerClusterLive !== 'boolean' || typeof furtherWorldLive !== 'boolean') {
     throw new Error('Warden reveal requires inner-cluster and further-world flags.');

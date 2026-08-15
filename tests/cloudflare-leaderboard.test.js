@@ -3,20 +3,9 @@ import assert from 'node:assert/strict';
 
 import { createD1LeaderboardStore } from '../server/cloudflare/d1-store.js';
 import Worker from '../server/cloudflare/worker.js';
+import { loadSerializedReplayFixture } from './fixtures/load-fixture.js';
 
-const VerifiedReplay = JSON.stringify({
-  v: 2, s: 'breaker-reach', c: 'breaker-reach-6',
-  p: 'orbitbreak-fixed-step-v1', h: 120, o: 1,
-  l: [
-    [0, 'meadow', -18.383711059475825, -9.29153176447292, 12.5, 0, null],
-    [81, 'ember', -9.39128652337041, -9.582336791038667, 8.99174750423314, 8.683229630737465, null],
-    [246, 'grove', 3.5196755693207544, -5.6697576825922, -12.5, -1.5308084989341915e-15, null],
-    [582, 'meadow', -24.941610661576874, -10.468304421196311, 4.592425496802575e-16, 7.5, 612],
-    [854, 'frost', -6.028288379931077, 6.744597165098799, 8.683229630737465, -8.99174750423314, null],
-    [985, 'grove', 3.506030257999854, -2.350692592029089, 8.364132579485728, 9.289310318467429, null],
-    [1119, 'tide', 15.074880278671033, 0.4940867834126872, 11.669755331215022, 4.4795993693162535, null],
-  ],
-});
+const VerifiedReplay = loadSerializedReplayFixture('breaker-reach-complete.v2.json');
 
 class FakeD1Statement {
   constructor(Database, Sql) {

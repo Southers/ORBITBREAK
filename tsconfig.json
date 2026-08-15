@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "skipLibCheck": true,
+    "maxNodeModuleJsDepth": 0
+  },
+  "include": [
+    "src/sim-constants.js",
+    "src/sector.js",
+    "src/flight-resolver.js",
+    "src/physics.js",
+    "src/run.js",
+    "src/network.js",
+    "src/warden.js",
+    "src/scoring.js",
+    "src/replay.js",
+    "src/replay-playback.js",
+    "src/replay-validator.js"
+  ]
+}

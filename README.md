@@ -20,7 +20,7 @@ Every planet is a small self-contained society. The Warden keeps those societies
 
 ## Run locally
 
-The pinned Three.js ESM runtime is vendored, so no package installation or third-party CDN is required. Serve the repository rather than opening `index.html` directly.
+The pinned Three.js ESM runtime is vendored, so no package installation is required to play. Serve the repository rather than opening `index.html` directly.
 
 ```bash
 python -m http.server 8080
@@ -33,8 +33,12 @@ Then open `http://localhost:8080`.
 ```bash
 npm test
 npm run check
+npm run lint
+npm run typecheck
 npm run release:audit
 ```
+
+Optional: `npm run test:boot` loads the playable shell in headless Chromium, and `npm run leaderboard:benchmark` times the golden replay validator. `npm ci` is only needed for those tooling scripts.
 
 ## Current development controls
 

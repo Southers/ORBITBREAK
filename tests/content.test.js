@@ -32,6 +32,14 @@ test('First Light satisfies the authored-system content contract', () => {
 test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.deepEqual(validateAuthoredSystemDefinition(BreakerReachSystemDefinition), []);
   assert.equal(BreakerReachSystemDefinition.worlds.length, 6);
+  assert.deepEqual(
+    BreakerReachSystemDefinition.innerClusterWorldIdentifiers,
+    ['meadow', 'ember', 'grove'],
+  );
+  assert.deepEqual(
+    BreakerReachSystemDefinition.furtherReachWorldIdentifiers,
+    ['tide', 'frost', 'bastion'],
+  );
   assert.equal(BreakerReachSystemDefinition.camera.followPlayer, true);
   assert.equal(
     BreakerReachSystemDefinition.openingBroadcast,
