@@ -65,7 +65,7 @@ export function adjustSurfaceAngle(AngleRadians, Direction, { fine = false } = {
 /** Describes Scout zoom consistently for buttons, keyboard input and assistive status. */
 export function getScoutZoomPresentation(
   Scale,
-  { minimumScale = 0.72, maximumScale = 1.55 } = {},
+  { minimumScale = 0.38, maximumScale = 1.95 } = {},
 ) {
   if (
     !Number.isFinite(Scale)

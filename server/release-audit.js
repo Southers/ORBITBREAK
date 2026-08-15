@@ -76,6 +76,29 @@ export function auditReleaseReadiness() {
     'Aiming must frame the whole sector and draw the exact remaining path.',
   );
   requireCondition(
+    PresentationSource.includes('export function getWorldLifeStage(')
+      && PresentationSource.includes("return 'tyrant';")
+      && MainSource.includes('OccupationMineMesh')
+      && MainSource.includes('OccupationFumeMesh')
+      && MainSource.includes('ExtractionFreighterMesh')
+      && MainSource.includes('visiblePrisonerCount')
+      && MainSource.includes('RunnerPresentationScale = 0.52')
+      && MainSource.includes('getLandedCameraScale('),
+    'Occupied worlds must show tyrant extraction, held people and a tiny Runner so living contrast can read.',
+  );
+  requireCondition(
+    MainSource.includes('ProsperityBuildingMesh')
+      && MainSource.includes('getTradeHullKind(')
+      && MainSource.includes('getInhabitantSilhouette(')
+      && PresentationSource.includes('export function getProsperityPresence(')
+      && PresentationSource.includes('export function shouldRevealWarden(') === false
+      && MainSource.includes('shouldReveal: getWardenRevealFlag()')
+      && PresentationSource.includes('export function getRangeVeilStrength(')
+      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+        ?.rangeUnlockLine === 'The dark is not as wide as they said.',
+    'Living routes must grow houses and culture-true hulls, and the Warden must wait until the inner cluster plus one further world are live.',
+  );
+  requireCondition(
     /id="MotionButton"/.test(IndexHtml)
       && MainSource.includes("window.localStorage.setItem('orbitbreak.motion'")
       && MainSource.includes("PageSearchParameters.get('diagnostics') === '1'"),
@@ -288,12 +311,12 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
-      ?.openingBody.includes('Pull back from the Runner')
+      ?.openingBody.includes('They are still out there')
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
-        ?.openingBody.includes('leaves a relay')
+        ?.openingBody.includes('Carry the first word')
       && MainSource.includes('getHiddenWardenRouteCoach(')
       && MainSource.includes('getLoopObjectivePresentation(')
-      && /id="ObjectiveLabel"[^>]*>RELAYS</.test(IndexHtml)
+      && /id="ObjectiveLabel"[^>]*>NEIGHBOURHOOD</.test(IndexHtml)
       && PresentationSource.includes('export function getRelayRevealLookTarget(')
       && MainSource.includes('getRelayRevealLookTarget(')
       && MainSource.includes('CourierStartTimesByLinkId'),

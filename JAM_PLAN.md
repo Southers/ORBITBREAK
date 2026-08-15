@@ -236,6 +236,9 @@ portrait run then reached the same verified ending at 174/190, with no page over
 control at least 44px high. This remains presentation-only and leaves deterministic physics, scoring
 and replay validation unchanged. The screenshots now communicate societies, occupation, connection
 and the Command threat without relying on explanatory copy, so the Milestone 5 exit gate is met.
+Later honesty checks and the Alive Tiny Worlds plan reopen Art and Theme: one landmark, three pins
+and a cone courier are not yet growing prosperity. Do not treat this exit as the end of miniature-world
+life; continue from the checkpoint sequence in `DESIGN.md`.
 
 ## Milestone 6 — Reliability and release readiness
 
@@ -820,6 +823,87 @@ a slightly tighter angle chains three worlds in one flight. One resolved flight 
 beat, so a visible chain is the faster escape. This is a planning rewrite, not a claim that Gameplay
 is already a 9.
 
+## Alive Tiny Worlds plan — 15 August 2026
+
+The path-visibility pass taught *how* to fly. It did not make the Reach feel alive, and it did not
+give the story room to happen. The next durable work is charter priority 8, locked in `DESIGN.md`:
+
+> scout a silent neighbourhood → wake it → watch prosperity grow → unlock further travel → link a
+> visible system → then outrun the Warden
+
+Honest judging from current evidence, not from earlier 9/10 gauntlet inflation:
+
+- **Art 6/10.** Cultures have one landmark and three identical pins. A live route is still a luminous
+  segment plus one shared cone. Connection does not look like houses, industry or different ships.
+- **Theme 6/10.** Isolation and the Warden ideology are readable. Growing tiny-world life is not.
+  The Runner currently reads as a giant on a marble (visual scale 1.18 on radii 2.5–4.2).
+- **Gameplay 7/10.** Full-path aiming is a real improvement. The hunt still starts on the third live
+  relay, so the player is told to fear the Warden before they have seen a neighbourhood prosper.
+- **Creativity 8/10.** Orbital relays and circuits are distinctive; the opening still dumps controls
+  instead of purpose.
+- **Polish 8/10.** Desktop/mobile recovery and replay gates hold. Story cards and camera scale do not
+  yet serve the hopeful act.
+
+The highest-leverage change is not a bigger map. It is making the existing six worlds plus Command
+feel like miniature societies that come to life, then delaying the Warden until that life has been
+seen. Sequence, stop conditions and the still-frame success test live in `DESIGN.md`. Playable
+checkpoints, in order:
+
+1. Tyrant / isolated / living contrast, plus a tiny Runner. Occupied worlds show mines, fumes,
+   guards, held people and outbound extraction toward Command. Haven stays the quiet garden.
+   Collision radius unchanged.
+2. Opening purpose and spaced beats. Two-card intro; one-line coaches; no hunt promise before hope.
+3. Walk and denser crowd. Runner walk cycle; more instanced culture silhouettes on the circumference.
+4. First prosperity jump. New links grow houses/windows and a culture-true ship instead of one cone.
+5. Busy routes. Degree 2 and circuits add offset lanes, a second hull and industry. Prove 390×844.
+6. Hopeful act and range veil. Inner cluster (Haven, Ember, Grove) recedes the outer stillness veil.
+   Warden reveals after one further landing, not on relay three. New goldens.
+7. Sound and breathing room. Hold the camera on the living or tyrant change before handing control back.
+8. Stance retune only if shrink-and-zoom was not enough. Larger radii, restanced wells, new
+   `contentVersion`.
+
+Checkpoint 1 — 15 August 2026: occupied worlds now show instanced mine headframes seated in
+the crust, culture-coloured fumes, Warden guards, huddled prisoners and one-way extraction
+freighters hauling toward Command. Haven stays isolated: three quiet garden figures, no mines.
+Liberation collapses the industry through the existing wave and stands the same people up. The
+Runner visual scale is 0.52, landed follow frames one world, and Scout zoom now runs 0.38–1.95.
+Physics identity, scoring and replay inputs are unchanged. Art is still not a 9: living routes
+remain a luminous segment plus one cone, and prosperity houses are the next checkpoint.
+
+Checkpoint 2 — 15 August 2026: the opening is one purpose line, *They are still out there. Carry
+the first word.*, under the existing Warden broadcast. Hidden-Warden HUD uses neighbourhood
+language instead of counting relays toward a hunt. Coaches stay one line: purpose, then wake,
+then the range veil. Hunt copy waits until pursuit exists.
+
+Checkpoint 3 — 15 August 2026: free walkers share the inhabitant draw with worker, child-scale
+and pack silhouettes. Isolated Haven stays three people; tyrant worlds keep two guards and four
+held; living worlds can show all six. Reduced motion freezes stride and keeps the silhouettes.
+
+Checkpoint 4–5 — 15 August 2026: live links grow instanced houses on occupation-scar angles, so
+merged-landmark Grove, Tide and Bastion densify without meadow prop groups. Culture-true hull
+scales and colours replace the shared cone; degree 2 and live circuits add an offset second hull
+and taller workshops. Suppression still collapses prosperity and restores the tyrant kit. One extra
+prosperity draw; trade stays one instanced mesh. Draw-call ceiling remains 190 pending a measured
+390×844 peak.
+
+Checkpoint 6 — 15 August 2026: Tide, Frost, Bastion and Command sit behind a stillness veil until
+Haven, Ember and Grove are live. That landing recedes the veil, raises Scout zoom-out from 1.45 to
+1.95, and teaches *The dark is not as wide as they said.* The Warden reveals only after one further
+world is live. Pre-hunt circuits still break shields so Command exposure stays honest. Content
+version is `breaker-reach-6`.
+
+Checkpoint 7 — 15 August 2026: mine rumble, quiet garden and dock layers follow life-stage mix.
+New lanes chime as trade; tyrant landings haul. After restoration the camera holds the new lane
+for 0.85s without blocking input; reduced motion skips the hold. Pursuit still advances on the
+resolved flight, not the hold.
+
+Checkpoint 8 — skipped. Checkpoint 1's 0.52 Runner and landed follow already make the courier a
+visitor. No radius/GM restance and no further `contentVersion` bump for stance.
+
+Keep `main` playable. Do not add a second sector, free-surface exploration, dialogue trees or ship
+stat upgrades. Do not delay the Warden until Bastion is already solved. Range is the silence
+receding, not a level-up. Pursuit still advances on resolved flights only.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
@@ -837,6 +921,6 @@ For every implementation milestone:
 
 ## Cut order
 
-Cut global ghosts and online services first, then extra world dispositions, secondary story lines, additional trade-ship variety and secondary planets. If necessary, simplify the surface Pulse and shorten the sector.
+Cut global ghosts and online services first, then extra world dispositions, secondary story lines and secondary planets. If necessary, simplify the surface Pulse and shorten the sector.
 
-Never cut control clarity, Breaker Burn, visible network growth, predictable Warden pressure, the first recapture, the orbital finale, deterministic physics, fast recovery, mobile reliability or the liberation wave.
+Never cut control clarity, Breaker Burn, visible network growth, staged prosperity and culture-true traffic, predictable Warden pressure, the first recapture, the orbital finale, deterministic physics, fast recovery, mobile reliability or the liberation wave.

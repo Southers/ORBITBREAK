@@ -1,5 +1,5 @@
 /** Maps gameplay state to one legible Runner animation state. */
-export function getRunnerAnimationState(GamePhase, IsPointerAiming) {
+export function getRunnerAnimationState(GamePhase, IsPointerAiming, IsWalking = false) {
   if (GamePhase === 'runFailed' || GamePhase === 'recovering') {
     return 'recovering';
   }
@@ -12,11 +12,22 @@ export function getRunnerAnimationState(GamePhase, IsPointerAiming) {
   if (IsPointerAiming) {
     return 'aiming';
   }
+  if (IsWalking) {
+    return 'walking';
+  }
   return 'ready';
 }
 
 /** Returns the target limb pose without introducing frame-rate-dependent state. */
-export function getRunnerPose(AnimationState) {
+export function getRunnerPose(AnimationState, WalkPhase = 0) {
+  if (AnimationState === 'walking') {
+    const Swing = Number.isFinite(WalkPhase) ? Math.sin(WalkPhase) : 0;
+    return {
+      armAngle: 0.28 + (Swing * 0.58),
+      legAngle: 0.12 - (Swing * 0.72),
+      thrusterVisible: false,
+    };
+  }
   const Poses = {
     ready: { armAngle: 0.22, legAngle: 0.08, thrusterVisible: false },
     aiming: { armAngle: 0.72, legAngle: 0.26, thrusterVisible: false },
@@ -46,6 +57,257 @@ export function getStillnessPresentation(IsRestored, RestorationProgress = 0) {
     opacity: 0.22 * Math.pow(1 - ClampedProgress, 1.45),
     scale: 1 + (ClampedProgress * 0.22),
   };
+}
+
+/**
+ * Every world is tyrant, isolated or living. Art contrast is the primary judging signal.
+ */
+export function getWorldLifeStage({ restored, liveLinkCount = 0 } = {}) {
+  if (typeof restored !== 'boolean') {
+    throw new Error('World life stage requires a restored flag.');
+  }
+  if (!Number.isInteger(liveLinkCount) || liveLinkCount < 0) {
+    throw new Error('World life stage requires a non-negative live link count.');
+  }
+  if (!restored) {
+    return 'tyrant';
+  }
+  return liveLinkCount >= 1 ? 'living' : 'isolated';
+}
+
+export const InnerClusterWorldIdentifiers = Object.freeze(['meadow', 'ember', 'grove']);
+export const FurtherReachWorldIdentifiers = Object.freeze(['tide', 'frost', 'bastion']);
+
+export function isInnerClusterLive(liveWorldIdentifiers = []) {
+  if (!Array.isArray(liveWorldIdentifiers)) {
+    throw new Error('Inner cluster check requires live world identifiers.');
+  }
+  const Live = new Set(liveWorldIdentifiers);
+  return InnerClusterWorldIdentifiers.every((WorldIdentifier) => Live.has(WorldIdentifier));
+}
+
+export function isFurtherReachLive(liveWorldIdentifiers = []) {
+  if (!Array.isArray(liveWorldIdentifiers)) {
+    throw new Error('Further reach check requires live world identifiers.');
+  }
+  const Live = new Set(liveWorldIdentifiers);
+  return FurtherReachWorldIdentifiers.some((WorldIdentifier) => Live.has(WorldIdentifier));
+}
+
+export function getRangeVeilStrength(worldIdentifier, innerClusterLive) {
+  if (typeof worldIdentifier !== 'string' || worldIdentifier.length < 1) {
+    throw new Error('Range veil requires a world identifier.');
+  }
+  if (typeof innerClusterLive !== 'boolean') {
+    throw new Error('Range veil requires an inner-cluster flag.');
+  }
+  if (innerClusterLive) {
+    return 0;
+  }
+  if (
+    worldIdentifier === 'worldheart'
+    || FurtherReachWorldIdentifiers.includes(worldIdentifier)
+  ) {
+    return 1;
+  }
+  return 0;
+}
+
+/** Linked houses, busy workshops or circuit festival — never wall-clock prosperity. */
+export function getProsperityStage({
+  restored,
+  liveLinkCount = 0,
+  inLiveCircuit = false,
+} = {}) {
+  const LifeStage = getWorldLifeStage({ restored, liveLinkCount });
+  if (LifeStage === 'tyrant') {
+    return 'tyrant';
+  }
+  if (LifeStage === 'isolated') {
+    return 'isolated';
+  }
+  if (inLiveCircuit) {
+    return 'circuit';
+  }
+  if (liveLinkCount >= 2) {
+    return 'busy';
+  }
+  return 'linked';
+}
+
+export function getTradeHullKind(originVisualKey, destinationVisualKey) {
+  const Keys = [originVisualKey, destinationVisualKey];
+  if (Keys.includes('ember')) {
+    return 'barge';
+  }
+  if (Keys.includes('grove')) {
+    return 'sail';
+  }
+  if (Keys.includes('frost')) {
+    return 'sled';
+  }
+  if (Keys.includes('tide')) {
+    return 'hull';
+  }
+  if (Keys.includes('vault')) {
+    return 'spine';
+  }
+  return 'boat';
+}
+
+export function getLiveLinkShipCount({
+  originDegree = 1,
+  destinationDegree = 1,
+  inLiveCircuit = false,
+} = {}) {
+  if (!Number.isInteger(originDegree) || originDegree < 0
+    || !Number.isInteger(destinationDegree) || destinationDegree < 0) {
+    throw new Error('Live link ship count requires non-negative degrees.');
+  }
+  if (typeof inLiveCircuit !== 'boolean') {
+    throw new Error('Live link ship count requires a circuit flag.');
+  }
+  return inLiveCircuit || originDegree >= 2 || destinationDegree >= 2 ? 2 : 1;
+}
+
+export function getTradeHullScale(kind) {
+  const Scales = {
+    barge: { x: 1.7, y: 0.42, z: 0.82 },
+    sail: { x: 0.55, y: 1.45, z: 0.38 },
+    sled: { x: 1.45, y: 0.32, z: 0.58 },
+    hull: { x: 1.05, y: 0.7, z: 0.7 },
+    spine: { x: 0.7, y: 1.2, z: 0.45 },
+    boat: { x: 1, y: 0.55, z: 0.62 },
+  };
+  return Scales[kind] ?? Scales.boat;
+}
+
+export function getTradeHullColor(kind, inLiveCircuit = false) {
+  if (typeof inLiveCircuit !== 'boolean') {
+    throw new Error('Trade hull colour requires a circuit flag.');
+  }
+  const Colors = {
+    barge: 0xff8a3a,
+    sail: 0x7dcc74,
+    sled: 0xe7f6ff,
+    hull: 0x5fb8c9,
+    spine: 0xc9a0ff,
+    boat: 0xffd98a,
+  };
+  return inLiveCircuit ? 0xffe7b8 : (Colors[kind] ?? Colors.boat);
+}
+
+/** Houses appear on the first live link; workshops/chimneys densify later. */
+export function getProsperityPresence(stage) {
+  if (stage === 'linked') {
+    return 0.78;
+  }
+  if (stage === 'busy') {
+    return 1;
+  }
+  if (stage === 'circuit') {
+    return 1.12;
+  }
+  return 0;
+}
+
+/** Worker, child-scale and pack silhouettes share one inhabitant draw. */
+export function getInhabitantSilhouette(slotIndex) {
+  if (!Number.isInteger(slotIndex) || slotIndex < 0) {
+    throw new Error('Inhabitant silhouette requires a non-negative slot index.');
+  }
+  const Variants = ['worker', 'child', 'pack'];
+  const Kind = Variants[slotIndex % 3];
+  const Scales = {
+    worker: { x: 1.06, y: 1.16, z: 1.04 },
+    child: { x: 0.7, y: 0.64, z: 0.7 },
+    pack: { x: 1.22, y: 0.9, z: 1.38 },
+  };
+  return { kind: Kind, scale: Scales[Kind] };
+}
+
+/** Mixes mine rumble, quiet garden and dock crowd without touching simulation. */
+export function getWorldLifeAudioMix({
+  tyrantWorldCount = 0,
+  isolatedWorldCount = 0,
+  livingWorldCount = 0,
+} = {}) {
+  if (
+    !Number.isInteger(tyrantWorldCount) || tyrantWorldCount < 0
+    || !Number.isInteger(isolatedWorldCount) || isolatedWorldCount < 0
+    || !Number.isInteger(livingWorldCount) || livingWorldCount < 0
+  ) {
+    throw new Error('World-life audio mix requires non-negative world counts.');
+  }
+  const Total = Math.max(1, tyrantWorldCount + isolatedWorldCount + livingWorldCount);
+  return {
+    rumble: tyrantWorldCount / Total,
+    garden: isolatedWorldCount / Total,
+    dock: livingWorldCount / Total,
+  };
+}
+
+/** Occupation industry collapses through the same wave that frees the world. */
+export function getTyrantOccupationStrength(restored, restorationProgress = 0) {
+  if (typeof restored !== 'boolean') {
+    throw new Error('Tyrant occupation strength requires a restored flag.');
+  }
+  if (!restored) {
+    return 1;
+  }
+  if (!Number.isFinite(restorationProgress)) {
+    throw new Error('Tyrant occupation strength requires finite restoration progress.');
+  }
+  const ClampedProgress = Math.max(0, Math.min(1.2, restorationProgress));
+  if (ClampedProgress <= 0) {
+    return 1;
+  }
+  if (ClampedProgress >= 0.68) {
+    return 0;
+  }
+  return 1 - (ClampedProgress / 0.68);
+}
+
+/**
+ * One-way haul from an occupied world toward Command. Freighters leave full and never return.
+ */
+export function getExtractionFreighterTravelProgress(
+  ElapsedSinceCreatedSeconds,
+  { cycleSpeed = 0.075 } = {},
+) {
+  if (!Number.isFinite(ElapsedSinceCreatedSeconds) || ElapsedSinceCreatedSeconds < 0) {
+    throw new Error('Extraction travel requires a non-negative age.');
+  }
+  if (!Number.isFinite(cycleSpeed) || cycleSpeed <= 0) {
+    throw new Error('Extraction travel requires a positive cycle speed.');
+  }
+  const TravelProgress = (ElapsedSinceCreatedSeconds * cycleSpeed) % 1;
+  const Opacity = TravelProgress < 0.1
+    ? TravelProgress / 0.1
+    : TravelProgress > 0.82
+      ? Math.max(0, (1 - TravelProgress) / 0.18)
+      : 1;
+  return { travelProgress: TravelProgress, opacity: Opacity, isReturning: false };
+}
+
+/** Frames one landed world so mines, people and houses read, then aiming zooms back out. */
+export function getLandedCameraScale({
+  worldRadius,
+  viewportWorldHeight,
+  minimumScale = 0.42,
+  maximumScale = 0.58,
+} = {}) {
+  if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
+    throw new Error('Landed camera requires a positive world radius.');
+  }
+  if (!Number.isFinite(viewportWorldHeight) || viewportWorldHeight <= 0) {
+    throw new Error('Landed camera requires a positive viewport height.');
+  }
+  const FramedHeight = worldRadius * 3.35;
+  return Math.min(
+    maximumScale,
+    Math.max(minimumScale, FramedHeight / viewportWorldHeight),
+  );
 }
 
 /** Bright initial break followed by a clean, short screen-space fade. */
@@ -585,12 +847,29 @@ export function getLoopObjectivePresentation({
       open: false,
     };
   }
-  const Relays = Math.min(liveRelayCount, relayRevealCount);
+  if (liveRelayCount <= 1) {
+    return {
+      label: 'NEIGHBOURHOOD',
+      state: 'QUIET',
+      filledPips: 0,
+      pipCount: 0,
+      open: false,
+    };
+  }
+  if (liveRelayCount === 2) {
+    return {
+      label: 'NEIGHBOURHOOD',
+      state: 'WAKING',
+      filledPips: 0,
+      pipCount: 0,
+      open: false,
+    };
+  }
   return {
-    label: 'RELAYS',
-    state: `${Relays} / ${relayRevealCount}`,
-    filledPips: Relays,
-    pipCount: relayRevealCount,
+    label: 'NEIGHBOURHOOD',
+    state: 'TALKING',
+    filledPips: 0,
+    pipCount: 0,
     open: false,
   };
 }
@@ -600,6 +879,8 @@ export function getHiddenWardenRouteCoach({
   liveRelayCount,
   routeLabels = [],
   openingBody = '',
+  rangeUnlockLine = '',
+  innerClusterLive = false,
 } = {}) {
   if (!Number.isInteger(liveRelayCount) || liveRelayCount < 1) {
     throw new Error('Hidden Warden coach requires a live relay count.');
@@ -611,17 +892,25 @@ export function getHiddenWardenRouteCoach({
     : First
       ? `Land on ${First}`
       : 'Land on the next world';
+  if (innerClusterLive || liveRelayCount >= 3) {
+    return {
+      title: Title,
+      body: typeof rangeUnlockLine === 'string' && rangeUnlockLine.trim() !== ''
+        ? rangeUnlockLine
+        : 'The dark is not as wide as they said.',
+    };
+  }
   if (liveRelayCount >= 2) {
     return {
       title: Title,
-      body: 'One more live world and the Warden notices. Landing leaves another relay.',
+      body: 'Land on another world. Watch it wake.',
     };
   }
   return {
     title: Title,
     body: typeof openingBody === 'string' && openingBody.trim() !== ''
       ? openingBody
-      : 'Pull back from the Runner and release. A safe landing wakes the world and draws a relay.',
+      : 'They are still out there. Carry the first word.',
   };
 }
 
