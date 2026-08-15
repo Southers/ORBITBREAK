@@ -35,7 +35,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob38';
+} from './content.js?v=20260815-ob39';
 
 import {
   countRestoredWorlds,
@@ -253,7 +253,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob38';
+GameCanvas.dataset.build = '20260815-ob39';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -4208,11 +4208,15 @@ function showRouteChoiceInstruction() {
   ));
   if (CircuitChoice) {
     const ExpansionChoice = RouteChoices.find((RouteChoice) => RouteChoice !== CircuitChoice);
+    const AuthoredGuidance = ActiveSystem.routeGuidance?.[CurrentWorldIdentifier]?.[
+      CircuitChoice.id
+    ];
     showInstruction(
       ExpansionChoice
         ? `Reinforce ${CircuitChoice.label} or expand to ${ExpansionChoice.label}`
         : `Reinforce the route to ${CircuitChoice.label}`,
-      'Close the gold relay loop to protect its worlds and push the Warden back.',
+      AuthoredGuidance
+        ?? 'Close the gold relay loop to protect its worlds and push the Warden back.',
     );
     return;
   }

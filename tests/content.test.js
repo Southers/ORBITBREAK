@@ -42,6 +42,10 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     'A network cannot be imprisoned.',
   );
   assert.equal(
+    BreakerReachSystemDefinition.routeGuidance.grove.meadow,
+    "Walk Grove's far rim, then aim back at Haven to arc around Ember. Closing the gold loop protects its worlds.",
+  );
+  assert.equal(
     BreakerReachSystemDefinition.completion.endingReveal,
     'You did not save them alone. You reminded them they were never alone.',
   );
@@ -500,6 +504,23 @@ test('content validation rejects broken references and incomplete restoration da
   assert.ok(Errors.includes('Route target missing-world does not exist.'));
   assert.ok(Errors.includes('World ember restoration.waveWidth is required.'));
   assert.ok(Errors.includes('Duplicate constellation node: meadow.'));
+});
+
+test('content validation rejects broken or empty route guidance', () => {
+  const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  InvalidSystemDefinition.routeGuidance.grove['missing-world'] = 'Take the long arc.';
+  InvalidSystemDefinition.routeGuidance.grove.meadow = '   ';
+  InvalidSystemDefinition.routeGuidance.ember = {};
+  const InvalidShapeSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  InvalidShapeSystemDefinition.routeGuidance = [];
+
+  const Errors = validateAuthoredSystemDefinition(InvalidSystemDefinition);
+  assert.ok(Errors.includes('Route guidance target missing-world does not exist.'));
+  assert.ok(Errors.includes('Route guidance grove to meadow requires non-empty copy.'));
+  assert.ok(Errors.includes('Route guidance source ember requires target guidance.'));
+  assert.ok(validateAuthoredSystemDefinition(InvalidShapeSystemDefinition).includes(
+    'Authored routeGuidance must be an object when present.',
+  ));
 });
 
 test('content validation fails closed on an unplayable opening or body set', () => {

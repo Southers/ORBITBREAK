@@ -116,6 +116,12 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+      ?.routeGuidance?.grove?.meadow
+      === "Walk Grove's far rim, then aim back at Haven to arc around Ember. Closing the gold loop protects its worlds.",
+    'The selected one-sector candidate must teach the surface line for its first circuit.',
+  );
+  requireCondition(
+    AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
       ?.commandApproachLine === 'A network cannot be imprisoned.'
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
         ?.completion.endingReveal === 'You did not save them alone. You reminded them they were never alone.'

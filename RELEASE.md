@@ -84,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob38` passes 146 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob39` passes 147 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
 - 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
@@ -95,6 +95,7 @@ Suggested 40-second trailer beat sheet:
 - Keyboard aim uses the shared fixed-step predictor to suggest a bounded lead on the exposed moving Command World, with direct-aim fallback and unchanged ranked inputs.
 - Every fresh run opens with the Warden's `TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE` broadcast over the route coach; desktop and 390×844 portrait then delivered Ember's first answer without overflow or blocked controls.
 - Grove's `We thought we were alone` answer now remains in the same instruction as the Warden's target and four-flight arrival forecast instead of being overwritten by it.
+- Once that first network branches, Grove now explains that closing the Haven circuit requires walking its far rim and aiming back around Ember; the authored hint remains visible on desktop and portrait until the player begins aiming.
 - The composite Warden panel and transient story/status toast are polite atomic live regions, so assistive technology receives each complete update rather than a changed fragment.
 - The Command approach now states `A network cannot be imprisoned`; its final Pulse reveals `WARDEN NODE DISCONNECTED · SECTOR WARDENS: 11`, and the verified result carries the authored reminder that the worlds were never alone.
 - Two-ring world contours and Haven's three-blade grass tufts preserve their silhouettes in one draw call each, restoring headroom during fast liberation and Command transitions.

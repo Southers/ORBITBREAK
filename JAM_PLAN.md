@@ -359,6 +359,18 @@ loads exposed the complete opening broadcast through that contract, with no over
 controls and a 128-call portrait opening peak. This changes only accessibility semantics, not visible
 timing, controls, simulation or replay state.
 
+Gauntlet pass 9 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** After Haven → Ember → Grove, the coach promoted Haven as the
+first circuit-closing route even though the ordinary Grove launch position predicts a safe return to
+Ember. Breaker's Reach now authors the missing spatial clue: walk Grove's far rim, then aim back at
+Haven around Ember. The runtime uses that copy only when the authored source-target pair becomes the
+live circuit choice; malformed references or empty guidance fail content validation and the selected
+sector's exact hint is release-audited. Desktop and 390×844 portrait runs both exposed the hint, then
+used surface angle -3.1384 and a 176.9-degree aim to land on Haven, close the three-world circuit and
+bank its 1,250 bonus. Portrait retained 44px controls with no overflow or browser warnings, while the
+affected routes peaked at 155 and 156 of 190 draw calls. The hypothesis held: the player is taught the
+positioning decision without changing launch inputs, prediction, fixed-step physics, scoring or replay.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

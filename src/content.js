@@ -386,6 +386,51 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     }
   }
 
+  const RouteGuidanceDefinition = SystemDefinition.routeGuidance;
+  if (
+    RouteGuidanceDefinition !== undefined
+    && (
+      !RouteGuidanceDefinition
+      || typeof RouteGuidanceDefinition !== 'object'
+      || Array.isArray(RouteGuidanceDefinition)
+    )
+  ) {
+    Errors.push('Authored routeGuidance must be an object when present.');
+  }
+  for (const [SourceIdentifier, TargetGuidance] of Object.entries(
+    RouteGuidanceDefinition
+      && typeof RouteGuidanceDefinition === 'object'
+      && !Array.isArray(RouteGuidanceDefinition)
+      ? RouteGuidanceDefinition
+      : {},
+  )) {
+    if (!RouteNodeIdentifiers.has(SourceIdentifier)) {
+      Errors.push(`Route guidance source ${SourceIdentifier} does not exist.`);
+    }
+    if (
+      !TargetGuidance
+      || typeof TargetGuidance !== 'object'
+      || Array.isArray(TargetGuidance)
+      || Object.keys(TargetGuidance).length === 0
+    ) {
+      Errors.push(`Route guidance source ${SourceIdentifier} requires target guidance.`);
+      continue;
+    }
+    for (const [TargetIdentifier, Guidance] of Object.entries(TargetGuidance)) {
+      if (!RouteNodeIdentifiers.has(TargetIdentifier)) {
+        Errors.push(`Route guidance target ${TargetIdentifier} does not exist.`);
+      }
+      if (TargetIdentifier === SourceIdentifier) {
+        Errors.push(`Route guidance source ${SourceIdentifier} cannot target itself.`);
+      }
+      if (typeof Guidance !== 'string' || Guidance.trim() === '') {
+        Errors.push(
+          `Route guidance ${SourceIdentifier} to ${TargetIdentifier} requires non-empty copy.`,
+        );
+      }
+    }
+  }
+
   const OpeningSuggestions = SystemDefinition.routeSuggestions?.[
     SystemDefinition.startingWorldIdentifier
   ];
@@ -562,6 +607,9 @@ export function createAuthoredSystemRuntime(
       SystemDefinition.commandWorldRequiresShieldBreaks === true,
     routeSuggestions: Object.fromEntries(Object.entries(SystemDefinition.routeSuggestions ?? {}).map(
       ([SourceIdentifier, TargetIdentifiers]) => [SourceIdentifier, [...TargetIdentifiers]],
+    )),
+    routeGuidance: Object.fromEntries(Object.entries(SystemDefinition.routeGuidance ?? {}).map(
+      ([SourceIdentifier, TargetGuidance]) => [SourceIdentifier, { ...TargetGuidance }],
     )),
     worlds: Worlds,
     tacticalBodies: TacticalBodies,
@@ -765,6 +813,11 @@ export const BreakerReachSystemDefinition = {
     bastion: ['worldheart', 'tide'],
     tide: ['worldheart', 'bastion'],
     seedstone: ['bastion', 'grove'],
+  },
+  routeGuidance: {
+    grove: {
+      meadow: "Walk Grove's far rim, then aim back at Haven to arc around Ember. Closing the gold loop protects its worlds.",
+    },
   },
   worlds: [
     {
