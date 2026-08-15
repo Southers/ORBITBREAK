@@ -64,6 +64,11 @@ export function auditReleaseReadiness() {
     'The candidate must retain persistent motion control and its explicit diagnostics gate.',
   );
   requireCondition(
+    /id="WardenPanel"[^>]+aria-live="polite"[^>]+aria-atomic="true"/.test(IndexHtml)
+      && /id="StatusToast"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/.test(IndexHtml),
+    'Warden and transient status updates must remain atomic assistive announcements.',
+  );
+  requireCondition(
     /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),
     'Release diagnostics must remain restricted to local development hosts.',
   );

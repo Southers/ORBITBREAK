@@ -11,7 +11,7 @@
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
   <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260814-ob13" />
-  <link rel="stylesheet" href="./src/style.css?v=20260815-ob37" />
+  <link rel="stylesheet" href="./src/style.css?v=20260815-ob38" />
 
   <!--
     Buildless release import map. Three.js is pinned and vendored so startup
@@ -78,7 +78,7 @@
       </svg>
     </section>
 
-    <section id="WardenPanel" class="warden-panel" aria-live="polite" hidden>
+    <section id="WardenPanel" class="warden-panel" aria-live="polite" aria-atomic="true" hidden>
       <span id="WardenStateLabel">WARDEN APPROACH</span>
       <strong id="WardenDistance">4 FLIGHTS</strong>
       <small id="WardenTarget">TARGET UNKNOWN</small>
@@ -105,7 +105,7 @@
       <span id="AimPowerValue">0%</span>
     </section>
 
-    <section id="StatusToast" class="status-toast" aria-live="polite"></section>
+    <section id="StatusToast" class="status-toast" role="status" aria-live="polite" aria-atomic="true"></section>
     <button id="BurnButton" class="burn-button" type="button" aria-keyshortcuts="Space" hidden>
       <span>BREAKER BURN</span><strong>READY</strong>
     </button>
@@ -204,6 +204,6 @@
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260815-ob37"></script>
+  <script type="module" src="./src/main.js?v=20260815-ob38"></script>
 </body>
 </html>

@@ -350,6 +350,15 @@ Haven → Ember → Grove, displayed the combined answer and Warden warning, sta
 budget at 151 and 156 peak calls respectively, and reported no overflow or browser errors. Resolution
 order, pursuit, scoring, physics and replay inputs are unchanged.
 
+Gauntlet pass 8 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The interface visually grouped Warden state and multi-clause
+story toasts, but their live regions were not atomic, allowing assistive technology to announce only
+a changed fragment such as `4 flights`. The Warden panel now has an atomic polite contract and the
+toast is an explicit atomic `status`; the release audit protects both. Fresh desktop and 390×844
+loads exposed the complete opening broadcast through that contract, with no overflow, 44px portrait
+controls and a 128-call portrait opening peak. This changes only accessibility semantics, not visible
+timing, controls, simulation or replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
