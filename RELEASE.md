@@ -84,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob32` passes 144 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob33` passes 145 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 186/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
 - 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
@@ -93,6 +93,7 @@ Suggested 40-second trailer beat sheet:
 - Breaker's Reach results use authored Command, Solidarity and Wayfinder emblems and report bonus fuel without presenting zero as a failure condition.
 - The selected sector ends with replay and ranking actions; four archived authored systems remain direct-query compatibility fixtures and pass startup smoke checks.
 - Keyboard aim uses the shared fixed-step predictor to suggest a bounded lead on the exposed moving Command World, with direct-aim fallback and unchanged ranked inputs.
+- Every fresh run opens with the Warden's `TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE` broadcast over the route coach; desktop and 390×844 portrait then delivered Ember's first answer without overflow or blocked controls.
 - These checks do not approve a public deployment, production leaderboard or jam submission.
 
 ## Known gated items

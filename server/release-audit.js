@@ -105,6 +105,11 @@ export function auditReleaseReadiness() {
     'The selected one-sector candidate must end without a legacy campaign continuation.',
   );
   requireCondition(
+    AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+      ?.openingBroadcast === 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
+    'The selected one-sector candidate must retain the opening Warden broadcast.',
+  );
+  requireCondition(
     AuthoredCampaignSystemIdentifiers.length === 5,
     'The release campaign must contain exactly five authored systems.',
   );

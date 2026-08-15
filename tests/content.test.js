@@ -33,6 +33,10 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.deepEqual(validateAuthoredSystemDefinition(BreakerReachSystemDefinition), []);
   assert.equal(BreakerReachSystemDefinition.worlds.length, 6);
   assert.equal(BreakerReachSystemDefinition.camera.followPlayer, true);
+  assert.equal(
+    BreakerReachSystemDefinition.openingBroadcast,
+    'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
+  );
   const WorldXs = BreakerReachSystemDefinition.worlds.map(
     (WorldDefinition) => WorldDefinition.position.x,
   );
@@ -72,6 +76,14 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     Runtime.completion.emblems.heart,
     BreakerReachSystemDefinition.completion.emblems.heart,
   );
+});
+
+test('authored opening broadcasts fail closed when present but empty', () => {
+  const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  InvalidSystemDefinition.openingBroadcast = '   ';
+  assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
+    'Authored system openingBroadcast must be a non-empty string when present.',
+  ));
 });
 
 test('authored result emblems fail closed when their visible copy is incomplete', () => {

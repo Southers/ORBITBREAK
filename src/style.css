@@ -888,6 +888,19 @@ button:focus-visible,
   cursor: pointer;
 }
 
+.status-toast.is-warden {
+  width: min(90vw, 720px);
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 99, 92, 0.5);
+  border-radius: 10px;
+  background: rgba(38, 8, 12, 0.88);
+  box-shadow: 0 0 28px rgba(255, 64, 54, 0.14);
+  color: #ffd0c8;
+  font-size: clamp(13px, 2vw, 20px);
+  line-height: 1.35;
+  letter-spacing: 0.09em;
+}
+
 .constellation-summary {
   display: block;
   width: min(100%, 310px);

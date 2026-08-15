@@ -314,6 +314,18 @@ physics, score or replay state. After the same six-launch network route, one `Ar
 input path, portrait had no page overflow, and the completed desktop result remained replay-verified
 at 12,250 with a 186/190 draw-call peak.
 
+Gauntlet pass 5 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The playable opening skipped the design's first authored story
+beat and began directly on route instructions, so the Warden's ideology had to be learned later. A
+non-blocking authored broadcast now opens every fresh Breaker's Reach run with `TRAVEL IS FORBIDDEN ·
+SILENCE KEEPS YOU SAFE`, while the persistent coach immediately explains relay thresholds, both
+opening routes and the optional Burn line. The release audit fails closed if this anchor disappears.
+Fresh desktop and 390×844 portrait runs showed the broadcast and coach together without overflow;
+both then completed the keyboard-assisted Haven-to-Ember flight and displayed `Is someone there?`.
+Portrait Scout retained 44×44 zoom controls, the first connection stayed within the draw-call budget,
+and browser diagnostics reported no errors. The change is authored copy and presentation only, so
+fixed-step live, prediction and replay physics are unchanged.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

@@ -69,6 +69,15 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
   if (!SystemDefinition.openingBody || typeof SystemDefinition.openingBody !== 'string') {
     Errors.push('Authored system requires openingBody story copy.');
   }
+  if (
+    SystemDefinition.openingBroadcast !== undefined
+    && (
+      typeof SystemDefinition.openingBroadcast !== 'string'
+      || SystemDefinition.openingBroadcast.trim() === ''
+    )
+  ) {
+    Errors.push('Authored system openingBroadcast must be a non-empty string when present.');
+  }
   if (!Number.isInteger(SystemDefinition.launchBudget) || SystemDefinition.launchBudget < 1) {
     Errors.push('Authored system requires a positive integer launchBudget.');
   }
@@ -480,6 +489,7 @@ export function createAuthoredSystemRuntime(
     label: SystemDefinition.label,
     contentVersion: SystemDefinition.contentVersion,
     openingBody: SystemDefinition.openingBody,
+    openingBroadcast: SystemDefinition.openingBroadcast ?? null,
     camera: SystemDefinition.camera ? { ...SystemDefinition.camera } : null,
     environment: {
       ...EnvironmentDefinition,
@@ -680,7 +690,8 @@ export const BreakerReachSystemDefinition = {
   launchBudget: 8,
   circuitBonusValue: 1250,
   wardenVictoryValuePerStep: 1000,
-  openingBody: 'The Command World lies beyond the Reach. Take the low route, or trace to Haven\'s dark rim and Burn through the relay arc toward Frost.',
+  openingBroadcast: 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
+  openingBody: 'Build relays. Three active worlds reveal the Warden; two circuits break its shields. Start low toward Ember, or walk Haven\'s dark rim and Burn toward Frost.',
   camera: {
     followPlayer: true,
     viewportWorldHeight: 24,

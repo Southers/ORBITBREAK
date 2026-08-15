@@ -35,7 +35,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob31';
+} from './content.js?v=20260815-ob33';
 
 import {
   countRestoredWorlds,
@@ -251,7 +251,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob32';
+GameCanvas.dataset.build = '20260815-ob33';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -5008,6 +5008,7 @@ function showStatusToast(Message, VisibleDurationMilliseconds = 900, Tone = 'sta
 
   StatusToastElement.textContent = Message;
   StatusToastElement.classList.toggle('is-memory', Tone === 'memory');
+  StatusToastElement.classList.toggle('is-warden', Tone === 'warden');
   StatusToastElement.classList.add('is-visible');
 
   StatusToastTimeoutIdentifier = window.setTimeout(() => {
@@ -7690,6 +7691,9 @@ function resetGame() {
     'Choose ' + OpeningRouteChoices[0].label + ' or ' + OpeningRouteChoices[1].label,
     ActiveSystem.openingBody,
   );
+  if (ActiveSystem.openingBroadcast) {
+    showStatusToast(ActiveSystem.openingBroadcast, 2200, 'warden');
+  }
   if (ShouldRestoreCanvasFocus) {
     GameCanvas.focus({ preventScroll: true });
   }
