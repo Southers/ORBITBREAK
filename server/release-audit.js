@@ -78,6 +78,11 @@ export function auditReleaseReadiness() {
     'Short-landscape Breaker controls must remain on the safe edge of the flight view.',
   );
   requireCondition(
+    /@media\s*\(orientation:\s*landscape\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.victory-panel\s*\{[^}]*width:\s*min\(calc\(100vw - 24px\),\s*760px\);[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior:\s*contain;/s.test(StyleSheet)
+      && /\.result-actions\s*\{[^}]*position:\s*sticky;[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);/s.test(StyleSheet),
+    'Short-landscape verified results must keep their actions visible and scrollable.',
+  );
+  requireCondition(
     /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),
     'Release diagnostics must remain restricted to local development hosts.',
   );

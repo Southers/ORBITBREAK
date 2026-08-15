@@ -511,6 +511,19 @@ control, 44px minimum actions, no overflow and a 156/190 peak. The release audit
 responsive safe-edge rule. This changes no input handler, Burn timing, camera, physics, score,
 pursuit or replay state.
 
+Gauntlet pass 23 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** An authentic replay-verified 11,650 desktop route exposed a
+release-candidate failure after resizing its result to 844×390: the 611px panel began at y=-110,
+all three actions ended below the viewport and keyboard focus sat on an invisible `Run again` button.
+Short landscape now uses a compact 760px-wide result, 32px title, reduced ornamental spacing, one
+sticky three-action row and internal scroll fallback. A second complete live route opened directly
+at 844×390: its independently verified 11,250 result fit at y=12 in a 760×366 panel with no scroll,
+all three 45.2px actions visible from y=315–360 and focus visibly on `Run again`. The seven-launch
+route remained within budget at 188/190 calls. Resizing the same result preserved the original
+520×665 desktop and 351×641 portrait panels, with no page overflow. The release audit protects the
+bounded scroll surface and sticky action row. This presentation-only repair changes no result data,
+focus target, scoring, physics, pursuit or replay validation.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
