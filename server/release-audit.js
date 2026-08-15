@@ -159,6 +159,11 @@ export function auditReleaseReadiness() {
     'Rankings callsigns, replay actions and submission focus must stay accessible.',
   );
   requireCondition(
+    /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*760px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.instruction-panel\s*\{[^}]*flex-direction:\s*row;[^}]*gap:\s*14px;[^}]*width:\s*min\(64vw,\s*540px\);[^}]*padding:\s*9px\s+14px;[^}]*text-align:\s*left;/s.test(StyleSheet)
+      && /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*760px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.instruction-panel\s+strong\s*\{[^}]*flex:\s*0\s+0\s+148px;/s.test(StyleSheet),
+    'Wide compact landscape must preserve a shallow two-column instruction card.',
+  );
+  requireCondition(
     /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
       && /\.objective-panel__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.objective-panel__state\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),

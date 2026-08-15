@@ -1285,3 +1285,18 @@ button[aria-disabled='true'] {
     width: auto;
   }
 }
+
+@media (orientation: landscape) and (min-width: 760px) and (max-height: 520px) {
+  .instruction-panel {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    width: min(64vw, 540px);
+    padding: 9px 14px;
+    text-align: left;
+  }
+
+  .instruction-panel strong {
+    flex: 0 0 148px;
+  }
+}

@@ -720,6 +720,19 @@ Rankings, and the browser reported no errors. The release audit protects type, c
 focus recovery. This accessibility-only pass changes no ranking order, submission validation, replay,
 score, pursuit or physics behavior and touched no production service.
 
+Gauntlet pass 40 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** Fresh opening captures showed strong desktop and portrait
+world reads, but the 844×390 judge view made the onboarding card the weakest visual layer: its
+440×92.8px centred stack covered the lower halves of both visible miniature worlds. Wide short
+landscapes now use a bounded two-column treatment that keeps the same complete instructions and
+12px type floor. At 844×390 the 540×68.2px card begins at y250.2 instead of y225.6, exposing 24.6px
+more of the playfield and keeping 55.2px between the Runner's screen point and the card. Its footer
+gap remains 12px. The exact 760px breakpoint produced a 486.4×68.2px card with an 11.6px footer gap;
+both layouts remained overflow-free. Portrait 390×844 and desktop 1280×720 correctly retained the
+original centred column treatment and dimensions, and the browser reported no errors. The release
+audit protects the compact hierarchy. This responsive presentation pass changes no camera, world
+position, input, physics, score, pursuit, replay or leaderboard behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
