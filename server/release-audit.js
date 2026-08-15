@@ -107,6 +107,7 @@ export function auditReleaseReadiness() {
       && /ScoutZoomInButtonElement\.setAttribute\('aria-disabled',\s*String\(!Presentation\.canZoomIn\)\)/.test(MainSource)
       && /ScoutZoomOutButtonElement\.setAttribute\('aria-disabled',\s*String\(!Presentation\.canZoomOut\)\)/.test(MainSource)
       && /GameCanvas\.dataset\.scoutZoom\s*=\s*ScoutZoomScale\.toFixed\(2\)/.test(MainSource)
+      && /ScoutZoomStatusElement\.textContent\s*=\s*WasScoutMode\s*\?\s*'Scout view off'\s*:\s*''/.test(MainSource)
       && /if\s*\(ShouldRestoreScoutButtonFocus\)\s*ScoutButtonElement\.focus\(\{\s*preventScroll:\s*true\s*\}\)/.test(MainSource),
     'Scout zoom must announce its level and mark deterministic limits without dropping focus.',
   );

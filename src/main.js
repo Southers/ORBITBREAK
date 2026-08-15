@@ -264,7 +264,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob60';
+GameCanvas.dataset.build = '20260815-ob61';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -7304,6 +7304,7 @@ function setScoutMode(Enabled, { snapToRunner = true } = {}) {
   const CanScout = ActiveSystem.camera?.followPlayer === true
     && GamePhase === 'attached'
     && ReplayPlaybackState === null;
+  const WasScoutMode = IsScoutMode;
   IsScoutMode = Enabled && CanScout;
   if (IsScoutMode) {
     ScoutCameraTarget.copy(CameraLookTarget);
@@ -7320,7 +7321,9 @@ function setScoutMode(Enabled, { snapToRunner = true } = {}) {
   ScoutButtonElement.setAttribute('aria-pressed', String(IsScoutMode));
   ScoutZoomOutButtonElement.hidden = !IsScoutMode;
   ScoutZoomInButtonElement.hidden = !IsScoutMode;
-  if (!IsScoutMode) ScoutZoomStatusElement.textContent = '';
+  if (!IsScoutMode) {
+    ScoutZoomStatusElement.textContent = WasScoutMode ? 'Scout view off' : '';
+  }
   updateScoutZoomInterface({ announce: IsScoutMode });
   GameCanvas.dataset.scoutMode = String(IsScoutMode);
   GameCanvas.dataset.scoutZoom = ScoutZoomScale.toFixed(2);

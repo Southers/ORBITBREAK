@@ -84,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob60` passes 156 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob61` passes 156 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
 - 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
@@ -115,6 +115,7 @@ Suggested 40-second trailer beat sheet:
 - Warden state and target forecasts retain a 10px single-line floor, keeping the pursuit's critical pressure and destination cues legible on portrait mobile.
 - Command World progress is an atomic polite status, keeping the objective label attached to relay, exposure, core-lock and liberation updates for assistive technology.
 - Scout zoom announces its current percentage to touch and keyboard users, exposes that level in both button names, and marks only the reached limit unavailable without dropping focus.
+- Leaving an active Scout view announces `Scout view off`; already-off control paths remain silent instead of producing redundant feedback.
 - Audio button and `M` shortcut use one tested presentation path and publish the same atomic `AUDIO ON/OFF` confirmation.
 - Explicit Reduced motion holds relay luminance at the same readable 80% midpoint instead of continuously pulsing it.
 - Final Pulse publication now reports `defeated` and `command-world-disabled`, matching the visible Warden panel and verified result without mutating authoritative pursuit state.

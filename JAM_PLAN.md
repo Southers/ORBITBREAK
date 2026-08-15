@@ -611,6 +611,18 @@ audio was restored on after the test and the browser reported no warnings or err
 protects both states and the release audit protects the shared announced path. This feedback pass changes
 no audio synthesis, input mapping, persistence, physics, score, pursuit or replay behavior.
 
+Gauntlet pass 31 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** Scout entry announced its zoom level after pass 29, but leaving
+with canvas-focused `C` silently cleared that status, making the mode transition asymmetric for keyboard
+and assistive users. The shared Scout transition now remembers whether the mode was active and publishes
+atomic `Scout view off` only for a real exit; calls made while already off remain silent. At 390×844,
+`C` announced `Scout zoom 100%` on entry and `Scout view off` on exit while retaining canvas focus,
+false mode and a truthful 1.00 scale. An already-off `Q` surface step cleared no new exit message and
+retained canvas focus. The same entry/exit cycle worked at 1280×720. Both layouts remained overflow-free
+and the browser reported no warnings or errors. The release audit protects the non-redundant exit state.
+This feedback-only pass changes no camera target, zoom bounds, input mapping, physics, score, pursuit or
+replay behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
