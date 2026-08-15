@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260815-ob81';
+import { WorldseedAudio } from './audio.js?v=20260815-ob82';
 import {
   SurfaceGestureModes,
   adjustSurfaceAngle,
@@ -38,7 +38,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob81';
+} from './content.js?v=20260815-ob82';
 
 import {
   countRestoredWorlds,
@@ -102,7 +102,8 @@ import {
   getLeaderboardActionLabel,
   getLoopObjectivePresentation,
   getLiveLinkShipCount,
-  getOpeningBriefingPresentation,
+  getStoryBoardPresentation,
+  getTriggeredCampaignStoryBoardIds,
   getPersonalBestStatus,
   getPlayfieldLabelVerticalBounds,
   getProsperityPresence,
@@ -134,7 +135,7 @@ import {
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob81';
+} from './presentation.js?v=20260815-ob82';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -308,7 +309,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob81';
+GameCanvas.dataset.build = '20260815-ob82';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -465,6 +466,11 @@ let LeaderboardLoadSequence = 0;
 let HasLaunchedOnce = false;
 let OpeningBriefingPageIndex = 0;
 let IsOpeningBriefingActive = false;
+let ActiveStoryBoardId = null;
+let ActiveStoryBoardTokens = {};
+let StoryBoardQueue = [];
+const ShownStoryBoardIds = new Set();
+let PendingRunResetAfterStoryBoard = false;
 let LaunchPulseLifeSeconds = 0;
 let ImpactPulseLifeSeconds = 0;
 let CameraImpactLifeSeconds = 0;
@@ -3878,7 +3884,7 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
       `${ArrivalAnswerLine ? `${ArrivalAnswerLine} ` : ''}The Warden is targeting ${TargetWorld?.label ?? 'the frontier'} · ${WardenPursuitState.distance} resolved flights away.`,
     );
     GameCanvas.dataset.wardenArrivalBroadcast = ActiveSystem.wardenArrivalBroadcast ?? '';
-    if (ActiveSystem.wardenArrivalBroadcast) {
+    if (ActiveSystem.wardenArrivalBroadcast && !ActiveSystem.storyBoards?.wardenArrival) {
       showStatusToast(ActiveSystem.wardenArrivalBroadcast, 3600, 'warden');
     }
   } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.advanced) {
@@ -5726,16 +5732,46 @@ function showInstruction(Title, Body) {
   InstructionPanelElement.setAttribute('aria-hidden', 'false');
 }
 
-function hideOpeningBriefing() {
+function hideStoryBoardOverlay() {
   IsOpeningBriefingActive = false;
+  ActiveStoryBoardId = null;
+  ActiveStoryBoardTokens = {};
   OpeningBriefingElement.hidden = true;
   GameCanvas.dataset.openingBriefing = 'closed';
-  OpeningBriefingElement.classList.remove('is-warden', 'is-haven', 'is-courier', 'is-runner');
+  OpeningBriefingElement.classList.remove(
+    'is-warden',
+    'is-haven',
+    'is-courier',
+    'is-runner',
+    'is-ember',
+    'is-grove',
+    'is-command',
+  );
 }
 
-function presentOpeningBriefingPage(PageIndex, { playVoice = false } = {}) {
-  const Pages = ActiveSystem.openingBriefing ?? [];
-  const Presentation = getOpeningBriefingPresentation(Pages, PageIndex);
+function hideOpeningBriefing() {
+  StoryBoardQueue = [];
+  PendingRunResetAfterStoryBoard = false;
+  hideStoryBoardOverlay();
+}
+
+function getActiveStoryBoardDefinition() {
+  if (ActiveStoryBoardId === 'opening') {
+    return {
+      skipLabel: 'Skip intro',
+      continueLabel: 'Take the Orbitbreaker',
+      pages: ActiveSystem.openingBriefing ?? [],
+    };
+  }
+  return ActiveSystem.storyBoards?.[ActiveStoryBoardId] ?? null;
+}
+
+function presentStoryBoardPage(PageIndex, { playVoice = false } = {}) {
+  const Board = getActiveStoryBoardDefinition();
+  const Presentation = getStoryBoardPresentation(Board.pages, PageIndex, {
+    lastContinueLabel: Board.continueLabel,
+    tokens: ActiveStoryBoardTokens,
+  });
   OpeningBriefingPageIndex = PageIndex;
   IsOpeningBriefingActive = true;
   BriefingKickerElement.textContent = Presentation.kicker;
@@ -5744,28 +5780,99 @@ function presentOpeningBriefingPage(PageIndex, { playVoice = false } = {}) {
   BriefingBodyElement.textContent = Presentation.body;
   BriefingProgressElement.textContent = Presentation.progressLabel;
   BriefingContinueButtonElement.textContent = Presentation.continueLabel;
-  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob81`;
+  BriefingSkipButtonElement.textContent = Board.skipLabel;
+  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob82`;
   BriefingPortraitElement.alt = Presentation.speaker;
-  OpeningBriefingElement.classList.remove('is-warden', 'is-haven', 'is-courier', 'is-runner');
+  OpeningBriefingElement.classList.remove(
+    'is-warden',
+    'is-haven',
+    'is-courier',
+    'is-runner',
+    'is-ember',
+    'is-grove',
+    'is-command',
+  );
   OpeningBriefingElement.classList.add(`is-${Presentation.tone}`);
   OpeningBriefingElement.hidden = false;
   InstructionPanelElement.classList.add('is-hidden');
   InstructionPanelElement.setAttribute('aria-hidden', 'true');
-  GameCanvas.dataset.openingBriefing = Presentation.progressLabel;
+  GameCanvas.dataset.openingBriefing = `${ActiveStoryBoardId}:${Presentation.progressLabel}`;
   if (playVoice) {
     WorldseedSound.briefingVoice(Presentation.speaker);
   }
   BriefingContinueButtonElement.focus({ preventScroll: true });
 }
 
+function beginStoryBoard(BoardId, tokens = {}) {
+  if (ReplayPlaybackState !== null) {
+    return false;
+  }
+  const Board = BoardId === 'opening'
+    ? {
+      skipLabel: 'Skip intro',
+      continueLabel: 'Take the Orbitbreaker',
+      pages: ActiveSystem.openingBriefing ?? [],
+    }
+    : ActiveSystem.storyBoards?.[BoardId];
+  if (!Board?.pages?.length) {
+    return false;
+  }
+  ActiveStoryBoardId = BoardId;
+  ActiveStoryBoardTokens = { ...tokens };
+  presentStoryBoardPage(0, { playVoice: Boolean(WorldseedSound.context) });
+  return true;
+}
+
+function presentNextQueuedStoryBoard() {
+  const NextBoard = StoryBoardQueue.shift();
+  if (!NextBoard) {
+    const ShouldReset = PendingRunResetAfterStoryBoard;
+    PendingRunResetAfterStoryBoard = false;
+    hideStoryBoardOverlay();
+    if (ShouldReset) {
+      resetGame();
+      return;
+    }
+    if (GamePhase === 'attached' || GamePhase === 'restoring') {
+      showRouteChoiceInstruction();
+      GameCanvas.focus({ preventScroll: true });
+    }
+    return;
+  }
+  beginStoryBoard(NextBoard.id, NextBoard.tokens);
+}
+
+function enqueueCampaignStoryBoards(BoardIds, tokens = {}) {
+  if (ReplayPlaybackState !== null || !Array.isArray(BoardIds) || BoardIds.length < 1) {
+    return false;
+  }
+  let QueuedCount = 0;
+  for (const BoardId of BoardIds) {
+    if (ShownStoryBoardIds.has(BoardId)) {
+      continue;
+    }
+    if (!ActiveSystem.storyBoards?.[BoardId]?.pages?.length) {
+      continue;
+    }
+    ShownStoryBoardIds.add(BoardId);
+    StoryBoardQueue.push({ id: BoardId, tokens });
+    QueuedCount += 1;
+  }
+  if (QueuedCount > 0 && !IsOpeningBriefingActive) {
+    presentNextQueuedStoryBoard();
+  }
+  return QueuedCount > 0;
+}
+
 function beginOpeningBriefing() {
-  const Pages = ActiveSystem.openingBriefing ?? [];
-  if (Pages.length < 1 || ReplayPlaybackState !== null) {
+  StoryBoardQueue = [];
+  ShownStoryBoardIds.clear();
+  PendingRunResetAfterStoryBoard = false;
+  if ((ActiveSystem.openingBriefing ?? []).length < 1 || ReplayPlaybackState !== null) {
     hideOpeningBriefing();
     return false;
   }
-  presentOpeningBriefingPage(0, { playVoice: Boolean(WorldseedSound.context) });
-  return true;
+  return beginStoryBoard('opening');
 }
 
 function advanceOpeningBriefing() {
@@ -5773,12 +5880,12 @@ function advanceOpeningBriefing() {
     return;
   }
   WorldseedSound.ensureStarted();
-  const Pages = ActiveSystem.openingBriefing ?? [];
-  if (OpeningBriefingPageIndex >= Pages.length - 1) {
+  const Board = getActiveStoryBoardDefinition();
+  if (!Board?.pages?.length || OpeningBriefingPageIndex >= Board.pages.length - 1) {
     finishOpeningBriefing();
     return;
   }
-  presentOpeningBriefingPage(OpeningBriefingPageIndex + 1, { playVoice: true });
+  presentStoryBoardPage(OpeningBriefingPageIndex + 1, { playVoice: true });
 }
 
 function finishOpeningBriefing() {
@@ -5786,21 +5893,28 @@ function finishOpeningBriefing() {
     return;
   }
   WorldseedSound.ensureStarted();
-  hideOpeningBriefing();
-  const OpeningRouteChoices = getRouteChoices(
-    CampaignNodeDefinitions,
-    StartingWorldIdentifier,
-    2,
-    ActiveSystem.routeSuggestions[StartingWorldIdentifier] ?? [],
-  );
-  showInstruction(
-    'Choose ' + OpeningRouteChoices[0].label + ' or ' + OpeningRouteChoices[1].label,
-    ActiveSystem.openingBody,
-  );
-  if (ActiveSystem.openingBroadcast) {
-    showStatusToast(ActiveSystem.openingBroadcast, 2200, 'warden');
+  if (ActiveStoryBoardId === 'opening') {
+    hideStoryBoardOverlay();
+    const OpeningRouteChoices = getRouteChoices(
+      CampaignNodeDefinitions,
+      StartingWorldIdentifier,
+      2,
+      ActiveSystem.routeSuggestions[StartingWorldIdentifier] ?? [],
+    );
+    showInstruction(
+      'Choose ' + OpeningRouteChoices[0].label + ' or ' + OpeningRouteChoices[1].label,
+      ActiveSystem.openingBody,
+    );
+    if (ActiveSystem.openingBroadcast) {
+      showStatusToast(ActiveSystem.openingBroadcast, 2200, 'warden');
+    }
+    GameCanvas.focus({ preventScroll: true });
+    return;
   }
-  GameCanvas.focus({ preventScroll: true });
+  if (ActiveStoryBoardId === 'runLost') {
+    PendingRunResetAfterStoryBoard = true;
+  }
+  presentNextQueuedStoryBoard();
 }
 
 /** Ends a caught attempt after a brief, readable failure beat. */
@@ -5820,6 +5934,10 @@ function scheduleRunFailure(Reason = 'THE WARDEN REACHED THE RUNNER') {
   showStatusToast('RUN LOST · WARDEN ARRIVED', 1200);
   showInstruction('The Stillness closes in', `${Reason}. The system will reset.`);
 
+  if (enqueueCampaignStoryBoards(['runLost'])) {
+    return;
+  }
+
   if (RunFailureTimeoutIdentifier !== null) {
     window.clearTimeout(RunFailureTimeoutIdentifier);
   }
@@ -5833,7 +5951,7 @@ function scheduleRunFailure(Reason = 'THE WARDEN REACHED THE RUNNER') {
 function settleNonCommandFlight({ firstCircuitClosed = false, circuit = null } = {}) {
   RunState = settleRunFlight(RunState);
   updateLaunchCounter();
-  resolveWardenAfterResolvedFlight({ firstCircuitClosed, circuit });
+  return resolveWardenAfterResolvedFlight({ firstCircuitClosed, circuit });
 }
 
 /** Clears per-shot telemetry after a landing, failure or reset. */
@@ -6043,6 +6161,11 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
   );
   LaunchIgnoredWorldIdentifier = null;
 
+  const LiveWorldsBefore = listLiveWorldIdentifiers();
+  const InnerClusterLiveBefore = isInnerClusterLive(LiveWorldsBefore);
+  const FurtherReachLiveBefore = isFurtherReachLive(LiveWorldsBefore);
+  const CommandAvailableBefore = WorldheartDefinition.routeAvailable === true;
+
   const WasAlreadyRestored = WorldDefinition.restored;
   const WasSuppressed = RelayNetworkState.suppressedWorldIdentifiers.has(WorldDefinition.id);
   const LandingAccolade = getCurrentLandingAccolade(
@@ -6111,10 +6234,34 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
     );
     showRouteChoiceInstruction();
   }
-  settleNonCommandFlight({
+  const SuppressedWorld = settleNonCommandFlight({
     firstCircuitClosed: RelayConnection?.circuitClosed === true,
     circuit: RelayConnection?.circuit ?? null,
   });
+  if (RunState.status === 'failed' || GamePhase === 'runFailed') {
+    updateBreakerBurnInterface();
+    return;
+  }
+  const LiveWorldsAfter = listLiveWorldIdentifiers();
+  enqueueCampaignStoryBoards(
+    getTriggeredCampaignStoryBoardIds({
+      shownIds: [...ShownStoryBoardIds],
+      createdLinkCount: RelayNetworkState.links.size,
+      linkCreated: RelayConnection?.created === true,
+      innerClusterJustUnlocked: !InnerClusterLiveBefore
+        && isInnerClusterLive(LiveWorldsAfter),
+      neighbourhoodJustAwake: isInnerClusterLive(LiveWorldsAfter)
+        && !FurtherReachLiveBefore
+        && isFurtherReachLive(LiveWorldsAfter),
+      wardenJustRevealed: WardenPursuitState.lastEvent === WardenPursuitEvents.revealed,
+      circuitJustClosed: RelayConnection?.circuitClosed === true,
+      worldJustSuppressed: Boolean(SuppressedWorld),
+      worldJustRecaptured: RelayConnection?.destinationReactivated === true,
+      commandJustExposed: !CommandAvailableBefore
+        && WorldheartDefinition.routeAvailable === true,
+    }),
+    { world: (SuppressedWorld ?? WorldDefinition).label },
+  );
   if (
     GamePhase === 'restoring'
     && LandingOriginWorldIdentifier
@@ -7418,7 +7565,6 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
   IsBreakerBurnPending = false;
   updateBreakerBurnInterface();
   if (RunState.status === 'failed') {
-    scheduleRunFailure(StatusMessage);
     return;
   }
 
@@ -7458,10 +7604,19 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
     clearTrajectoryPreview();
     updateBreakerBurnInterface();
     if (SuppressedWorld) {
-      showInstruction(
-        `Signal lost: ${SuppressedWorld.label}.`,
-        'Its route and courier are dark. Land there again to reconnect it.',
+      enqueueCampaignStoryBoards(
+        getTriggeredCampaignStoryBoardIds({
+          shownIds: [...ShownStoryBoardIds],
+          worldJustSuppressed: true,
+        }),
+        { world: SuppressedWorld.label },
       );
+      if (!IsOpeningBriefingActive) {
+        showInstruction(
+          `Signal lost: ${SuppressedWorld.label}.`,
+          'Its route and courier are dark. Land there again to reconnect it.',
+        );
+      }
     } else {
       showInstruction('Try another angle', 'Use the gold route rings and wait for a landing lock.');
     }

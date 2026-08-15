@@ -97,6 +97,19 @@ export function auditReleaseReadiness() {
     'The selected sector must open with a story board that names the Runner, the Reach and the charge.',
   );
   requireCondition(
+    AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+      ?.storyBoards?.wardenArrival?.pages?.length >= 2
+      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+        ?.storyBoards?.firstAnswer?.pages?.[0]?.speaker === 'EMBER'
+      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+        ?.storyBoards?.commandExposed?.pages?.length >= 2
+      && MainSource.includes('enqueueCampaignStoryBoards(')
+      && PresentationSource.includes('export function getTriggeredCampaignStoryBoardIds(')
+      && Credits.includes('assets/ember-portrait.jpg')
+      && Credits.includes('assets/command-portrait.jpg'),
+    'The selected sector must keep skippable story boards for first answer, Warden arrival and Command.',
+  );
+  requireCondition(
     MainSource.includes('ProsperityBuildingMesh')
       && MainSource.includes('getTradeHullKind(')
       && MainSource.includes('getInhabitantSilhouette(')

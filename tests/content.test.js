@@ -41,6 +41,14 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.equal(BreakerReachSystemDefinition.openingBriefing[0].speaker, 'THE WARDEN');
   assert.equal(BreakerReachSystemDefinition.openingBriefing[3].title, 'Wake the neighbourhood.');
   assert.equal(
+    BreakerReachSystemDefinition.storyBoards.wardenArrival.pages[0].title,
+    'Unauthorised network detected.',
+  );
+  assert.equal(
+    BreakerReachSystemDefinition.storyBoards.firstAnswer.pages[0].speaker,
+    'EMBER',
+  );
+  assert.equal(
     BreakerReachSystemDefinition.wardenArrivalBroadcast,
     'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',
   );
@@ -103,6 +111,13 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     Runtime.completion.emblems.heart,
     BreakerReachSystemDefinition.completion.emblems.heart,
   );
+});
+
+test('authored campaign story boards fail closed when a beat is missing', () => {
+  const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  delete InvalidSystemDefinition.storyBoards.wardenArrival;
+  const Errors = validateAuthoredSystemDefinition(InvalidSystemDefinition);
+  assert.ok(Errors.includes('Authored system storyBoards requires wardenArrival.'));
 });
 
 test('authored opening broadcasts fail closed when present but empty', () => {

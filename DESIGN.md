@@ -16,7 +16,7 @@ The player is the Runner, a maintenance astronaut who steals the last impounded 
 
 The first connections create small, specific signs of hope: two worlds answer one another, windows illuminate, music gains a voice and tiny trade ships begin moving along the route. An isolated breach resembles a fault. The opening act lets the Runner reconnect a neighbourhood and watch it prosper until travel further into the Reach feels easy. Only once that hopeful system is visible does the Warden triangulate a rebellion. It arrives, suppresses vulnerable frontier worlds and follows the network toward the Runner.
 
-The run opens on a four-page story board before any launch: the Warden's edict, the Runner stealing the Orbitbreaker, Haven as the last free garden, and the charge to wake the neighbourhood. It is authored dialogue with portraits, not a control dump and not a branching conversation. Play waits until the player continues or skips. In-engine voices speak each page after the first gesture. External voice or image APIs are expansion, not the first briefing.
+The run opens on a four-page story board before any launch: the Warden's edict, the Runner stealing the Orbitbreaker, Haven as the last free garden, and the charge to wake the neighbourhood. The same board returns at every major campaign beat so the story is not a toast. It is authored dialogue with portraits, not a control dump and not a branching conversation. Play waits until the player continues or skips. In-engine voices speak each page after the first gesture. External voice or image APIs are expansion once keys exist; they do not block authored boards.
 
 The Runner wins by creating a network strong enough to expose the Warden's command vessel, then boarding and disabling it. The ending may reveal that this Warden was one node in a larger authority, but the sector is saved and the run is complete.
 
@@ -158,25 +158,23 @@ The local personal-best replay becomes a visible ghost in Scout view and during 
 
 ## Story delivery
 
-Story is delivered through play, with short authored lines that have room to breathe. It is not a control dump, a lore dump or a dialogue tree.
+Story is delivered through authored story boards at the campaign's turning points, then short coaches while you aim. It is not a control dump, a lore dump or a dialogue tree.
 
-The opening is two beats, not one paragraph:
+The opening is a four-page board before any launch: the Warden's edict, the Runner stealing the Orbitbreaker, Haven as the last free garden, and the charge to wake the neighbourhood. After that, the same skippable board returns at first answer, second voice, range unlock, neighbourhood, Warden arrival, first circuit, suppression, recapture, Command exposure and a lost run. Play waits while a board is open. Reading never advances pursuit. Replay playback skips every board.
 
-1. The Warden broadcast: **“Travel is forbidden. Silence keeps you safe.”**
-2. The Runner’s purpose, on its own card: **“They are still out there. Carry the first word.”**
+Coach copy between boards stays one sentence. Controls appear when the verb is available. External voice or image APIs are expansion once keys exist; in-engine voices and authored portraits ship with the static Pages build.
 
-After that, one sentence at a time. Do not stack aiming, zoom, gold rings, Frost, Burn and the Warden into the first coach. Teach those verbs when the player can use them. Reading and scouting never advance pursuit.
+Anchor beats:
 
-Anchor beats, with space between them:
-
-- Opening Warden: **“Travel is forbidden. Silence keeps you safe.”**
-- Opening Runner: **“They are still out there. Carry the first word.”**
+- Opening Warden: **“Travel is forbidden.”**
+- Opening Runner: **“I stole the last ship.”**
 - First answer: **“Is someone there?”**
 - Second connection: **“We thought we were alone.”**
 - Inner cluster / range unlock: **“The dark is not as wide as they said.”**
 - Further landing: **“A whole neighbourhood is talking.”**
 - Warden arrival: **“Unauthorised network detected.”**
-- Recapture: **“Signal lost: [world].”**
+- Circuit: **“The signal went around.”**
+- Recapture: **“We're still here.”**
 - Final resistance: **“A network cannot be imprisoned.”**
 - Ending: **“You did not save them alone. You reminded them they were never alone.”**
 - Expansion sting: **“WARDEN NODE DISCONNECTED. SECTOR WARDENS: 11.”**
@@ -281,10 +279,11 @@ Ember grows furnaces and barges. Grove grows canopies and leaf-sails. Tide grows
 
 ### Story UI, precisely
 
-- Opening uses two short cards. The player dismisses with the same pointer that starts play.
-- Liberation keeps the world-answer line. Do not immediately replace it with hunt coaching.
-- Coach copy stays one sentence. Controls appear when the verb is available (Burn in flight, Pulse on Bastion, Scout when the veil recedes).
-- Mobile must keep 44px controls, no overflow, and cards that do not cover the planet that just came alive.
+- Opening uses a four-page board. Later beats reuse that board: first answer, second voice, range, neighbourhood, Warden arrival, circuit, suppression, recapture, Command, lost run.
+- The player dismisses with Continue/Skip. Keyboard Enter/Space continue; Escape skips the current beat.
+- Liberation still plays the wrapping wave under the board. Do not immediately replace it with hunt coaching.
+- Coach copy between boards stays one sentence. Controls appear when the verb is available (Burn in flight, Pulse on Bastion, Scout when the veil recedes).
+- Mobile must keep 44px controls, no overflow, and boards that do not cover the Continue/Skip row.
 
 ### Three visual states, equally authored
 
@@ -337,6 +336,19 @@ Stop conditions:
 ### Success for this plan
 
 A still frame of three linked worlds shows different buildings, different ships and people in motion. A new player can say what they are doing before the Warden speaks again. The Runner looks like a visitor on a tiny world, not the largest object on it. The hunt still starts with unused worlds left to save or score.
+
+### Still missing, on purpose of remaining time not a freeze
+
+GitHub Pages being static does not mean the campaign stays quiet. These are the next ambitious layers, in roughly this order, while `main` stays playable:
+
+1. **Denser living surfaces.** Streets, docks that receive hulls, windows that actually occupy buildings, more than six people on a busy world. Keep the 190-call budget honest at 390×844.
+2. **World-specific arrival boards.** Tide, Frost and Bastion should speak in their own portraits when first linked, not only Ember and Grove.
+3. **Finale character.** Command should keep talking during the rim walk and Pulse, then the Reach should answer with a board before the score card.
+4. **Trade that docks.** Ships should arrive, pause, and leave cargo or light, not only slide on a spline.
+5. **Music that follows the network.** Hopeful neighbourhood, hunt ostinato, cracked-crown finale. In-engine first; sampled music only with credits.
+6. **External voices and image APIs.** ElevenLabs / Gemini can replace in-engine voices and generate more portraits when keys are supplied. They will not live in this repo and they are not required for the authored boards to exist.
+
+Do not treat a toast, a HUD chip or a one-line coach as the delivery of those beats.
 
 ## Scope
 
