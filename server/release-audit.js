@@ -284,7 +284,7 @@ export function auditReleaseReadiness() {
   requireCondition(
     /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.aim-panel\s*,\s*\.burn-button\.is-pulse\s*\{[^}]*bottom:\s*max\(156px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*150px\)\);/s.test(StyleSheet)
       && /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*340px\)\s*\{[\s\S]*?\.aim-panel\s*,\s*\.burn-button\.is-pulse\s*\{[^}]*bottom:\s*max\(206px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*200px\)\);/s.test(StyleSheet)
-      && MainSource.includes("BurnButtonElement.classList.toggle('is-pulse', IsHostileCut)"),
+      && InputControllerSource.includes("BurnButtonElement.classList.toggle('is-pulse', IsHostileCut)"),
     'Portrait aim and Cut controls must clear the coach at ordinary and wrapped-footer widths.',
   );
   requireCondition(

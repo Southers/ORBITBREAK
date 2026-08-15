@@ -2738,7 +2738,7 @@ const LandingDirector = createLandingDirector(THREE, {
   settleNonCommandFlight,
   getWorldDefinition,
   enqueueCampaignStoryBoards,
-  updateBreakerBurnInterface,
+  updateBreakerBurnInterface: (...Args) => updateBreakerBurnInterface(...Args),
   hideCutGuide,
   publishHostileEncounterState,
   beginCommandDefeat,
