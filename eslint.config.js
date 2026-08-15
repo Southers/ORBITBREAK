@@ -15,6 +15,7 @@ const RankedSimulationFiles = [
   'src/records.js',
   'src/ghost.js',
   'src/content.js',
+  'src/content/**/*.js',
   'src/sector.js',
   'src/sim-constants.js',
   'src/flight-resolver.js',

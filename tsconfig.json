@@ -21,6 +21,8 @@
     "src/scoring.js",
     "src/replay.js",
     "src/replay-playback.js",
-    "src/replay-validator.js"
+    "src/replay-validator.js",
+    "src/content.js",
+    "src/content/**/*.js"
   ]
 }
