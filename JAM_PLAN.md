@@ -303,6 +303,17 @@ Direct-query startup smoke checks then loaded Shatterbelt, Verdant Caravan, Long
 on `ob31`, with WebGL live and 31–32 draw-call peaks, proving those systems remain compatibility
 fixtures rather than a competing first-game campaign.
 
+Gauntlet pass 4 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** Keyboard aim still pointed at the moving Command World's
+current position even when the gold intercept lock was tens of degrees ahead. A bounded nearest-first
+search now samples only the established full-power fixed-step prediction and suggests a Command lock;
+if none exists within 60 degrees it falls back to the original direct angle. It changes no launch,
+physics, score or replay state. After the same six-launch network route, one `ArrowUp` produced a
+58.8-degree `COMMAND WORLD LOCKED` prediction and specific boarding instruction on both desktop and
+390×844 portrait—no scripted steering scan. The search repeated in roughly 8ms through the browser
+input path, portrait had no page overflow, and the completed desktop result remained replay-verified
+at 12,250 with a 186/190 draw-call peak.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

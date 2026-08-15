@@ -7,9 +7,26 @@ import {
   adjustKeyboardAimState,
   classifySurfaceGesture,
   createKeyboardAimState,
+  findNearestKeyboardAimAngle,
   getKeyboardAimDragVector,
   getSurfacePosition,
 } from '../src/controls.js';
+
+test('keyboard lead search checks the direct route then nearest alternating offsets', () => {
+  const VisitedDegrees = [];
+  const Result = findNearestKeyboardAimAngle(0, (AngleRadians) => {
+    const Degrees = Math.round(AngleRadians * 180 / Math.PI);
+    VisitedDegrees.push(Degrees);
+    return Degrees === 6;
+  });
+  assert.equal(Math.round(Result * 180 / Math.PI), 6);
+  assert.deepEqual(VisitedDegrees, [0, 2, 358, 4, 356, 6]);
+
+  const Fallback = findNearestKeyboardAimAngle(Math.PI / 3, () => false, {
+    maximumOffsetRadians: 4 * (Math.PI / 180),
+  });
+  assert.ok(Math.abs(Fallback - (Math.PI / 3)) < 1e-12);
+});
 
 test('keyboard aim starts toward the suggested destination at full power', () => {
   const AimState = createKeyboardAimState({ directionX: 0, directionY: 4 });

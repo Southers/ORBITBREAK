@@ -7,9 +7,10 @@ import {
   adjustKeyboardAimState,
   classifySurfaceGesture,
   createKeyboardAimState,
+  findNearestKeyboardAimAngle,
   getKeyboardAimDragVector,
   getSurfacePosition,
-} from './controls.js?v=20260814-ob14';
+} from './controls.js?v=20260815-ob32';
 import {
   createHostileEncounterState,
   getHostileEncounterAngularDistance,
@@ -250,7 +251,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob31';
+GameCanvas.dataset.build = '20260815-ob32';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -4902,6 +4903,7 @@ function beginHostileEncounter(WorldDefinition) {
   AimPanelElement.hidden = true;
   GameCanvas.dataset.keyboardAimAngle = '';
   GameCanvas.dataset.keyboardAimPower = '';
+  GameCanvas.dataset.keyboardAimAssist = '';
   clearTrajectoryPreview();
   positionHostilePylons(
     WorldDefinition,
@@ -5671,6 +5673,28 @@ function clearTrajectoryPreview() {
   PredictedStardustIdentifiers.clear();
 }
 
+/** Keeps every live aim suggestion on the same fixed-step prediction contract. */
+function predictCurrentLaunchTrajectory(InitialVelocity) {
+  return predictTrajectory(
+    SeedPhysicsState.position,
+    createVector(InitialVelocity.x, InitialVelocity.y, 0),
+    WorldDefinitions,
+    {
+      seedRadius: SeedRadius,
+      fixedStepSeconds: FixedPhysicsStepSeconds,
+      maximumSteps: MaximumTrajectoryPredictionSteps,
+      ignoredWorldIdentifier: getWorldDefinition(CurrentWorldIdentifier)
+        ? CurrentWorldIdentifier
+        : null,
+      collisionBodyDefinitions: getActiveTacticalBodyDefinitions(),
+      ignoredCollisionBodyIdentifier: CurrentWorldIdentifier === SeedstoneDefinition.id
+        ? SeedstoneDefinition.id
+        : null,
+      startTimeSeconds: PhysicsElapsedTimeSeconds,
+    },
+  );
+}
+
 /**
  * Updates launch strength and trajectory from the current pointer position.
  *
@@ -5696,24 +5720,7 @@ function updateAimPreview(CurrentPointerWorldPosition) {
     return;
   }
 
-  const TrajectoryPrediction = predictTrajectory(
-    SeedPhysicsState.position,
-    createVector(AimLaunchVelocity.x, AimLaunchVelocity.y, 0),
-    WorldDefinitions,
-    {
-      seedRadius: SeedRadius,
-      fixedStepSeconds: FixedPhysicsStepSeconds,
-      maximumSteps: MaximumTrajectoryPredictionSteps,
-      ignoredWorldIdentifier: getWorldDefinition(CurrentWorldIdentifier)
-        ? CurrentWorldIdentifier
-        : null,
-      collisionBodyDefinitions: getActiveTacticalBodyDefinitions(),
-      ignoredCollisionBodyIdentifier: CurrentWorldIdentifier === SeedstoneDefinition.id
-        ? SeedstoneDefinition.id
-        : null,
-      startTimeSeconds: PhysicsElapsedTimeSeconds,
-    },
-  );
+  const TrajectoryPrediction = predictCurrentLaunchTrajectory(AimLaunchVelocity);
   const VisiblePredictionPoints = TrajectoryPrediction.points.slice(
     0,
     RankedPredictionVisibleSteps + 1,
@@ -5830,10 +5837,16 @@ function updateAimPreview(CurrentPointerWorldPosition) {
     AimPanelElement.classList.add('is-locked');
     AimLabelElement.textContent = `${WorldheartDefinition.label} LOCKED`;
     showInstruction(
-      'Release to reconnect the Worldheart',
-      isSystemRestored(WorldDefinitions)
-        ? 'Heart, Bloom and Arc will record the journey you completed.'
-        : 'You can leave now, or awaken every world first to earn Bloom.',
+      IsCampaignFinale
+        ? 'Release to reconnect the Worldheart'
+        : 'Release to board the Command World',
+      IsCampaignFinale
+        ? isSystemRestored(WorldDefinitions)
+          ? 'Heart, Bloom and Arc will record the journey you completed.'
+          : 'You can leave now, or awaken every world first to earn Bloom.'
+        : isSystemRestored(WorldDefinitions)
+          ? 'Every world is free. Gold marks the moving command lock.'
+          : 'Gold means the moving command is locked. Release before it leaves the line.',
     );
     const LandingDirection = TemporaryThreeVector.set(
       FinalPredictionPoint.x - WorldheartDefinition.position.x,
@@ -5936,6 +5949,40 @@ function updateKeyboardAimPreview() {
   GameCanvas.dataset.keyboardAimPower = String(Math.round(KeyboardAimState.powerRatio * 100));
 }
 
+/** Uses the shared predictor to give keyboard players a bounded lead on the moving Command World. */
+function createSuggestedKeyboardAimState(SuggestedTarget) {
+  const DirectAimState = createKeyboardAimState({
+    directionX: SuggestedTarget.position.x - SeedPhysicsState.position.x,
+    directionY: SuggestedTarget.position.y - SeedPhysicsState.position.y,
+    powerRatio: 1,
+  });
+  const IsMovingCommandTarget = SuggestedTarget.id === WorldheartDefinition.id
+    && Boolean(WorldheartDefinition.orbit)
+    && WorldheartDefinition.routeAvailable;
+  if (!IsMovingCommandTarget) {
+    GameCanvas.dataset.keyboardAimAssist = 'route';
+    return DirectAimState;
+  }
+
+  const MaximumLaunchSpeed = MaximumDragDistance * LaunchVelocityPerDragUnit;
+  let DidFindCommandLock = false;
+  const AssistedAngleRadians = findNearestKeyboardAimAngle(
+    DirectAimState.angleRadians,
+    (CandidateAngleRadians) => {
+      const Prediction = predictCurrentLaunchTrajectory(
+        {
+          x: Math.cos(CandidateAngleRadians) * MaximumLaunchSpeed,
+          y: Math.sin(CandidateAngleRadians) * MaximumLaunchSpeed,
+        },
+      );
+      DidFindCommandLock = Prediction.collisionBodyIdentifier === WorldheartDefinition.id;
+      return DidFindCommandLock;
+    },
+  );
+  GameCanvas.dataset.keyboardAimAssist = DidFindCommandLock ? 'command-lock' : 'command-direct';
+  return { ...DirectAimState, angleRadians: AssistedAngleRadians };
+}
+
 /** Opens keyboard aim toward the first authored route while retaining free steering. */
 function beginKeyboardAim() {
   if (
@@ -5954,11 +6001,14 @@ function beginKeyboardAim() {
     x: SeedPhysicsState.position.x + 1,
     y: SeedPhysicsState.position.y,
   };
-  KeyboardAimState = createKeyboardAimState({
-    directionX: SuggestedTargetPosition.x - SeedPhysicsState.position.x,
-    directionY: SuggestedTargetPosition.y - SeedPhysicsState.position.y,
-    powerRatio: 1,
-  });
+  if (!SuggestedTarget) GameCanvas.dataset.keyboardAimAssist = 'direct';
+  KeyboardAimState = SuggestedTarget
+    ? createSuggestedKeyboardAimState(SuggestedTarget)
+    : createKeyboardAimState({
+      directionX: SuggestedTargetPosition.x - SeedPhysicsState.position.x,
+      directionY: SuggestedTargetPosition.y - SeedPhysicsState.position.y,
+      powerRatio: 1,
+    });
   IsKeyboardAiming = true;
   WorldseedSound.beginAim();
   GameCanvas.classList.add('is-aiming');
@@ -5982,6 +6032,7 @@ function cancelKeyboardAim() {
   AimPanelElement.hidden = true;
   GameCanvas.dataset.keyboardAimAngle = '';
   GameCanvas.dataset.keyboardAimPower = '';
+  GameCanvas.dataset.keyboardAimAssist = '';
   clearTrajectoryPreview();
   WorldseedSound.endAim();
   showRouteChoiceInstruction();
@@ -7408,6 +7459,7 @@ function resetGame() {
   GameCanvas.dataset.lastPredictionOutcomeVisible = '';
   GameCanvas.dataset.keyboardAimAngle = '';
   GameCanvas.dataset.keyboardAimPower = '';
+  GameCanvas.dataset.keyboardAimAssist = '';
   GameCanvas.dataset.runnerAnimation = 'ready';
   GameCanvas.dataset.runnerForm = 'astronaut';
   GameCanvas.dataset.surfaceAngle = '';
@@ -7928,6 +7980,7 @@ function setPageActivity(IsActive) {
     ActivePointerIdentifier = null;
     GameCanvas.dataset.keyboardAimAngle = '';
     GameCanvas.dataset.keyboardAimPower = '';
+    GameCanvas.dataset.keyboardAimAssist = '';
     if (
       CanceledPointerIdentifier !== null
       && GameCanvas.hasPointerCapture(CanceledPointerIdentifier)

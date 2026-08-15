@@ -106,3 +106,38 @@ export function getKeyboardAimDragVector(AimState, MaximumDragDistance) {
     y: Math.sin(AimState.angleRadians) * DragDistance,
   };
 }
+
+/** Finds the nearest bounded angle accepted by a deterministic route-lock predicate. */
+export function findNearestKeyboardAimAngle(
+  BaseAngleRadians,
+  LocksRouteAtAngle,
+  {
+    stepRadians = 2 * (Math.PI / 180),
+    maximumOffsetRadians = 60 * (Math.PI / 180),
+  } = {},
+) {
+  if (
+    !Number.isFinite(BaseAngleRadians)
+    || typeof LocksRouteAtAngle !== 'function'
+    || !(stepRadians > 0)
+    || !(maximumOffsetRadians >= 0)
+  ) {
+    throw new Error('Keyboard aim search requires a finite angle, predicate and bounded steps.');
+  }
+  const NormalizedBaseAngle = (
+    (BaseAngleRadians % FullCircleRadians) + FullCircleRadians
+  ) % FullCircleRadians;
+  const MaximumStepCount = Math.floor(maximumOffsetRadians / stepRadians);
+  for (let StepIndex = 0; StepIndex <= MaximumStepCount; StepIndex += 1) {
+    const CandidateOffsets = StepIndex === 0
+      ? [0]
+      : [StepIndex * stepRadians, -StepIndex * stepRadians];
+    for (const CandidateOffset of CandidateOffsets) {
+      const CandidateAngle = (
+        NormalizedBaseAngle + CandidateOffset + FullCircleRadians
+      ) % FullCircleRadians;
+      if (LocksRouteAtAngle(CandidateAngle)) return CandidateAngle;
+    }
+  }
+  return NormalizedBaseAngle;
+}
