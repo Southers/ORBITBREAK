@@ -13,14 +13,17 @@ import {
   getScoutZoomPresentation,
   getSurfacePosition,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260815-ob83';
+} from './controls.js?v=20260815-ob84';
 import {
   createHostileEncounterState,
+  getCutEndPoint,
+  getCutHits,
   getHostileEncounterAngularDistance,
   getHostileEncounterMoveDirection,
-  isHostilePulseReady,
-  resolveHostilePulse,
-} from './encounter.js?v=20260815-ob43';
+  getNearestClampCut,
+  getRemainingClamps,
+  resolveHostileCut,
+} from './encounter.js?v=20260815-ob84';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -40,7 +43,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob82';
+} from './content.js?v=20260815-ob84';
 
 import {
   countRestoredWorlds,
@@ -311,7 +314,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob83';
+GameCanvas.dataset.build = '20260815-ob84';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -444,6 +447,8 @@ let PinchState = null;
 let IsBurnAiming = false;
 let BurnAimDirection = null;
 let HasTaughtBurn = false;
+let IsCutAiming = false;
+let CutAimPointer = null;
 let IsKeyboardAiming = false;
 let ActivePointerIdentifier = null;
 let KeyboardAimState = createKeyboardAimState();
@@ -3529,38 +3534,61 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
   GameCanvas.dataset.tradeHullKinds = HullKinds.join(',');
 }
 
-/** One compact pylon barrier turns a hostile landing into a short circumference challenge. */
+/** Spread clamps on a hostile rim. Drag through them to tear the cage. */
 const HostilePylonGroup = new THREE.Group();
-const HostilePylonMaterial = new THREE.MeshStandardMaterial({
+const HostilePylonTemplateMaterial = new THREE.MeshStandardMaterial({
   color: 0x5b1d29,
   emissive: 0xff493f,
   emissiveIntensity: 1.2,
   roughness: 0.48,
   metalness: 0.62,
 });
-for (const PylonOffset of [-0.16, 0, 0.16]) {
-  const PylonMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.18, 0.72, 0.18),
-    HostilePylonMaterial,
+const MaximumHostileClampCount = 5;
+for (let ClampIndex = 0; ClampIndex < MaximumHostileClampCount; ClampIndex += 1) {
+  const ClampMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.22, 0.82, 0.22),
+    HostilePylonTemplateMaterial.clone(),
   );
-  PylonMesh.userData.angleOffset = PylonOffset;
-  HostilePylonGroup.add(PylonMesh);
+  ClampMesh.visible = false;
+  HostilePylonGroup.add(ClampMesh);
 }
 HostilePylonGroup.visible = false;
 Scene.add(HostilePylonGroup);
 
-function positionHostilePylons(WorldDefinition, SurfaceAngle) {
-  for (const PylonMesh of HostilePylonGroup.children) {
-    const PylonAngle = SurfaceAngle + PylonMesh.userData.angleOffset;
-    const PylonDistance = WorldDefinition.radius + 0.3;
-    PylonMesh.position.set(
-      WorldDefinition.position.x + (Math.cos(PylonAngle) * PylonDistance),
-      WorldDefinition.position.y + (Math.sin(PylonAngle) * PylonDistance),
+function positionHostilePylons(WorldDefinition, EncounterState, HighlightedIds = []) {
+  const HighlightedIdSet = HighlightedIds instanceof Set
+    ? HighlightedIds
+    : new Set(HighlightedIds);
+  if (!WorldDefinition || !EncounterState) {
+    HostilePylonGroup.visible = false;
+    return;
+  }
+  let AnyVisible = false;
+  for (const ClampMesh of HostilePylonGroup.children) {
+    ClampMesh.visible = false;
+  }
+  for (const Clamp of EncounterState.clamps) {
+    const ClampMesh = HostilePylonGroup.children[Clamp.id];
+    if (!ClampMesh) continue;
+    if (!Clamp.remaining) {
+      ClampMesh.visible = false;
+      continue;
+    }
+    const ClampDistance = WorldDefinition.radius + 0.3;
+    ClampMesh.position.set(
+      WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
+      WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
       0.34,
     );
-    PylonMesh.rotation.z = PylonAngle - (Math.PI * 0.5);
+    ClampMesh.rotation.z = Clamp.surfaceAngle - (Math.PI * 0.5);
+    ClampMesh.visible = true;
+    AnyVisible = true;
+    const IsHighlighted = HighlightedIdSet.has(Clamp.id);
+    ClampMesh.material.emissive.setHex(IsHighlighted ? 0xffd678 : 0xff493f);
+    ClampMesh.material.emissiveIntensity = IsHighlighted ? 2.15 : 1.2;
+    ClampMesh.scale.setScalar(IsHighlighted ? 1.18 : 1);
   }
-  HostilePylonGroup.visible = true;
+  HostilePylonGroup.visible = AnyVisible;
 }
 
 /** The pursuing command vessel is a corrupted miniature world, not a timer overlay. */
@@ -4548,6 +4576,21 @@ PullGuideLine.visible = false;
 PullGuideLine.renderOrder = 20;
 Scene.add(PullGuideLine);
 
+const CutGuideGeometry = new THREE.BufferGeometry();
+const CutGuideMaterial = new THREE.LineDashedMaterial({
+  color: 0xffd678,
+  transparent: true,
+  opacity: 0.92,
+  dashSize: 0.16,
+  gapSize: 0.1,
+  depthWrite: false,
+  depthTest: false,
+});
+const CutGuideLine = new THREE.Line(CutGuideGeometry, CutGuideMaterial);
+CutGuideLine.visible = false;
+CutGuideLine.renderOrder = 21;
+Scene.add(CutGuideLine);
+
 /**
  * Creates a small trail behind the flying seed as one instanced draw call. Pooling avoids
  * allocation spikes and protects the restoration draw-call budget during flight.
@@ -4766,7 +4809,8 @@ function synchronizeWorldheartPosition() {
     if (ActiveHostileEncounterState) {
       positionHostilePylons(
         WorldheartDefinition,
-        ActiveHostileEncounterState.pylonSurfaceAngle,
+        ActiveHostileEncounterState,
+        getCurrentCutHitIds(),
       );
     }
   }
@@ -5614,48 +5658,152 @@ function getRunnerSurfaceAngle(WorldDefinition) {
   );
 }
 
+function getShipCutOrigin() {
+  return {
+    x: SeedPhysicsState.position.x,
+    y: SeedPhysicsState.position.y,
+  };
+}
+
+function getCurrentCutPreview() {
+  if (!ActiveHostileEncounterState) return null;
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld) return null;
+  const Origin = getShipCutOrigin();
+  if (CutAimPointer) {
+    const End = getCutEndPoint(
+      Origin,
+      CutAimPointer,
+      ActiveHostileEncounterState.maxCutLength,
+    );
+    const Distance = Math.hypot(CutAimPointer.x - Origin.x, CutAimPointer.y - Origin.y);
+    return {
+      origin: Origin,
+      end: End,
+      distance: Distance,
+      willCancel: shouldCancelAimedLaunch({
+        pointerDistanceFromShip: Distance,
+        cancelRadius: LaunchCancelRadius,
+      }),
+      hits: getCutHits(ActiveHostileEncounterState, Origin, End, AttachedWorld),
+    };
+  }
+  const RunnerSurfaceAngle = getRunnerSurfaceAngle(AttachedWorld);
+  const AutoCut = getNearestClampCut(
+    ActiveHostileEncounterState,
+    Origin,
+    AttachedWorld,
+    RunnerSurfaceAngle,
+  );
+  return AutoCut
+    ? {
+      origin: AutoCut.origin,
+      end: AutoCut.end,
+      distance: Math.hypot(AutoCut.end.x - Origin.x, AutoCut.end.y - Origin.y),
+      willCancel: false,
+      hits: AutoCut.hits,
+    }
+    : null;
+}
+
+function getCurrentCutHitIds() {
+  const Preview = getCurrentCutPreview();
+  if (!Preview || Preview.willCancel) return [];
+  return Preview.hits.map((Hit) => Hit.id);
+}
+
+function hideCutGuide() {
+  CutGuideLine.visible = false;
+}
+
+function renderCutGuide(Preview) {
+  if (!Preview || Preview.willCancel) {
+    hideCutGuide();
+    return;
+  }
+  CutGuideGeometry.setFromPoints([
+    new THREE.Vector3(Preview.origin.x, Preview.origin.y, 0.28),
+    new THREE.Vector3(Preview.end.x, Preview.end.y, 0.28),
+  ]);
+  CutGuideLine.computeLineDistances();
+  CutGuideMaterial.color.setHex(Preview.hits.length > 0 ? 0xffd678 : 0xff766d);
+  CutGuideMaterial.opacity = Preview.hits.length > 0 ? 0.95 : 0.55;
+  CutGuideLine.visible = true;
+}
+
+function refreshHostileClampVisuals() {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld || !ActiveHostileEncounterState) {
+    hideCutGuide();
+    HostilePylonGroup.visible = false;
+    return;
+  }
+  const Preview = getCurrentCutPreview();
+  positionHostilePylons(
+    AttachedWorld,
+    ActiveHostileEncounterState,
+    Preview && !Preview.willCancel ? Preview.hits.map((Hit) => Hit.id) : [],
+  );
+  if (IsCutAiming) {
+    renderCutGuide(Preview);
+  } else {
+    hideCutGuide();
+  }
+}
+
 function publishHostileEncounterState() {
   const AttachedWorld = getCurrentAttachedWorld();
   const RunnerSurfaceAngle = AttachedWorld
     ? getRunnerSurfaceAngle(AttachedWorld)
     : 0;
-  const PulseReady = Boolean(
-    ActiveHostileEncounterState
-    && isHostilePulseReady(ActiveHostileEncounterState, RunnerSurfaceAngle)
-  );
+  const RemainingCount = ActiveHostileEncounterState
+    ? getRemainingClamps(ActiveHostileEncounterState).length
+    : 0;
+  const Preview = getCurrentCutPreview();
+  const CutReady = Boolean(Preview && Preview.hits.length > 0 && !Preview.willCancel);
   GameCanvas.dataset.hostileEncounter = ActiveHostileEncounterState?.worldIdentifier ?? '';
-  GameCanvas.dataset.hostilePulseReady = String(PulseReady);
+  GameCanvas.dataset.hostilePulseReady = String(CutReady);
+  GameCanvas.dataset.hostileClampCount = String(RemainingCount);
   GameCanvas.dataset.hostilePylonAngle = ActiveHostileEncounterState
-    ? ActiveHostileEncounterState.pylonSurfaceAngle.toFixed(4)
+    ? (getRemainingClamps(ActiveHostileEncounterState)[0]?.surfaceAngle ?? 0).toFixed(4)
     : '';
-  return PulseReady;
+  refreshHostileClampVisuals();
+  return CutReady;
 }
 
 function showHostileEncounterInstruction() {
   const AttachedWorld = getCurrentAttachedWorld();
   if (!AttachedWorld || !ActiveHostileEncounterState) return false;
   const IsCommandApproach = AttachedWorld.kind === 'worldheart';
+  const RemainingCount = getRemainingClamps(ActiveHostileEncounterState).length;
   const CommandApproachTitle = ActiveSystem.commandApproachLine
-    ?? 'Command core in range.';
+    ?? 'The lattice is open.';
   const RunnerSurfaceAngle = getRunnerSurfaceAngle(AttachedWorld);
-  if (isHostilePulseReady(ActiveHostileEncounterState, RunnerSurfaceAngle)) {
+  const MoveKey = getHostileEncounterMoveDirection(
+    ActiveHostileEncounterState,
+    RunnerSurfaceAngle,
+  ) > 0 ? 'Q' : 'E';
+  const DistanceDegrees = Math.round(THREE.MathUtils.radToDeg(
+    getHostileEncounterAngularDistance(ActiveHostileEncounterState, RunnerSurfaceAngle),
+  ));
+  if (IsCommandApproach) {
     showInstruction(
-      IsCommandApproach ? CommandApproachTitle : 'Pylon in range.',
-      'Press Space or tap BREAKER PULSE to disable the barrier without spending a launch.',
+      CommandApproachTitle,
+      RemainingCount === 3
+        ? 'Grab the ship and drag through a gold tooth. Drag back onto it to cancel.'
+        : `${RemainingCount} left. A longer drag can take more than one.`,
+    );
+  } else if (RemainingCount === 3) {
+    showInstruction(
+      `${AttachedWorld.label} still has teeth.`,
+      'Grab the ship and drag through a clamp. Walk with Q/E if the cut cannot reach.',
     );
   } else {
-    const DistanceDegrees = Math.round(THREE.MathUtils.radToDeg(
-      getHostileEncounterAngularDistance(ActiveHostileEncounterState, RunnerSurfaceAngle),
-    ));
-    const MoveKey = getHostileEncounterMoveDirection(
-      ActiveHostileEncounterState,
-      RunnerSurfaceAngle,
-    ) > 0 ? 'Q' : 'E';
     showInstruction(
-      IsCommandApproach
-        ? CommandApproachTitle
-        : `${AttachedWorld.label} blocks the relay.`,
-      `${IsCommandApproach ? 'Circle the moving Command World' : 'Walk the rim'} with ${MoveKey} or trace toward the red pylons · ${DistanceDegrees}° away.`,
+      `${RemainingCount} clamp${RemainingCount === 1 ? '' : 's'} left on ${AttachedWorld.label}.`,
+      DistanceDegrees > 18
+        ? `Walk ${MoveKey} toward the next one, then drag through it.`
+        : 'A longer drag can take more than one.',
     );
   }
   return true;
@@ -5668,6 +5816,7 @@ function beginHostileEncounter(WorldDefinition) {
   ) {
     return false;
   }
+  cancelCutAim({ announce: false });
   ActiveHostileEncounterState = createHostileEncounterState({
     worldIdentifier: WorldDefinition.id,
     runnerSurfaceAngle: getRunnerSurfaceAngle(WorldDefinition),
@@ -5681,10 +5830,6 @@ function beginHostileEncounter(WorldDefinition) {
   GameCanvas.dataset.keyboardAimPower = '';
   GameCanvas.dataset.keyboardAimAssist = '';
   clearTrajectoryPreview();
-  positionHostilePylons(
-    WorldDefinition,
-    ActiveHostileEncounterState.pylonSurfaceAngle,
-  );
   publishHostileEncounterState();
   updateBreakerBurnInterface();
   showHostileEncounterInstruction();
@@ -6415,12 +6560,13 @@ function revealVictoryPanel() {
   ReplayButtonElement.focus({ preventScroll: true });
 }
 
-/** Completes the command landing only after its surface lattice receives a Breaker Pulse. */
+/** Completes the command landing only after its lattice teeth are cut. */
 function completeWorldheartLiberation() {
   if (WorldheartDefinition.restored) return false;
   CompletedHostileEncounterWorldIdentifiers.add(WorldheartDefinition.id);
   ActiveHostileEncounterState = null;
   HostilePylonGroup.visible = false;
+  hideCutGuide();
   publishHostileEncounterState();
   WorldheartDefinition.restored = true;
   const CompletionBonus = addVictoryBonus(
@@ -7201,13 +7347,70 @@ function handleKeyboardAimKey(KeyboardEventData) {
     ? 1
     : (PressedKey === 'arrowdown' || PressedKey === 's' ? -1 : 0);
 
-  if (PressedKey === 'escape' && (IsKeyboardAiming || IsPointerAiming || IsBurnAiming)) {
+  if (PressedKey === 'escape' && (
+    IsKeyboardAiming || IsPointerAiming || IsBurnAiming || IsCutAiming
+  )) {
     KeyboardEventData.preventDefault();
-    if (IsBurnAiming) {
+    if (IsCutAiming) {
+      cancelCutAim();
+    } else if (IsBurnAiming) {
       cancelBurnAim();
     } else {
       cancelAimedLaunch();
     }
+    return true;
+  }
+  if (ActiveHostileEncounterState && GamePhase === 'attached') {
+    if (!IsLaunchKey && RotationDirection === 0 && PowerDirection === 0) {
+      return false;
+    }
+    KeyboardEventData.preventDefault();
+    if (IsLaunchKey) {
+      if (KeyboardEventData.repeat) return true;
+      if (IsCutAiming) fireHostileCutFromPreview();
+      else fireNearestHostileCut();
+      return true;
+    }
+    const AttachedWorld = getCurrentAttachedWorld();
+    const Origin = getShipCutOrigin();
+    const BasisPointer = CutAimPointer ?? (
+      AttachedWorld
+        ? getNearestClampCut(
+          ActiveHostileEncounterState,
+          Origin,
+          AttachedWorld,
+          getRunnerSurfaceAngle(AttachedWorld),
+        )?.end
+        : null
+    ) ?? { x: Origin.x + 1, y: Origin.y };
+    KeyboardAimState = createKeyboardAimState({
+      directionX: BasisPointer.x - Origin.x,
+      directionY: BasisPointer.y - Origin.y,
+      powerRatio: Math.min(
+        1,
+        Math.max(
+          0.2,
+          Math.hypot(BasisPointer.x - Origin.x, BasisPointer.y - Origin.y)
+            / ActiveHostileEncounterState.maxCutLength,
+        ),
+      ),
+    });
+    IsCutAiming = true;
+    GameCanvas.classList.add('is-aiming');
+    AimPanelElement.hidden = false;
+    KeyboardAimState = adjustKeyboardAimState(KeyboardAimState, {
+      rotationDirection: RotationDirection,
+      powerDirection: PowerDirection,
+      fine: KeyboardEventData.shiftKey,
+    });
+    const Drag = getKeyboardAimDragVector(
+      KeyboardAimState,
+      ActiveHostileEncounterState.maxCutLength,
+    );
+    updateCutAimPreview({
+      x: Origin.x + Drag.x,
+      y: Origin.y + Drag.y,
+    });
     return true;
   }
   if (!IsLaunchKey && RotationDirection === 0 && PowerDirection === 0) {
@@ -7281,6 +7484,158 @@ function updateCameraPan(WorldPosition) {
   GameCanvas.dataset.scoutY = CameraPanOffset.y.toFixed(2);
 }
 
+function beginCutAim(WorldPosition) {
+  if (!ActiveHostileEncounterState || GamePhase !== 'attached') return false;
+  IsCutAiming = true;
+  CutAimPointer = { x: WorldPosition.x, y: WorldPosition.y };
+  GameCanvas.classList.add('is-aiming');
+  AimPanelElement.hidden = false;
+  AimLabelElement.textContent = 'CUT';
+  updateCutAimPreview(WorldPosition);
+  return true;
+}
+
+function updateCutAimPreview(WorldPosition) {
+  if (!IsCutAiming || !ActiveHostileEncounterState) return;
+  CutAimPointer = { x: WorldPosition.x, y: WorldPosition.y };
+  const Preview = getCurrentCutPreview();
+  const WillCancel = Boolean(Preview?.willCancel);
+  const HitCount = Preview && !WillCancel ? Preview.hits.length : 0;
+  AimPanelElement.classList.toggle('is-cancel', WillCancel);
+  AimLabelElement.textContent = WillCancel ? 'RELEASE TO CANCEL' : 'CUT';
+  const PowerRatio = THREE.MathUtils.clamp(
+    (Preview?.distance ?? 0) / ActiveHostileEncounterState.maxCutLength,
+    0,
+    1,
+  );
+  AimPowerFillElement.style.width = WillCancel ? '0%' : `${Math.round(PowerRatio * 100)}%`;
+  AimPowerFillElement.style.transform = 'none';
+  AimPowerValueElement.textContent = WillCancel
+    ? 'CANCEL'
+    : (HitCount > 0 ? `${HitCount} HIT` : 'MISS');
+  publishHostileEncounterState();
+  updateBreakerBurnInterface();
+}
+
+function cancelCutAim({ announce = true } = {}) {
+  const WasAiming = IsCutAiming;
+  IsCutAiming = false;
+  CutAimPointer = null;
+  ActivePointerIdentifier = null;
+  GameCanvas.classList.remove('is-aiming');
+  AimPanelElement.hidden = true;
+  AimPanelElement.classList.remove('is-cancel');
+  hideCutGuide();
+  if (WasAiming && announce) showStatusToast('CUT CANCELED', 650);
+  if (ActiveHostileEncounterState) {
+    publishHostileEncounterState();
+    updateBreakerBurnInterface();
+    showHostileEncounterInstruction();
+  }
+}
+
+function applyHostileCut(Origin, End) {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld || !ActiveHostileEncounterState || ReplayPlaybackState !== null) {
+    return false;
+  }
+  const Resolved = resolveHostileCut(
+    ActiveHostileEncounterState,
+    Origin,
+    End,
+    AttachedWorld,
+  );
+  if (Resolved.hitIds.length < 1) {
+    showStatusToast('MISSED', 700);
+    showHostileEncounterInstruction();
+    return false;
+  }
+  ActiveHostileEncounterState = Resolved.state;
+  const LastHit = Resolved.hitIds.at(-1);
+  const HitClamp = Resolved.state.clamps[LastHit];
+  if (HitClamp) {
+    const HitPosition = {
+      x: AttachedWorld.position.x
+        + (Math.cos(HitClamp.surfaceAngle) * (AttachedWorld.radius + 0.3)),
+      y: AttachedWorld.position.y
+        + (Math.sin(HitClamp.surfaceAngle) * (AttachedWorld.radius + 0.3)),
+    };
+    ImpactPulseMesh.material.color.set(0xffd678);
+    ImpactPulseMesh.position.set(HitPosition.x, HitPosition.y, 0.28);
+    ImpactPulseMesh.scale.setScalar(1.2);
+    ImpactPulseMesh.visible = true;
+    ImpactPulseLifeSeconds = 0.58;
+  }
+  WorldseedSound.impact(AttachedWorld.id);
+  GameCanvas.dataset.lastHostileWorld = AttachedWorld.id;
+  if (Resolved.state.completed) {
+    CompletedHostileEncounterWorldIdentifiers.add(AttachedWorld.id);
+    ActiveHostileEncounterState = null;
+    HostilePylonGroup.visible = false;
+    hideCutGuide();
+    publishHostileEncounterState();
+    if (AttachedWorld.kind === 'worldheart') {
+      return completeWorldheartLiberation();
+    }
+    updateBreakerBurnInterface();
+    showStatusToast('THE RIM IS CLEAR', 1350);
+    showInstruction(
+      `${AttachedWorld.label} can fly.`,
+      'Grab the ship and launch. Drag empty space to look around.',
+    );
+    return true;
+  }
+  publishHostileEncounterState();
+  updateBreakerBurnInterface();
+  const RemainingCount = getRemainingClamps(Resolved.state).length;
+  showStatusToast(
+    Resolved.hitIds.length > 1
+      ? `${Resolved.hitIds.length} CLAMPS GONE`
+      : 'CLAMP GONE',
+    900,
+  );
+  showInstruction(
+    `${RemainingCount} left on ${AttachedWorld.label}.`,
+    RemainingCount === 1
+      ? 'One tooth remains. Drag through it.'
+      : 'A longer drag can take more than one.',
+  );
+  return true;
+}
+
+function fireHostileCutFromPreview() {
+  const Preview = getCurrentCutPreview();
+  if (!Preview || Preview.willCancel) {
+    cancelCutAim({ announce: true });
+    return false;
+  }
+  IsCutAiming = false;
+  CutAimPointer = null;
+  ActivePointerIdentifier = null;
+  GameCanvas.classList.remove('is-aiming');
+  AimPanelElement.hidden = true;
+  AimPanelElement.classList.remove('is-cancel');
+  hideCutGuide();
+  return applyHostileCut(Preview.origin, Preview.end);
+}
+
+function releaseCutAim() {
+  return fireHostileCutFromPreview();
+}
+
+function fireNearestHostileCut() {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld || !ActiveHostileEncounterState) return false;
+  CutAimPointer = null;
+  const Preview = getCurrentCutPreview();
+  if (!Preview || Preview.hits.length < 1) {
+    showStatusToast('TOO FAR', 700);
+    showHostileEncounterInstruction();
+    return false;
+  }
+  return applyHostileCut(Preview.origin, Preview.end);
+}
+
 function beginBurnAim(WorldPosition) {
   IsBurnAiming = true;
   BurnAimDirection = {
@@ -7289,7 +7644,7 @@ function beginBurnAim(WorldPosition) {
   };
   GameCanvas.classList.add('is-aiming');
   AimPanelElement.hidden = false;
-  AimLabelElement.textContent = 'BURN';
+  AimLabelElement.textContent = 'BREAK';
   updateBurnAimPreview(WorldPosition);
 }
 
@@ -7304,7 +7659,7 @@ function updateBurnAimPreview(WorldPosition) {
     cancelRadius: LaunchCancelRadius,
   });
   AimPanelElement.classList.toggle('is-cancel', WillCancel);
-  AimLabelElement.textContent = WillCancel ? 'RELEASE TO CANCEL' : 'BURN';
+  AimLabelElement.textContent = WillCancel ? 'RELEASE TO CANCEL' : 'BREAK';
   const PowerRatio = THREE.MathUtils.clamp(Distance / MaximumDragDistance, 0, 1);
   AimPowerFillElement.style.width = WillCancel ? '0%' : `${Math.round(PowerRatio * 100)}%`;
   AimPowerFillElement.style.transform = 'none';
@@ -7340,7 +7695,7 @@ function cancelBurnAim({ announce = true } = {}) {
   AimPanelElement.hidden = true;
   AimPanelElement.classList.remove('is-cancel');
   clearTrajectoryPreview();
-  if (announce) showStatusToast('BURN CANCELED', 650);
+  if (announce) showStatusToast('BREAK CANCELED', 650);
 }
 
 function releaseBurnAim() {
@@ -7358,7 +7713,7 @@ function releaseBurnAim() {
   clearTrajectoryPreview();
   if (WillCancel || !Direction) {
     BurnAimDirection = null;
-    showStatusToast('BURN CANCELED', 650);
+    showStatusToast('BREAK CANCELED', 650);
     return false;
   }
   BurnAimDirection = Direction;
@@ -7415,6 +7770,14 @@ function handlePointerDown(PointerEventData) {
   }
 
   cancelKeyboardAim();
+  if (isPointerOverSeed(PointerEventData) && ActiveHostileEncounterState) {
+    setScoutMode(false);
+    PointerGestureMode = SurfaceGestureModes.aim;
+    beginCutAim(CurrentPointerWorldPosition);
+    PointerEventData.preventDefault();
+    return;
+  }
+
   if (isPointerOverSeed(PointerEventData) && !ActiveHostileEncounterState) {
     setScoutMode(false);
     PointerGestureMode = SurfaceGestureModes.aim;
@@ -7436,10 +7799,12 @@ function handlePointerDown(PointerEventData) {
     IsPointerWalking = true;
     GameCanvas.classList.add('is-walking');
     const AttachedWorld = getCurrentAttachedWorld();
-    showInstruction(
-      `Walking around ${AttachedWorld.label}`,
-      'Trace the rim to choose a launch point. Grab the ship to aim. Drag empty space to pan.',
-    );
+    if (!showHostileEncounterInstruction()) {
+      showInstruction(
+        `Walking around ${AttachedWorld.label}`,
+        'Trace the rim to choose a launch point. Grab the ship to aim. Drag empty space to pan.',
+      );
+    }
     PointerEventData.preventDefault();
     return;
   }
@@ -7469,6 +7834,12 @@ function handlePointerMove(PointerEventData) {
     (IsPointerAiming && AimInteractionCamera) ? AimInteractionCamera : Camera,
   );
   if (!CurrentPointerWorldPosition) {
+    return;
+  }
+
+  if (IsCutAiming) {
+    updateCutAimPreview(CurrentPointerWorldPosition);
+    PointerEventData.preventDefault();
     return;
   }
 
@@ -7580,8 +7951,8 @@ function releaseAimedLaunch() {
   if (!HasTaughtBurn) {
     HasTaughtBurn = true;
     showInstruction(
-      'Breaker Burn ready',
-      'Drag from the ship to boost any direction. Drag back onto it, or press Escape, to cancel.',
+      'Break ready',
+      'Drag from the ship to break your line any direction. Drag back onto it, or press Escape, to cancel.',
     );
   } else {
     hideInstruction();
@@ -7590,35 +7961,30 @@ function releaseAimedLaunch() {
 }
 
 function updateBreakerBurnInterface() {
-  const IsHostilePulse = Boolean(ActiveHostileEncounterState);
-  const IsPulseReady = IsHostilePulse && publishHostileEncounterState();
-  const AttachedWorld = IsHostilePulse ? getCurrentAttachedWorld() : null;
-  const HostileMoveKey = AttachedWorld && !IsPulseReady
-    ? (getHostileEncounterMoveDirection(
-      ActiveHostileEncounterState,
-      getRunnerSurfaceAngle(AttachedWorld),
-    ) > 0 ? 'Q' : 'E')
-    : '';
-  BurnButtonElement.hidden = GamePhase !== 'flying' && !IsHostilePulse;
-  BurnButtonElement.classList.toggle('is-pulse', IsHostilePulse);
+  const IsHostileCut = Boolean(ActiveHostileEncounterState);
+  const RemainingCount = IsHostileCut
+    ? getRemainingClamps(ActiveHostileEncounterState).length
+    : 0;
+  const PreviewHitCount = IsHostileCut ? getCurrentCutHitIds().length : 0;
+  if (IsHostileCut) publishHostileEncounterState();
+  BurnButtonElement.hidden = GamePhase !== 'flying' && !IsHostileCut;
+  BurnButtonElement.classList.toggle('is-pulse', IsHostileCut);
   BurnButtonElement.classList.toggle(
     'is-spent',
-    IsHostilePulse ? !IsPulseReady : !IsBreakerBurnAvailable,
+    IsHostileCut ? RemainingCount < 1 : !IsBreakerBurnAvailable,
   );
-  BurnButtonElement.disabled = IsHostilePulse ? !IsPulseReady : !IsBreakerBurnAvailable;
-  BurnButtonElement.querySelector('span').textContent = IsHostilePulse
-    ? 'BREAKER PULSE'
-    : 'BREAKER BURN';
-  BurnButtonElement.querySelector('strong').textContent = IsHostilePulse
-    ? (IsPulseReady ? 'IN RANGE' : `MOVE ${HostileMoveKey}`)
+  BurnButtonElement.disabled = IsHostileCut ? RemainingCount < 1 : !IsBreakerBurnAvailable;
+  BurnButtonElement.querySelector('span').textContent = IsHostileCut ? 'CUT' : 'BREAK';
+  BurnButtonElement.querySelector('strong').textContent = IsHostileCut
+    ? (PreviewHitCount > 0 ? `${PreviewHitCount} HIT` : `${RemainingCount} LEFT`)
     : IsBreakerBurnAvailable
       ? (IsBreakerBurnPending ? 'ARMED' : 'READY')
       : 'SPENT';
   BurnButtonElement.setAttribute(
     'aria-label',
-    IsHostilePulse
-      ? `Breaker Pulse ${IsPulseReady ? 'ready' : `out of range; move ${HostileMoveKey}`}`
-      : `Breaker Burn ${IsBreakerBurnAvailable ? 'ready' : 'spent'}`,
+    IsHostileCut
+      ? `Cut ${RemainingCount} clamp${RemainingCount === 1 ? '' : 's'} remaining`
+      : `Break ${IsBreakerBurnAvailable ? 'ready' : 'spent'}`,
   );
   GameCanvas.dataset.breakerBurn = GamePhase !== 'flying'
     ? 'stowed'
@@ -7626,38 +7992,8 @@ function updateBreakerBurnInterface() {
 }
 
 function requestBreakerPulse() {
-  const AttachedWorld = getCurrentAttachedWorld();
-  if (!AttachedWorld || !ActiveHostileEncounterState || ReplayPlaybackState !== null) {
-    return false;
-  }
-  const RunnerSurfaceAngle = getRunnerSurfaceAngle(AttachedWorld);
-  const ResolvedEncounterState = resolveHostilePulse(
-    ActiveHostileEncounterState,
-    RunnerSurfaceAngle,
-  );
-  if (ResolvedEncounterState === ActiveHostileEncounterState) return false;
-
-  CompletedHostileEncounterWorldIdentifiers.add(AttachedWorld.id);
-  ActiveHostileEncounterState = null;
-  HostilePylonGroup.visible = false;
-  GameCanvas.dataset.lastHostileWorld = AttachedWorld.id;
-  publishHostileEncounterState();
-  ImpactPulseMesh.material.color.set(0xff675f);
-  ImpactPulseMesh.position.copy(SeedGroup.position);
-  ImpactPulseMesh.scale.setScalar(1.2);
-  ImpactPulseMesh.visible = true;
-  ImpactPulseLifeSeconds = 0.58;
-  WorldseedSound.impact(AttachedWorld.id);
-  if (AttachedWorld.kind === 'worldheart') {
-    return completeWorldheartLiberation();
-  }
-  updateBreakerBurnInterface();
-  showStatusToast('BREAKER PULSE · BARRIER DISABLED', 1350);
-  showInstruction(
-    `${AttachedWorld.label} relay secured.`,
-    'The hostile surface beat is over. Choose the next orbital route.',
-  );
-  return true;
+  if (IsCutAiming) return fireHostileCutFromPreview();
+  return fireNearestHostileCut();
 }
 
 function requestBreakerAction() {
@@ -7704,7 +8040,7 @@ function applyBreakerBurnAtCurrentStep({ record = false } = {}) {
   LaunchPulseMesh.scale.setScalar(1.3);
   LaunchPulseMesh.visible = true;
   LaunchPulseLifeSeconds = 0.5;
-  showStatusToast('BREAKER BURN', 650);
+  showStatusToast('BREAK', 650);
   BurnAimDirection = null;
   updateBreakerBurnInterface();
   return true;
@@ -7732,6 +8068,16 @@ function handlePointerUp(PointerEventData) {
 
   if (GameCanvas.hasPointerCapture(PointerEventData.pointerId)) {
     GameCanvas.releasePointerCapture(PointerEventData.pointerId);
+  }
+
+  if (IsCutAiming) {
+    const CurrentCutPointerWorldPosition = getPointerWorldPosition(PointerEventData);
+    if (CurrentCutPointerWorldPosition) {
+      updateCutAimPreview(CurrentCutPointerWorldPosition);
+    }
+    releaseCutAim();
+    PointerEventData.preventDefault();
+    return;
   }
 
   if (IsBurnAiming) {
@@ -7800,6 +8146,10 @@ function handlePointerCancel(PointerEventData) {
   if (PointerEventData.pointerId !== ActivePointerIdentifier) return;
   if (GameCanvas.hasPointerCapture(PointerEventData.pointerId)) {
     GameCanvas.releasePointerCapture(PointerEventData.pointerId);
+  }
+  if (IsCutAiming) {
+    cancelCutAim();
+    return;
   }
   if (IsBurnAiming) {
     cancelBurnAim();
@@ -7906,6 +8256,7 @@ function beginReplayLaunch(Launch) {
     );
     ActiveHostileEncounterState = null;
     HostilePylonGroup.visible = false;
+    hideCutGuide();
     publishHostileEncounterState();
   }
   RunState = releaseRunLaunch(RunState);
@@ -8621,6 +8972,9 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   if (IsOpeningCoachVisible) {
     PullGuideMaterial.dashOffset -= DeltaTimeSeconds * 0.9;
   }
+  if (CutGuideLine.visible) {
+    CutGuideMaterial.dashOffset -= DeltaTimeSeconds * 1.4;
+  }
 }
 
 /** Keeps Scout zoom labels, limits and optional announcements in one shared state. */
@@ -9160,6 +9514,9 @@ function resetGame() {
   PredictedStardustIdentifiers.clear();
   PredictedSlingshotWorldIdentifiers.clear();
   FlightCollectedStardustIdentifiers.clear();
+  IsCutAiming = false;
+  CutAimPointer = null;
+  hideCutGuide();
   ActiveHostileEncounterState = null;
   CompletedHostileEncounterWorldIdentifiers.clear();
   HostilePylonGroup.visible = false;
@@ -9741,9 +10098,10 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     return;
   }
   const PressedKey = KeyboardEventData.key.toLowerCase();
-  if (PressedKey === ' ' && ActiveHostileEncounterState) {
+  if ((PressedKey === ' ' || PressedKey === 'enter') && ActiveHostileEncounterState) {
     KeyboardEventData.preventDefault();
-    requestBreakerPulse();
+    if (IsCutAiming) fireHostileCutFromPreview();
+    else fireNearestHostileCut();
     return;
   }
   if (PressedKey === ' ' && GamePhase === 'flying') {

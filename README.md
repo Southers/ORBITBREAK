@@ -42,10 +42,11 @@ npm run release:audit
 - Drag the current world's disk (not the ship) to walk the circumference; `Q`/`E` remain the keyboard walk.
 - Drag empty space to pan. Pinch or mouse wheel to zoom. Plus/minus keys and the on-screen zoom buttons still work. `C` snaps the camera back to the Runner.
 - Press `G` or tap Ghost to show or hide the verified local personal-best route while scouting or flying.
-- During flight, drag from the ship to aim Breaker Burn in any direction, then release to fire. Tap the Burn button or press `Space` to Burn along heading.
+- During flight, drag from the ship to **break** your line in any direction, then release to fire. Tap Break or press `Space` to break along heading.
+- On Bastion or Command, drag from the ship through a clamp to cut it. A longer drag can take more than one. Drag back onto the ship, or press `Escape`, to cancel.
 - Focus the game and use left/right or `A`/`D` to steer.
 - Use up/down or `W`/`S` to adjust power; hold `Shift` for fine control.
-- Press `Q`/`E` to walk around the current world; hostile surface encounters name the shortest key toward their pylons. Press `Enter` or `Space` to launch; `Escape` cancels keyboard aiming.
+- Press `Q`/`E` to walk around the current world. Press `Enter` or `Space` to launch; `Escape` cancels aiming or a cut.
 - `R` resets the run, `M` toggles audio and `P` cycles motion preference.
 
 ## Project guide

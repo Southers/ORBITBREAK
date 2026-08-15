@@ -15,9 +15,9 @@ quality gates and external-action approvals separate from implementation work.
 
 The Stillness has locked living worlds inside silent orbital cages. You are the Runner: one tiny rebel astronaut, a forbidden courier ship and a route nobody else can fly.
 
-Walk around miniature worlds to choose a launch point, pull back and release—or aim entirely by keyboard—then spend one deterministic Breaker Burn in flight. Safe landings awaken distinct little societies, bank your score and become new launch points. Close planetary passes earn Assist, Deep and Razor bonuses; threading distinct worlds in one flight multiplies the chain. Miss the landing or strike a moving hazard and every unbanked point from that shot is gone.
+Walk around miniature worlds to choose a launch point, pull back and release—or aim entirely by keyboard—then break your line once in flight. Safe landings awaken distinct little societies, bank your score and become new launch points. Close planetary passes earn Assist, Deep and Razor bonuses; threading distinct worlds in one flight multiplies the chain. Miss the landing or strike a moving hazard and every unbanked point from that shot is gone.
 
-Every successful route leaves a relay behind. Close two unique circuits before the pursuing Warden reaches an unprotected world: the first network pushes it back and the second tears open its iron crown. Intercept the moving Command World, circle to its exposed lattice and fire the final Pulse. Runs are short, deterministic and built for immediate replay. The safe route completes the system; deliberate surface position, timing and deeper gravity lines build the strongest score.
+Every successful route leaves a relay behind. Close two unique circuits before the pursuing Warden reaches an unprotected world: the first network pushes it back and the second tears open its iron crown. Intercept the moving Command World, circle to its exposed lattice and cut the teeth. Runs are short, deterministic and built for immediate replay. The safe route completes the system; deliberate surface position, timing and deeper gravity lines build the strongest score.
 
 **Feature bullets:**
 
@@ -84,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob83` passes deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob84` passes deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
 - 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
@@ -100,7 +100,7 @@ Suggested 40-second trailer beat sheet:
 - After Haven expands to Frost, the live coach now promotes both valid closures—direct Ember or alternate-arc Grove—and explains that either second gold loop exposes Command instead of hiding the objective behind unrelated suggestions.
 - The composite Warden panel and transient story/status toast are polite atomic live regions, so assistive technology receives each complete update rather than a changed fragment.
 - The Command approach now states `A network cannot be imprisoned`; its final Pulse reveals `WARDEN NODE DISCONNECTED · SECTOR WARDENS: 11`, and the verified result carries the authored reminder that the worlds were never alone.
-- Hostile surface guidance now names the current shortest `Q` or `E` direction in both visible copy and the accessible Pulse control; a fresh 390×844 Command approach reached Pulse range in seven prompted steps.
+- Hostile worlds now ask you to grab the ship and drag through spread clamps; a miss does not spend the flight, and a longer cut can take more than one.
 - A verified result now labels its own run score separately from a stronger stored personal best, preventing the prominent record badge from contradicting the score and breakdown beside it.
 - Critical route and story instructions now use 12px type, stronger contrast and an explicit 1.35 line height; the release audit protects that readability floor.
 - New-world prediction badges name the destination as a target—such as `EMBER TARGET`—instead of reusing `LOCKED`, the story's word for Warden imprisonment.
