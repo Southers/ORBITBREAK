@@ -282,7 +282,7 @@ Ember grows furnaces and barges. Grove grows canopies and leaf-sails. Tide grows
 - Opening uses a four-page board. Later beats reuse that board: first answer, second voice, range, neighbourhood, Warden arrival, circuit, suppression, recapture, Command, lost run.
 - The player dismisses with Continue/Skip. Keyboard Enter/Space continue; Escape skips the current beat.
 - Liberation still plays the wrapping wave under the board. Do not immediately replace it with hunt coaching.
-- Coach copy between boards stays one sentence. Controls appear when the verb is available (Break in flight, Cut on Bastion, Scout when the veil recedes).
+- Coach copy between boards stays one sentence. Controls appear when the verb is available (Break in flight, Cut after the first live link, Scout when the veil recedes).
 - Mobile must keep 44px controls, no overflow, and boards that do not cover the Continue/Skip row.
 
 ### Three visual states, equally authored
@@ -341,12 +341,8 @@ A still frame of three linked worlds shows different buildings, different ships 
 
 GitHub Pages being static does not mean the campaign stays quiet. These are the next ambitious layers, in roughly this order, while `main` stays playable:
 
-1. **Denser living surfaces.** Streets, docks that receive hulls, windows that actually occupy buildings, more than six people on a busy world. Keep the 190-call budget honest at 390×844.
-2. **World-specific arrival boards.** Tide, Frost and Bastion should speak in their own portraits when first linked, not only Ember and Grove.
-3. **Finale character.** Command should keep talking during the rim walk and Pulse, then the Reach should answer with a board before the score card.
-4. **Trade that docks.** Ships should arrive, pause, and leave cargo or light, not only slide on a spline.
-5. **Music that follows the network.** Hopeful neighbourhood, hunt ostinato, cracked-crown finale. In-engine first; sampled music only with credits.
-6. **External voices and image APIs.** ElevenLabs / Gemini can replace in-engine voices and generate more portraits when keys are supplied. They will not live in this repo and they are not required for the authored boards to exist.
+1. **Second Break.** Neighbourhood gift and hunt extra-Break boon. Schema bump, replay recorder/validator, and golden rewrite only for that checkpoint.
+2. **External voices and image APIs.** ElevenLabs / Gemini can replace in-engine voices and generate more portraits when keys are supplied. They will not live in this repo and they are not required for the authored boards to exist.
 
 Do not treat a toast, a HUD chip or a one-line coach as the delivery of those beats.
 
@@ -357,13 +353,13 @@ Do not add a permanent meta-upgrade tree, random infinite runs or a second comba
 Proposed ladder, earliest first:
 
 1. **Break** — already the first flight verb. Directed drag is the tutorial unlock; heading Space remains the accessible fallback.
-2. **Longer prediction** — the full path is always true; an unlock can hold the camera on a committed chain longer, not invent a second simulator.
-3. **Cut** — after the first live link, dragging through a clamp. Same cut, earlier in the run.
-4. **Second Break** — only after the neighbourhood is talking, still one at a time, still recorded. Never a spray.
+2. **Longer prediction** — after the first live link the committed chain stays on the map 1.7s; reduced motion skips the hold.
+3. **Cut** — Ember keeps one leftover tooth after the first live link. Same drag, earlier in the run. Bastion and Command keep the full cage.
+4. **Second Break** — only after the neighbourhood is talking, still one at a time, still recorded. Never a spray. Ranked schema bump still required.
 5. **Circuit beacon** — after the first loop, a visible gold ghost of the next closing edge. Information, not an auto-aim.
-6. **Command lock** — after both shields crack, keyboard/pointer lead on the moving crown. Already exists; gate it as the finale gift.
+6. **Command lock** — after both shields crack, keyboard/pointer lead on the moving crown. Finale gift only.
 
-Roguelike flavour without roguelike chaos: one or two run-only boons chosen after the Warden arrives (extra Break **or** a once-per-run recapture cut). The map, wells and ranked physics stay authored. Score still cannot reward waiting. No HP, no loot, no ship stats that persist between runs.
+Roguelike flavour without roguelike chaos: after the Warden arrives, a once-per-run recapture Cut on a silenced world that has no authored cage. Extra Break stays deferred so ranked flights keep one recorded burn. The map, wells and ranked physics stay authored. Score still cannot reward waiting. No HP, no loot, no ship stats that persist between runs.
 
 ## Scope
 

@@ -211,6 +211,63 @@ export function getProsperityPresence(stage) {
   return 0;
 }
 
+/** Linked worlds are all houses; busy and circuit mix workshops and docks on the same scars. */
+export function getProsperityBuildingKind(stage, patternIndex = 0) {
+  if (stage !== 'linked' && stage !== 'busy' && stage !== 'circuit') {
+    return null;
+  }
+  if (!Number.isInteger(patternIndex) || patternIndex < 0) {
+    throw new Error('Prosperity building kind requires a non-negative pattern index.');
+  }
+  if (stage === 'linked') {
+    return 'house';
+  }
+  return ['house', 'workshop', 'dock'][patternIndex % 3];
+}
+
+export function getProsperityBuildingProfile(kind) {
+  const Profiles = {
+    house: { height: 0.92, width: 1, depth: 0.9, hasWindow: true, hasStreet: true },
+    workshop: { height: 1.42, width: 0.62, depth: 0.72, hasWindow: true, hasStreet: false },
+    dock: { height: 0.34, width: 1.62, depth: 0.7, hasWindow: false, hasStreet: false },
+  };
+  return Profiles[kind] ?? null;
+}
+
+/** Isolated stays a quiet trio; living crowds densify with degree without extra draws. */
+export function getLivingInhabitantSlotCount(stage) {
+  if (stage === 'isolated') {
+    return 3;
+  }
+  if (stage === 'linked') {
+    return 6;
+  }
+  if (stage === 'busy') {
+    return 9;
+  }
+  if (stage === 'circuit') {
+    return 12;
+  }
+  return 0;
+}
+
+export function shouldShowInhabitantSlot({
+  lifeStage,
+  prosperityStage,
+  slotIndex,
+} = {}) {
+  if (!Number.isInteger(slotIndex) || slotIndex < 0) {
+    throw new Error('Inhabitant slot requires a non-negative index.');
+  }
+  if (lifeStage === 'tyrant') {
+    return slotIndex < 6;
+  }
+  if (lifeStage === 'isolated') {
+    return slotIndex < 3;
+  }
+  return slotIndex < getLivingInhabitantSlotCount(prosperityStage);
+}
+
 /** Worker, child-scale and pack silhouettes share one inhabitant draw. */
 export function getInhabitantSilhouette(slotIndex) {
   if (!Number.isInteger(slotIndex) || slotIndex < 0) {
@@ -224,6 +281,23 @@ export function getInhabitantSilhouette(slotIndex) {
     pack: { x: 1.22, y: 0.9, z: 1.38 },
   };
   return { kind: Kind, scale: Scales[Kind] };
+}
+
+/** Returns which in-engine bed should follow network and Warden state. */
+export function getStoryMusicStage({
+  innerClusterLive = false,
+  wardenStatus = 'hidden',
+} = {}) {
+  if (wardenStatus === 'exposed') {
+    return 'crown';
+  }
+  if (wardenStatus === 'pursuing') {
+    return 'hunt';
+  }
+  if (innerClusterLive === true) {
+    return 'hope';
+  }
+  return 'quiet';
 }
 
 /** Mixes mine rumble, quiet garden and dock crowd without touching simulation. */
@@ -478,7 +552,7 @@ export function getRelayRevealLookTarget({
 /** Starts each new courier at the origin of its live link instead of mid-route. */
 export function getRelayCourierTravelProgress(
   ElapsedSinceCreatedSeconds,
-  { cycleSpeed = 0.11 } = {},
+  { cycleSpeed = 0.11, dwellRatio = 0 } = {},
 ) {
   if (!Number.isFinite(ElapsedSinceCreatedSeconds) || ElapsedSinceCreatedSeconds < 0) {
     throw new Error('Courier travel requires a non-negative age.');
@@ -486,12 +560,46 @@ export function getRelayCourierTravelProgress(
   if (!Number.isFinite(cycleSpeed) || cycleSpeed <= 0) {
     throw new Error('Courier travel requires a positive cycle speed.');
   }
+  if (!Number.isFinite(dwellRatio) || dwellRatio < 0 || dwellRatio > 0.24) {
+    throw new Error('Courier dwell must stay between 0 and 0.24 of a leg.');
+  }
   const CycleProgress = (ElapsedSinceCreatedSeconds * cycleSpeed) % 2;
   const IsReturning = CycleProgress > 1;
+  const LegProgress = IsReturning ? CycleProgress - 1 : CycleProgress;
+  let TravelProgress;
+  let IsDocked = false;
+  if (dwellRatio > 0 && LegProgress <= dwellRatio) {
+    TravelProgress = 0;
+    IsDocked = true;
+  } else if (dwellRatio > 0 && LegProgress >= 1 - dwellRatio) {
+    TravelProgress = 1;
+    IsDocked = true;
+  } else {
+    const Span = 1 - (2 * dwellRatio);
+    TravelProgress = Span <= 0 ? 1 : (LegProgress - dwellRatio) / Span;
+  }
+  if (IsReturning) {
+    TravelProgress = 1 - TravelProgress;
+  }
   return {
-    travelProgress: IsReturning ? 2 - CycleProgress : CycleProgress,
+    travelProgress: TravelProgress,
     isReturning: IsReturning,
+    isDocked: IsDocked,
   };
+}
+
+/** Docked hulls gather people at the destination on arrival and the origin on return. */
+export function getCourierDockWorldRole({
+  travelProgress,
+  isDocked = false,
+} = {}) {
+  if (isDocked !== true) {
+    return null;
+  }
+  if (!Number.isFinite(travelProgress)) {
+    throw new Error('Dock world role requires finite travel progress.');
+  }
+  return travelProgress >= 0.5 ? 'destination' : 'origin';
 }
 
 /** Colors a long-arc preview when the visible line already threads scoring wells. */
@@ -921,6 +1029,9 @@ export const StoryBoardPortraitFiles = Object.freeze({
   orbitbreaker: './assets/orbitbreaker-portrait.jpg',
   ember: './assets/ember-portrait.jpg',
   grove: './assets/grove-portrait.jpg',
+  tide: './assets/tide-portrait.jpg',
+  frost: './assets/frost-portrait.jpg',
+  bastion: './assets/bastion-portrait.jpg',
   command: './assets/command-portrait.jpg',
 });
 
@@ -931,6 +1042,9 @@ export const StoryBoardPortraitTones = Object.freeze({
   orbitbreaker: 'courier',
   ember: 'ember',
   grove: 'grove',
+  tide: 'tide',
+  frost: 'frost',
+  bastion: 'bastion',
   command: 'command',
 });
 
@@ -954,6 +1068,7 @@ export function getTriggeredCampaignStoryBoardIds({
   shownIds = [],
   createdLinkCount = 0,
   linkCreated = false,
+  linkedWorldIdentifier = '',
   innerClusterJustUnlocked = false,
   neighbourhoodJustAwake = false,
   wardenJustRevealed = false,
@@ -961,6 +1076,8 @@ export function getTriggeredCampaignStoryBoardIds({
   worldJustSuppressed = false,
   worldJustRecaptured = false,
   commandJustExposed = false,
+  commandJustLanded = false,
+  reachJustAnswered = false,
   runJustLost = false,
 } = {}) {
   if (!Array.isArray(shownIds)) {
@@ -976,15 +1093,26 @@ export function getTriggeredCampaignStoryBoardIds({
   maybeQueue('firstAnswer', linkCreated === true && createdLinkCount === 1);
   maybeQueue('secondAnswer', linkCreated === true && createdLinkCount === 2);
   maybeQueue('rangeUnlock', innerClusterJustUnlocked === true);
+  maybeQueue('firstTide', linkCreated === true && linkedWorldIdentifier === 'tide');
+  maybeQueue('firstFrost', linkCreated === true && linkedWorldIdentifier === 'frost');
+  maybeQueue('firstBastion', linkCreated === true && linkedWorldIdentifier === 'bastion');
   maybeQueue('neighbourhood', neighbourhoodJustAwake === true);
   maybeQueue('wardenArrival', wardenJustRevealed === true);
   maybeQueue('circuitClosed', circuitJustClosed === true && commandJustExposed !== true);
   maybeQueue('suppression', worldJustSuppressed === true);
   maybeQueue('recapture', worldJustRecaptured === true);
   maybeQueue('commandExposed', commandJustExposed === true);
+  maybeQueue('commandApproach', commandJustLanded === true);
+  maybeQueue('reachAnswers', reachJustAnswered === true);
   maybeQueue('runLost', runJustLost === true);
   return Triggered;
 }
+
+/** Command and Bastion speak on the rim before Cut. Other boards wait for leftover teeth. */
+export const StoryBoardsAllowedDuringEncounter = Object.freeze([
+  'commandApproach',
+  'firstBastion',
+]);
 
 /** Boards wait for the landing beat, then pause play. They never cover a live liberation. */
 export function isCampaignStoryBoardReadyToPresent({
@@ -992,11 +1120,100 @@ export function isCampaignStoryBoardReadyToPresent({
   replayActive = false,
   gamePhase = 'attached',
   relayRevealActive = false,
+  hostileEncounterActive = false,
+  boardId = '',
 } = {}) {
   if (briefingActive === true || replayActive === true || relayRevealActive === true) {
     return false;
   }
-  return gamePhase === 'attached';
+  if (
+    hostileEncounterActive === true
+    && !StoryBoardsAllowedDuringEncounter.includes(boardId)
+  ) {
+    return false;
+  }
+  return gamePhase === 'attached' || gamePhase === 'victoryPending';
+}
+
+export const DefaultRelayRevealHoldDurationSeconds = 0.85;
+export const LinkedRelayRevealHoldDurationSeconds = 1.7;
+
+/** After the first live link, hold the committed chain longer. Reduced motion skips it. */
+export function getRelayRevealHoldDurationSeconds({
+  liveRelayCount = 0,
+  prefersReducedMotion = false,
+} = {}) {
+  if (!Number.isInteger(liveRelayCount) || liveRelayCount < 0) {
+    throw new Error('Relay reveal hold requires a non-negative live relay count.');
+  }
+  if (prefersReducedMotion === true) {
+    return 0;
+  }
+  return liveRelayCount >= 2
+    ? LinkedRelayRevealHoldDurationSeconds
+    : DefaultRelayRevealHoldDurationSeconds;
+}
+
+/** Same true path; the camera overlay keeps the committed chain before the remaining-path update. */
+export function shouldHoldCommittedPrediction({
+  liveRelayCount = 0,
+  flightElapsedSeconds = 0,
+  prefersReducedMotion = false,
+  committedPointCount = 0,
+} = {}) {
+  if (!Number.isInteger(liveRelayCount) || liveRelayCount < 0) {
+    throw new Error('Committed prediction hold requires a non-negative live relay count.');
+  }
+  if (!Number.isInteger(committedPointCount) || committedPointCount < 0) {
+    throw new Error('Committed prediction hold requires a non-negative point count.');
+  }
+  if (!Number.isFinite(flightElapsedSeconds) || flightElapsedSeconds < 0) {
+    throw new Error('Committed prediction hold requires a non-negative flight age.');
+  }
+  if (prefersReducedMotion === true || liveRelayCount < 2 || committedPointCount < 2) {
+    return false;
+  }
+  return flightElapsedSeconds < getRelayRevealHoldDurationSeconds({
+    liveRelayCount,
+    prefersReducedMotion,
+  });
+}
+
+/** Keyboard intercept lead is the finale gift, not an early Command snipe. */
+export function shouldAssistCommandLock({
+  wardenStatus = 'hidden',
+  routeAvailable = false,
+} = {}) {
+  if (typeof wardenStatus !== 'string' || wardenStatus.length < 1) {
+    throw new Error('Command lock assist requires a Warden status.');
+  }
+  return wardenStatus === 'exposed' && routeAvailable === true;
+}
+
+/** Run-local ladder. Gifts reset with the run. Extra Break stays a later ranked schema bump. */
+export function getRunUnlockState({
+  liveRelayCount = 0,
+  uniqueCircuitCount = 0,
+  wardenStatus = 'hidden',
+  recaptureCutAvailable = false,
+  prefersReducedMotion = false,
+} = {}) {
+  if (!Number.isInteger(liveRelayCount) || liveRelayCount < 0) {
+    throw new Error('Run unlocks require a non-negative live relay count.');
+  }
+  if (!Number.isInteger(uniqueCircuitCount) || uniqueCircuitCount < 0) {
+    throw new Error('Run unlocks require a non-negative unique circuit count.');
+  }
+  if (typeof wardenStatus !== 'string' || wardenStatus.length < 1) {
+    throw new Error('Run unlocks require a Warden status.');
+  }
+  return {
+    predictionHold: liveRelayCount >= 2 && prefersReducedMotion !== true,
+    leftoverCut: liveRelayCount >= 2,
+    circuitBeacon: uniqueCircuitCount >= 1,
+    commandLock: wardenStatus === 'exposed',
+    recaptureCut: recaptureCutAvailable === true,
+  };
 }
 
 /** Turns authored briefing pages into one readable story board. */

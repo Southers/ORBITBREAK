@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260815-ob85';
+import { WorldseedAudio } from './audio.js?v=20260815-ob87';
 import {
   SurfaceGestureModes,
   adjustSurfaceAngle,
@@ -20,10 +20,11 @@ import {
   getCutHits,
   getHostileEncounterAngularDistance,
   getHostileEncounterMoveDirection,
+  getLeftoverHostileEncounter,
   getNearestClampCut,
   getRemainingClamps,
   resolveHostileCut,
-} from './encounter.js?v=20260815-ob84';
+} from './encounter.js?v=20260815-ob87';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -43,7 +44,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob84';
+} from './content.js?v=20260815-ob87';
 
 import {
   countRestoredWorlds,
@@ -73,6 +74,7 @@ import {
   connectRelayWorlds,
   countLiveRelayWorlds,
   createRelayNetworkState,
+  findCircuitBeaconLink,
   getRelayDegree,
   isRelayWorldLive,
   listLiveRelayCircuits,
@@ -83,7 +85,7 @@ import {
   listVulnerableRelayWorlds,
   suppressRelayWorld,
   wouldCloseRelayCircuit,
-} from './network.js?v=20260814-ob18';
+} from './network.js?v=20260815-ob87';
 import {
   WardenPursuitEvents,
   chooseWardenTarget,
@@ -100,6 +102,7 @@ import {
 } from './records.js?v=20260814-ob8';
 import {
   getExtractionFreighterTravelProgress,
+  getCourierDockWorldRole,
   getHiddenWardenRouteCoach,
   getInhabitantSilhouette,
   getLandedCameraScale,
@@ -112,14 +115,20 @@ import {
   isCampaignStoryBoardReadyToPresent,
   getPersonalBestStatus,
   getPlayfieldLabelVerticalBounds,
+  getProsperityBuildingKind,
+  getProsperityBuildingProfile,
   getProsperityPresence,
   getProsperityStage,
   getPublishedWardenState,
   getRangeVeilStrength,
   getRelayCourierTravelProgress,
   getRelayLinkOpacity,
+  getRelayRevealHoldDurationSeconds,
   getRelayRevealLookTarget,
+  getRunUnlockState,
   getSectorPlanningCamera,
+  shouldAssistCommandLock,
+  shouldHoldCommittedPrediction,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
@@ -128,11 +137,13 @@ import {
   getSlingshotBandVisualState,
   getSlingshotPreviewPresentation,
   getStillnessPresentation,
+  shouldShowInhabitantSlot,
   getTradeHullColor,
   getTradeHullKind,
   getTradeHullScale,
   getTyrantOccupationStrength,
   getWorldLifeAudioMix,
+  getStoryMusicStage,
   getWorldLifeStage,
   isFurtherReachLive,
   isInnerClusterLive,
@@ -141,7 +152,7 @@ import {
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob85';
+} from './presentation.js?v=20260815-ob87';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -315,7 +326,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob85';
+GameCanvas.dataset.build = '20260815-ob87';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -457,7 +468,10 @@ let KeyboardAimState = createKeyboardAimState();
 let IsScoutMode = false;
 let RelayRevealLookTarget = null;
 let RelayRevealHoldUntilSeconds = 0;
-const RelayRevealHoldDurationSeconds = 0.85;
+let CommittedPredictionPoints = null;
+let RecaptureCutGiftAvailable = false;
+let PendingRecaptureCutWorldIdentifier = null;
+let HasAnnouncedCommandLockGift = false;
 const CourierStartTimesByLinkId = new Map();
 const MinimumScoutZoomScale = 0.38;
 const MaximumScoutZoomScaleOpen = 1.95;
@@ -489,6 +503,7 @@ let ActiveStoryBoardTokens = {};
 let StoryBoardQueue = [];
 const ShownStoryBoardIds = new Set();
 let PendingRunResetAfterStoryBoard = false;
+let PendingVictoryAfterStoryBoard = false;
 let LaunchPulseLifeSeconds = 0;
 let ImpactPulseLifeSeconds = 0;
 let CameraImpactLifeSeconds = 0;
@@ -3137,11 +3152,87 @@ ProsperityBuildingMesh.frustumCulled = false;
 Scene.add(ProsperityBuildingMesh);
 const ProsperityBuildingTransform = new THREE.Object3D();
 const ProsperityBuildingColor = new THREE.Color();
+const ProsperityWindowCapacity = Math.max(1, OccupationScarCapacity * 2);
+const ProsperityWindowMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffe29a,
+  transparent: true,
+  opacity: 0.92,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  vertexColors: true,
+  toneMapped: false,
+});
+const ProsperityWindowMesh = new THREE.InstancedMesh(
+  new THREE.BoxGeometry(0.12, 0.1, 0.06),
+  ProsperityWindowMaterial,
+  ProsperityWindowCapacity,
+);
+ProsperityWindowMesh.count = 0;
+ProsperityWindowMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+ProsperityWindowMesh.frustumCulled = false;
+Scene.add(ProsperityWindowMesh);
+const ProsperityWindowTransform = new THREE.Object3D();
+const ProsperityWindowColor = new THREE.Color();
 let VisibleProsperityBuildingCount = -1;
+const DockedWorldIdentifiers = new Set();
+const DockGatherAngleByWorldId = new Map();
 GameCanvas.dataset.prosperityBuildingCount = String(OccupationScarInstances.length);
+
+function getTradeCourierDwellRatio() {
+  return PrefersReducedMotion ? 0 : 0.12;
+}
+
+function refreshDockedTradeState(ElapsedTimeSeconds) {
+  DockedWorldIdentifiers.clear();
+  DockGatherAngleByWorldId.clear();
+  const Links = listLiveRelayLinks(RelayNetworkState);
+  const LiveCircuitLinkIdentifiers = new Set(
+    listLiveRelayCircuits(RelayNetworkState).flatMap((Circuit) => Circuit.linkIdentifiers),
+  );
+  for (const Link of Links) {
+    const Origin = getWorldDefinition(Link.originWorldIdentifier);
+    const Destination = getWorldDefinition(Link.destinationWorldIdentifier);
+    const InLiveCircuit = LiveCircuitLinkIdentifiers.has(Link.id);
+    const ShipCount = getLiveLinkShipCount({
+      originDegree: getRelayDegree(RelayNetworkState, Link.originWorldIdentifier),
+      destinationDegree: getRelayDegree(RelayNetworkState, Link.destinationWorldIdentifier),
+      inLiveCircuit: InLiveCircuit,
+    });
+    for (let ShipSlot = 0; ShipSlot < ShipCount; ShipSlot += 1) {
+      const CourierAgeSeconds = (
+        CourierStartTimesByLinkId.has(Link.id)
+          ? Math.max(0, ElapsedTimeSeconds - CourierStartTimesByLinkId.get(Link.id))
+          : ((ElapsedTimeSeconds * 0.11) + (Link.sequenceIndex * 0.37)) / 0.11
+      ) + (ShipSlot * 4.2);
+      const CourierTravel = getRelayCourierTravelProgress(CourierAgeSeconds, {
+        dwellRatio: getTradeCourierDwellRatio(),
+      });
+      const DockRole = getCourierDockWorldRole(CourierTravel);
+      if (!DockRole) {
+        continue;
+      }
+      const DockWorld = DockRole === 'destination' ? Destination : Origin;
+      DockedWorldIdentifiers.add(DockWorld.id);
+      const DockAngles = DockWorld.occupationScarAngles ?? [];
+      const GatherAngle = DockAngles.find((Angle, PatternIndex) => (
+        getProsperityBuildingKind(
+          getProsperityStage({
+            restored: DockWorld.restored,
+            liveLinkCount: getRelayDegree(RelayNetworkState, DockWorld.id),
+            inLiveCircuit: isWorldInLiveCircuit(DockWorld.id),
+          }),
+          PatternIndex,
+        ) === 'dock'
+      )) ?? DockAngles[0] ?? 0;
+      DockGatherAngleByWorldId.set(DockWorld.id, GatherAngle);
+    }
+  }
+  GameCanvas.dataset.dockedWorlds = [...DockedWorldIdentifiers].sort().join(',');
+}
 
 function updateProsperityBuildingVisuals(ElapsedTimeSeconds) {
   let NextVisibleProsperityBuildingCount = 0;
+  let NextVisibleWindowCount = 0;
   const ProsperityKinds = [];
   for (let ScarIndex = 0; ScarIndex < OccupationScarInstances.length; ScarIndex += 1) {
     const Scar = OccupationScarInstances[ScarIndex];
@@ -3152,56 +3243,127 @@ function updateProsperityBuildingVisuals(ElapsedTimeSeconds) {
       inLiveCircuit: isWorldInLiveCircuit(Scar.worldDefinition.id),
     });
     const Presence = getProsperityPresence(ProsperityStage);
+    const BuildingKind = getProsperityBuildingKind(ProsperityStage, Scar.patternIndex);
+    const BuildingProfile = getProsperityBuildingProfile(BuildingKind);
     if (Scar.patternIndex === 0) {
-      ProsperityKinds.push(`${Scar.worldDefinition.id}:${ProsperityStage}`);
+      ProsperityKinds.push(`${Scar.worldDefinition.id}:${ProsperityStage}:${BuildingKind ?? 'none'}`);
     }
-    if (Presence <= 0.04) {
+    const HideBuilding = Presence <= 0.04 || !BuildingProfile;
+    if (HideBuilding) {
       ProsperityBuildingTransform.scale.set(0, 0, 0);
       ProsperityBuildingTransform.position.set(0, 0, -8);
       ProsperityBuildingTransform.updateMatrix();
       ProsperityBuildingMesh.setMatrixAt(ScarIndex, ProsperityBuildingTransform.matrix);
+    } else {
+      NextVisibleProsperityBuildingCount += 1;
+      const RadialX = Math.cos(Scar.angle);
+      const RadialY = Math.sin(Scar.angle);
+      const Height = BuildingProfile.height
+        * Presence
+        * (1 + ((Scar.patternIndex % 3) * 0.08));
+      const IsDockLit = BuildingKind === 'dock'
+        && DockedWorldIdentifiers.has(Scar.worldDefinition.id);
+      ProsperityBuildingTransform.position.set(
+        Scar.worldDefinition.position.x
+          + (RadialX * (Scar.worldDefinition.radius + (Height * 0.08))),
+        Scar.worldDefinition.position.y
+          + (RadialY * (Scar.worldDefinition.radius + (Height * 0.08))),
+        0.32 + ((Scar.patternIndex % 2) * 0.04),
+      );
+      ProsperityBuildingTransform.rotation.set(0, 0, Scar.angle - (Math.PI * 0.5));
+      ProsperityBuildingTransform.scale.set(
+        BuildingProfile.width * Presence,
+        Height,
+        BuildingProfile.depth * Presence,
+      );
+      ProsperityBuildingTransform.updateMatrix();
+      ProsperityBuildingMesh.setMatrixAt(ScarIndex, ProsperityBuildingTransform.matrix);
+      ProsperityBuildingColor.set(Scar.worldDefinition.restoration.waveColor);
+      if (ProsperityStage === 'circuit') {
+        ProsperityBuildingColor.lerp(new THREE.Color(0xffe7b0), 0.35);
+      }
+      if (IsDockLit) {
+        ProsperityBuildingColor.lerp(new THREE.Color(0xfff4c8), 0.55);
+      }
+      ProsperityBuildingMesh.setColorAt(ScarIndex, ProsperityBuildingColor);
+
+      const WindowSlot = ScarIndex * 2;
+      const StreetSlot = WindowSlot + 1;
+      if (BuildingProfile.hasWindow) {
+        ProsperityWindowTransform.position.set(
+          Scar.worldDefinition.position.x
+            + (RadialX * (Scar.worldDefinition.radius + (Height * 0.42))),
+          Scar.worldDefinition.position.y
+            + (RadialY * (Scar.worldDefinition.radius + (Height * 0.42))),
+          0.38 + (Height * 0.22),
+        );
+        ProsperityWindowTransform.rotation.set(0, 0, Scar.angle - (Math.PI * 0.5));
+        ProsperityWindowTransform.scale.set(Presence, Presence * (IsDockLit ? 1.25 : 1), Presence);
+        ProsperityWindowTransform.updateMatrix();
+        ProsperityWindowMesh.setMatrixAt(WindowSlot, ProsperityWindowTransform.matrix);
+        ProsperityWindowColor.setHex(ProsperityStage === 'circuit' ? 0xfff0c4 : 0xffd27a);
+        ProsperityWindowMesh.setColorAt(WindowSlot, ProsperityWindowColor);
+        NextVisibleWindowCount += 1;
+      } else {
+        ProsperityWindowTransform.scale.set(0, 0, 0);
+        ProsperityWindowTransform.position.set(0, 0, -8);
+        ProsperityWindowTransform.updateMatrix();
+        ProsperityWindowMesh.setMatrixAt(WindowSlot, ProsperityWindowTransform.matrix);
+      }
+      if (BuildingProfile.hasStreet) {
+        ProsperityWindowTransform.position.set(
+          Scar.worldDefinition.position.x
+            + (RadialX * (Scar.worldDefinition.radius + 0.02)),
+          Scar.worldDefinition.position.y
+            + (RadialY * (Scar.worldDefinition.radius + 0.02)),
+          0.18,
+        );
+        ProsperityWindowTransform.rotation.set(0, 0, Scar.angle - (Math.PI * 0.5));
+        ProsperityWindowTransform.scale.set(2.4 * Presence, 0.18 * Presence, 0.7 * Presence);
+        ProsperityWindowTransform.updateMatrix();
+        ProsperityWindowMesh.setMatrixAt(StreetSlot, ProsperityWindowTransform.matrix);
+        ProsperityWindowColor.setHex(0x6a5a48);
+        ProsperityWindowMesh.setColorAt(StreetSlot, ProsperityWindowColor);
+        NextVisibleWindowCount += 1;
+      } else {
+        ProsperityWindowTransform.scale.set(0, 0, 0);
+        ProsperityWindowTransform.position.set(0, 0, -8);
+        ProsperityWindowTransform.updateMatrix();
+        ProsperityWindowMesh.setMatrixAt(StreetSlot, ProsperityWindowTransform.matrix);
+      }
       continue;
     }
-    NextVisibleProsperityBuildingCount += 1;
-    const RadialX = Math.cos(Scar.angle);
-    const RadialY = Math.sin(Scar.angle);
-    const IsWorkshop = ProsperityStage !== 'linked' && Scar.patternIndex % 2 === 1;
-    const Height = (IsWorkshop ? 1.28 : 0.92)
-      * Presence
-      * (1 + ((Scar.patternIndex % 3) * 0.08));
-    const Width = IsWorkshop ? 0.72 : 1;
-    ProsperityBuildingTransform.position.set(
-      Scar.worldDefinition.position.x
-        + (RadialX * (Scar.worldDefinition.radius + (Height * 0.08))),
-      Scar.worldDefinition.position.y
-        + (RadialY * (Scar.worldDefinition.radius + (Height * 0.08))),
-      0.32 + ((Scar.patternIndex % 2) * 0.04),
-    );
-    ProsperityBuildingTransform.rotation.set(0, 0, Scar.angle - (Math.PI * 0.5));
-    ProsperityBuildingTransform.scale.set(Width * Presence, Height, Width * Presence);
-    ProsperityBuildingTransform.updateMatrix();
-    ProsperityBuildingMesh.setMatrixAt(ScarIndex, ProsperityBuildingTransform.matrix);
-    ProsperityBuildingColor.set(Scar.worldDefinition.restoration.waveColor);
-    if (ProsperityStage === 'circuit') {
-      ProsperityBuildingColor.lerp(new THREE.Color(0xffe7b0), 0.35);
-    }
-    ProsperityBuildingMesh.setColorAt(ScarIndex, ProsperityBuildingColor);
+    const WindowSlot = ScarIndex * 2;
+    ProsperityWindowTransform.scale.set(0, 0, 0);
+    ProsperityWindowTransform.position.set(0, 0, -8);
+    ProsperityWindowTransform.updateMatrix();
+    ProsperityWindowMesh.setMatrixAt(WindowSlot, ProsperityWindowTransform.matrix);
+    ProsperityWindowMesh.setMatrixAt(WindowSlot + 1, ProsperityWindowTransform.matrix);
   }
   if (OccupationScarInstances.length > 0) {
     ProsperityBuildingMesh.instanceMatrix.needsUpdate = true;
     if (ProsperityBuildingMesh.instanceColor) {
       ProsperityBuildingMesh.instanceColor.needsUpdate = true;
     }
+    ProsperityWindowMesh.instanceMatrix.needsUpdate = true;
+    if (ProsperityWindowMesh.instanceColor) {
+      ProsperityWindowMesh.instanceColor.needsUpdate = true;
+    }
   }
+  ProsperityWindowMesh.count = OccupationScarInstances.length * 2;
   const HasLiveCircuit = listLiveRelayCircuits(RelayNetworkState).length > 0;
   const WindowPulse = PrefersReducedMotion
     ? 0.38
     : 0.28 + (Math.sin(ElapsedTimeSeconds * (HasLiveCircuit ? 4.2 : 2.4)) * 0.16);
   ProsperityBuildingMaterial.emissiveIntensity = WindowPulse;
+  ProsperityWindowMaterial.opacity = PrefersReducedMotion
+    ? 0.72
+    : 0.64 + (Math.sin(ElapsedTimeSeconds * (HasLiveCircuit ? 5.1 : 2.8)) * 0.18);
   if (VisibleProsperityBuildingCount !== NextVisibleProsperityBuildingCount) {
     VisibleProsperityBuildingCount = NextVisibleProsperityBuildingCount;
     GameCanvas.dataset.visibleProsperityBuildingCount = String(VisibleProsperityBuildingCount);
   }
+  GameCanvas.dataset.visibleProsperityWindowCount = String(NextVisibleWindowCount);
   GameCanvas.dataset.prosperityStages = ProsperityKinds.join(',');
 }
 
@@ -3222,7 +3384,7 @@ const InhabitantInstances = WorldDefinitions.flatMap((WorldDefinition, WorldInde
   if (!MineAngles) {
     return [];
   }
-  return Array.from({ length: 6 }, (_, InhabitantIndex) => ({
+  return Array.from({ length: 12 }, (_, InhabitantIndex) => ({
     worldDefinition: WorldDefinition,
     slotIndex: InhabitantIndex,
     role: InhabitantIndex < 2 ? 'guard' : 'civilian',
@@ -3288,11 +3450,19 @@ function updateInhabitantVisuals(ElapsedTimeSeconds) {
       Inhabitant.worldDefinition.restored,
       RestorationProgress,
     );
-    const IsolatedVisible = LifeStage !== 'isolated' || Inhabitant.slotIndex < 3;
+    const IsolatedVisible = shouldShowInhabitantSlot({
+      lifeStage: LifeStage,
+      prosperityStage: getProsperityStage({
+        restored: Inhabitant.worldDefinition.restored,
+        liveLinkCount: LiveLinkCount,
+        inLiveCircuit: isWorldInLiveCircuit(Inhabitant.worldDefinition.id),
+      }),
+      slotIndex: Inhabitant.slotIndex,
+    });
     const FreeEmergence = Inhabitant.worldDefinition.restored && IsolatedVisible
       ? THREE.MathUtils.smoothstep(Math.max(0, RestorationProgress), 0.54, 0.96)
       : 0;
-    const Presence = Math.max(TyrantStrength, FreeEmergence);
+    const Presence = IsolatedVisible ? Math.max(TyrantStrength, FreeEmergence) : 0;
     if (Presence <= 0.08) {
       InhabitantTransform.scale.set(0, 0, 0);
       InhabitantTransform.position.set(0, 0, -8);
@@ -3313,7 +3483,17 @@ function updateInhabitantVisuals(ElapsedTimeSeconds) {
         (ElapsedTimeSeconds * Inhabitant.profile.speed) + Inhabitant.phase,
       ) * Inhabitant.profile.stride * THREE.MathUtils.lerp(0.35, 1, Freedom);
     const HeldAngle = Inhabitant.mineAngle + (IsGuard ? 0.1 : -0.14);
-    const FreeAngle = Inhabitant.baseAngle + WalkingOffset;
+    const GatherAngle = DockGatherAngleByWorldId.get(Inhabitant.worldDefinition.id);
+    const GatherBlend = GatherAngle === undefined || IsGuard || TyrantStrength > 0.35
+      ? 0
+      : 0.72;
+    const FreeAngle = GatherBlend > 0
+      ? THREE.MathUtils.lerp(
+        Inhabitant.baseAngle + WalkingOffset,
+        GatherAngle,
+        GatherBlend,
+      )
+      : Inhabitant.baseAngle + WalkingOffset;
     const SurfaceAngle = THREE.MathUtils.lerp(HeldAngle, FreeAngle, Freedom);
     const RadialX = Math.cos(SurfaceAngle);
     const RadialY = Math.sin(SurfaceAngle);
@@ -3432,6 +3612,47 @@ function publishRelayNetworkState() {
   GameCanvas.dataset.relayActiveWorlds = [...RelayNetworkState.activeWorldIdentifiers]
     .sort()
     .join(',');
+  publishRunUnlockState();
+}
+
+function publishRunUnlockState() {
+  const UnlockState = getRunUnlockState({
+    liveRelayCount: countLiveRelayWorlds(RelayNetworkState),
+    uniqueCircuitCount: listRelayCircuits(RelayNetworkState).length,
+    wardenStatus: WardenPursuitState.status,
+    recaptureCutAvailable: RecaptureCutGiftAvailable,
+    prefersReducedMotion: PrefersReducedMotion,
+  });
+  GameCanvas.dataset.predictionHold = String(UnlockState.predictionHold);
+  GameCanvas.dataset.leftoverCut = String(UnlockState.leftoverCut);
+  GameCanvas.dataset.circuitBeacon = UnlockState.circuitBeacon
+    ? (GameCanvas.dataset.circuitBeaconLink || 'ready')
+    : '';
+  GameCanvas.dataset.commandLockGift = String(UnlockState.commandLock);
+  GameCanvas.dataset.recaptureCutGift = String(UnlockState.recaptureCut);
+}
+
+function synchronizeCircuitBeacon() {
+  const Beacon = findCircuitBeaconLink(RelayNetworkState, CurrentWorldIdentifier);
+  if (!Beacon) {
+    CircuitBeaconLine.visible = false;
+    GameCanvas.dataset.circuitBeaconLink = '';
+    return;
+  }
+  const Origin = getWorldDefinition(Beacon.originWorldIdentifier);
+  const Destination = getWorldDefinition(Beacon.destinationWorldIdentifier);
+  if (!Origin || !Destination) {
+    CircuitBeaconLine.visible = false;
+    GameCanvas.dataset.circuitBeaconLink = '';
+    return;
+  }
+  CircuitBeaconGeometry.setFromPoints([
+    new THREE.Vector3(Origin.position.x, Origin.position.y, 0.18),
+    new THREE.Vector3(Destination.position.x, Destination.position.y, 0.18),
+  ]);
+  CircuitBeaconLine.computeLineDistances();
+  CircuitBeaconLine.visible = true;
+  GameCanvas.dataset.circuitBeaconLink = Beacon.id;
 }
 
 function synchronizeRelayNetworkVisuals() {
@@ -3452,6 +3673,7 @@ function synchronizeRelayNetworkVisuals() {
   }
   RelayLinkGeometry.setDrawRange(0, Links.length * 2);
   RelayLinkPositionAttribute.needsUpdate = true;
+  synchronizeCircuitBeacon();
   publishRelayNetworkState();
 }
 
@@ -3489,9 +3711,16 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
           ? Math.max(0, ElapsedTimeSeconds - CourierStartTimesByLinkId.get(Link.id))
           : ((ElapsedTimeSeconds * 0.11) + (Link.sequenceIndex * 0.37)) / 0.11
       ) + (ShipSlot * 4.2);
-      const CourierTravel = getRelayCourierTravelProgress(CourierAgeSeconds);
-      const LaneOffset = (ShipSlot === 0 ? 0.55 : -0.72)
-        * Math.sin(CourierTravel.travelProgress * Math.PI);
+      const CourierTravel = getRelayCourierTravelProgress(CourierAgeSeconds, {
+        dwellRatio: getTradeCourierDwellRatio(),
+      });
+      const LaneOffset = CourierTravel.isDocked
+        ? 0
+        : (ShipSlot === 0 ? 0.55 : -0.72)
+          * Math.sin(CourierTravel.travelProgress * Math.PI);
+      const FlightHeight = CourierTravel.isDocked
+        ? 0.22
+        : 0.3 + (Math.sin(CourierTravel.travelProgress * Math.PI) * 0.75);
       TradeShipTransform.position.set(
         THREE.MathUtils.lerp(
           Origin.position.x,
@@ -3503,7 +3732,7 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
           Destination.position.y,
           CourierTravel.travelProgress,
         ) + (NormalY * LaneOffset),
-        0.3 + (Math.sin(CourierTravel.travelProgress * Math.PI) * 0.75),
+        FlightHeight,
       );
       TradeShipTransform.rotation.set(
         0,
@@ -3517,6 +3746,9 @@ function updateRelayNetworkVisuals(ElapsedTimeSeconds) {
       TradeShipTransform.updateMatrix();
       TradeShipMesh.setMatrixAt(ShipIndex, TradeShipTransform.matrix);
       TradeShipColor.setHex(getTradeHullColor(HullKind, InLiveCircuit));
+      if (CourierTravel.isDocked) {
+        TradeShipColor.lerp(new THREE.Color(0xfff4c8), 0.4);
+      }
       TradeShipMesh.setColorAt(ShipIndex, TradeShipColor);
       ShipIndex += 1;
     }
@@ -3830,6 +4062,7 @@ function publishWardenState() {
   GameCanvas.dataset.wardenResolvedFlights = String(WardenPursuitState.resolvedFlightCount);
   GameCanvas.dataset.wardenShieldLayers = String(WardenPursuitState.shieldLayers);
   GameCanvas.dataset.wardenLandmark = PublishedWardenState.landmark;
+  publishRunUnlockState();
 }
 
 function listLiveWorldIdentifiers() {
@@ -3925,6 +4158,8 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
       `${ArrivalAnswerLine ? `${ArrivalAnswerLine} ` : ''}The Warden is targeting ${TargetWorld?.label ?? 'the frontier'} · ${WardenPursuitState.distance} resolved flights away.`,
     );
     GameCanvas.dataset.wardenArrivalBroadcast = ActiveSystem.wardenArrivalBroadcast ?? '';
+    RecaptureCutGiftAvailable = true;
+    publishRunUnlockState();
     if (ActiveSystem.wardenArrivalBroadcast && !ActiveSystem.storyBoards?.wardenArrival) {
       showStatusToast(ActiveSystem.wardenArrivalBroadcast, 3600, 'warden');
     }
@@ -4592,6 +4827,22 @@ const CutGuideLine = new THREE.Line(CutGuideGeometry, CutGuideMaterial);
 CutGuideLine.visible = false;
 CutGuideLine.renderOrder = 21;
 Scene.add(CutGuideLine);
+
+const CircuitBeaconGeometry = new THREE.BufferGeometry();
+const CircuitBeaconMaterial = new THREE.LineDashedMaterial({
+  color: 0xffd98a,
+  transparent: true,
+  opacity: 0.78,
+  dashSize: 0.55,
+  gapSize: 0.28,
+  depthWrite: false,
+  depthTest: false,
+});
+const CircuitBeaconLine = new THREE.Line(CircuitBeaconGeometry, CircuitBeaconMaterial);
+CircuitBeaconLine.visible = false;
+CircuitBeaconLine.renderOrder = 18;
+CircuitBeaconLine.frustumCulled = false;
+Scene.add(CircuitBeaconLine);
 
 /**
  * Creates a small trail behind the flying seed as one instanced draw call. Pooling avoids
@@ -5795,6 +6046,12 @@ function showHostileEncounterInstruction() {
         ? 'Grab the ship and drag through a gold tooth. Drag back onto it to cancel.'
         : `${RemainingCount} left. A longer drag can take more than one.`,
     );
+  } else if (RemainingCount === ActiveHostileEncounterState.clamps.length
+    && RemainingCount === 1) {
+    showInstruction(
+      `${AttachedWorld.label} has one leftover tooth.`,
+      'Grab the ship and drag through it. This is Cut.',
+    );
   } else if (RemainingCount === 3) {
     showInstruction(
       `${AttachedWorld.label} still has teeth.`,
@@ -5811,9 +6068,10 @@ function showHostileEncounterInstruction() {
   return true;
 }
 
-function beginHostileEncounter(WorldDefinition) {
+function beginHostileEncounter(WorldDefinition, EncounterDefinition = WorldDefinition.hostileEncounter) {
   if (
-    !WorldDefinition.hostileEncounter
+    ReplayPlaybackState !== null
+    || !EncounterDefinition
     || CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id)
   ) {
     return false;
@@ -5822,7 +6080,7 @@ function beginHostileEncounter(WorldDefinition) {
   ActiveHostileEncounterState = createHostileEncounterState({
     worldIdentifier: WorldDefinition.id,
     runnerSurfaceAngle: getRunnerSurfaceAngle(WorldDefinition),
-    ...WorldDefinition.hostileEncounter,
+    ...EncounterDefinition,
   });
   IsKeyboardAiming = false;
   IsPointerAiming = false;
@@ -5966,6 +6224,9 @@ function hideStoryBoardOverlay() {
     'is-runner',
     'is-ember',
     'is-grove',
+    'is-tide',
+    'is-frost',
+    'is-bastion',
     'is-command',
   );
   WorldseedSound.setStoryPaused(false);
@@ -5974,6 +6235,7 @@ function hideStoryBoardOverlay() {
 function hideOpeningBriefing() {
   StoryBoardQueue = [];
   PendingRunResetAfterStoryBoard = false;
+  PendingVictoryAfterStoryBoard = false;
   hideStoryBoardOverlay();
 }
 
@@ -6003,7 +6265,7 @@ function presentStoryBoardPage(PageIndex, { playVoice = false } = {}) {
   BriefingProgressElement.textContent = Presentation.progressLabel;
   BriefingContinueButtonElement.textContent = Presentation.continueLabel;
   BriefingSkipButtonElement.textContent = Board.skipLabel;
-  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob85`;
+  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob87`;
   BriefingPortraitElement.alt = Presentation.speaker;
   OpeningBriefingElement.classList.remove(
     'is-warden',
@@ -6012,6 +6274,9 @@ function presentStoryBoardPage(PageIndex, { playVoice = false } = {}) {
     'is-runner',
     'is-ember',
     'is-grove',
+    'is-tide',
+    'is-frost',
+    'is-bastion',
     'is-command',
   );
   OpeningBriefingElement.classList.add(`is-${Presentation.tone}`);
@@ -6050,10 +6315,18 @@ function presentNextQueuedStoryBoard() {
   const NextBoard = StoryBoardQueue.shift();
   if (!NextBoard) {
     const ShouldReset = PendingRunResetAfterStoryBoard;
+    const ShouldVictory = PendingVictoryAfterStoryBoard;
     PendingRunResetAfterStoryBoard = false;
+    PendingVictoryAfterStoryBoard = false;
     hideStoryBoardOverlay();
     if (ShouldReset) {
       resetGame();
+      return;
+    }
+    if (ShouldVictory) {
+      revealVictoryPanel();
+      GamePhase = 'victory';
+      WorldseedSound.victory();
       return;
     }
     if (GamePhase === 'attached' || GamePhase === 'restoring') {
@@ -6091,6 +6364,7 @@ function flushQueuedStoryBoardsIfReady() {
   if (StoryBoardQueue.length < 1 || IsOpeningBriefingActive) {
     return false;
   }
+  const NextBoardId = StoryBoardQueue[0]?.id ?? '';
   if (!isCampaignStoryBoardReadyToPresent({
     briefingActive: IsOpeningBriefingActive,
     replayActive: ReplayPlaybackState !== null,
@@ -6099,6 +6373,8 @@ function flushQueuedStoryBoardsIfReady() {
       RelayRevealLookTarget
       && RelayRevealHoldUntilSeconds > GameElapsedTimeSeconds
     ),
+    hostileEncounterActive: ActiveHostileEncounterState !== null,
+    boardId: NextBoardId,
   })) {
     return false;
   }
@@ -6110,6 +6386,7 @@ function beginOpeningBriefing() {
   StoryBoardQueue = [];
   ShownStoryBoardIds.clear();
   PendingRunResetAfterStoryBoard = false;
+  PendingVictoryAfterStoryBoard = false;
   if ((ActiveSystem.openingBriefing ?? []).length < 1 || ReplayPlaybackState !== null) {
     hideOpeningBriefing();
     return false;
@@ -6374,6 +6651,8 @@ function suppressWorld(WorldDefinition) {
 function attachSeedToWorld(WorldDefinition, ImpactPosition) {
   IsBreakerBurnAvailable = false;
   IsBreakerBurnPending = false;
+  CommittedPredictionPoints = null;
+  GameCanvas.dataset.predictionHoldActive = 'false';
   const LandingOriginWorldIdentifier = FlightOriginWorldIdentifier;
   const SurfaceRestPosition = calculateSurfaceRestPosition(WorldDefinition, ImpactPosition);
 
@@ -6439,6 +6718,14 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
     CourierStartTimesByLinkId.set(RelayConnection.link.id, GameElapsedTimeSeconds);
     WorldseedSound.tradeLane();
   }
+  if (
+    RelayConnection?.destinationReactivated
+    && RecaptureCutGiftAvailable
+    && !WorldDefinition.hostileEncounter
+    && !CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id)
+  ) {
+    PendingRecaptureCutWorldIdentifier = WorldDefinition.id;
+  }
   GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
   commitFlightStardust();
   resetFlightFeedback();
@@ -6491,6 +6778,7 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
       shownIds: [...ShownStoryBoardIds],
       createdLinkCount: RelayNetworkState.links.size,
       linkCreated: RelayConnection?.created === true,
+      linkedWorldIdentifier: WorldDefinition.id,
       innerClusterJustUnlocked: !InnerClusterLiveBefore
         && isInnerClusterLive(LiveWorldsAfter),
       neighbourhoodJustAwake: isInnerClusterLive(LiveWorldsAfter)
@@ -6624,10 +6912,20 @@ function completeWorldheartLiberation() {
     ? 0.85
     : ActiveSystem.finale?.victoryDelaySeconds ?? 1.35;
   WorldheartCompletionTimeoutIdentifier = window.setTimeout(() => {
+    WorldheartCompletionTimeoutIdentifier = null;
+    PendingVictoryAfterStoryBoard = true;
+    if (enqueueCampaignStoryBoards(
+      getTriggeredCampaignStoryBoardIds({
+        shownIds: [...ShownStoryBoardIds],
+        reachJustAnswered: true,
+      }),
+    )) {
+      return;
+    }
+    PendingVictoryAfterStoryBoard = false;
     revealVictoryPanel();
     GamePhase = 'victory';
     WorldseedSound.victory();
-    WorldheartCompletionTimeoutIdentifier = null;
   }, VictoryDelaySeconds * 1000);
   updateBreakerBurnInterface();
   return true;
@@ -6675,6 +6973,12 @@ function attachSeedToWorldheart(ImpactPosition, BodyPosition) {
     completeWorldheartLiberation();
   } else {
     showStatusToast('COMMAND LANDED · CORE LATTICE ACTIVE', 1500);
+    enqueueCampaignStoryBoards(
+      getTriggeredCampaignStoryBoardIds({
+        shownIds: [...ShownStoryBoardIds],
+        commandJustLanded: true,
+      }),
+    );
   }
   updateBreakerBurnInterface();
 }
@@ -6971,7 +7275,45 @@ function renderTrajectoryLine(PredictionPoints) {
   TrajectoryLine.visible = PreviewPointCount > 1;
 }
 
+function captureCommittedLaunchPrediction(LaunchVelocity) {
+  const LiveRelayCount = countLiveRelayWorlds(RelayNetworkState);
+  if (!getRunUnlockState({
+    liveRelayCount: LiveRelayCount,
+    uniqueCircuitCount: listRelayCircuits(RelayNetworkState).length,
+    wardenStatus: WardenPursuitState.status,
+    recaptureCutAvailable: RecaptureCutGiftAvailable,
+    prefersReducedMotion: PrefersReducedMotion,
+  }).predictionHold) {
+    CommittedPredictionPoints = null;
+    GameCanvas.dataset.predictionHoldActive = 'false';
+    return;
+  }
+  const TrajectoryPrediction = predictCurrentLaunchTrajectory(LaunchVelocity, {
+    ignoredWorldIdentifier: LaunchIgnoredWorldIdentifier,
+    ignoredCollisionBodyIdentifier: LaunchIgnoredBodyIdentifier,
+  });
+  CommittedPredictionPoints = TrajectoryPrediction.points.length > 1
+    ? TrajectoryPrediction.points.map((Point) => ({ x: Point.x, y: Point.y, z: Point.z ?? 0 }))
+    : null;
+  GameCanvas.dataset.predictionHoldActive = String(Boolean(CommittedPredictionPoints));
+}
+
 function updateFlightPlanningPresentation() {
+  const LiveRelayCount = countLiveRelayWorlds(RelayNetworkState);
+  if (shouldHoldCommittedPrediction({
+    liveRelayCount: LiveRelayCount,
+    flightElapsedSeconds: FlightElapsedSeconds,
+    prefersReducedMotion: PrefersReducedMotion,
+    committedPointCount: CommittedPredictionPoints?.length ?? 0,
+  })) {
+    renderTrajectoryLine(CommittedPredictionPoints);
+    TrajectoryMaterial.color.set(0xffd98a);
+    TrajectoryMaterial.opacity = 0.86;
+    applySectorPlanningCamera();
+    GameCanvas.dataset.predictionHoldActive = 'true';
+    return;
+  }
+  GameCanvas.dataset.predictionHoldActive = 'false';
   const TrajectoryPrediction = predictCurrentLaunchTrajectory(SeedPhysicsState.velocity, {
     ignoredWorldIdentifier: LaunchIgnoredWorldIdentifier,
     ignoredCollisionBodyIdentifier: LaunchIgnoredBodyIdentifier,
@@ -7250,9 +7592,15 @@ function createSuggestedKeyboardAimState(SuggestedTarget) {
   });
   const IsMovingCommandTarget = SuggestedTarget.id === WorldheartDefinition.id
     && Boolean(WorldheartDefinition.orbit)
-    && WorldheartDefinition.routeAvailable;
+    && shouldAssistCommandLock({
+      wardenStatus: WardenPursuitState.status,
+      routeAvailable: WorldheartDefinition.routeAvailable === true,
+    });
   if (!IsMovingCommandTarget) {
-    GameCanvas.dataset.keyboardAimAssist = 'route';
+    GameCanvas.dataset.keyboardAimAssist = WorldheartDefinition.routeAvailable
+      && SuggestedTarget.id === WorldheartDefinition.id
+      ? 'command-direct'
+      : 'route';
     return DirectAimState;
   }
 
@@ -7272,6 +7620,10 @@ function createSuggestedKeyboardAimState(SuggestedTarget) {
     },
   );
   GameCanvas.dataset.keyboardAimAssist = DidFindCommandLock ? 'command-lock' : 'command-direct';
+  if (DidFindCommandLock && !HasAnnouncedCommandLockGift) {
+    HasAnnouncedCommandLockGift = true;
+    showStatusToast('COMMAND WORLD LOCKED', 1400);
+  }
   return { ...DirectAimState, angleRadians: AssistedAngleRadians };
 }
 
@@ -7624,6 +7976,7 @@ function applyHostileCut(Origin, End) {
       `${AttachedWorld.label} can fly.`,
       'Grab the ship and launch. Drag empty space to look around.',
     );
+    flushQueuedStoryBoardsIfReady();
     return true;
   }
   publishHostileEncounterState();
@@ -7982,6 +8335,7 @@ function releaseAimedLaunch() {
   IsBreakerBurnPending = false;
   updateBreakerBurnInterface();
   HasLaunchedOnce = true;
+  captureCommittedLaunchPrediction(AimLaunchVelocity);
   LaunchPulseMesh.position.copy(SeedGroup.position);
   LaunchPulseMesh.scale.setScalar(1);
   LaunchPulseMesh.visible = true;
@@ -8066,6 +8420,8 @@ function applyBreakerBurnAtCurrentStep({ record = false } = {}) {
   SeedPhysicsState = applyBreakerBurn(SeedPhysicsState, undefined, BurnAimDirection);
   IsBreakerBurnAvailable = false;
   IsBreakerBurnPending = false;
+  CommittedPredictionPoints = null;
+  GameCanvas.dataset.predictionHoldActive = 'false';
   if (record) {
     ReplayState = recordReplayBurn(ReplayState, {
       stepIndex: Math.round(PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz),
@@ -8335,6 +8691,7 @@ function beginReplayLaunch(Launch) {
   IsBreakerBurnPending = false;
   updateBreakerBurnInterface();
   HasLaunchedOnce = true;
+  captureCommittedLaunchPrediction({ x: Launch.velocityX, y: Launch.velocityY, z: 0 });
   LaunchPulseMesh.position.copy(SeedGroup.position);
   LaunchPulseMesh.scale.setScalar(1);
   LaunchPulseMesh.visible = true;
@@ -8666,9 +9023,27 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
               RelayRevealHoldUntilSeconds = 0;
               GameCanvas.dataset.relayReveal = '';
             } else {
-              RelayRevealHoldUntilSeconds = ElapsedTimeSeconds + RelayRevealHoldDurationSeconds;
+              RelayRevealHoldUntilSeconds = ElapsedTimeSeconds + getRelayRevealHoldDurationSeconds({
+                liveRelayCount: countLiveRelayWorlds(RelayNetworkState),
+                prefersReducedMotion: PrefersReducedMotion,
+              });
             }
-            const DidBeginHostileEncounter = beginHostileEncounter(WorldDefinition);
+            const EncounterDefinition = WorldDefinition.hostileEncounter
+              ?? (
+                PendingRecaptureCutWorldIdentifier === WorldDefinition.id
+                  ? getLeftoverHostileEncounter()
+                  : null
+              );
+            const DidBeginHostileEncounter = beginHostileEncounter(
+              WorldDefinition,
+              EncounterDefinition,
+            );
+            if (DidBeginHostileEncounter
+              && PendingRecaptureCutWorldIdentifier === WorldDefinition.id) {
+              RecaptureCutGiftAvailable = false;
+              PendingRecaptureCutWorldIdentifier = null;
+              showStatusToast('RECAPTURE CUT', 1350);
+            }
             if (!DidBeginHostileEncounter && !ShouldPreserveWardenReveal) {
               showRouteChoiceInstruction();
             }
@@ -8744,6 +9119,12 @@ function updateWorldLifeAudio() {
     isolatedWorldCount: IsolatedWorldCount,
     livingWorldCount: LivingWorldCount,
   }));
+  const MusicStage = getStoryMusicStage({
+    innerClusterLive: isInnerClusterLive(listLiveWorldIdentifiers()),
+    wardenStatus: WardenPursuitState.status,
+  });
+  WorldseedSound.setStoryMusicStage(MusicStage);
+  GameCanvas.dataset.storyMusicStage = MusicStage;
   const MaximumScoutScale = getActiveMaximumScoutZoomScale();
   if (ScoutZoomScale > MaximumScoutScale) {
     ScoutZoomScale = MaximumScoutScale;
@@ -9019,6 +9400,9 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   }
   if (CutGuideLine.visible) {
     CutGuideMaterial.dashOffset -= DeltaTimeSeconds * 1.4;
+  }
+  if (CircuitBeaconLine.visible) {
+    CircuitBeaconMaterial.dashOffset -= DeltaTimeSeconds * 0.55;
   }
 }
 
@@ -9575,6 +9959,13 @@ function resetGame() {
   ActiveHostileEncounterState = null;
   CompletedHostileEncounterWorldIdentifiers.clear();
   HostilePylonGroup.visible = false;
+  RecaptureCutGiftAvailable = false;
+  PendingRecaptureCutWorldIdentifier = null;
+  HasAnnouncedCommandLockGift = false;
+  CommittedPredictionPoints = null;
+  CircuitBeaconLine.visible = false;
+  GameCanvas.dataset.circuitBeaconLink = '';
+  GameCanvas.dataset.predictionHoldActive = '';
   GamePhase = 'attached';
   updateBreakerBurnInterface();
   PhysicsAccumulatorSeconds = 0;
@@ -9884,6 +10275,7 @@ function renderFrame() {
 
   updateWorldRestorationVisuals(ElapsedTimeSeconds);
   updateOccupationScarVisuals(ElapsedTimeSeconds);
+  refreshDockedTradeState(ElapsedTimeSeconds);
   updateProsperityBuildingVisuals(ElapsedTimeSeconds);
   updateExtractionFreighterVisuals(ElapsedTimeSeconds);
   updateInhabitantVisuals(ElapsedTimeSeconds);

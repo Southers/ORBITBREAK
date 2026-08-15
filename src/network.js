@@ -66,6 +66,50 @@ export function wouldCloseRelayCircuit(
     ));
 }
 
+/**
+ * After the first unique loop, a gold ghost of the next missing edge that would
+ * close another circuit. Prefers a closing flight from the current world.
+ */
+export function findCircuitBeaconLink(NetworkState, CurrentWorldIdentifier = null) {
+  if (!NetworkState || NetworkState.circuits.size < 1) {
+    return null;
+  }
+  const LiveWorldIdentifiers = [...NetworkState.activeWorldIdentifiers]
+    .filter((WorldIdentifier) => isRelayWorldLive(NetworkState, WorldIdentifier))
+    .sort();
+  const OriginWorldIdentifiers = [];
+  if (
+    typeof CurrentWorldIdentifier === 'string'
+    && LiveWorldIdentifiers.includes(CurrentWorldIdentifier)
+  ) {
+    OriginWorldIdentifiers.push(CurrentWorldIdentifier);
+  }
+  for (const WorldIdentifier of LiveWorldIdentifiers) {
+    if (WorldIdentifier !== CurrentWorldIdentifier) {
+      OriginWorldIdentifiers.push(WorldIdentifier);
+    }
+  }
+  for (const OriginWorldIdentifier of OriginWorldIdentifiers) {
+    for (const DestinationWorldIdentifier of LiveWorldIdentifiers) {
+      if (DestinationWorldIdentifier === OriginWorldIdentifier) {
+        continue;
+      }
+      if (wouldCloseRelayCircuit(
+        NetworkState,
+        OriginWorldIdentifier,
+        DestinationWorldIdentifier,
+      )) {
+        return Object.freeze({
+          id: getRelayLinkIdentifier(OriginWorldIdentifier, DestinationWorldIdentifier),
+          originWorldIdentifier: OriginWorldIdentifier,
+          destinationWorldIdentifier: DestinationWorldIdentifier,
+        });
+      }
+    }
+  }
+  return null;
+}
+
 /** Derives permanent relay state only from a resolved world-to-world traversal. */
 export function connectRelayWorlds(
   NetworkState,

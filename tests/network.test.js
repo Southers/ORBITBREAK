@@ -5,6 +5,7 @@ import {
   connectRelayWorlds,
   countLiveRelayWorlds,
   createRelayNetworkState,
+  findCircuitBeaconLink,
   getRelayDegree,
   getRelayLinkIdentifier,
   listRelayLinks,
@@ -84,4 +85,17 @@ test('a unique circuit protects its worlds once and repairs without closing agai
   assert.equal(Repair.destinationReactivated, true);
   assert.equal(Repair.circuitClosed, false);
   assert.equal(listLiveRelayCircuits(Network).length, 1);
+});
+
+test('the circuit beacon names the next missing closing edge after the first loop', () => {
+  const Network = createRelayNetworkState('haven');
+  connectRelayWorlds(Network, 'haven', 'ember');
+  connectRelayWorlds(Network, 'ember', 'grove');
+  assert.equal(findCircuitBeaconLink(Network, 'grove'), null);
+  connectRelayWorlds(Network, 'grove', 'haven');
+  connectRelayWorlds(Network, 'haven', 'frost');
+  const Beacon = findCircuitBeaconLink(Network, 'frost');
+  assert.equal(Beacon.id, 'ember::frost');
+  assert.equal(Beacon.originWorldIdentifier, 'frost');
+  assert.equal(Beacon.destinationWorldIdentifier, 'ember');
 });

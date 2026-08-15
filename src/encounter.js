@@ -1,9 +1,19 @@
 const FullCircleRadians = Math.PI * 2;
 
 export const DefaultClampOffsetsRadians = Object.freeze([0.4, 0.85, 1.3]);
+export const LeftoverClampOffsetsRadians = Object.freeze([0.55]);
 export const DefaultCutHitRadius = 0.48;
 export const DefaultMaxCutLength = 2.85;
 export const ClampSurfaceLift = 0.3;
+
+/** One leftover tooth: teach Cut after the first link, or recapture after the hunt starts. */
+export function getLeftoverHostileEncounter() {
+  return {
+    clampOffsetsRadians: LeftoverClampOffsetsRadians,
+    cutHitRadius: DefaultCutHitRadius,
+    maxCutLength: DefaultMaxCutLength,
+  };
+}
 
 function normalizeAngle(AngleRadians) {
   return ((AngleRadians + Math.PI) % FullCircleRadians + FullCircleRadians) % FullCircleRadians

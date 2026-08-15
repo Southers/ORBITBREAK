@@ -147,6 +147,18 @@ button[aria-disabled='true'] {
   border-color: rgba(126, 196, 118, 0.34);
 }
 
+.opening-briefing.is-tide .opening-briefing__board {
+  border-color: rgba(95, 184, 201, 0.38);
+}
+
+.opening-briefing.is-frost .opening-briefing__board {
+  border-color: rgba(198, 228, 255, 0.38);
+}
+
+.opening-briefing.is-bastion .opening-briefing__board {
+  border-color: rgba(201, 160, 255, 0.38);
+}
+
 .opening-briefing.is-command .opening-briefing__board {
   border-color: rgba(255, 80, 64, 0.38);
 }

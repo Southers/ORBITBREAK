@@ -49,6 +49,14 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     'EMBER',
   );
   assert.equal(
+    BreakerReachSystemDefinition.storyBoards.firstTide.pages[0].speaker,
+    'TIDE',
+  );
+  assert.equal(
+    BreakerReachSystemDefinition.storyBoards.reachAnswers.pages[0].title,
+    'You did not save them alone.',
+  );
+  assert.equal(
     BreakerReachSystemDefinition.wardenArrivalBroadcast,
     'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',
   );
@@ -80,6 +88,10 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     BreakerReachSystemDefinition.routeSuggestions.meadow,
     ['ember', 'frost'],
   );
+  const EmberDefinition = BreakerReachSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'ember',
+  );
+  assert.deepEqual(EmberDefinition.hostileEncounter.clampOffsetsRadians, [0.55]);
   const BastionDefinition = BreakerReachSystemDefinition.worlds.find(
     (WorldDefinition) => WorldDefinition.id === 'bastion',
   );

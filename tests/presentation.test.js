@@ -9,8 +9,11 @@ import {
   getPlayfieldLabelVerticalBounds,
   getPublishedWardenState,
   getRelayCourierTravelProgress,
+  getCourierDockWorldRole,
   getRelayLinkOpacity,
+  getRelayRevealHoldDurationSeconds,
   getRelayRevealLookTarget,
+  getRunUnlockState,
   getSectorPlanningCamera,
   getRunResourceSummary,
   getRunnerAnimationState,
@@ -27,8 +30,13 @@ import {
   getTradeHullScale,
   getTradeHullColor,
   getProsperityPresence,
+  getProsperityBuildingKind,
+  getProsperityBuildingProfile,
+  getLivingInhabitantSlotCount,
+  shouldShowInhabitantSlot,
   getInhabitantSilhouette,
   getWorldLifeAudioMix,
+  getStoryMusicStage,
   isInnerClusterLive,
   isFurtherReachLive,
   getRangeVeilStrength,
@@ -44,6 +52,8 @@ import {
   formatStoryBoardCopy,
   getTriggeredCampaignStoryBoardIds,
   isCampaignStoryBoardReadyToPresent,
+  shouldAssistCommandLock,
+  shouldHoldCommittedPrediction,
   separateOverlappingTacticalLabels,
   separateOverlappingRouteLabels,
   separateRouteLabelsFromTacticalLabels,
@@ -188,11 +198,20 @@ test('new relay couriers depart from the origin of the live link', () => {
   assert.deepEqual(getRelayCourierTravelProgress(0), {
     travelProgress: 0,
     isReturning: false,
+    isDocked: false,
   });
   assert.ok(Math.abs(getRelayCourierTravelProgress(1 / 0.11).travelProgress - 1) < 1e-12);
   assert.equal(getRelayCourierTravelProgress(1 / 0.11).isReturning, false);
   assert.equal(getRelayCourierTravelProgress(0.5 / 0.11).travelProgress, 0.5);
   assert.equal(getRelayCourierTravelProgress(1.25 / 0.11).isReturning, true);
+  const DockedArrival = getRelayCourierTravelProgress(1 / 0.11, { dwellRatio: 0.12 });
+  assert.equal(DockedArrival.isDocked, true);
+  assert.equal(DockedArrival.travelProgress, 1);
+  assert.equal(getCourierDockWorldRole(DockedArrival), 'destination');
+  const DockedOrigin = getRelayCourierTravelProgress(0, { dwellRatio: 0.12 });
+  assert.equal(DockedOrigin.isDocked, true);
+  assert.equal(getCourierDockWorldRole(DockedOrigin), 'origin');
+  assert.equal(getCourierDockWorldRole({ travelProgress: 1, isDocked: false }), null);
   assert.throws(() => getRelayCourierTravelProgress(-1), /non-negative age/);
 });
 
@@ -245,6 +264,11 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
     createdLinkCount: 1,
   }), ['firstAnswer']);
   assert.deepEqual(getTriggeredCampaignStoryBoardIds({
+    linkCreated: true,
+    createdLinkCount: 3,
+    linkedWorldIdentifier: 'tide',
+  }), ['firstTide']);
+  assert.deepEqual(getTriggeredCampaignStoryBoardIds({
     neighbourhoodJustAwake: true,
     wardenJustRevealed: true,
   }), ['neighbourhood', 'wardenArrival']);
@@ -267,6 +291,75 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
   assert.equal(isCampaignStoryBoardReadyToPresent({
     gamePhase: 'attached',
   }), true);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'attached',
+    hostileEncounterActive: true,
+    boardId: 'firstAnswer',
+  }), false);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'attached',
+    hostileEncounterActive: true,
+    boardId: 'commandApproach',
+  }), true);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'victoryPending',
+  }), true);
+});
+
+test('run-local unlocks hold prediction, gate Command lock, and wait for the first link', () => {
+  assert.equal(getRelayRevealHoldDurationSeconds({
+    liveRelayCount: 1,
+    prefersReducedMotion: false,
+  }), 0.85);
+  assert.equal(getRelayRevealHoldDurationSeconds({
+    liveRelayCount: 2,
+    prefersReducedMotion: false,
+  }), 1.7);
+  assert.equal(getRelayRevealHoldDurationSeconds({
+    liveRelayCount: 2,
+    prefersReducedMotion: true,
+  }), 0);
+  assert.equal(shouldHoldCommittedPrediction({
+    liveRelayCount: 2,
+    flightElapsedSeconds: 0.4,
+    committedPointCount: 12,
+  }), true);
+  assert.equal(shouldHoldCommittedPrediction({
+    liveRelayCount: 2,
+    flightElapsedSeconds: 1.8,
+    committedPointCount: 12,
+  }), false);
+  assert.equal(shouldAssistCommandLock({
+    wardenStatus: 'pursuing',
+    routeAvailable: false,
+  }), false);
+  assert.equal(shouldAssistCommandLock({
+    wardenStatus: 'exposed',
+    routeAvailable: true,
+  }), true);
+  assert.deepEqual(getRunUnlockState({
+    liveRelayCount: 1,
+    uniqueCircuitCount: 0,
+    wardenStatus: 'hidden',
+  }), {
+    predictionHold: false,
+    leftoverCut: false,
+    circuitBeacon: false,
+    commandLock: false,
+    recaptureCut: false,
+  });
+  assert.deepEqual(getRunUnlockState({
+    liveRelayCount: 3,
+    uniqueCircuitCount: 1,
+    wardenStatus: 'exposed',
+    recaptureCutAvailable: true,
+  }), {
+    predictionHold: true,
+    leftoverCut: true,
+    circuitBeacon: true,
+    commandLock: true,
+    recaptureCut: true,
+  });
 });
 
 test('hidden Warden coach teaches purpose, then waking, then range', () => {
@@ -611,6 +704,31 @@ test('prosperity densifies from a first link to busy routes and circuits', () =>
   assert.equal(getProsperityPresence('linked'), 0.78);
   assert.equal(getProsperityPresence('busy'), 1);
   assert.equal(getProsperityPresence('circuit'), 1.12);
+  assert.equal(getProsperityBuildingKind('linked', 2), 'house');
+  assert.equal(getProsperityBuildingKind('busy', 0), 'house');
+  assert.equal(getProsperityBuildingKind('busy', 1), 'workshop');
+  assert.equal(getProsperityBuildingKind('circuit', 2), 'dock');
+  assert.equal(getProsperityBuildingKind('isolated', 0), null);
+  assert.equal(getProsperityBuildingProfile('dock').height < getProsperityBuildingProfile('house').height, true);
+  assert.equal(getLivingInhabitantSlotCount('isolated'), 3);
+  assert.equal(getLivingInhabitantSlotCount('linked'), 6);
+  assert.equal(getLivingInhabitantSlotCount('busy'), 9);
+  assert.equal(getLivingInhabitantSlotCount('circuit'), 12);
+  assert.equal(shouldShowInhabitantSlot({
+    lifeStage: 'tyrant',
+    prosperityStage: 'tyrant',
+    slotIndex: 5,
+  }), true);
+  assert.equal(shouldShowInhabitantSlot({
+    lifeStage: 'tyrant',
+    prosperityStage: 'tyrant',
+    slotIndex: 6,
+  }), false);
+  assert.equal(shouldShowInhabitantSlot({
+    lifeStage: 'living',
+    prosperityStage: 'circuit',
+    slotIndex: 11,
+  }), true);
   assert.equal(getInhabitantSilhouette(0).kind, 'worker');
   assert.equal(getInhabitantSilhouette(1).kind, 'child');
   assert.equal(getInhabitantSilhouette(2).kind, 'pack');
@@ -624,6 +742,10 @@ test('prosperity densifies from a first link to busy routes and circuits', () =>
     garden: 0.25,
     dock: 0,
   });
+  assert.equal(getStoryMusicStage({ innerClusterLive: false, wardenStatus: 'hidden' }), 'quiet');
+  assert.equal(getStoryMusicStage({ innerClusterLive: true, wardenStatus: 'hidden' }), 'hope');
+  assert.equal(getStoryMusicStage({ innerClusterLive: true, wardenStatus: 'pursuing' }), 'hunt');
+  assert.equal(getStoryMusicStage({ innerClusterLive: true, wardenStatus: 'exposed' }), 'crown');
 });
 
 test('range veil lifts only after Haven, Ember and Grove are live', () => {

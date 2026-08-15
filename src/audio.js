@@ -81,7 +81,49 @@ export class WorldseedAudio {
       this.musicLayerGains.push({ gain: Gain, volume: LayerDefinition.volume });
     }
     this.createLifeBeds();
+    this.createStoryBeds();
     this.setRestoredWorldCount(0);
+    this.setStoryMusicStage('quiet');
+  }
+
+  createStoryBeds() {
+    const StoryLayerDefinitions = [
+      { key: 'hope', frequency: 165, type: 'sine', volume: 0.012 },
+      { key: 'hunt', frequency: 46, type: 'sawtooth', volume: 0.016 },
+      { key: 'crown', frequency: 33, type: 'triangle', volume: 0.018 },
+    ];
+    this.storyLayerGains = {};
+    for (const LayerDefinition of StoryLayerDefinitions) {
+      const Oscillator = this.context.createOscillator();
+      const Gain = this.context.createGain();
+      Oscillator.type = LayerDefinition.type;
+      Oscillator.frequency.value = LayerDefinition.frequency;
+      Gain.gain.value = 0;
+      Oscillator.connect(Gain).connect(this.masterGain);
+      Oscillator.start();
+      this.storyLayerGains[LayerDefinition.key] = {
+        gain: Gain,
+        volume: LayerDefinition.volume,
+      };
+    }
+    this.lastStoryMusicStage = 'quiet';
+  }
+
+  setStoryMusicStage(Stage) {
+    if (!this.context || !this.storyLayerGains) {
+      return;
+    }
+    const SafeStage = ['quiet', 'hope', 'hunt', 'crown'].includes(Stage) ? Stage : 'quiet';
+    this.lastStoryMusicStage = SafeStage;
+    if (this.storyPaused) {
+      return;
+    }
+    const Now = this.context.currentTime;
+    for (const [LayerKey, StoryLayer] of Object.entries(this.storyLayerGains)) {
+      const IsActive = SafeStage === LayerKey;
+      StoryLayer.gain.gain.cancelScheduledValues(Now);
+      StoryLayer.gain.gain.setTargetAtTime(IsActive ? StoryLayer.volume : 0, Now, 0.85);
+    }
   }
 
   createLifeBeds() {
@@ -385,6 +427,9 @@ export class WorldseedAudio {
       GROVE: { root: 174, type: 'sine', noise: 1280, volume: 0.06 },
       'THE RUN': { root: 311, type: 'triangle', noise: 640, volume: 0.07 },
       'THE NETWORK': { root: 262, type: 'triangle', noise: 880, volume: 0.065 },
+      TIDE: { root: 164, type: 'sine', noise: 720, volume: 0.06 },
+      FROST: { root: 208, type: 'triangle', noise: 1600, volume: 0.06 },
+      BASTION: { root: 98, type: 'sawtooth', noise: 220, volume: 0.07 },
       COMMAND: { root: 52, type: 'sawtooth', noise: 90, volume: 0.11 },
     };
     const Voice = Voices[Speaker] ?? Voices['THE RUNNER'];
@@ -500,6 +545,7 @@ export class WorldseedAudio {
     this.stopTransients();
     this.setRestoredWorldCount(0);
     this.setWorldLifeMix({ rumble: 0, garden: 0, dock: 0 });
+    this.setStoryMusicStage('quiet');
     this.closePassPlayed = false;
     this.wasLandingLocked = false;
   }
@@ -549,10 +595,17 @@ export class WorldseedAudio {
           LifeLayer.gain.gain.setTargetAtTime(0, Now, 0.06);
         }
       }
+      if (this.storyLayerGains) {
+        for (const StoryLayer of Object.values(this.storyLayerGains)) {
+          StoryLayer.gain.gain.cancelScheduledValues(Now);
+          StoryLayer.gain.gain.setTargetAtTime(0, Now, 0.06);
+        }
+      }
       return;
     }
     this.setRestoredWorldCount(this.lastRestoredWorldCount);
     this.setWorldLifeMix(this.lastWorldLifeMix);
+    this.setStoryMusicStage(this.lastStoryMusicStage);
   }
 
   toggleMute() {

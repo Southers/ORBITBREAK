@@ -907,6 +907,21 @@ resolved flight, not the hold.
 Checkpoint 8 — skipped. Checkpoint 1's 0.52 Runner and landed follow already make the courier a
 visitor. No radius/GM restance and no further `contentVersion` bump for stance.
 
+Checkpoint 9 — 15 August 2026: denser living surfaces and docking trade. Busy/circuit worlds mix
+houses, workshops and docks; windows and streets share one extra instanced draw; living crowds
+scale 3 / 6 / 9 / 12. Couriers dwell at each endpoint, light the pier and gather nearby walkers.
+Reduced motion skips the pause. Physics, score and `breaker-reach-6` are unchanged.
+
+Checkpoint 10 — 15 August 2026: Tide, Frost and Bastion speak on first link. Command talks on
+the rim before Cut. After the collective response the Reach answers, then the score card.
+Replay still skips boards. Cut remains the finale verb.
+
+Checkpoint 11 — 15 August 2026: run-local ladder without a ranked schema bump. After the first
+live link the committed chain holds 1.7s and Ember teaches leftover Cut. After the first loop a
+gold ghost names the next closing edge. Command lock stays the exposed finale gift. Warden
+arrival arms a once-per-run recapture Cut. Extra Break remains deferred. `breaker-reach-6`
+is unchanged.
+
 Keep `main` playable. Do not add a second sector, free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until Bastion is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.
