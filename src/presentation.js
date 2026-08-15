@@ -914,20 +914,88 @@ export function getHiddenWardenRouteCoach({
   };
 }
 
-const OpeningBriefingPortraitFiles = Object.freeze({
+export const StoryBoardPortraitFiles = Object.freeze({
   warden: './assets/warden-portrait.jpg',
   runner: './assets/runner-portrait.jpg',
   haven: './assets/haven-portrait.jpg',
   orbitbreaker: './assets/orbitbreaker-portrait.jpg',
+  ember: './assets/ember-portrait.jpg',
+  grove: './assets/grove-portrait.jpg',
+  command: './assets/command-portrait.jpg',
 });
 
+export const StoryBoardPortraitTones = Object.freeze({
+  warden: 'warden',
+  runner: 'runner',
+  haven: 'haven',
+  orbitbreaker: 'courier',
+  ember: 'ember',
+  grove: 'grove',
+  command: 'command',
+});
+
+/** Fills authored {world} tokens without turning boards into a conversation graph. */
+export function formatStoryBoardCopy(text, tokens = {}) {
+  if (typeof text !== 'string') {
+    throw new Error('Story board copy requires a string.');
+  }
+  return text.replace(/\{([a-zA-Z]+)\}/g, (Match, TokenName) => {
+    const Replacement = tokens[TokenName];
+    return typeof Replacement === 'string' && Replacement.trim() !== ''
+      ? Replacement
+      : Match;
+  });
+}
+
+/**
+ * Major campaign beats, in story order. Reading them never advances pursuit.
+ */
+export function getTriggeredCampaignStoryBoardIds({
+  shownIds = [],
+  createdLinkCount = 0,
+  linkCreated = false,
+  innerClusterJustUnlocked = false,
+  neighbourhoodJustAwake = false,
+  wardenJustRevealed = false,
+  circuitJustClosed = false,
+  worldJustSuppressed = false,
+  worldJustRecaptured = false,
+  commandJustExposed = false,
+  runJustLost = false,
+} = {}) {
+  if (!Array.isArray(shownIds)) {
+    throw new Error('Triggered story boards require a shown-id list.');
+  }
+  const Shown = new Set(shownIds);
+  const Triggered = [];
+  const maybeQueue = (BoardId, ShouldQueue) => {
+    if (ShouldQueue && !Shown.has(BoardId)) {
+      Triggered.push(BoardId);
+    }
+  };
+  maybeQueue('firstAnswer', linkCreated === true && createdLinkCount === 1);
+  maybeQueue('secondAnswer', linkCreated === true && createdLinkCount === 2);
+  maybeQueue('rangeUnlock', innerClusterJustUnlocked === true);
+  maybeQueue('neighbourhood', neighbourhoodJustAwake === true);
+  maybeQueue('wardenArrival', wardenJustRevealed === true);
+  maybeQueue('circuitClosed', circuitJustClosed === true && commandJustExposed !== true);
+  maybeQueue('suppression', worldJustSuppressed === true);
+  maybeQueue('recapture', worldJustRecaptured === true);
+  maybeQueue('commandExposed', commandJustExposed === true);
+  maybeQueue('runLost', runJustLost === true);
+  return Triggered;
+}
+
 /** Turns authored briefing pages into one readable story board. */
-export function getOpeningBriefingPresentation(pages, pageIndex) {
+export function getStoryBoardPresentation(pages, pageIndex, {
+  lastContinueLabel = 'Continue',
+  tokens = {},
+} = {}) {
   if (!Array.isArray(pages) || pages.length < 1) {
-    throw new Error('Opening briefing requires at least one authored page.');
+    throw new Error('Story board requires at least one authored page.');
   }
   if (!Number.isInteger(pageIndex) || pageIndex < 0 || pageIndex >= pages.length) {
-    throw new Error('Opening briefing requires a page inside the authored sequence.');
+    throw new Error('Story board requires a page inside the authored sequence.');
   }
   const Page = pages[pageIndex];
   if (
@@ -937,28 +1005,31 @@ export function getOpeningBriefingPresentation(pages, pageIndex) {
     || typeof Page?.body !== 'string' || Page.body.trim() === ''
     || typeof Page?.portrait !== 'string' || Page.portrait.trim() === ''
   ) {
-    throw new Error('Opening briefing pages require speaker, kicker, title, body and portrait.');
+    throw new Error('Story board pages require speaker, kicker, title, body and portrait.');
   }
   const IsLast = pageIndex === pages.length - 1;
+  const ContinueLabel = typeof lastContinueLabel === 'string' && lastContinueLabel.trim() !== ''
+    ? lastContinueLabel
+    : 'Continue';
   return {
     speaker: Page.speaker,
     kicker: Page.kicker,
-    title: Page.title,
-    body: Page.body,
+    title: formatStoryBoardCopy(Page.title, tokens),
+    body: formatStoryBoardCopy(Page.body, tokens),
     portrait: Page.portrait,
-    portraitSrc: OpeningBriefingPortraitFiles[Page.portrait] ?? OpeningBriefingPortraitFiles.runner,
-    tone: Page.portrait === 'warden'
-      ? 'warden'
-      : Page.portrait === 'haven'
-        ? 'haven'
-        : Page.portrait === 'orbitbreaker'
-          ? 'courier'
-          : 'runner',
+    portraitSrc: StoryBoardPortraitFiles[Page.portrait] ?? StoryBoardPortraitFiles.runner,
+    tone: StoryBoardPortraitTones[Page.portrait] ?? 'runner',
     pageIndex,
     pageCount: pages.length,
     isLast: IsLast,
-    continueLabel: IsLast ? 'Take the Orbitbreaker' : 'Continue',
+    continueLabel: IsLast ? ContinueLabel : 'Continue',
     progressLabel: `${pageIndex + 1} / ${pages.length}`,
   };
+}
+
+export function getOpeningBriefingPresentation(pages, pageIndex) {
+  return getStoryBoardPresentation(pages, pageIndex, {
+    lastContinueLabel: 'Take the Orbitbreaker',
+  });
 }
 

@@ -139,6 +139,18 @@ button[aria-disabled='true'] {
   border-color: rgba(255, 214, 120, 0.3);
 }
 
+.opening-briefing.is-ember .opening-briefing__board {
+  border-color: rgba(255, 138, 72, 0.34);
+}
+
+.opening-briefing.is-grove .opening-briefing__board {
+  border-color: rgba(126, 196, 118, 0.34);
+}
+
+.opening-briefing.is-command .opening-briefing__board {
+  border-color: rgba(255, 80, 64, 0.38);
+}
+
 .opening-briefing__kicker {
   margin: 0;
   color: #ffe29a;

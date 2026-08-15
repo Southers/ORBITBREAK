@@ -40,6 +40,9 @@ import {
   getLoopObjectivePresentation,
   getHiddenWardenRouteCoach,
   getOpeningBriefingPresentation,
+  getStoryBoardPresentation,
+  formatStoryBoardCopy,
+  getTriggeredCampaignStoryBoardIds,
   separateOverlappingTacticalLabels,
   separateOverlappingRouteLabels,
   separateRouteLabelsFromTacticalLabels,
@@ -219,6 +222,40 @@ test('opening briefing names the Runner, the Reach and the charge', () => {
   assert.equal(Last.isLast, true);
   assert.equal(Last.continueLabel, 'Take the Orbitbreaker');
   assert.throws(() => getOpeningBriefingPresentation([], 0), /at least one/);
+});
+
+test('campaign story boards queue hope, then hunt, then Command', () => {
+  assert.equal(formatStoryBoardCopy('They took {world}.', { world: 'Frost' }), 'They took Frost.');
+  assert.equal(formatStoryBoardCopy('They took {world}.'), 'They took {world}.');
+  const EmberPage = getStoryBoardPresentation([
+    {
+      speaker: 'EMBER',
+      kicker: 'FIRST ANSWER',
+      portrait: 'ember',
+      title: 'Is someone there?',
+      body: 'The furnaces remember.',
+    },
+  ], 0, { lastContinueLabel: 'Carry the word' });
+  assert.equal(EmberPage.tone, 'ember');
+  assert.equal(EmberPage.continueLabel, 'Carry the word');
+  assert.match(EmberPage.portraitSrc, /ember-portrait/);
+  assert.deepEqual(getTriggeredCampaignStoryBoardIds({
+    linkCreated: true,
+    createdLinkCount: 1,
+  }), ['firstAnswer']);
+  assert.deepEqual(getTriggeredCampaignStoryBoardIds({
+    neighbourhoodJustAwake: true,
+    wardenJustRevealed: true,
+  }), ['neighbourhood', 'wardenArrival']);
+  assert.deepEqual(getTriggeredCampaignStoryBoardIds({
+    circuitJustClosed: true,
+    commandJustExposed: true,
+  }), ['commandExposed']);
+  assert.deepEqual(getTriggeredCampaignStoryBoardIds({
+    shownIds: ['wardenArrival'],
+    wardenJustRevealed: true,
+    worldJustSuppressed: true,
+  }), ['suppression']);
 });
 
 test('hidden Warden coach teaches purpose, then waking, then range', () => {

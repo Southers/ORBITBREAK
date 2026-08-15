@@ -37,6 +37,77 @@ function isColorValue(ColorValue) {
   return Number.isInteger(ColorValue) && ColorValue >= 0 && ColorValue <= 0xffffff;
 }
 
+const AllowedStoryBoardPortraits = new Set([
+  'warden', 'runner', 'haven', 'orbitbreaker', 'ember', 'grove', 'command',
+]);
+const RequiredCampaignStoryBoardIds = [
+  'firstAnswer', 'secondAnswer', 'rangeUnlock', 'neighbourhood',
+  'wardenArrival', 'circuitClosed', 'suppression', 'recapture',
+  'commandExposed', 'runLost',
+];
+
+function validateStoryBoardPages(Pages, Label) {
+  const Errors = [];
+  if (!Array.isArray(Pages) || Pages.length < 1) {
+    Errors.push(`Authored system ${Label} must be a non-empty array when present.`);
+    return Errors;
+  }
+  Pages.forEach((Page, PageIndex) => {
+    for (const Field of ['speaker', 'kicker', 'title', 'body', 'portrait']) {
+      if (typeof Page?.[Field] !== 'string' || Page[Field].trim() === '') {
+        Errors.push(`Authored system ${Label} page ${PageIndex + 1} requires ${Field}.`);
+      }
+    }
+    if (typeof Page?.portrait === 'string' && !AllowedStoryBoardPortraits.has(Page.portrait)) {
+      Errors.push(`Authored system ${Label} page ${PageIndex + 1} has unknown portrait.`);
+    }
+  });
+  return Errors;
+}
+
+function validateCampaignStoryBoards(StoryBoards) {
+  const Errors = [];
+  if (!StoryBoards || typeof StoryBoards !== 'object' || Array.isArray(StoryBoards)) {
+    return ['Authored system storyBoards must be an object when present.'];
+  }
+  for (const BoardId of RequiredCampaignStoryBoardIds) {
+    if (!StoryBoards[BoardId]) {
+      Errors.push(`Authored system storyBoards requires ${BoardId}.`);
+    }
+  }
+  for (const [BoardId, Board] of Object.entries(StoryBoards)) {
+    if (typeof BoardId !== 'string' || BoardId.trim() === '') {
+      Errors.push('Authored story board ids must be non-empty strings.');
+    }
+    if (typeof Board?.skipLabel !== 'string' || Board.skipLabel.trim() === ''
+      || typeof Board?.continueLabel !== 'string' || Board.continueLabel.trim() === '') {
+      Errors.push(`Authored story board ${BoardId} requires skipLabel and continueLabel.`);
+    }
+    Errors.push(...validateStoryBoardPages(Board?.pages, `storyBoards.${BoardId}`));
+  }
+  return Errors;
+}
+
+function cloneStoryBoards(StoryBoards) {
+  if (!StoryBoards || typeof StoryBoards !== 'object') {
+    return {};
+  }
+  return Object.fromEntries(Object.entries(StoryBoards).map(([BoardId, Board]) => [
+    BoardId,
+    {
+      skipLabel: Board.skipLabel,
+      continueLabel: Board.continueLabel,
+      pages: (Board.pages ?? []).map((Page) => ({
+        speaker: Page.speaker,
+        kicker: Page.kicker,
+        title: Page.title,
+        body: Page.body,
+        portrait: Page.portrait,
+      })),
+    },
+  ]));
+}
+
 function addDuplicateIdentifierErrors(Definitions, DefinitionType, SeenIdentifiers, Errors) {
   for (const Definition of Definitions) {
     if (!Definition?.id || typeof Definition.id !== 'string') {
@@ -86,20 +157,13 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     }
   }
   if (SystemDefinition.openingBriefing !== undefined) {
-    if (!Array.isArray(SystemDefinition.openingBriefing)
-      || SystemDefinition.openingBriefing.length < 1) {
-      Errors.push('Authored system openingBriefing must be a non-empty array when present.');
-    } else {
-      SystemDefinition.openingBriefing.forEach((Page, PageIndex) => {
-        for (const Field of ['speaker', 'kicker', 'title', 'body', 'portrait']) {
-          if (typeof Page?.[Field] !== 'string' || Page[Field].trim() === '') {
-            Errors.push(
-              `Authored system openingBriefing page ${PageIndex + 1} requires ${Field}.`,
-            );
-          }
-        }
-      });
-    }
+    Errors.push(...validateStoryBoardPages(
+      SystemDefinition.openingBriefing,
+      'openingBriefing',
+    ));
+  }
+  if (SystemDefinition.storyBoards !== undefined) {
+    Errors.push(...validateCampaignStoryBoards(SystemDefinition.storyBoards));
   }
   if (!Number.isInteger(SystemDefinition.launchBudget) || SystemDefinition.launchBudget < 1) {
     Errors.push('Authored system requires a positive integer launchBudget.');
@@ -581,6 +645,7 @@ export function createAuthoredSystemRuntime(
       }))
       : [],
     wardenArrivalBroadcast: SystemDefinition.wardenArrivalBroadcast ?? null,
+    storyBoards: cloneStoryBoards(SystemDefinition.storyBoards),
     rangeUnlockLine: SystemDefinition.rangeUnlockLine ?? null,
     furtherLandingLine: SystemDefinition.furtherLandingLine ?? null,
     commandApproachLine: SystemDefinition.commandApproachLine ?? null,
@@ -820,6 +885,194 @@ export const BreakerReachSystemDefinition = {
       body: 'Land. Link. Watch tiny worlds come alive. When the Reach starts talking, the Warden will hunt. Close the loops. Break Command.',
     },
   ],
+  storyBoards: {
+    firstAnswer: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Carry the word',
+      pages: [
+        {
+          speaker: 'EMBER',
+          kicker: 'FIRST ANSWER',
+          portrait: 'ember',
+          title: 'Is someone there?',
+          body: 'The furnaces remember who they warmed. A barge lights its first legal hold. The garden is no longer speaking into silence.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'THE WORD CARRIES',
+          portrait: 'runner',
+          title: 'They heard us.',
+          body: 'One more neighbour and this garden is a neighbourhood. Walk, aim, land. Watch them wake.',
+        },
+      ],
+    },
+    secondAnswer: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Wake the third',
+      pages: [
+        {
+          speaker: 'GROVE',
+          kicker: 'SECOND VOICE',
+          portrait: 'grove',
+          title: 'We thought we were alone.',
+          body: 'Roots split the perfect grid from below. Two worlds are talking. Trade is trying to remember how.',
+        },
+        {
+          speaker: 'HAVEN',
+          kicker: 'THE GARDEN ANSWERS',
+          portrait: 'haven',
+          title: 'Keep going.',
+          body: 'When three gardens talk, the silence looks smaller. The Warden called this empty. It is not.',
+        },
+      ],
+    },
+    rangeUnlock: {
+      skipLabel: 'Scout further',
+      continueLabel: 'Look further',
+      pages: [
+        {
+          speaker: 'THE RUN',
+          kicker: 'THE SILENCE RECEEDS',
+          portrait: 'orbitbreaker',
+          title: 'The dark is not as wide as they said.',
+          body: 'Frost, Tide and Bastion were always there. The veil was a story. Scout the wider Reach.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'RANGE',
+          portrait: 'runner',
+          title: 'It was a lie.',
+          body: 'Go further. Link a visible system. It will look easy. That is when the hunt starts.',
+        },
+      ],
+    },
+    neighbourhood: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Hold this feeling',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'A SYSTEM',
+          portrait: 'haven',
+          title: 'A whole neighbourhood is talking.',
+          body: 'Windows are lit. Hulls are moving. For a moment the Reach looks like it can stay this way.',
+        },
+      ],
+    },
+    wardenArrival: {
+      skipLabel: 'Face the hunt',
+      continueLabel: 'Outrun it',
+      pages: [
+        {
+          speaker: 'THE WARDEN',
+          kicker: 'UNAUTHORISED NETWORK',
+          portrait: 'warden',
+          title: 'Unauthorised network detected.',
+          body: 'Connection is disorder. Movement is disobedience. I will silence every world that answers.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'THE HUNT BEGINS',
+          portrait: 'runner',
+          title: 'It found us.',
+          body: 'It will take the weakest linked world. Close a loop and push it back, or expand and risk the cage.',
+        },
+      ],
+    },
+    circuitClosed: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Hold or expand',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'LOOP CLOSED',
+          portrait: 'haven',
+          title: 'The signal went around.',
+          body: 'This loop cannot be silenced at one choke. The Warden was pushed back. One shield cracked.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'RESISTANCE',
+          portrait: 'runner',
+          title: 'We can defend this.',
+          body: 'Gold means protected. Spend the retreat on another world, or close the second loop and crack the crown.',
+        },
+      ],
+    },
+    suppression: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Go back for them',
+      pages: [
+        {
+          speaker: 'THE WARDEN',
+          kicker: 'SIGNAL LOST',
+          portrait: 'warden',
+          title: 'Silence restored.',
+          body: 'They took {world}. The cage is back. Mines first. People last.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'STILL THERE',
+          portrait: 'runner',
+          title: 'Land there again.',
+          body: 'The route remembers. Recapture {world} before the hunt walks closer.',
+        },
+      ],
+    },
+    recapture: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Stay with them',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'SIGNAL RESTORED',
+          portrait: 'ember',
+          title: "We're still here.",
+          body: '{world} answers again. The original route and courier are live. The cage failed twice.',
+        },
+      ],
+    },
+    commandExposed: {
+      skipLabel: 'Board Command',
+      continueLabel: 'Hunt the crown',
+      pages: [
+        {
+          speaker: 'COMMAND',
+          kicker: 'CROWN CRACKED',
+          portrait: 'command',
+          title: 'Two loops hit the hull.',
+          body: 'The shield moons are gone. The Command World is a moving tiny world now, not a voice from the dark.',
+        },
+        {
+          speaker: 'THE RUN',
+          kicker: 'YOUR CHARGE',
+          portrait: 'orbitbreaker',
+          title: 'A network cannot be imprisoned.',
+          body: 'Track it. Land. Walk the rim. Pulse the lattice. The Reach will answer together.',
+        },
+      ],
+    },
+    runLost: {
+      skipLabel: 'Begin again',
+      continueLabel: 'Steal the ship again',
+      pages: [
+        {
+          speaker: 'THE WARDEN',
+          kicker: 'THE STILLNESS CLOSES',
+          portrait: 'warden',
+          title: 'You were one world too slow.',
+          body: 'Isolation is safety. Connection is a fault I have closed.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'NOT FINISHED',
+          portrait: 'runner',
+          title: 'Steal the ship again.',
+          body: 'Haven is still a garden. The first word is still yours to carry.',
+        },
+      ],
+    },
+  },
   rangeUnlockLine: 'The dark is not as wide as they said.',
   furtherLandingLine: 'A whole neighbourhood is talking.',
   commandApproachLine: 'A network cannot be imprisoned.',

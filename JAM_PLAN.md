@@ -875,6 +875,13 @@ Warden edict, stolen courier, last free garden, and the charge to wake the neigh
 Portraits, speaker names and in-engine voices. Continue/Skip at 44px. The live coach after
 the board still uses the purpose line *They are still out there. Carry the first word.*
 
+Checkpoint 2b — 15 August 2026: that board now returns at the campaign turns, not only the
+opening. First answer, second voice, range unlock, neighbourhood, Warden arrival, first
+circuit, suppression, recapture, Command exposure and a lost run are skippable portrait
+dialogue. Ember, Grove and Command have their own stills. Reading never advances pursuit;
+replay playback still skips every board. GitHub Pages remaining static is not a reason to
+leave those beats as toasts.
+
 Checkpoint 3 — 15 August 2026: free walkers share the inhabitant draw with worker, child-scale
 and pack silhouettes. Isolated Haven stays three people; tyrant worlds keep two guards and four
 held; living worlds can show all six. Reduced motion freezes stride and keeps the silhouettes.

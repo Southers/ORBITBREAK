@@ -366,7 +366,11 @@ export class WorldseedAudio {
       'THE WARDEN': { root: 68, type: 'sawtooth', noise: 140, volume: 0.1 },
       'THE RUNNER': { root: 233, type: 'triangle', noise: 980, volume: 0.07 },
       HAVEN: { root: 196, type: 'sine', noise: 1500, volume: 0.055 },
+      EMBER: { root: 185, type: 'sawtooth', noise: 420, volume: 0.065 },
+      GROVE: { root: 174, type: 'sine', noise: 1280, volume: 0.06 },
       'THE RUN': { root: 311, type: 'triangle', noise: 640, volume: 0.07 },
+      'THE NETWORK': { root: 262, type: 'triangle', noise: 880, volume: 0.065 },
+      COMMAND: { root: 52, type: 'sawtooth', noise: 90, volume: 0.11 },
     };
     const Voice = Voices[Speaker] ?? Voices['THE RUNNER'];
     this.playNoise({ duration: 0.22, volume: Voice.volume * 0.7, frequency: Voice.noise });
