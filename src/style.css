@@ -1215,14 +1215,43 @@ button[aria-disabled='true'] {
 }
 
 @media (orientation: portrait) and (max-width: 640px) {
-  .aim-panel {
+  .aim-panel,
+  .burn-button.is-pulse {
     bottom: max(156px, calc(env(safe-area-inset-bottom) + 150px));
   }
 }
 
 @media (orientation: portrait) and (max-width: 340px) {
-  .aim-panel {
+  .aim-panel,
+  .burn-button.is-pulse {
     bottom: max(206px, calc(env(safe-area-inset-bottom) + 200px));
+  }
+}
+
+@media (orientation: portrait) and (max-width: 380px) {
+  .victory-panel {
+    max-height: calc(100vh - 24px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .result-actions {
+    position: sticky;
+    bottom: -1px;
+    padding-top: 8px;
+    background: linear-gradient(
+      to bottom,
+      rgba(4, 11, 18, 0),
+      rgba(4, 11, 18, 0.98) 8px
+    );
+  }
+
+  .result-actions button {
+    padding: 10px 6px;
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: nowrap;
   }
 }
 

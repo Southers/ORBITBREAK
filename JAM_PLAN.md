@@ -781,6 +781,24 @@ or Frost choice readable. The console stayed empty. Release checks protect both 
 wrapped-footer aim offsets. This accessibility and presentation pass changes no aim values, input
 mapping, camera, world position, physics, score, pursuit, replay or leaderboard behavior.
 
+Gauntlet pass 44 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** A complete 320×568 run proved that the smallest supported
+portrait still failed at its most important payoff: the 148×52px Breaker Pulse covered 7,696px² of
+its own surface instructions, then the 752.7px result centred from y−92.3 to y660.4 with no scroll
+range and placed Rankings below the viewport. Hostile-surface state now gives Pulse the same explicit
+portrait clearance as aim without moving the in-flight Burn. Both “Move Q” and “In range” states sit
+11.4px above the coach with zero collision. Small portrait results are now bounded to a scrollable
+viewport inset with hidden horizontal overflow and sticky compact actions. The final 320×568 panel
+occupies y12–556 with a 172px vertical detail range; all three single-line actions are 44px high and
+visible immediately, and End reaches the last detail while retaining Replay focus. At 340×640 and
+360×640 the same panel has only 81px and 54px to scroll, while 380×700 fits without scrolling.
+Established 390×844, 568×320, 844×390 and 1280×720 results retain their intended layout, zero page or
+button overflow and Replay focus. The authentic six-launch route closed both circuits, locked the
+moving Command, reached Pulse in seven surface steps and produced a verified 11,250 result with an
+empty console. Release checks protect semantic Pulse state, portrait clearance, bounded results and
+compact actions. This accessibility-only pass changes no action timing, route, input mapping, camera,
+world position, physics, score, pursuit, replay or leaderboard behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
