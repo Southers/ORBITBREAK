@@ -34,7 +34,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob30';
+} from './content.js?v=20260815-ob31';
 
 import {
   countRestoredWorlds,
@@ -250,7 +250,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob30';
+GameCanvas.dataset.build = '20260815-ob31';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -460,10 +460,12 @@ function configureSystemInterface() {
     EmblemElement.querySelector('strong').textContent = Copy.title;
     EmblemElement.querySelector('small').textContent = Copy.subtitle;
   }
-  PlayAgainButtonElement.textContent = NextSystemIdentifier
+  const CanContinueToNextSystem = Boolean(NextSystemIdentifier)
+    && ActiveSystem.completion.continueToNextSystem !== false;
+  PlayAgainButtonElement.textContent = CanContinueToNextSystem
     ? `Continue to ${getAuthoredSystemDefinition(NextSystemIdentifier).label}`
     : '';
-  PlayAgainButtonElement.hidden = !NextSystemIdentifier;
+  PlayAgainButtonElement.hidden = !CanContinueToNextSystem;
 
   ObjectivePipsElement.replaceChildren();
   for (let PipIndex = 0; PipIndex < ActiveSystem.worldheartUnlockThreshold; PipIndex += 1) {

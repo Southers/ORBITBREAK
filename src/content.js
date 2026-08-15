@@ -137,6 +137,12 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
       }
     }
   }
+  if (
+    CompletionDefinition?.continueToNextSystem !== undefined
+    && typeof CompletionDefinition.continueToNextSystem !== 'boolean'
+  ) {
+    Errors.push('Authored system completion.continueToNextSystem must be boolean when present.');
+  }
 
   const WorldDefinitions = Array.isArray(SystemDefinition.worlds)
     ? SystemDefinition.worlds
@@ -692,6 +698,7 @@ export const BreakerReachSystemDefinition = {
       bloom: { title: 'SOLIDARITY', subtitle: 'ALL WORLDS' },
       arc: { title: 'WAYFINDER', subtitle: '3 STARDUST' },
     },
+    continueToNextSystem: false,
   },
   constellation: {
     nodes: [

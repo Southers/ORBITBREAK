@@ -293,6 +293,16 @@ desktop ending remained verified at 12,250 and 186/190 draw calls. Its 390×844 
 kept 45px action controls and rendered `7 launches · 1 bonus fuel left`. Page metadata now describes
 the Command World instead of claiming the run ends when launches expire.
 
+Gauntlet pass 3 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The complete one-sector result still promoted a full-width
+`Continue to SHATTERBELT` action from the inherited campaign. Breaker's Reach now authors a terminal
+completion policy, leaving only `Run again`, `Watch replay` and `Rankings`; this reinforces the ending
+and immediate mastery loop without deleting the content library. The same verified 12,250 desktop
+route remained at 186/190 draw calls. Its 390×844 result kept three 45px actions with no overflow.
+Direct-query startup smoke checks then loaded Shatterbelt, Verdant Caravan, Long Night and Worldheart
+on `ob31`, with WebGL live and 31–32 draw-call peaks, proving those systems remain compatibility
+fixtures rather than a competing first-game campaign.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

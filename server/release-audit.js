@@ -100,6 +100,11 @@ export function auditReleaseReadiness() {
     'The default system must be the first campaign chapter.',
   );
   requireCondition(
+    AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+      ?.completion.continueToNextSystem === false,
+    'The selected one-sector candidate must end without a legacy campaign continuation.',
+  );
+  requireCondition(
     AuthoredCampaignSystemIdentifiers.length === 5,
     'The release campaign must contain exactly five authored systems.',
   );
@@ -141,6 +146,10 @@ export function auditReleaseReadiness() {
       && ReleaseBrief.includes('zero-bonus-fuel continuation')
       && !ReleaseBrief.includes('eight-launch failure'),
     'RELEASE.md must describe the current surface, Burn and bonus-fuel rules.',
+  );
+  requireCondition(
+    ReleaseBrief.includes('One dense six-world sector'),
+    'RELEASE.md must present the selected one-sector candidate rather than the compatibility library.',
   );
 
   return {

@@ -57,6 +57,7 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     bloom: { title: 'SOLIDARITY', subtitle: 'ALL WORLDS' },
     arc: { title: 'WAYFINDER', subtitle: '3 STARDUST' },
   });
+  assert.equal(BreakerReachSystemDefinition.completion.continueToNextSystem, false);
   assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
   assert.ok(CommandDefinition.hostileEncounter.pulseRangeRadians > 0);
   assert.ok(BreakerReachSystemDefinition.worlds.every(
@@ -78,6 +79,14 @@ test('authored result emblems fail closed when their visible copy is incomplete'
   InvalidSystemDefinition.completion.emblems.arc.subtitle = '';
   assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
     'Authored system completion.emblems.arc requires title and subtitle.',
+  ));
+});
+
+test('authored continuation policy fails closed when it is not boolean', () => {
+  const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  InvalidSystemDefinition.completion.continueToNextSystem = 'later';
+  assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
+    'Authored system completion.continueToNextSystem must be boolean when present.',
   ));
 });
 

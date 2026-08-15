@@ -21,7 +21,7 @@ Every successful route leaves a relay behind. Close two unique circuits before t
 
 **Feature bullets:**
 
-- Five authored planetary systems with distinct routing challenges.
+- One dense six-world sector with distinct route choices and a complete Warden arc.
 - Deterministic 120 Hz gravity shared by live flight and trajectory prediction.
 - Tiny cultures that visibly awaken, trade, resist suppression and answer the final Pulse.
 - Resilient relay circuits, a pursuing Warden and a moving Command World finale.
@@ -70,7 +70,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Manual release checklist
 
-- Complete the safe and mastery route for every authored system on the candidate commit.
+- Complete the safe and mastery Breaker's Reach routes; smoke-test archived authored systems as compatibility fixtures.
 - Verify pointer, touch and keyboard aim; surface walking; Scout zoom; Burn; landing; hazard/void recovery; zero-bonus-fuel continuation; Warden catch; Reset; audio, ghost and replay.
 - Verify desktop, 390×844 portrait and 844×390 landscape without overflow.
 - Verify System, Reduced and Full motion modes, including local persistence and unchanged ranked state.
@@ -84,13 +84,14 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob30` passes 142 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob31` passes 143 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 186/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
 - 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
 - Explicit reduced motion preserves the deterministic Haven-to-Ember launch and landing.
 - Local-only diagnostics prove background aim cancellation/resume, WebGL loss/restoration and adaptive-quality degradation/recovery.
 - Breaker's Reach results use authored Command, Solidarity and Wayfinder emblems and report bonus fuel without presenting zero as a failure condition.
+- The selected sector ends with replay and ranking actions; four archived authored systems remain direct-query compatibility fixtures and pass startup smoke checks.
 - These checks do not approve a public deployment, production leaderboard or jam submission.
 
 ## Known gated items
