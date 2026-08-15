@@ -84,7 +84,7 @@ export function auditReleaseReadiness() {
       && PresentationSource.includes('export function getPlanningAtmosphere(')
       && MainSource.includes('MaximumTrajectoryPredictionSteps = 720')
       && MainSource.includes('applySectorPlanningCamera(')
-      && MainSource.includes('snapLiveCameraToPlanningView(')
+      && CameraSource.includes('snapLiveCameraToPlanningView(')
       && CameraSource.includes('host.PlanningCameraScale * host.AimZoomScale')
       && MainSource.includes('updateFlightPlanningPresentation(')
       && InputControllerSource.includes('beginPinchIfNeeded()')
