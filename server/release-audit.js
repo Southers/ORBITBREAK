@@ -119,6 +119,11 @@ export function auditReleaseReadiness() {
     'The selected one-sector candidate must retain its final resistance and ending reveals.',
   );
   requireCondition(
+    MainSource.includes("const SecondRelayAnswerLine = '“We thought we were alone.”';")
+      && MainSource.includes('GameCanvas.dataset.wardenArrivalAnswer = ArrivalAnswerLine;'),
+    'The selected one-sector candidate must preserve the second answer through Warden arrival.',
+  );
+  requireCondition(
     AuthoredCampaignSystemIdentifiers.length === 5,
     'The release campaign must contain exactly five authored systems.',
   );

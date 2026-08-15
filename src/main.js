@@ -35,7 +35,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob36';
+} from './content.js?v=20260815-ob37';
 
 import {
   countRestoredWorlds,
@@ -175,6 +175,8 @@ const CampaignNodeDefinitions = [
   WorldheartDefinition,
 ];
 const StardustDefinitions = ActiveSystem.stardust;
+const FirstRelayAnswerLine = '“Is someone there?”';
+const SecondRelayAnswerLine = '“We thought we were alone.”';
 
 /**
  * ORBITBREAK — deterministic gravity score-attack foundation.
@@ -251,7 +253,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob36';
+GameCanvas.dataset.build = '20260815-ob37';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -3323,9 +3325,13 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
   const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
   if (WardenPursuitState.lastEvent === WardenPursuitEvents.revealed) {
     startWardenEventPulse(WardenVisualGroup.position, 0xff5148, 'arrival');
+    const ArrivalAnswerLine = RelayNetworkState.links.size === 2
+      ? SecondRelayAnswerLine
+      : '';
+    GameCanvas.dataset.wardenArrivalAnswer = ArrivalAnswerLine;
     showInstruction(
       'Unauthorised network detected.',
-      `The Warden is targeting ${TargetWorld?.label ?? 'the frontier'} · ${WardenPursuitState.distance} resolved flights away.`,
+      `${ArrivalAnswerLine ? `${ArrivalAnswerLine} ` : ''}The Warden is targeting ${TargetWorld?.label ?? 'the frontier'} · ${WardenPursuitState.distance} resolved flights away.`,
     );
   } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.advanced) {
     showStatusToast(
@@ -5329,9 +5335,9 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
 
   if (GamePhase === 'restoring') {
     const AnswerLine = RelayNetworkState.links.size === 1
-      ? '“Is someone there?”'
+      ? FirstRelayAnswerLine
       : (RelayNetworkState.links.size === 2
-        ? '“We thought we were alone.”'
+        ? SecondRelayAnswerLine
         : WorldDefinition.memory);
     showInstruction(
       RelayConnection?.destinationReactivated
@@ -7548,6 +7554,7 @@ function resetGame() {
   WardenApproachStartPosition.copy(WardenEntryPosition);
   GameCanvas.dataset.lastSuppressedWorld = '';
   GameCanvas.dataset.wardenCaughtWorld = '';
+  GameCanvas.dataset.wardenArrivalAnswer = '';
   publishWardenState();
   RunFlightTimeSeconds = 0;
   try {
