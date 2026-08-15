@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   createHostileEncounterState,
   getHostileEncounterAngularDistance,
+  getHostileEncounterMoveDirection,
   isHostilePulseReady,
   resolveHostilePulse,
 } from '../src/encounter.js';
@@ -15,8 +16,20 @@ test('a hostile pylon is a short deterministic walk ahead of the landing point',
   });
   assert.ok(Math.abs(State.pylonSurfaceAngle - (Math.PI / 6)) < 1e-12);
   assert.ok(getHostileEncounterAngularDistance(State, 0) > State.pulseRangeRadians);
+  assert.equal(getHostileEncounterMoveDirection(State, 0), 1);
   assert.equal(isHostilePulseReady(State, 0), false);
   assert.equal(isHostilePulseReady(State, 25 * (Math.PI / 180)), true);
+});
+
+test('surface guidance chooses the shortest signed path across the angle seam', () => {
+  const State = createHostileEncounterState({
+    worldIdentifier: 'command',
+    runnerSurfaceAngle: Math.PI - 0.1,
+    pylonOffsetRadians: 0.2,
+  });
+  assert.equal(getHostileEncounterMoveDirection(State, Math.PI - 0.1), 1);
+  assert.equal(getHostileEncounterMoveDirection(State, -Math.PI + 0.2), -1);
+  assert.equal(getHostileEncounterMoveDirection(State, State.pylonSurfaceAngle), 0);
 });
 
 test('the contextual Pulse resolves once and cannot be fired from out of range', () => {

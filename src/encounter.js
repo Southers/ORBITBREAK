@@ -29,6 +29,11 @@ export function getHostileEncounterAngularDistance(State, RunnerSurfaceAngle) {
   return Math.abs(normalizeAngle(State.pylonSurfaceAngle - RunnerSurfaceAngle));
 }
 
+/** Returns the shortest signed surface direction toward the active pylon. */
+export function getHostileEncounterMoveDirection(State, RunnerSurfaceAngle) {
+  return Math.sign(normalizeAngle(State.pylonSurfaceAngle - RunnerSurfaceAngle));
+}
+
 export function isHostilePulseReady(State, RunnerSurfaceAngle) {
   return !State.completed
     && getHostileEncounterAngularDistance(State, RunnerSurfaceAngle) <= State.pulseRangeRadians;

@@ -44,7 +44,7 @@ npm run release:audit
 - Tap the Breaker Burn button once during flight, or press `Space`, to spend the flight's deterministic correction.
 - Focus the game and use left/right or `A`/`D` to steer.
 - Use up/down or `W`/`S` to adjust power; hold `Shift` for fine control.
-- Press `Q`/`E` to walk around the current world. Press `Enter` or `Space` to launch; `Escape` cancels keyboard aiming.
+- Press `Q`/`E` to walk around the current world; hostile surface encounters name the shortest key toward their pylons. Press `Enter` or `Space` to launch; `Escape` cancels keyboard aiming.
 - `R` resets the run, `M` toggles audio and `P` cycles motion preference.
 
 ## Project guide

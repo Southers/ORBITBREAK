@@ -14,9 +14,10 @@ import {
 import {
   createHostileEncounterState,
   getHostileEncounterAngularDistance,
+  getHostileEncounterMoveDirection,
   isHostilePulseReady,
   resolveHostilePulse,
-} from './encounter.js?v=20260814-ob19';
+} from './encounter.js?v=20260815-ob43';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -253,7 +254,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob42';
+GameCanvas.dataset.build = '20260815-ob43';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -4923,11 +4924,15 @@ function showHostileEncounterInstruction() {
     const DistanceDegrees = Math.round(THREE.MathUtils.radToDeg(
       getHostileEncounterAngularDistance(ActiveHostileEncounterState, RunnerSurfaceAngle),
     ));
+    const MoveKey = getHostileEncounterMoveDirection(
+      ActiveHostileEncounterState,
+      RunnerSurfaceAngle,
+    ) > 0 ? 'Q' : 'E';
     showInstruction(
       IsCommandApproach
         ? CommandApproachTitle
         : `${AttachedWorld.label} blocks the relay.`,
-      `${IsCommandApproach ? 'Circle the moving Command World' : 'Walk the rim'} with Q/E or trace toward the red pylons · ${DistanceDegrees}° away.`,
+      `${IsCommandApproach ? 'Circle the moving Command World' : 'Walk the rim'} with ${MoveKey} or trace toward the red pylons · ${DistanceDegrees}° away.`,
     );
   }
   return true;
@@ -6368,6 +6373,13 @@ function releaseAimedLaunch() {
 function updateBreakerBurnInterface() {
   const IsHostilePulse = Boolean(ActiveHostileEncounterState);
   const IsPulseReady = IsHostilePulse && publishHostileEncounterState();
+  const AttachedWorld = IsHostilePulse ? getCurrentAttachedWorld() : null;
+  const HostileMoveKey = AttachedWorld && !IsPulseReady
+    ? (getHostileEncounterMoveDirection(
+      ActiveHostileEncounterState,
+      getRunnerSurfaceAngle(AttachedWorld),
+    ) > 0 ? 'Q' : 'E')
+    : '';
   BurnButtonElement.hidden = GamePhase !== 'flying' && !IsHostilePulse;
   BurnButtonElement.classList.toggle(
     'is-spent',
@@ -6378,14 +6390,14 @@ function updateBreakerBurnInterface() {
     ? 'BREAKER PULSE'
     : 'BREAKER BURN';
   BurnButtonElement.querySelector('strong').textContent = IsHostilePulse
-    ? (IsPulseReady ? 'IN RANGE' : 'MOVE Q / E')
+    ? (IsPulseReady ? 'IN RANGE' : `MOVE ${HostileMoveKey}`)
     : IsBreakerBurnAvailable
       ? (IsBreakerBurnPending ? 'ARMED' : 'READY')
       : 'SPENT';
   BurnButtonElement.setAttribute(
     'aria-label',
     IsHostilePulse
-      ? `Breaker Pulse ${IsPulseReady ? 'ready' : 'out of range'}`
+      ? `Breaker Pulse ${IsPulseReady ? 'ready' : `out of range; move ${HostileMoveKey}`}`
       : `Breaker Burn ${IsBreakerBurnAvailable ? 'ready' : 'spent'}`,
   );
   GameCanvas.dataset.breakerBurn = GamePhase !== 'flying'

@@ -406,6 +406,18 @@ with `COMMAND EXPOSED`. The transitions peaked at 175 and 156 of 190 calls with 
 Portrait held the full choice in a 58.6px panel above 44px controls with no overflow. The hypothesis
 held without changing valid destinations, fixed-step prediction, flight, score or replay inputs.
 
+Gauntlet pass 13 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The final surface prompt said `Q/E` even when only one key was
+the short path to the pylons. A live Command landing began 36 degrees away: the correct `Q` route
+reached Pulse range in seven steps, while choosing `E` first required nineteen corrective steps.
+Hostile encounters now derive the shortest signed direction across the angle seam and name `Q` or
+`E` in the instruction, button state and accessible label. Fresh desktop and 390×844 routes both
+showed `MOVE Q`; desktop reduced the displayed distance after one step, while portrait reached range
+in seven prompted steps and produced a complete replay-verified result. Portrait retained a 52px
+Pulse control, 44px footer controls, no overflow and a 169/190 peak; desktop peaked at 175/190. The
+hypothesis held without changing surface step size, encounter range, fixed-step flight, prediction,
+scoring or replay input.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
