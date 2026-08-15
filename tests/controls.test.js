@@ -9,6 +9,7 @@ import {
   createKeyboardAimState,
   findNearestKeyboardAimAngle,
   getKeyboardAimDragVector,
+  getScoutZoomPresentation,
   getSurfacePosition,
 } from '../src/controls.js';
 
@@ -95,4 +96,20 @@ test('pointer and keyboard surface movement stay on one deterministic circumfere
     y: 1,
     z: 0,
   });
+});
+
+test('Scout zoom presentation announces percentage and marks only reached limits unavailable', () => {
+  assert.deepEqual(getScoutZoomPresentation(1), {
+    percentage: 100,
+    status: 'Scout zoom 100%',
+    zoomInLabel: 'Scout zoom in, currently 100%',
+    zoomOutLabel: 'Scout zoom out, currently 100%',
+    canZoomIn: true,
+    canZoomOut: true,
+  });
+  assert.equal(getScoutZoomPresentation(0.72).percentage, 139);
+  assert.equal(getScoutZoomPresentation(0.72).canZoomIn, false);
+  assert.equal(getScoutZoomPresentation(1.55).percentage, 65);
+  assert.equal(getScoutZoomPresentation(1.55).canZoomOut, false);
+  assert.throws(() => getScoutZoomPresentation(0.5), /inside valid bounds/);
 });

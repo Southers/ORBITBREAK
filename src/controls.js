@@ -62,6 +62,33 @@ export function adjustSurfaceAngle(AngleRadians, Direction, { fine = false } = {
   return normalizeAngle(AngleRadians + (Math.sign(Direction) * StepRadians));
 }
 
+/** Describes Scout zoom consistently for buttons, keyboard input and assistive status. */
+export function getScoutZoomPresentation(
+  Scale,
+  { minimumScale = 0.72, maximumScale = 1.55 } = {},
+) {
+  if (
+    !Number.isFinite(Scale)
+    || !Number.isFinite(minimumScale)
+    || !Number.isFinite(maximumScale)
+    || minimumScale <= 0
+    || maximumScale <= minimumScale
+    || Scale < minimumScale
+    || Scale > maximumScale
+  ) {
+    throw new Error('Scout zoom presentation requires a scale inside valid bounds.');
+  }
+  const Percentage = Math.round(100 / Scale);
+  return {
+    percentage: Percentage,
+    status: `Scout zoom ${Percentage}%`,
+    zoomInLabel: `Scout zoom in, currently ${Percentage}%`,
+    zoomOutLabel: `Scout zoom out, currently ${Percentage}%`,
+    canZoomIn: Scale > minimumScale,
+    canZoomOut: Scale < maximumScale,
+  };
+}
+
 /** Keeps keyboard aim state finite, normalized and inside the playable power range. */
 export function createKeyboardAimState({
   directionX = 1,

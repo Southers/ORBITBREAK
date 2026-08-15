@@ -47,6 +47,11 @@ button:focus-visible,
   outline-offset: 3px;
 }
 
+button[aria-disabled='true'] {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
 #GameShell {
   position: relative;
   background:

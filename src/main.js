@@ -9,8 +9,9 @@ import {
   createKeyboardAimState,
   findNearestKeyboardAimAngle,
   getKeyboardAimDragVector,
+  getScoutZoomPresentation,
   getSurfacePosition,
-} from './controls.js?v=20260815-ob32';
+} from './controls.js?v=20260815-ob59';
 import {
   createHostileEncounterState,
   getHostileEncounterAngularDistance,
@@ -258,10 +259,11 @@ const MotionButtonElement = document.querySelector('#MotionButton');
 const ScoutButtonElement = document.querySelector('#ScoutButton');
 const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
 const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
+const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob58';
+GameCanvas.dataset.build = '20260815-ob59';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -387,6 +389,8 @@ let IsKeyboardAiming = false;
 let ActivePointerIdentifier = null;
 let KeyboardAimState = createKeyboardAimState();
 let IsScoutMode = false;
+const MinimumScoutZoomScale = 0.72;
+const MaximumScoutZoomScale = 1.55;
 let ScoutZoomScale = 1;
 let IsPersonalBestGhostEnabled = false;
 let HasPersonalBestGhost = false;
@@ -7282,12 +7286,19 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   }
 }
 
-/**
- * Adds gentle camera follow while the seed is flying without losing the level overview.
- * This is intentionally restrained for motion comfort on phones.
- *
- * @param {number} DeltaTimeSeconds - Real frame delta.
- */
+/** Keeps Scout zoom labels, limits and optional announcements in one shared state. */
+function updateScoutZoomInterface({ announce = false } = {}) {
+  const Presentation = getScoutZoomPresentation(ScoutZoomScale, {
+    minimumScale: MinimumScoutZoomScale,
+    maximumScale: MaximumScoutZoomScale,
+  });
+  ScoutZoomInButtonElement.setAttribute('aria-disabled', String(!Presentation.canZoomIn));
+  ScoutZoomOutButtonElement.setAttribute('aria-disabled', String(!Presentation.canZoomOut));
+  ScoutZoomInButtonElement.setAttribute('aria-label', Presentation.zoomInLabel);
+  ScoutZoomOutButtonElement.setAttribute('aria-label', Presentation.zoomOutLabel);
+  if (announce) ScoutZoomStatusElement.textContent = Presentation.status;
+}
+
 function setScoutMode(Enabled, { snapToRunner = true } = {}) {
   const CanScout = ActiveSystem.camera?.followPlayer === true
     && GamePhase === 'attached'
@@ -7299,12 +7310,21 @@ function setScoutMode(Enabled, { snapToRunner = true } = {}) {
     ScoutCameraTarget.set(SeedPhysicsState.position.x, SeedPhysicsState.position.y, 0);
     ScoutZoomScale = 1;
   }
+  const ShouldRestoreScoutButtonFocus = !IsScoutMode
+    && (
+      document.activeElement === ScoutZoomOutButtonElement
+      || document.activeElement === ScoutZoomInButtonElement
+    );
   ScoutButtonElement.textContent = IsScoutMode ? 'Runner [C]' : 'Scout [C]';
   ScoutButtonElement.setAttribute('aria-pressed', String(IsScoutMode));
   ScoutZoomOutButtonElement.hidden = !IsScoutMode;
   ScoutZoomInButtonElement.hidden = !IsScoutMode;
+  if (!IsScoutMode) ScoutZoomStatusElement.textContent = '';
+  updateScoutZoomInterface({ announce: IsScoutMode });
   GameCanvas.dataset.scoutMode = String(IsScoutMode);
+  GameCanvas.dataset.scoutZoom = ScoutZoomScale.toFixed(2);
   GameCanvas.classList.toggle('is-scouting', IsScoutMode && IsPointerScouting);
+  if (ShouldRestoreScoutButtonFocus) ScoutButtonElement.focus({ preventScroll: true });
   updatePersonalBestGhostVisibility();
   resizeRenderer();
 }
@@ -7312,11 +7332,15 @@ function setScoutMode(Enabled, { snapToRunner = true } = {}) {
 function adjustScoutZoom(Direction) {
   if (!IsScoutMode) setScoutMode(true, { snapToRunner: false });
   if (!IsScoutMode) return false;
+  const PreviousScale = ScoutZoomScale;
   ScoutZoomScale = THREE.MathUtils.clamp(
     ScoutZoomScale + (Math.sign(Direction) * 0.1),
-    0.72,
-    1.55,
+    MinimumScoutZoomScale,
+    MaximumScoutZoomScale,
   );
+  const DidChange = ScoutZoomScale !== PreviousScale;
+  updateScoutZoomInterface({ announce: DidChange });
+  if (!DidChange) return false;
   GameCanvas.dataset.scoutZoom = ScoutZoomScale.toFixed(2);
   resizeRenderer();
   return true;
@@ -7329,6 +7353,12 @@ function handleScoutWheel(WheelEventData) {
   }
 }
 
+/**
+ * Adds gentle camera follow while the seed is flying without losing the level overview.
+ * This is intentionally restrained for motion comfort on phones.
+ *
+ * @param {number} DeltaTimeSeconds - Real frame delta.
+ */
 function updateCamera(DeltaTimeSeconds) {
   const UsesExplorationCamera = ActiveSystem.camera?.followPlayer === true;
   if (UsesExplorationCamera && IsScoutMode) {
@@ -7536,6 +7566,8 @@ function resetGame() {
   ScoutButtonElement.setAttribute('aria-pressed', 'false');
   ScoutZoomOutButtonElement.hidden = true;
   ScoutZoomInButtonElement.hidden = true;
+  ScoutZoomStatusElement.textContent = '';
+  updateScoutZoomInterface();
   AimPanelElement.hidden = true;
   AimPanelElement.classList.remove('is-locked');
   clearTrajectoryPreview();

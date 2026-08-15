@@ -102,6 +102,15 @@ export function auditReleaseReadiness() {
     'Command World objective updates must remain a complete atomic status.',
   );
   requireCondition(
+    /id="ScoutZoomStatus"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
+      && /updateScoutZoomInterface\(\{\s*announce:\s*DidChange\s*\}\)/.test(MainSource)
+      && /ScoutZoomInButtonElement\.setAttribute\('aria-disabled',\s*String\(!Presentation\.canZoomIn\)\)/.test(MainSource)
+      && /ScoutZoomOutButtonElement\.setAttribute\('aria-disabled',\s*String\(!Presentation\.canZoomOut\)\)/.test(MainSource)
+      && /GameCanvas\.dataset\.scoutZoom\s*=\s*ScoutZoomScale\.toFixed\(2\)/.test(MainSource)
+      && /if\s*\(ShouldRestoreScoutButtonFocus\)\s*ScoutButtonElement\.focus\(\{\s*preventScroll:\s*true\s*\}\)/.test(MainSource),
+    'Scout zoom must announce its level and mark deterministic limits without dropping focus.',
+  );
+  requireCondition(
     /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),
     'Release diagnostics must remain restricted to local development hosts.',
   );

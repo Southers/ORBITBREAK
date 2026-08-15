@@ -585,6 +585,20 @@ focus; the browser reported no warnings or errors. The release audit protects th
 This accessibility-only pass changes no objective thresholds, relay state, input, fixed-step physics,
 score, pursuit or replay behavior.
 
+Gauntlet pass 29 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** Scout zoom was operable by touch and keyboard but exposed no
+current level or limit feedback; the live audit also showed that native disabling would drop focus at
+a reached bound. A pure presentation mapping now converts the deterministic 0.72–1.55 camera scale into
+139%–65% player-facing zoom, shared button names and directional availability. A polite atomic status
+announces each changed level; the reached direction uses `aria-disabled` so focus remains stable. At
+390×844 both zoom controls remained 44×44px: three touch activations reached 139%, pointer zoom-out
+reported 122%, and keyboard `+` returned to 139% through the same state. Pressing `C` from a zoom
+control restored focus to Scout, hid both controls and truthfully republished 1.00. At 1280×720,
+keyboard `+` reported 111% with the same 44px controls. Both layouts remained overflow-free and the
+browser reported no warnings or errors. The release audit protects announcements, bounds, published
+state and exit focus. This control-state pass changes no camera scale bounds, input mapping, physics,
+score, pursuit or replay behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
