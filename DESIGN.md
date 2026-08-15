@@ -80,7 +80,7 @@ Each circuit grants its shield damage and score only the first time it closes in
 
 This is also why circuits can hurt the Warden: its system is designed to silence a chain by controlling one choke point. A closed route carries the signal around the break, synchronises several worlds at once and reflects the failed suppression back into the command vessel's shield.
 
-This makes route topology understandable without a separate economy. A fast chain expands quickly but is fragile; a loop costs travel but protects progress and advances the endgame.
+This makes route topology understandable without a separate economy. A fast chain expands quickly but is fragile; a loop costs travel but protects progress and advances the endgame. The HUD teaches that order: live relays until the Warden appears, unique circuits while it hunts, then the exposed Command World.
 
 Trade traffic is not background decoration. Its presence shows which links are alive; ships turn back or disappear when a route is threatened, and return when it is restored.
 

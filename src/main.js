@@ -38,7 +38,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob42';
+} from './content.js?v=20260815-ob75';
 
 import {
   countRestoredWorlds,
@@ -70,6 +70,7 @@ import {
   listLiveRelayCircuits,
   listLiveRelayLinks,
   listProtectedRelayWorlds,
+  listRelayCircuits,
   listRelayLinks,
   listVulnerableRelayWorlds,
   suppressRelayWorld,
@@ -89,8 +90,10 @@ import {
   savePersonalBest,
 } from './records.js?v=20260814-ob8';
 import {
+  getHiddenWardenRouteCoach,
   getLiberationFlashOpacity,
   getLeaderboardActionLabel,
+  getLoopObjectivePresentation,
   getPersonalBestStatus,
   getPlayfieldLabelVerticalBounds,
   getPublishedWardenState,
@@ -106,7 +109,7 @@ import {
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob71';
+} from './presentation.js?v=20260815-ob75';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -216,6 +219,7 @@ const ScannerWardenElement = document.querySelector('#ScannerWarden');
 const ScannerRunnerElement = document.querySelector('#ScannerRunner');
 const StardustCounterElement = document.querySelector('#StardustCounter');
 const ObjectivePanelElement = document.querySelector('#ObjectivePanel');
+const ObjectiveLabelElement = document.querySelector('#ObjectiveLabel');
 const ObjectiveStateElement = document.querySelector('#ObjectiveState');
 const ObjectivePipsElement = document.querySelector('#ObjectivePips');
 const WardenPanelElement = document.querySelector('#WardenPanel');
@@ -269,7 +273,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob74';
+GameCanvas.dataset.build = '20260815-ob75';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -4244,6 +4248,16 @@ function getCurrentRouteChoices(MaximumChoiceCount = 2) {
 
 /** Reveals the nearest useful routes while leaving every physical destination valid. */
 function showRouteChoiceInstruction() {
+  if (WardenPursuitState.status === 'hidden') {
+    const RouteChoices = getCurrentRouteChoices(2);
+    const Coach = getHiddenWardenRouteCoach({
+      liveRelayCount: countLiveRelayWorlds(RelayNetworkState),
+      routeLabels: RouteChoices.map((RouteChoice) => RouteChoice.label),
+      openingBody: ActiveSystem.openingBody,
+    });
+    showInstruction(Coach.title, Coach.body);
+    return;
+  }
   const RouteChoices = getCurrentRouteChoices(2);
   const CircuitChoice = RouteChoices.find((RouteChoice) => (
     wouldCloseRelayCircuit(
@@ -4610,23 +4624,24 @@ function updateStardustCounter() {
   );
 }
 
-/** Keeps the campaign objective visible without crowding the world/mastery counter. */
+/** Keeps the live loop objective on relays, then circuits, then Command. */
 function updateWorldheartObjective() {
-  const RestoredWorldCount = countRestoredWorlds(WorldDefinitions);
-  const IsWorldheartOpen = WorldheartDefinition.routeAvailable;
-  ObjectivePanelElement.classList.toggle('is-open', IsWorldheartOpen);
-  ObjectiveStateElement.textContent = WorldheartDefinition.restored
-    ? 'LIBERATED'
-    : CurrentWorldIdentifier === WorldheartDefinition.id && ActiveHostileEncounterState
-      ? 'CORE LOCKED'
-    : IsWorldheartOpen
-      ? 'COMMAND EXPOSED'
-    : `${Math.min(RestoredWorldCount, WorldheartUnlockThreshold)} / ${WorldheartUnlockThreshold}`;
+  const Presentation = getLoopObjectivePresentation({
+    liveRelayCount: countLiveRelayWorlds(RelayNetworkState),
+    uniqueCircuitCount: listRelayCircuits(RelayNetworkState).length,
+    wardenStatus: WardenPursuitState.status,
+    isOnCommandCore: CurrentWorldIdentifier === WorldheartDefinition.id
+      && Boolean(ActiveHostileEncounterState),
+    isCommandLiberated: WorldheartDefinition.restored,
+  });
+  ObjectiveLabelElement.textContent = Presentation.label;
+  ObjectiveStateElement.textContent = Presentation.state;
+  ObjectivePanelElement.classList.toggle('is-open', Presentation.open);
+  ObjectivePipsElement.classList.toggle('is-binary', Presentation.pipCount === 2);
   for (let PipIndex = 0; PipIndex < ObjectivePipElements.length; PipIndex += 1) {
-    ObjectivePipElements[PipIndex].classList.toggle(
-      'is-filled',
-      PipIndex < RestoredWorldCount,
-    );
+    const PipElement = ObjectivePipElements[PipIndex];
+    PipElement.hidden = PipIndex >= Presentation.pipCount;
+    PipElement.classList.toggle('is-filled', PipIndex < Presentation.filledPips);
   }
 }
 

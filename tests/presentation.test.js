@@ -17,6 +17,8 @@ import {
   getStillnessPresentation,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
+  getLoopObjectivePresentation,
+  getHiddenWardenRouteCoach,
   separateOverlappingTacticalLabels,
   separateOverlappingRouteLabels,
   separateRouteLabelsFromTacticalLabels,
@@ -67,6 +69,80 @@ test('published Warden state distinguishes exposure from final defeat', () => {
     }),
     /requires valid runner, relay and Warden state/,
   );
+});
+
+test('loop objective teaches relays, then circuits, then Command', () => {
+  assert.deepEqual(getLoopObjectivePresentation({
+    liveRelayCount: 1,
+    uniqueCircuitCount: 0,
+    wardenStatus: 'hidden',
+  }), {
+    label: 'RELAYS',
+    state: '1 / 3',
+    filledPips: 1,
+    pipCount: 3,
+    open: false,
+  });
+  assert.deepEqual(getLoopObjectivePresentation({
+    liveRelayCount: 2,
+    uniqueCircuitCount: 0,
+    wardenStatus: 'hidden',
+  }).state, '2 / 3');
+  assert.deepEqual(getLoopObjectivePresentation({
+    liveRelayCount: 3,
+    uniqueCircuitCount: 0,
+    wardenStatus: 'pursuing',
+  }), {
+    label: 'CIRCUITS',
+    state: '0 / 2',
+    filledPips: 0,
+    pipCount: 2,
+    open: false,
+  });
+  assert.deepEqual(getLoopObjectivePresentation({
+    liveRelayCount: 4,
+    uniqueCircuitCount: 1,
+    wardenStatus: 'pursuing',
+  }).state, '1 / 2');
+  assert.equal(getLoopObjectivePresentation({
+    liveRelayCount: 5,
+    uniqueCircuitCount: 2,
+    wardenStatus: 'exposed',
+  }).state, 'COMMAND EXPOSED');
+  assert.equal(getLoopObjectivePresentation({
+    liveRelayCount: 5,
+    uniqueCircuitCount: 2,
+    wardenStatus: 'exposed',
+    isOnCommandCore: true,
+  }).state, 'CORE LOCKED');
+  assert.equal(getLoopObjectivePresentation({
+    liveRelayCount: 5,
+    uniqueCircuitCount: 2,
+    wardenStatus: 'exposed',
+    isCommandLiberated: true,
+  }).state, 'LIBERATED');
+  assert.throws(
+    () => getLoopObjectivePresentation({ liveRelayCount: 1 }),
+    /requires relay, circuit and Warden state/,
+  );
+});
+
+test('hidden Warden coach teaches the first shot then the triangulation beat', () => {
+  assert.deepEqual(getHiddenWardenRouteCoach({
+    liveRelayCount: 1,
+    routeLabels: ['EMBER', 'FROST'],
+    openingBody: 'Pull back from the Runner and release toward Ember.',
+  }), {
+    title: 'Choose EMBER or FROST',
+    body: 'Pull back from the Runner and release toward Ember.',
+  });
+  assert.deepEqual(getHiddenWardenRouteCoach({
+    liveRelayCount: 2,
+    routeLabels: ['GROVE', 'FROST'],
+  }), {
+    title: 'Choose GROVE or FROST',
+    body: 'One more live world and the Warden notices. Landing leaves another relay.',
+  });
 });
 
 test('rankings action discloses offline state before opening the board', () => {

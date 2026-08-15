@@ -376,3 +376,104 @@ export function getPlayfieldLabelVerticalBounds({
     maximumY: MaximumY,
   };
 }
+
+/**
+ * Maps the live loop to one objective: relays, then circuits, then Command.
+ * Judges should never see the boss counter before they have connected a world.
+ */
+export function getLoopObjectivePresentation({
+  liveRelayCount,
+  uniqueCircuitCount,
+  wardenStatus,
+  isOnCommandCore = false,
+  isCommandLiberated = false,
+  relayRevealCount = 3,
+  circuitExposeCount = 2,
+} = {}) {
+  if (
+    !Number.isInteger(liveRelayCount)
+    || liveRelayCount < 0
+    || !Number.isInteger(uniqueCircuitCount)
+    || uniqueCircuitCount < 0
+    || typeof wardenStatus !== 'string'
+    || wardenStatus.length < 1
+  ) {
+    throw new Error('Loop objective requires relay, circuit and Warden state.');
+  }
+  if (isCommandLiberated) {
+    return {
+      label: 'COMMAND WORLD',
+      state: 'LIBERATED',
+      filledPips: 3,
+      pipCount: 3,
+      open: true,
+    };
+  }
+  if (isOnCommandCore) {
+    return {
+      label: 'COMMAND WORLD',
+      state: 'CORE LOCKED',
+      filledPips: 3,
+      pipCount: 3,
+      open: true,
+    };
+  }
+  if (wardenStatus === 'exposed') {
+    return {
+      label: 'COMMAND WORLD',
+      state: 'COMMAND EXPOSED',
+      filledPips: 3,
+      pipCount: 3,
+      open: true,
+    };
+  }
+  if (wardenStatus !== 'hidden') {
+    const Circuits = Math.min(uniqueCircuitCount, circuitExposeCount);
+    return {
+      label: 'CIRCUITS',
+      state: `${Circuits} / ${circuitExposeCount}`,
+      filledPips: Circuits,
+      pipCount: circuitExposeCount,
+      open: false,
+    };
+  }
+  const Relays = Math.min(liveRelayCount, relayRevealCount);
+  return {
+    label: 'RELAYS',
+    state: `${Relays} / ${relayRevealCount}`,
+    filledPips: Relays,
+    pipCount: relayRevealCount,
+    open: false,
+  };
+}
+
+/** Teaches the first connections before circuits, shields or Command. */
+export function getHiddenWardenRouteCoach({
+  liveRelayCount,
+  routeLabels = [],
+  openingBody = '',
+} = {}) {
+  if (!Number.isInteger(liveRelayCount) || liveRelayCount < 1) {
+    throw new Error('Hidden Warden coach requires a live relay count.');
+  }
+  const First = routeLabels[0];
+  const Second = routeLabels[1];
+  const Title = First && Second
+    ? `Choose ${First} or ${Second}`
+    : First
+      ? `Land on ${First}`
+      : 'Land on the next world';
+  if (liveRelayCount >= 2) {
+    return {
+      title: Title,
+      body: 'One more live world and the Warden notices. Landing leaves another relay.',
+    };
+  }
+  return {
+    title: Title,
+    body: typeof openingBody === 'string' && openingBody.trim() !== ''
+      ? openingBody
+      : 'Pull back from the Runner and release. A safe landing wakes the world and draws a relay.',
+  };
+}
+

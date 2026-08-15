@@ -761,7 +761,7 @@ export const BreakerReachSystemDefinition = {
   wardenVictoryValuePerStep: 1000,
   openingBroadcast: 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
   wardenArrivalBroadcast: 'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',
-  openingBody: 'Build relays. Three active worlds reveal the Warden; two circuits break its shields. Start low toward Ember, or walk Haven\'s dark rim and Burn toward Frost.',
+  openingBody: 'Pull back from the Runner and release toward Ember. Landing wakes the world and leaves a relay. Frost is the longer dark-rim Burn if you want a harder first shot.',
   commandApproachLine: 'A network cannot be imprisoned.',
   camera: {
     followPlayer: true,
