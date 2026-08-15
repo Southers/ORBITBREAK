@@ -33,6 +33,7 @@ export function auditReleaseReadiness() {
   const LivingWorldSource = readRepositoryFile('src/living-world-visuals.js');
   const PlayerSource = readRepositoryFile('src/player-visuals.js');
   const StoryDirectorSource = readRepositoryFile('src/story-director.js');
+  const HudSource = readRepositoryFile('src/hud.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -260,7 +261,7 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     MainSource.includes('getPlayfieldLabelVerticalBounds({')
-      && MainSource.includes('function refreshInstructionPanelBounds()')
+      && HudSource.includes('function refreshInstructionPanelBounds()')
       && MainSource.includes('updateRouteLabels(CachedInstructionPanelTop)')
       && PresentationSource.includes('if (wardenVisible && isShortLandscape) return 140;')
       && PresentationSource.includes('? Math.min(BaseMaximumY, instructionTop - 16)'),
@@ -369,7 +370,7 @@ export function auditReleaseReadiness() {
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
         ?.openingBody.includes('Carry the first word')
       && MainSource.includes('getHiddenWardenRouteCoach(')
-      && MainSource.includes('getLoopObjectivePresentation(')
+      && HudSource.includes('getLoopObjectivePresentation(')
       && /id="ObjectiveLabel"[^>]*>NEIGHBOURHOOD</.test(IndexHtml)
       && PresentationSource.includes('export function getRelayRevealLookTarget(')
       && MainSource.includes('getRelayRevealLookTarget(')

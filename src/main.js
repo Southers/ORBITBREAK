@@ -45,6 +45,8 @@ import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260815-o
 import { createWardenVisuals } from './warden-visuals.js?v=20260815-ob90';
 import { createPlayerVisuals } from './player-visuals.js?v=20260815-ob90';
 import { createStoryDirector } from './story-director.js?v=20260815-ob90';
+import { createHud } from './hud.js?v=20260815-ob90';
+import { createAimPreview } from './aim-preview.js?v=20260815-ob90';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -958,10 +960,55 @@ function getFrameLiveRelayCircuits() {
   }
   return FrameLiveRelayCircuits;
 }
+const Hud = createHud({
+  InstructionPanelElement,
+  InstructionTitleElement,
+  InstructionBodyElement,
+  WorldCounterElement,
+  LaunchCounterElement,
+  CounterElement,
+  ScoreCounterElement,
+  FlightScoreValueElement,
+  ChainValueElement,
+  FlightScoreElement,
+  StatusToastElement,
+  StardustCounterElement,
+  ObjectiveLabelElement,
+  ObjectiveStateElement,
+  ObjectivePanelElement,
+  ObjectivePipsElement,
+  ObjectivePipElements,
+  GameCanvas,
+  WorldDefinitions,
+  RestorableWorldCount,
+  StardustDefinitions,
+  WorldheartDefinition,
+  setTimeout: window.setTimeout.bind(window),
+  clearTimeout: window.clearTimeout.bind(window),
+  get CachedInstructionPanelTop() { return CachedInstructionPanelTop; },
+  set CachedInstructionPanelTop(Value) { CachedInstructionPanelTop = Value; },
+  get StatusToastTimeoutIdentifier() { return StatusToastTimeoutIdentifier; },
+  set StatusToastTimeoutIdentifier(Value) { StatusToastTimeoutIdentifier = Value; },
+  get RunState() { return RunState; },
+  get ScoreState() { return ScoreState; },
+  get RelayNetworkState() { return RelayNetworkState; },
+  get WardenPursuitState() { return WardenPursuitState; },
+  get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
+  get ActiveHostileEncounterState() { return ActiveHostileEncounterState; },
+});
+const {
+  refreshInstructionPanelBounds,
+  updateStardustCounter,
+  updateWorldheartObjective,
+  updateWorldCounter,
+  updateLaunchCounter,
+  updateScoreInterface,
+  showStatusToast,
+  showInstruction,
+  hideInstruction,
+  resetHud,
+} = Hud;
 
-function refreshInstructionPanelBounds() {
-  CachedInstructionPanelTop = InstructionPanelElement.getBoundingClientRect().top;
-}
 
 function getSectorClusterRules() {
   return {
@@ -1998,38 +2045,7 @@ function updateTacticalBodies(ElapsedTimeSeconds, InstructionTop) {
   }
 }
 
-/** Updates the optional Arc mastery counter. */
-function updateStardustCounter() {
-  const CollectedStardustCount = StardustDefinitions.filter(
-    (StardustDefinition) => StardustDefinition.collected,
-  ).length;
-  StardustCounterElement.textContent = `${CollectedStardustCount} / ${StardustDefinitions.length}`;
-  StardustCounterElement.closest('.counter__mastery')?.classList.toggle(
-    'is-complete',
-    CollectedStardustCount === StardustDefinitions.length,
-  );
-}
 
-/** Keeps the live loop objective on relays, then circuits, then Command. */
-function updateWorldheartObjective() {
-  const Presentation = getLoopObjectivePresentation({
-    liveRelayCount: countLiveRelayWorlds(RelayNetworkState),
-    uniqueCircuitCount: listRelayCircuits(RelayNetworkState).length,
-    wardenStatus: WardenPursuitState.status,
-    isOnCommandCore: CurrentWorldIdentifier === WorldheartDefinition.id
-      && Boolean(ActiveHostileEncounterState),
-    isCommandLiberated: WorldheartDefinition.restored,
-  });
-  ObjectiveLabelElement.textContent = Presentation.label;
-  ObjectiveStateElement.textContent = Presentation.state;
-  ObjectivePanelElement.classList.toggle('is-open', Presentation.open);
-  ObjectivePipsElement.classList.toggle('is-binary', Presentation.pipCount === 2);
-  for (let PipIndex = 0; PipIndex < ObjectivePipElements.length; PipIndex += 1) {
-    const PipElement = ObjectivePipElements[PipIndex];
-    PipElement.hidden = PipIndex >= Presentation.pipCount;
-    PipElement.classList.toggle('is-filled', PipIndex < Presentation.filledPips);
-  }
-}
 
 function formatFlightTime(FlightTimeMilliseconds) {
   return `${(FlightTimeMilliseconds / 1000).toFixed(1)}s`;
@@ -2618,76 +2634,10 @@ function moveRunnerAroundSurface(Direction, Fine = false) {
   );
 }
 
-/**
- * Updates the HUD counter using only restorable worlds. The starting world is already alive
- * so it acts as the player's launch platform rather than as an objective.
- */
-function updateWorldCounter() {
-  const RestoredWorldCount = countRestoredWorlds(WorldDefinitions);
-  WorldCounterElement.textContent = `${RestoredWorldCount} / ${RestorableWorldCount}`;
-}
 
-/** Keeps the optional remaining-launch victory bonus visible and machine-readable. */
-function updateLaunchCounter() {
-  LaunchCounterElement.textContent = `${RunState.remainingLaunches} / ${RunState.maximumLaunches}`;
-  CounterElement.classList.toggle(
-    'is-low',
-    RunState.remainingLaunches > 0 && RunState.remainingLaunches <= 2,
-  );
-  CounterElement.classList.toggle('is-empty', RunState.remainingLaunches === 0);
-  GameCanvas.dataset.launchesRemaining = String(RunState.remainingLaunches);
-  GameCanvas.dataset.launchesUsed = String(RunState.launchesUsed);
-  GameCanvas.dataset.runStatus = RunState.status;
-}
 
-/** Keeps banked points and the current at-risk chain visible throughout a run. */
-function updateScoreInterface() {
-  ScoreCounterElement.textContent = ScoreState.bankedScore.toLocaleString('en-GB');
-  FlightScoreValueElement.textContent = `+${ScoreState.flightScore.toLocaleString('en-GB')}`;
-  ChainValueElement.textContent = `CHAIN ×${Math.max(1, Math.min(ScoreState.chainCount, 4))}`;
-  FlightScoreElement.hidden = ScoreState.flightScore === 0;
-  GameCanvas.dataset.score = String(ScoreState.bankedScore);
-  GameCanvas.dataset.flightScore = String(ScoreState.flightScore);
-  GameCanvas.dataset.chainCount = String(ScoreState.chainCount);
-  GameCanvas.dataset.networkScore = String(ScoreState.networkScore);
-  GameCanvas.dataset.victoryScore = String(ScoreState.victoryScore);
-}
 
-/**
- * Displays a short centre-screen status message without queueing old messages.
- *
- * @param {string} Message - Text shown to the player.
- * @param {number} VisibleDurationMilliseconds - Duration before the toast fades.
- */
-function showStatusToast(Message, VisibleDurationMilliseconds = 900, Tone = 'status') {
-  if (StatusToastTimeoutIdentifier !== null) {
-    window.clearTimeout(StatusToastTimeoutIdentifier);
-  }
 
-  StatusToastElement.textContent = Message;
-  StatusToastElement.classList.toggle('is-memory', Tone === 'memory');
-  StatusToastElement.classList.toggle('is-warden', Tone === 'warden');
-  StatusToastElement.classList.add('is-visible');
-
-  StatusToastTimeoutIdentifier = window.setTimeout(() => {
-    StatusToastElement.classList.remove('is-visible');
-    StatusToastTimeoutIdentifier = null;
-  }, VisibleDurationMilliseconds);
-}
-
-/**
- * Sets instruction copy and reveals the helper panel.
- *
- * @param {string} Title - Strong instruction line.
- * @param {string} Body - Supporting instruction line.
- */
-function showInstruction(Title, Body) {
-  InstructionTitleElement.textContent = Title;
-  InstructionBodyElement.textContent = Body;
-  InstructionPanelElement.classList.remove('is-hidden');
-  InstructionPanelElement.setAttribute('aria-hidden', 'false');
-  refreshInstructionPanelBounds();
-}
 
 const StoryDirector = createStoryDirector({
   ActiveSystem,
@@ -2853,12 +2803,6 @@ function updateFlightFeedback() {
   }
 }
 
-/** Hides the helper once a launch is in progress. */
-function hideInstruction() {
-  InstructionPanelElement.classList.add('is-hidden');
-  InstructionPanelElement.setAttribute('aria-hidden', 'true');
-  refreshInstructionPanelBounds();
-}
 
 /**
  * Starts the lightweight greybox restoration animation and marks objective state.
@@ -3692,242 +3636,57 @@ function predictCurrentLaunchTrajectory(InitialVelocity, PredictionOverrides = {
   );
 }
 
-/**
- * Updates launch strength and trajectory from the current pointer position.
- *
- * @param {THREE.Vector3} CurrentPointerWorldPosition - Current pointer position in orbital space.
- */
-function updateAimPreview(CurrentPointerWorldPosition) {
-  AimDragVector.set(
-    SeedPhysicsState.position.x - CurrentPointerWorldPosition.x,
-    SeedPhysicsState.position.y - CurrentPointerWorldPosition.y,
-    0,
-  );
+const AimPreview = createAimPreview(THREE, {
+  AimDragVector,
+  get SeedPhysicsState() { return SeedPhysicsState; },
+  MaximumDragDistance,
+  AimLaunchVelocity,
+  LaunchVelocityPerDragUnit,
+  LaunchCancelRadius,
+  AimPanelElement,
+  AimPowerFillElement,
+  AimPowerValueElement,
+  AimLabelElement,
+  WorldseedSound,
+  GameCanvas,
+  WorldDefinitions,
+  SeedRadius,
+  get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
+  PredictedStardustIdentifiers,
+  StardustDefinitions,
+  StardustCollectionRadius,
+  TrajectoryMaterial,
+  LandingMarkerMaterial,
+  AsteroidDefinition,
+  LandingMarkerMesh,
+  SeedstoneDefinition,
+  TemporaryThreeVector,
+  WorldheartDefinition,
+  IsCampaignFinale,
+  PredictedSlingshotWorldIdentifiers,
+  get KeyboardAimState() { return KeyboardAimState; },
+  LastAimPointerWorldPosition,
+  shouldCancelAimedLaunch,
+  clearTrajectoryPreview,
+  applySectorPlanningCamera,
+  predictCurrentLaunchTrajectory,
+  rememberPlanningPath,
+  predictSlingshotEvents,
+  getWorldDefinition,
+  getTrajectoryPickupIdentifiers,
+  renderTrajectoryLine,
+  showInstruction,
+  calculateBodyPositionAtTime,
+  isSystemRestored,
+  getWorldLandingAimLabel,
+  getSlingshotPreviewPresentation,
+  getKeyboardAimDragVector,
+});
+const {
+  updateAimPreview,
+  updateKeyboardAimPreview,
+} = AimPreview;
 
-  if (AimDragVector.length() > MaximumDragDistance) {
-    AimDragVector.setLength(MaximumDragDistance);
-  }
-
-  const PowerRatio = THREE.MathUtils.clamp(AimDragVector.length() / MaximumDragDistance, 0, 1);
-  AimLaunchVelocity.copy(AimDragVector).multiplyScalar(LaunchVelocityPerDragUnit);
-  const WillCancel = shouldCancelAimedLaunch({
-    pointerDistanceFromShip: AimDragVector.length(),
-    cancelRadius: LaunchCancelRadius,
-  });
-  AimPanelElement.classList.toggle('is-cancel', WillCancel);
-  AimPowerFillElement.style.width = WillCancel ? '0%' : `${Math.round(PowerRatio * 100)}%`;
-  AimPowerFillElement.style.transform = 'none';
-  AimPowerValueElement.textContent = WillCancel ? 'CANCEL' : `${Math.round(PowerRatio * 100)}%`;
-
-  if (WillCancel) {
-    clearTrajectoryPreview();
-    applySectorPlanningCamera();
-    AimLabelElement.textContent = 'RELEASE TO CANCEL';
-    WorldseedSound.updateAim(PowerRatio, false);
-    return;
-  }
-
-  const TrajectoryPrediction = predictCurrentLaunchTrajectory(AimLaunchVelocity);
-  const VisiblePredictionPoints = TrajectoryPrediction.points;
-  const IsOutcomeVisible = TrajectoryPrediction.collisionKind !== null;
-  GameCanvas.dataset.lastPredictionVisiblePoints = String(VisiblePredictionPoints.length);
-  GameCanvas.dataset.lastPredictionTotalPoints = String(TrajectoryPrediction.points.length);
-  GameCanvas.dataset.lastPredictionOutcomeVisible = String(IsOutcomeVisible);
-  rememberPlanningPath(TrajectoryPrediction);
-  applySectorPlanningCamera();
-  const PredictedSlingshotEvents = predictSlingshotEvents(
-    TrajectoryPrediction.points,
-    WorldDefinitions,
-    {
-      runnerRadius: SeedRadius,
-      ignoredBodyIdentifier: getWorldDefinition(CurrentWorldIdentifier)
-        ? CurrentWorldIdentifier
-        : null,
-    },
-  );
-  PredictedStardustIdentifiers.clear();
-  for (const StardustIdentifier of getTrajectoryPickupIdentifiers(
-    VisiblePredictionPoints,
-    StardustDefinitions,
-    StardustCollectionRadius,
-  )) {
-    PredictedStardustIdentifiers.add(StardustIdentifier);
-  }
-
-  renderTrajectoryLine(VisiblePredictionPoints);
-
-  const FinalPredictionPoint = TrajectoryPrediction.points[TrajectoryPrediction.points.length - 1];
-  const PowerPercentage = Math.round(PowerRatio * 100);
-  AimPowerFillElement.style.width = `${PowerPercentage}%`;
-  AimPowerValueElement.textContent = `${PowerPercentage}%`;
-
-  if (IsOutcomeVisible && TrajectoryPrediction.collisionKind === 'hazard') {
-    TrajectoryMaterial.color.set(0xff766d);
-    TrajectoryMaterial.opacity = 0.88;
-    LandingMarkerMaterial.color.set(0xff766d);
-    AimPanelElement.classList.remove('is-locked');
-    AimLabelElement.textContent = `${AsteroidDefinition.label} COLLISION`;
-    showInstruction(
-      'Red means impact',
-      'Wait for the asteroid to move or change the launch angle.',
-    );
-    LandingMarkerMesh.position.set(FinalPredictionPoint.x, FinalPredictionPoint.y, 0.2);
-    LandingMarkerMesh.visible = true;
-  } else if (IsOutcomeVisible && TrajectoryPrediction.collisionKind === 'seedstone') {
-    const SeedstonePosition = calculateBodyPositionAtTime(
-      SeedstoneDefinition,
-      TrajectoryPrediction.collisionTimeSeconds,
-    );
-    TrajectoryMaterial.color.set(0x72d9ff);
-    TrajectoryMaterial.opacity = 0.86;
-    LandingMarkerMaterial.color.set(0x72d9ff);
-    AimPanelElement.classList.add('is-locked');
-    AimLabelElement.textContent = `${SeedstoneDefinition.label} LOCKED`;
-    showInstruction(
-      'Release to land on the Seedstone',
-      'Blue means a one-use tactical launchpad. It does not awaken a world.',
-    );
-    const LandingDirection = TemporaryThreeVector.set(
-      FinalPredictionPoint.x - SeedstonePosition.x,
-      FinalPredictionPoint.y - SeedstonePosition.y,
-      0,
-    ).normalize();
-    LandingMarkerMesh.position.set(
-      SeedstonePosition.x + (LandingDirection.x * (SeedstoneDefinition.radius + 0.08)),
-      SeedstonePosition.y + (LandingDirection.y * (SeedstoneDefinition.radius + 0.08)),
-      0.2,
-    );
-    LandingMarkerMesh.visible = true;
-  } else if (IsOutcomeVisible && TrajectoryPrediction.collisionKind === 'worldheart') {
-    TrajectoryMaterial.color.set(0xffd678);
-    TrajectoryMaterial.opacity = 0.9;
-    LandingMarkerMaterial.color.set(0xffd678);
-    AimPanelElement.classList.add('is-locked');
-    AimLabelElement.textContent = `${WorldheartDefinition.label} LOCKED`;
-    showInstruction(
-      IsCampaignFinale
-        ? 'Release to reconnect the Worldheart'
-        : 'Release to board the Command World',
-      IsCampaignFinale
-        ? isSystemRestored(WorldDefinitions)
-          ? 'Heart, Bloom and Arc will record the journey you completed.'
-          : 'You can leave now, or awaken every world first to earn Bloom.'
-        : isSystemRestored(WorldDefinitions)
-          ? 'Every world is free. Gold marks the moving command lock.'
-          : 'Gold means the moving command is locked. Release before it leaves the line.',
-    );
-    const LandingDirection = TemporaryThreeVector.set(
-      FinalPredictionPoint.x - WorldheartDefinition.position.x,
-      FinalPredictionPoint.y - WorldheartDefinition.position.y,
-      0,
-    ).normalize();
-    LandingMarkerMesh.position.set(
-      WorldheartDefinition.position.x
-        + (LandingDirection.x * (WorldheartDefinition.radius + 0.08)),
-      WorldheartDefinition.position.y
-        + (LandingDirection.y * (WorldheartDefinition.radius + 0.08)),
-      0.2,
-    );
-    LandingMarkerMesh.visible = true;
-  } else if (IsOutcomeVisible && TrajectoryPrediction.collisionWorldIdentifier) {
-    const LandingWorldDefinition = getWorldDefinition(TrajectoryPrediction.collisionWorldIdentifier);
-    const IsNewWorldLanding = !LandingWorldDefinition.restored;
-    TrajectoryMaterial.color.set(IsNewWorldLanding ? 0xffd98a : 0xbceca8);
-    TrajectoryMaterial.opacity = 0.82;
-    LandingMarkerMaterial.color.set(IsNewWorldLanding ? 0xffd98a : 0xbceca8);
-    AimPanelElement.classList.add('is-locked');
-    AimLabelElement.textContent = getWorldLandingAimLabel(
-      LandingWorldDefinition.label,
-      IsNewWorldLanding,
-    );
-    showInstruction(
-      (IsNewWorldLanding ? 'Release to awaken ' : 'Release to land on ')
-        + LandingWorldDefinition.label,
-      IsNewWorldLanding
-        ? 'Gold means a new world. This landing becomes your next launch point.'
-        : 'Green means a restored safe landing.',
-    );
-    const LandingDirection = TemporaryThreeVector.set(
-      FinalPredictionPoint.x - LandingWorldDefinition.position.x,
-      FinalPredictionPoint.y - LandingWorldDefinition.position.y,
-      0,
-    ).normalize();
-    LandingMarkerMesh.position.set(
-      LandingWorldDefinition.position.x + (LandingDirection.x * (LandingWorldDefinition.radius + 0.08)),
-      LandingWorldDefinition.position.y + (LandingDirection.y * (LandingWorldDefinition.radius + 0.08)),
-      0.2,
-    );
-    LandingMarkerMesh.visible = true;
-  } else if (!IsOutcomeVisible) {
-    TrajectoryMaterial.color.set(0x9db8c6);
-    TrajectoryMaterial.opacity = 0.48;
-    LandingMarkerMesh.visible = false;
-    AimPanelElement.classList.remove('is-locked');
-    AimLabelElement.textContent = PredictedSlingshotEvents.length >= 2 ? 'CHAIN ARC' : 'OPEN ARC';
-    showInstruction(
-      PredictedSlingshotEvents.length >= 2
-        ? 'This line chains multiple worlds'
-        : 'No landing yet',
-      PredictedSlingshotEvents.length >= 2
-        ? 'A long chain is one Warden beat. Nudge the angle until a world locks gold or green.'
-        : 'The whole shot is on the map. Bend it through gold rings to chain worlds in one flight.',
-    );
-  } else {
-    TrajectoryMaterial.color.set(0x9db8c6);
-    TrajectoryMaterial.opacity = 0.48;
-    LandingMarkerMesh.visible = false;
-    AimPanelElement.classList.remove('is-locked');
-    AimLabelElement.textContent = 'PULL';
-    showInstruction(
-      'No landing yet',
-      'The whole shot is on the map. Pull farther or change the angle until a world locks.',
-    );
-  }
-  PredictedSlingshotWorldIdentifiers.clear();
-  for (const SlingshotEvent of PredictedSlingshotEvents) {
-    PredictedSlingshotWorldIdentifiers.add(SlingshotEvent.bodyIdentifier);
-  }
-  if (PredictedStardustIdentifiers.size > 0) {
-    AimLabelElement.textContent += ` · ARC +${PredictedStardustIdentifiers.size}`;
-  }
-  if (PredictedSlingshotEvents.length > 0) {
-    const PredictedPoints = PredictedSlingshotEvents.reduce(
-      (Total, Event) => Total + Event.points,
-      0,
-    );
-    const ChainPreview = getSlingshotPreviewPresentation(PredictedSlingshotEvents.length);
-    if (ChainPreview && TrajectoryPrediction.collisionKind !== 'hazard') {
-      if (!IsOutcomeVisible || TrajectoryPrediction.collisionKind === null) {
-        TrajectoryMaterial.color.setHex(ChainPreview.color);
-        TrajectoryMaterial.opacity = ChainPreview.opacity;
-      }
-    }
-    AimLabelElement.textContent += ChainPreview
-      ? ` · ${ChainPreview.label} +${PredictedPoints.toLocaleString('en-GB')}`
-      : ` · ASSIST +${PredictedPoints.toLocaleString('en-GB')}`;
-  }
-  WorldseedSound.updateAim(
-    PowerRatio,
-    IsOutcomeVisible
-      && TrajectoryPrediction.collisionKind !== null
-      && TrajectoryPrediction.collisionKind !== 'hazard',
-  );
-}
-
-/** Rebuilds the virtual pull point used by keyboard aiming through the pointer preview path. */
-function updateKeyboardAimPreview() {
-  const DragVector = getKeyboardAimDragVector(KeyboardAimState, MaximumDragDistance);
-  LastAimPointerWorldPosition.set(
-    SeedPhysicsState.position.x - DragVector.x,
-    SeedPhysicsState.position.y - DragVector.y,
-    0,
-  );
-  updateAimPreview(LastAimPointerWorldPosition);
-  GameCanvas.dataset.keyboardAimAngle = String(Math.round(
-    THREE.MathUtils.radToDeg(KeyboardAimState.angleRadians) * 10,
-  ) / 10);
-  GameCanvas.dataset.keyboardAimPower = String(Math.round(KeyboardAimState.powerRatio * 100));
-}
 
 /** Uses the shared predictor to give keyboard players a bounded lead on the moving Command World. */
 function createSuggestedKeyboardAimState(SuggestedTarget) {
@@ -6048,10 +5807,7 @@ function resetGame() {
     window.clearTimeout(RunFailureTimeoutIdentifier);
     RunFailureTimeoutIdentifier = null;
   }
-  if (StatusToastTimeoutIdentifier !== null) {
-    window.clearTimeout(StatusToastTimeoutIdentifier);
-    StatusToastTimeoutIdentifier = null;
-  }
+  resetHud();
   if (WorldheartCompletionTimeoutIdentifier !== null) {
     window.clearTimeout(WorldheartCompletionTimeoutIdentifier);
     WorldheartCompletionTimeoutIdentifier = null;
