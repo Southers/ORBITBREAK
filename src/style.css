@@ -204,8 +204,9 @@ button[aria-disabled='true'] {
   background: rgba(5, 12, 20, 0.58);
   backdrop-filter: blur(10px);
   color: rgba(255, 232, 174, 0.68);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
+  line-height: 1.2;
   letter-spacing: 0.14em;
   pointer-events: none;
 }
@@ -223,7 +224,8 @@ button[aria-disabled='true'] {
 .flight-score small {
   grid-column: 1 / -1;
   color: #a9e9ff;
-  font-size: 8px;
+  font-size: 10px;
+  line-height: 1.2;
   letter-spacing: 0.12em;
 }
 
@@ -296,7 +298,7 @@ button[aria-disabled='true'] {
 .warden-panel {
   position: absolute;
   z-index: 5;
-  top: 66px;
+  top: 124px;
   right: max(20px, env(safe-area-inset-right));
   min-width: 174px;
   padding: 9px 12px;
@@ -1131,7 +1133,7 @@ button[aria-disabled='true'] {
   }
 
   .warden-panel {
-    top: 104px;
+    top: 164px;
     right: max(14px, env(safe-area-inset-right));
     min-width: 142px;
     padding: 7px 9px;

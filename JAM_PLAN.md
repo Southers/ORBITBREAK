@@ -623,6 +623,15 @@ and the browser reported no warnings or errors. The release audit protects the n
 This feedback-only pass changes no camera target, zoom bounds, input mapping, physics, score, pursuit or
 replay behavior.
 
+Gauntlet pass 32 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** An authentic Meadow–Ember–Grove–Meadow circuit exposed the
+weakest responsive HUD state: its 1,350-point unbanked card fully covered the Warden forecast at
+390×844, and both its labels were only 8px. The score card now uses a 10px/1.2 type floor, announces
+its complete changing value and chain as one atomic status, and reserves a separate right-edge band
+above the Warden panel at both desktop and mobile breakpoints. Release checks protect those semantics,
+type floors and offsets. This presentation-only pass changes no route, physics, prediction, scoring,
+pursuit or replay behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

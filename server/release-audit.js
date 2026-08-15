@@ -70,6 +70,14 @@ export function auditReleaseReadiness() {
     'Warden and transient status updates must remain atomic assistive announcements.',
   );
   requireCondition(
+    /id="FlightScore"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
+      && /\.flight-score\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+      && /\.flight-score\s+small\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+      && /\.warden-panel\s*\{[^}]*top:\s*124px;/s.test(StyleSheet)
+      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.warden-panel\s*\{[^}]*top:\s*164px;/s.test(StyleSheet),
+    'Unbanked score updates must remain atomic, legible and separated from the Warden forecast.',
+  );
+  requireCondition(
     /\.instruction-panel span\s*\{[^}]*color:\s*rgba\(226, 235, 241, 0\.78\);[^}]*font-size:\s*12px;[^}]*line-height:\s*1\.35;/s.test(StyleSheet),
     'Critical instruction body copy must retain its legible contrast, size and line height.',
   );
