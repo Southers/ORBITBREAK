@@ -105,3 +105,23 @@ test('HTTP contract supports submit, ranked list, replay fetch and CORS', async 
     method: 'OPTIONS',
   }))).status, 204);
 });
+
+test('HTTP contract rejects invalid JSON and oversize list identifiers without leaking internals', async () => {
+  const Handler = createLeaderboardRequestHandler({
+    service: createService(),
+    allowedOrigin: 'https://southers.github.io',
+  });
+  const InvalidJson = await Handler(new Request('https://scores.example/api/leaderboard', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{',
+  }));
+  assert.equal(InvalidJson.status, 400);
+  assert.equal((await InvalidJson.json()).error, 'Request is not valid JSON.');
+
+  const InvalidList = await Handler(new Request(
+    'https://scores.example/api/leaderboard?system=<script>&content=breaker-reach-4',
+  ));
+  assert.equal(InvalidList.status, 400);
+  assert.equal((await InvalidList.json()).error, 'System identifier is invalid.');
+});

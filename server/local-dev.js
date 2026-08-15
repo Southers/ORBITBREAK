@@ -34,7 +34,13 @@ createServer(async (IncomingRequest, OutgoingResponse) => {
     );
     const RequestOrigin = RequestData.headers.get('origin') ?? '';
     const IsLocalOrigin = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(RequestOrigin);
-    if (RequestOrigin && !IsLocalOrigin) {
+    if (IncomingRequest.method !== 'GET') {
+      if (!IsLocalOrigin) {
+        OutgoingResponse.writeHead(403, { 'content-type': 'application/json; charset=utf-8' });
+        OutgoingResponse.end(JSON.stringify({ error: 'Origin is not allowed.' }));
+        return;
+      }
+    } else if (RequestOrigin && !IsLocalOrigin) {
       OutgoingResponse.writeHead(403, { 'content-type': 'application/json; charset=utf-8' });
       OutgoingResponse.end(JSON.stringify({ error: 'Origin is not allowed.' }));
       return;

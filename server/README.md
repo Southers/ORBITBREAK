@@ -15,13 +15,13 @@ The submit route discards any claimed score, validates and re-simulates the repl
 
 `cloudflare/worker.js` is the prepared production adapter. It runs the same validator inside a Cloudflare Worker, persists independently derived results in D1 and adds the first abuse boundaries before validation:
 
-- GitHub Pages origin allow-listing;
+- GitHub Pages origin allow-listing on every mutating request, including POSTs with no Origin header;
 - a 12 KB declared and streamed request-body limit around the stricter 8 KB replay limit;
 - six submission attempts per source IP per minute through a Workers rate-limit binding;
 - SHA-256 replay digests backed by a D1 unique constraint;
 - a composite D1 index matching the locked ranking order.
 
-No Cloudflare account, database, endpoint or deployment has been created. `wrangler.jsonc` deliberately omits `database_id` until the user approves creating that external resource. Wrangler 4.123.0 successfully bundles the Worker in local `--dry-run` mode at 96.29 KB (19.27 KB gzip).
+No Cloudflare account, database, endpoint or deployment has been created. `wrangler.jsonc` deliberately omits `database_id` until the user approves creating that external resource, and `"workers_dev": false` keeps an accidental deploy from publishing a `*.workers.dev` preview URL. Wrangler 4.123.0 successfully bundles the Worker in local `--dry-run` mode at 96.29 KB (19.27 KB gzip).
 
 For local adapter development, Wrangler 4.36 or later is required for rate-limit bindings:
 

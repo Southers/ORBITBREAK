@@ -62,7 +62,10 @@ import {
   predictTrajectory,
   simulatePhysicsStep,
 } from './physics.js?v=20260814-ob14';
-import { createLeaderboardClient } from './leaderboard-client.js?v=20260814-ob9';
+import {
+  createLeaderboardClient,
+  resolveLeaderboardBaseUrl,
+} from './leaderboard-client.js?v=20260815-ob75';
 import {
   connectRelayWorlds,
   countLiveRelayWorlds,
@@ -156,10 +159,11 @@ const IsLocalDevelopmentHost = window.location.hostname === 'localhost'
   || window.location.hostname === '127.0.0.1';
 const IsReleaseDiagnosticsEnabled = IsLocalDevelopmentHost
   && PageSearchParameters.get('diagnostics') === '1';
-const LeaderboardApiBaseUrl = IsLocalDevelopmentHost
-  ? PageSearchParameters.get('leaderboardApi')
-    ?? ConfiguredLeaderboardApiBaseUrl
-  : ConfiguredLeaderboardApiBaseUrl;
+const LeaderboardApiBaseUrl = resolveLeaderboardBaseUrl({
+  configuredBaseUrl: ConfiguredLeaderboardApiBaseUrl,
+  queryOverride: PageSearchParameters.get('leaderboardApi') ?? '',
+  hostname: window.location.hostname,
+});
 const LeaderboardClient = createLeaderboardClient({
   baseUrl: LeaderboardApiBaseUrl,
   fetch: window.fetch.bind(window),
@@ -269,7 +273,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob74';
+GameCanvas.dataset.build = '20260815-ob75';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);

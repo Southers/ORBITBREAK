@@ -1,14 +1,61 @@
-function normalizeBaseUrl(Value) {
+function isLoopbackHttpUrl(Url) {
+  return Url.protocol === 'http:'
+    && (Url.hostname === 'localhost' || Url.hostname === '127.0.0.1');
+}
+
+function normalizeCandidateUrl(Value, { allowLoopbackHttp, allowHttps }) {
   if (typeof Value !== 'string' || Value.trim() === '') {
     return '';
   }
-  const Url = new URL(Value.trim());
-  const IsLocalHttp = Url.protocol === 'http:'
-    && (Url.hostname === 'localhost' || Url.hostname === '127.0.0.1');
-  if (Url.protocol !== 'https:' && !IsLocalHttp) {
+  try {
+    const Url = new URL(Value.trim());
+    if (isLoopbackHttpUrl(Url)) {
+      return allowLoopbackHttp ? Url.href.replace(/\/$/, '') : '';
+    }
+    if (Url.protocol === 'https:') {
+      return allowHttps ? Url.href.replace(/\/$/, '') : '';
+    }
+    return '';
+  } catch {
+    return '';
+  }
+}
+
+/** Loopback HTTP is local-only; public builds may use a committed HTTPS endpoint. */
+export function normalizeBaseUrl(Value) {
+  const Normalized = normalizeCandidateUrl(Value, {
+    allowLoopbackHttp: true,
+    allowHttps: true,
+  });
+  if (typeof Value === 'string' && Value.trim() !== '' && Normalized === '') {
     throw new Error('Leaderboard endpoint must use HTTPS.');
   }
-  return Url.href.replace(/\/$/, '');
+  return Normalized;
+}
+
+/**
+ * Resolves the live leaderboard URL without crashing the public game.
+ * Query overrides work only on localhost and only for loopback HTTP.
+ */
+export function resolveLeaderboardBaseUrl({
+  configuredBaseUrl = '',
+  queryOverride = '',
+  hostname = '',
+} = {}) {
+  const IsLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
+  if (IsLocalHost) {
+    return normalizeCandidateUrl(queryOverride, {
+      allowLoopbackHttp: true,
+      allowHttps: false,
+    }) || normalizeCandidateUrl(configuredBaseUrl, {
+      allowLoopbackHttp: true,
+      allowHttps: true,
+    });
+  }
+  return normalizeCandidateUrl(configuredBaseUrl, {
+    allowLoopbackHttp: false,
+    allowHttps: true,
+  });
 }
 
 async function readJsonResponse(ResponseData) {
@@ -19,14 +66,24 @@ async function readJsonResponse(ResponseData) {
     throw new Error('Leaderboard returned an unreadable response.');
   }
   if (!ResponseData.ok) {
-    throw new Error(typeof Body?.error === 'string' ? Body.error : 'Leaderboard request failed.');
+    const ErrorMessage = typeof Body?.error === 'string' ? Body.error.trim() : '';
+    throw new Error(
+      ErrorMessage.length >= 1 && ErrorMessage.length <= 180
+        ? ErrorMessage
+        : 'Leaderboard request failed.',
+    );
   }
   return Body;
 }
 
 /** Small browser client for the provider-neutral validated leaderboard API. */
 export function createLeaderboardClient({ baseUrl = '', fetch: Fetch = globalThis.fetch } = {}) {
-  const BaseUrl = normalizeBaseUrl(baseUrl);
+  let BaseUrl = '';
+  try {
+    BaseUrl = normalizeBaseUrl(baseUrl);
+  } catch {
+    BaseUrl = '';
+  }
   if (typeof Fetch !== 'function') {
     throw new Error('A Fetch implementation is required.');
   }

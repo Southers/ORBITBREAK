@@ -4,6 +4,19 @@ const MaximumLeaderboardLimit = 50;
 const BlockedCallsignFragments = [
   'FUCK', 'SHIT', 'CUNT', 'NAZI', 'RAPE', 'NIGG',
 ];
+const ClientErrorMessages = new Set([
+  'Callsign must be text.',
+  'Callsign must be 3–12 letters, numbers, underscores or hyphens.',
+  'Callsign is not available.',
+  'System identifier is invalid.',
+  'Content version is invalid.',
+]);
+
+function assertLeaderboardIdentifier(Value, Label) {
+  if (typeof Value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/.test(Value)) {
+    throw new Error(`${Label} is invalid.`);
+  }
+}
 
 export function normalizeCallsign(Value) {
   if (typeof Value !== 'string') {
@@ -118,9 +131,8 @@ export function createLeaderboardService({
     },
 
     async list({ systemIdentifier, contentVersion, limit = 20 }) {
-      if (typeof systemIdentifier !== 'string' || typeof contentVersion !== 'string') {
-        throw new Error('System and content version are required.');
-      }
+      assertLeaderboardIdentifier(systemIdentifier, 'System identifier');
+      assertLeaderboardIdentifier(contentVersion, 'Content version');
       const SafeLimit = Math.max(1, Math.min(
         MaximumLeaderboardLimit,
         Number.isInteger(limit) ? limit : 20,
@@ -191,9 +203,14 @@ export function createLeaderboardRequestHandler({ service, allowedOrigin }) {
       }
       return jsonResponse({ error: 'Not found.' }, 404, CorsHeaders);
     } catch (CaughtError) {
+      if (CaughtError instanceof SyntaxError) {
+        return jsonResponse({ error: 'Request is not valid JSON.' }, 400, CorsHeaders);
+      }
+      const Message = CaughtError instanceof Error ? CaughtError.message : 'Request failed.';
+      const IsClientError = ClientErrorMessages.has(Message);
       return jsonResponse({
-        error: CaughtError instanceof Error ? CaughtError.message : 'Request failed.',
-      }, 400, CorsHeaders);
+        error: IsClientError ? Message : 'Request failed.',
+      }, IsClientError ? 400 : 500, CorsHeaders);
     }
   };
 }

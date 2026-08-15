@@ -799,6 +799,14 @@ empty console. Release checks protect semantic Pulse state, portrait clearance, 
 compact actions. This accessibility-only pass changes no action timing, route, input mapping, camera,
 world position, physics, score, pursuit, replay or leaderboard behavior.
 
+Public-surface checkpoint — 15 August 2026: leftover squash-merge `codex/*` branches were already on
+`main` and were deleted rather than merged. README, RELEASE and the charter now describe the live
+GitHub Pages candidate as the complete Warden sector. Public HTML gained a hashed CSP, `no-referrer`
+and a disabled Permissions-Policy; `?leaderboardApi=` accepts only loopback HTTP on localhost;
+invalid leaderboard URLs leave the game offline; Worker POSTs require the allow-listed origin;
+unexpected store errors stay generic; and `workers_dev` is false. No production leaderboard, D1
+database or jam submission was created.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

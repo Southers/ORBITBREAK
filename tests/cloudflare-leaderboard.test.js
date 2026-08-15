@@ -117,7 +117,7 @@ test('D1 adapter converts unique digest races into duplicate replay errors', asy
   );
 });
 
-test('Worker rejects wrong origins, large bodies and rate-limited submissions before validation', async () => {
+test('Worker rejects wrong origins, missing POST origins, large bodies and rate-limited submissions before validation', async () => {
   const Environment = {
     ALLOWED_ORIGIN: 'https://southers.github.io',
     DB: new FakeD1Database(),
@@ -128,6 +128,17 @@ test('Worker rejects wrong origins, large bodies and rate-limited submissions be
     { method: 'POST', headers: { origin: 'https://attacker.example' } },
   ), Environment);
   assert.equal(WrongOriginResponse.status, 403);
+
+  const MissingOriginResponse = await Worker.fetch(new Request(
+    'https://scores.example/api/leaderboard',
+    { method: 'POST' },
+  ), Environment);
+  assert.equal(MissingOriginResponse.status, 403);
+
+  const PublicListResponse = await Worker.fetch(new Request(
+    'https://scores.example/api/leaderboard?system=breaker-reach&content=breaker-reach-4',
+  ), Environment);
+  assert.equal(PublicListResponse.status, 200);
 
   const LargeResponse = await Worker.fetch(new Request(
     'https://scores.example/api/leaderboard',

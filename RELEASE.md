@@ -84,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob74` passes 157 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob75` passes 160 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
 - 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
@@ -120,11 +120,12 @@ Suggested 40-second trailer beat sheet:
 - Explicit Reduced motion holds relay luminance at the same readable 80% midpoint instead of continuously pulsing it.
 - Final Pulse publication now reports `defeated` and `command-world-disabled`, matching the visible Warden panel and verified result without mutating authoritative pursuit state.
 - Two-ring world contours and Haven's three-blade grass tufts preserve their silhouettes in one draw call each, restoring headroom during fast liberation and Command transitions.
-- These checks do not approve a public deployment, production leaderboard or jam submission.
+- Public HTML now ships a fail-closed CSP, `no-referrer` and a disabled Permissions-Policy. Local `?leaderboardApi=` accepts only loopback HTTP; invalid endpoints leave rankings offline instead of crashing the game.
+- These checks do not approve a public deployment mutation, production leaderboard or jam submission.
 
 ## Known gated items
 
-- The user-approved public playtest is live at `https://southers.github.io/ORBITBREAK/`; build `20260814-ob13` was verified from main commit `af7958a` on 14 August 2026.
+- The user-approved public playtest is live at `https://southers.github.io/ORBITBREAK/` and tracks `main`. The current candidate is `20260815-ob75`. The original 14 August `ob13` / `af7958a` record was the first approved Pages publish, not the live Warden sector.
 - The production leaderboard has not been deployed; production Worker CPU traces and D1 latency remain unmeasured.
 - Final screenshots, trailer footage and the Open Graph share image must be captured from the approved candidate commit.
 - Final platform rules, deadline, categories and page fields must be rechecked against the live submission site.

@@ -12,9 +12,9 @@ Every major feature should strengthen at least one of three promises: expressive
 
 ## Current foundation
 
-The public build is a polished deterministic score-attack prototype with five authored systems, slingshot scoring, replay validation and mobile controls. It is the technical and content foundation, not the locked final design.
+The public GitHub Pages candidate is the complete one-sector Warden run: deterministic gravity, surface walking, Breaker Burn, relay circuits, pursuit and the moving Command World. The original five authored systems remain compatibility fixtures, not a competing campaign.
 
-Replace it in small playable checkpoints. Preserve working physics, tests and useful authored content while changing story, progression, camera and moment-to-moment play.
+Replace remaining work in small playable checkpoints. Preserve working physics, tests and useful authored content while changing story, progression, camera and moment-to-moment play.
 
 ## External-action approval boundary
 
