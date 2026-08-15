@@ -187,3 +187,99 @@ export function separateOverlappingRouteLabels(
   ResolvedPositions[FirstIsLeft ? 1 : 0].x = LeftX + minimumGap;
   return ResolvedPositions;
 }
+
+/** Moves route chips vertically out of nearby tactical annotations. */
+export function separateRouteLabelsFromTacticalLabels(
+  RoutePositions,
+  TacticalPositions,
+  {
+    horizontalClearance = 100,
+    verticalClearance = 30,
+    minimumY = 0,
+    maximumY = Number.POSITIVE_INFINITY,
+  } = {},
+) {
+  const HasInvalidPosition = (Positions) => (
+    !Array.isArray(Positions)
+    || Positions.some((Position) => (
+      !Number.isFinite(Position?.x) || !Number.isFinite(Position?.y)
+    ))
+  );
+  if (
+    HasInvalidPosition(RoutePositions)
+    || HasInvalidPosition(TacticalPositions)
+    || !Number.isFinite(horizontalClearance)
+    || horizontalClearance < 0
+    || !Number.isFinite(verticalClearance)
+    || verticalClearance < 0
+    || !Number.isFinite(minimumY)
+    || maximumY < minimumY
+  ) {
+    throw new Error('Route and tactical label separation requires finite positions and bounds.');
+  }
+
+  return RoutePositions.map((RoutePosition) => {
+    const BoundedRoutePosition = {
+      ...RoutePosition,
+      y: Math.max(minimumY, Math.min(maximumY, RoutePosition.y)),
+    };
+    const NearbyTacticalPositions = TacticalPositions.filter(
+      (TacticalPosition) => (
+        Math.abs(BoundedRoutePosition.x - TacticalPosition.x) < horizontalClearance
+      ),
+    );
+    if (
+      NearbyTacticalPositions.every((TacticalPosition) => (
+        Math.abs(BoundedRoutePosition.y - TacticalPosition.y) >= verticalClearance
+      ))
+    ) {
+      return BoundedRoutePosition;
+    }
+
+    const CandidateYPositions = [
+      BoundedRoutePosition.y,
+      minimumY,
+      maximumY,
+      ...NearbyTacticalPositions.flatMap((TacticalPosition) => ([
+        TacticalPosition.y - verticalClearance,
+        TacticalPosition.y + verticalClearance,
+      ])),
+    ].filter((CandidateY) => CandidateY >= minimumY && CandidateY <= maximumY);
+    const ValidCandidateYPositions = CandidateYPositions.filter((CandidateY) => (
+      NearbyTacticalPositions.every((TacticalPosition) => (
+        Math.abs(CandidateY - TacticalPosition.y) >= verticalClearance
+      ))
+    ));
+    if (ValidCandidateYPositions.length < 1) return BoundedRoutePosition;
+    const ResolvedY = ValidCandidateYPositions.reduce((ClosestY, CandidateY) => (
+      Math.abs(CandidateY - BoundedRoutePosition.y)
+        < Math.abs(ClosestY - BoundedRoutePosition.y)
+        ? CandidateY
+        : ClosestY
+    ));
+    return { ...BoundedRoutePosition, y: ResolvedY };
+  });
+}
+
+/** Separates moving tactical chips in stable authored order. */
+export function separateOverlappingTacticalLabels(LabelPositions, Options = {}) {
+  separateRouteLabelsFromTacticalLabels([], [], Options);
+  const ResolvedPositions = [];
+  for (const LabelPosition of LabelPositions) {
+    const [ResolvedPosition] = separateRouteLabelsFromTacticalLabels(
+      [LabelPosition],
+      ResolvedPositions,
+      Options,
+    );
+    ResolvedPositions.push(ResolvedPosition);
+  }
+  return ResolvedPositions;
+}
+
+/** Reserves enough horizontal room for a single-line tactical chip. */
+export function getTacticalLabelHorizontalMargin(LabelText) {
+  if (typeof LabelText !== 'string' || LabelText.trim().length < 1) {
+    throw new Error('Tactical label margin requires visible text.');
+  }
+  return Math.max(64, Math.ceil([...LabelText].length * 4) + 4);
+}

@@ -99,9 +99,12 @@ import {
   getRunnerForm,
   getRunnerPose,
   getStillnessPresentation,
+  getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
   separateOverlappingRouteLabels,
-} from './presentation.js?v=20260815-ob54';
+  separateOverlappingTacticalLabels,
+  separateRouteLabelsFromTacticalLabels,
+} from './presentation.js?v=20260815-ob64';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -264,7 +267,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob63';
+GameCanvas.dataset.build = '20260815-ob64';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -365,6 +368,7 @@ const ScoutCameraTarget = new THREE.Vector3();
 const LocalSwayAxis = new THREE.Vector3(0, 0, 1);
 const SurfaceSwayQuaternion = new THREE.Quaternion();
 const RouteLabelProjection = new THREE.Vector3();
+const TacticalLabelScreenPositions = [];
 
 let PhysicsAccumulatorSeconds = 0;
 let PhysicsElapsedTimeSeconds = 0;
@@ -4364,9 +4368,17 @@ function updateRouteLabels() {
     minimumX: HorizontalMargin,
     maximumX: window.innerWidth - HorizontalMargin,
   });
-  for (let LabelIndex = 0; LabelIndex < ResolvedLabelPositions.length; LabelIndex += 1) {
-    RouteLabelElements[LabelIndex].style.left = `${ResolvedLabelPositions[LabelIndex].x}px`;
-    RouteLabelElements[LabelIndex].style.top = `${ResolvedLabelPositions[LabelIndex].y}px`;
+  const ClearedLabelPositions = separateRouteLabelsFromTacticalLabels(
+    ResolvedLabelPositions,
+    TacticalLabelScreenPositions,
+    {
+      minimumY: TopMargin,
+      maximumY: window.innerHeight - BottomMargin,
+    },
+  );
+  for (let LabelIndex = 0; LabelIndex < ClearedLabelPositions.length; LabelIndex += 1) {
+    RouteLabelElements[LabelIndex].style.left = `${ClearedLabelPositions[LabelIndex].x}px`;
+    RouteLabelElements[LabelIndex].style.top = `${ClearedLabelPositions[LabelIndex].y}px`;
   }
 }
 
@@ -4471,6 +4483,9 @@ function updateTacticalBodies(ElapsedTimeSeconds) {
       }
       : null,
   ];
+  TacticalLabelScreenPositions.length = 0;
+  const ProjectedTacticalLabelPositions = [];
+  const VisibleTacticalLabelElements = [];
   for (let LabelIndex = 0; LabelIndex < TacticalLabelElements.length; LabelIndex += 1) {
     const TacticalLabelElement = TacticalLabelElements[LabelIndex];
     const TacticalLabelDefinition = TacticalLabelDefinitions[LabelIndex];
@@ -4493,17 +4508,46 @@ function updateTacticalBodies(ElapsedTimeSeconds) {
     const ProjectedLabelX = (
       (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth
     );
-    const HorizontalLabelMargin = LabelIndex === 1 ? 74 : 62;
-    TacticalLabelElement.style.left = Math.round(
+    const HorizontalLabelMargin = getTacticalLabelHorizontalMargin(
+      TacticalLabelDefinition.text,
+    );
+    const ProjectedLabelLeft = Math.round(
       THREE.MathUtils.clamp(
         ProjectedLabelX,
         HorizontalLabelMargin,
         window.innerWidth - HorizontalLabelMargin,
       ),
-    ) + 'px';
-    TacticalLabelElement.style.top = Math.round(
+    );
+    const ProjectedLabelTop = Math.round(
       (-RouteLabelProjection.y * 0.5 + 0.5) * window.innerHeight,
-    ) + 'px';
+    );
+    ProjectedTacticalLabelPositions.push({
+      x: ProjectedLabelLeft,
+      y: ProjectedLabelTop,
+    });
+    VisibleTacticalLabelElements.push(TacticalLabelElement);
+  }
+  const ResolvedTacticalLabelPositions = separateOverlappingTacticalLabels(
+    ProjectedTacticalLabelPositions,
+    {
+      horizontalClearance: 160,
+      verticalClearance: 28,
+      minimumY: window.innerWidth <= 640 ? 116 : 70,
+      maximumY: window.innerHeight - (window.innerWidth <= 640 ? 112 : 82),
+    },
+  );
+  TacticalLabelScreenPositions.push(...ResolvedTacticalLabelPositions);
+  for (
+    let LabelIndex = 0;
+    LabelIndex < ResolvedTacticalLabelPositions.length;
+    LabelIndex += 1
+  ) {
+    VisibleTacticalLabelElements[LabelIndex].style.left = (
+      `${ResolvedTacticalLabelPositions[LabelIndex].x}px`
+    );
+    VisibleTacticalLabelElements[LabelIndex].style.top = (
+      `${ResolvedTacticalLabelPositions[LabelIndex].y}px`
+    );
   }
 }
 

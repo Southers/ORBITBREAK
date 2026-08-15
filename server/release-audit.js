@@ -106,6 +106,16 @@ export function auditReleaseReadiness() {
     'Warden state and target forecasts must retain their legible single-line floor.',
   );
   requireCondition(
+    /\.route-label,\s*\.tactical-label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+      && /\.tactical-label\s*\{[^}]*font-size:\s*10px;[^}]*white-space:\s*nowrap;/s.test(StyleSheet)
+      && /\.route-label\s*\{[^}]*white-space:\s*nowrap;/s.test(StyleSheet)
+      && MainSource.includes('separateRouteLabelsFromTacticalLabels(')
+      && MainSource.includes('separateOverlappingTacticalLabels(')
+      && MainSource.includes('getTacticalLabelHorizontalMargin(')
+      && MainSource.includes('TacticalLabelScreenPositions'),
+    'Route and tactical labels must remain legible, single-line and collision-aware.',
+  );
+  requireCondition(
     /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
       && /\.objective-panel__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.objective-panel__state\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),

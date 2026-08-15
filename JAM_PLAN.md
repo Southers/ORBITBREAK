@@ -640,6 +640,17 @@ from the masthead and the 104px score/scanner band; desktop keeps the same hiera
 This readability-only pass changes no objective threshold, progression, route, physics, scoring, pursuit
 or replay behavior.
 
+Gauntlet pass 34 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The world-space route and tactical chips were the weakest live
+Tiny Worlds read: at 390×844, `→ FROST` overlapped `SEEDSTONE · 1 USE` by about 683px²; as Wayfarer
+orbited, its moving-state chip could then cover Seedstone. At 1280×720, Seedstone could project wholly
+above the viewport at y −21.8px. Route and tactical chips now use a 10px/1.2 single-line floor, a pure
+bounded separator clears route-to-tactical and moving tactical-to-tactical collisions, and text-aware
+horizontal margins keep longer chips on-screen. Repeated portrait and desktop orbit sweeps plus an
+authentic Ember landing showed zero chip overlap, no clipping or overflow, retained canvas focus and no
+browser errors. Focused tests and the release audit protect the deterministic separation, bounds and type
+floor. This HUD-only pass changes no world position, route choice, physics, scoring, pursuit or replay.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

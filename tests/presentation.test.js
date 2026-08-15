@@ -12,8 +12,11 @@ import {
   getRunnerForm,
   getRunnerPose,
   getStillnessPresentation,
+  getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
+  separateOverlappingTacticalLabels,
   separateOverlappingRouteLabels,
+  separateRouteLabelsFromTacticalLabels,
 } from '../src/presentation.js';
 
 test('published Warden state distinguishes exposure from final defeat', () => {
@@ -62,6 +65,52 @@ test('nearby route labels separate without changing distant or edge-clamped layo
   );
   assert.throws(
     () => separateOverlappingRouteLabels([{ x: Number.NaN, y: 4 }]),
+    /requires finite positions and bounds/,
+  );
+});
+
+test('route labels clear nearby tactical annotations without leaving HUD bounds', () => {
+  assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · 1 USE'), 72);
+  assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · MOVING · 1 USE'), 108);
+  assert.throws(() => getTacticalLabelHorizontalMargin(' '), /requires visible text/);
+  assert.deepEqual(
+    separateRouteLabelsFromTacticalLabels(
+      [{ x: 100, y: -20 }],
+      [],
+      { minimumY: 70, maximumY: 638 },
+    ),
+    [{ x: 100, y: 70 }],
+  );
+  assert.deepEqual(
+    separateRouteLabelsFromTacticalLabels(
+      [{ x: 342, y: 172 }, { x: 100, y: 300 }],
+      [{ x: 328, y: 159 }],
+      { minimumY: 172, maximumY: 732 },
+    ),
+    [{ x: 342, y: 189 }, { x: 100, y: 300 }],
+  );
+  assert.deepEqual(
+    separateRouteLabelsFromTacticalLabels(
+      [{ x: 200, y: 190 }],
+      [{ x: 205, y: 180 }, { x: 195, y: 210 }],
+      { minimumY: 140, maximumY: 500 },
+    ),
+    [{ x: 200, y: 150 }],
+  );
+  assert.deepEqual(
+    separateOverlappingTacticalLabels(
+      [{ x: 328, y: 159 }, { x: 316, y: 150 }, { x: 80, y: 152 }],
+      {
+        horizontalClearance: 160,
+        verticalClearance: 28,
+        minimumY: 116,
+        maximumY: 732,
+      },
+    ),
+    [{ x: 328, y: 159 }, { x: 316, y: 131 }, { x: 80, y: 152 }],
+  );
+  assert.throws(
+    () => separateRouteLabelsFromTacticalLabels([{ x: 1, y: 2 }], [{ x: 3, y: Infinity }]),
     /requires finite positions and bounds/,
   );
 });

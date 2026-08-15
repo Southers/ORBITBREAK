@@ -612,17 +612,22 @@ button[aria-disabled='true'] {
   border-radius: 999px;
   background: rgba(5, 12, 20, 0.7);
   color: #ffe4a8;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
   letter-spacing: 0.12em;
+  line-height: 1.2;
   box-shadow: 0 0 18px rgba(255, 197, 99, 0.12);
   backdrop-filter: blur(8px);
 }
 
 .tactical-label {
   padding: 3px 7px;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.route-label {
   white-space: nowrap;
 }
 
