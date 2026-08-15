@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   MotionPreferences,
   cycleMotionPreference,
+  getAudioPreferencePresentation,
   getMotionPreferencePresentation,
   parseMotionPreference,
   resolveReducedMotion,
@@ -33,4 +34,18 @@ test('motion control cycles back to the recoverable system preference', () => {
     getMotionPreferencePresentation(MotionPreferences.system, true),
     { label: 'Motion system · reduced [P]', ariaPressed: 'mixed' },
   );
+});
+
+test('audio preference presents the same state to button and shortcut users', () => {
+  assert.deepEqual(getAudioPreferencePresentation(true), {
+    label: 'Audio off [M]',
+    ariaPressed: 'true',
+    status: 'AUDIO OFF',
+  });
+  assert.deepEqual(getAudioPreferencePresentation(false), {
+    label: 'Audio on [M]',
+    ariaPressed: 'false',
+    status: 'AUDIO ON',
+  });
+  assert.throws(() => getAudioPreferencePresentation('false'), /requires muted state/);
 });

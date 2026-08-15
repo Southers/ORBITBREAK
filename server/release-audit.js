@@ -111,6 +111,11 @@ export function auditReleaseReadiness() {
     'Scout zoom must announce its level and mark deterministic limits without dropping focus.',
   );
   requireCondition(
+    /function\s+toggleAudioPreference\(\)\s*\{[\s\S]*?getAudioPreferencePresentation\(WorldseedSound\.toggleMute\(\)\)[\s\S]*?showStatusToast\(Presentation\.status,\s*850\);[\s\S]*?\}/s.test(MainSource)
+      && (MainSource.match(/toggleAudioPreference\(\);/g) ?? []).length >= 2,
+    'Audio button and keyboard shortcut must share one announced preference state.',
+  );
+  requireCondition(
     /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),
     'Release diagnostics must remain restricted to local development hosts.',
   );

@@ -22,10 +22,11 @@ import {
 import {
   MotionPreferences,
   cycleMotionPreference,
+  getAudioPreferencePresentation,
   getMotionPreferencePresentation,
   parseMotionPreference,
   resolveReducedMotion,
-} from './preferences.js?v=20260814-ob12';
+} from './preferences.js?v=20260815-ob60';
 import {
   SmoothSamplesBeforeUpgrade,
   advanceAdaptivePixelRatio,
@@ -263,7 +264,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob59';
+GameCanvas.dataset.build = '20260815-ob60';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -8182,6 +8183,13 @@ function selectNextMotionPreference() {
   );
 }
 
+function toggleAudioPreference() {
+  const Presentation = getAudioPreferencePresentation(WorldseedSound.toggleMute());
+  AudioButtonElement.textContent = Presentation.label;
+  AudioButtonElement.setAttribute('aria-pressed', Presentation.ariaPressed);
+  showStatusToast(Presentation.status, 850);
+}
+
 /** Localhost-only hooks make browser release diagnostics reproducible and non-public. */
 function runReleaseDiagnostic(DiagnosticKind) {
   if (!IsReleaseDiagnosticsEnabled) return false;
@@ -8343,9 +8351,7 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     resetGame();
   } else if (PressedKey === 'm') {
     KeyboardEventData.preventDefault();
-    const IsMuted = WorldseedSound.toggleMute();
-    AudioButtonElement.textContent = IsMuted ? 'Audio off [M]' : 'Audio on [M]';
-    AudioButtonElement.setAttribute('aria-pressed', String(IsMuted));
+    toggleAudioPreference();
   } else if (PressedKey === 'p') {
     KeyboardEventData.preventDefault();
     selectNextMotionPreference();
@@ -8369,9 +8375,7 @@ LeaderboardFormElement.addEventListener('submit', submitVerifiedScore);
 CloseLeaderboardButtonElement.addEventListener('click', () => closeLeaderboardPanel());
 PlayAgainButtonElement.addEventListener('click', continueCampaignOrReplay);
 AudioButtonElement.addEventListener('click', () => {
-  const IsMuted = WorldseedSound.toggleMute();
-  AudioButtonElement.textContent = IsMuted ? 'Audio off [M]' : 'Audio on [M]';
-  AudioButtonElement.setAttribute('aria-pressed', String(IsMuted));
+  toggleAudioPreference();
 });
 MotionButtonElement.addEventListener('click', selectNextMotionPreference);
 ScoutButtonElement.addEventListener('click', () => {

@@ -38,3 +38,15 @@ export function getMotionPreferencePresentation(MotionPreference, EffectiveReduc
     ariaPressed: 'mixed',
   };
 }
+
+/** Produces one visible, pressed and announced state for audio button and shortcut use. */
+export function getAudioPreferencePresentation(IsMuted) {
+  if (typeof IsMuted !== 'boolean') {
+    throw new Error('Audio preference presentation requires muted state.');
+  }
+  return {
+    label: IsMuted ? 'Audio off [M]' : 'Audio on [M]',
+    ariaPressed: String(IsMuted),
+    status: IsMuted ? 'AUDIO OFF' : 'AUDIO ON',
+  };
+}

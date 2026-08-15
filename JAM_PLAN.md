@@ -599,6 +599,18 @@ browser reported no warnings or errors. The release audit protects announcements
 state and exit focus. This control-state pass changes no camera scale bounds, input mapping, physics,
 score, pursuit or replay behavior.
 
+Gauntlet pass 30 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** Motion and ghost shortcuts already published live feedback, but
+canvas-focused `M` silently changed only the distant footer button, leaving keyboard and assistive users
+without an immediate audio confirmation. A pure audio presentation mapping now supplies the visible
+label, pressed state and `AUDIO ON/OFF` message, and both button and shortcut route through one toggle.
+At 390×844, `M` retained canvas focus while publishing `Audio off [M]`, pressed `true` and one atomic
+`AUDIO OFF` status; the footer button restored `Audio on [M]`, pressed `false` and `AUDIO ON` while
+retaining button focus. The same keyboard cycle worked at 1280×720. Both layouts remained overflow-free,
+audio was restored on after the test and the browser reported no warnings or errors. Focused coverage
+protects both states and the release audit protects the shared announced path. This feedback pass changes
+no audio synthesis, input mapping, persistence, physics, score, pursuit or replay behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

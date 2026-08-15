@@ -7,7 +7,7 @@ test('release audit proves campaign, metadata, credits and local asset integrity
   const Audit = auditReleaseReadiness();
 
   assert.deepEqual(Audit.failures, []);
-  assert.equal(Audit.build, '20260815-ob59');
+  assert.equal(Audit.build, '20260815-ob60');
   assert.equal(Audit.campaignSystems, 5);
   assert.ok(Audit.checkedLocalAssets >= 4);
 });
