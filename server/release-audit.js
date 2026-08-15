@@ -30,6 +30,7 @@ export function auditReleaseReadiness() {
   const AudioSource = readRepositoryFile('src/audio.js');
   const SectorSource = readRepositoryFile('src/sector.js');
   const FlightResolverSource = readRepositoryFile('src/flight-resolver.js');
+  const LivingWorldSource = readRepositoryFile('src/living-world-visuals.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -87,10 +88,10 @@ export function auditReleaseReadiness() {
   requireCondition(
     PresentationSource.includes('export function getWorldLifeStage(')
       && PresentationSource.includes("return 'tyrant';")
-      && MainSource.includes('OccupationMineMesh')
-      && MainSource.includes('OccupationFumeMesh')
-      && MainSource.includes('ExtractionFreighterMesh')
-      && MainSource.includes('visiblePrisonerCount')
+      && LivingWorldSource.includes('OccupationMineMesh')
+      && LivingWorldSource.includes('OccupationFumeMesh')
+      && LivingWorldSource.includes('ExtractionFreighterMesh')
+      && LivingWorldSource.includes('visiblePrisonerCount')
       && MainSource.includes('RunnerPresentationScale = 0.52')
       && MainSource.includes('getLandedCameraScale('),
     'Occupied worlds must show tyrant extraction, held people and a tiny Runner so living contrast can read.',
@@ -127,11 +128,11 @@ export function auditReleaseReadiness() {
     'The selected sector must keep skippable story boards for first answer, Warden arrival and Command.',
   );
   requireCondition(
-    MainSource.includes('ProsperityBuildingMesh')
-      && MainSource.includes('ProsperityWindowMesh')
+    LivingWorldSource.includes('ProsperityBuildingMesh')
+      && LivingWorldSource.includes('ProsperityWindowMesh')
       && MainSource.includes('refreshDockedTradeState(')
-      && MainSource.includes('getTradeHullKind(')
-      && MainSource.includes('getInhabitantSilhouette(')
+      && LivingWorldSource.includes('getTradeHullKind(')
+      && LivingWorldSource.includes('getInhabitantSilhouette(')
       && PresentationSource.includes('export function getProsperityPresence(')
       && PresentationSource.includes('export function getProsperityBuildingKind(')
       && PresentationSource.includes('export function shouldShowInhabitantSlot(')
