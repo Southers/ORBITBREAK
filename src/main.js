@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260815-ob80';
+import { WorldseedAudio } from './audio.js?v=20260815-ob81';
 import {
   SurfaceGestureModes,
   adjustSurfaceAngle,
@@ -102,6 +102,7 @@ import {
   getLeaderboardActionLabel,
   getLoopObjectivePresentation,
   getLiveLinkShipCount,
+  getOpeningBriefingPresentation,
   getPersonalBestStatus,
   getPlayfieldLabelVerticalBounds,
   getProsperityPresence,
@@ -255,6 +256,15 @@ let ObjectivePipElements = [];
 const InstructionPanelElement = document.querySelector('#InstructionPanel');
 const InstructionTitleElement = document.querySelector('#InstructionTitle');
 const InstructionBodyElement = document.querySelector('#InstructionBody');
+const OpeningBriefingElement = document.querySelector('#OpeningBriefing');
+const BriefingKickerElement = document.querySelector('#BriefingKicker');
+const BriefingPortraitElement = document.querySelector('#BriefingPortrait');
+const BriefingSpeakerElement = document.querySelector('#BriefingSpeaker');
+const BriefingTitleElement = document.querySelector('#BriefingTitle');
+const BriefingBodyElement = document.querySelector('#BriefingBody');
+const BriefingProgressElement = document.querySelector('#BriefingProgress');
+const BriefingContinueButtonElement = document.querySelector('#BriefingContinueButton');
+const BriefingSkipButtonElement = document.querySelector('#BriefingSkipButton');
 const AimPanelElement = document.querySelector('#AimPanel');
 const AimLabelElement = document.querySelector('#AimLabel');
 const AimPowerFillElement = document.querySelector('#AimPowerFill');
@@ -298,7 +308,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob80';
+GameCanvas.dataset.build = '20260815-ob81';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -453,6 +463,8 @@ let StatusToastTimeoutIdentifier = null;
 let WorldheartCompletionTimeoutIdentifier = null;
 let LeaderboardLoadSequence = 0;
 let HasLaunchedOnce = false;
+let OpeningBriefingPageIndex = 0;
+let IsOpeningBriefingActive = false;
 let LaunchPulseLifeSeconds = 0;
 let ImpactPulseLifeSeconds = 0;
 let CameraImpactLifeSeconds = 0;
@@ -5714,6 +5726,83 @@ function showInstruction(Title, Body) {
   InstructionPanelElement.setAttribute('aria-hidden', 'false');
 }
 
+function hideOpeningBriefing() {
+  IsOpeningBriefingActive = false;
+  OpeningBriefingElement.hidden = true;
+  GameCanvas.dataset.openingBriefing = 'closed';
+  OpeningBriefingElement.classList.remove('is-warden', 'is-haven', 'is-courier', 'is-runner');
+}
+
+function presentOpeningBriefingPage(PageIndex, { playVoice = false } = {}) {
+  const Pages = ActiveSystem.openingBriefing ?? [];
+  const Presentation = getOpeningBriefingPresentation(Pages, PageIndex);
+  OpeningBriefingPageIndex = PageIndex;
+  IsOpeningBriefingActive = true;
+  BriefingKickerElement.textContent = Presentation.kicker;
+  BriefingSpeakerElement.textContent = Presentation.speaker;
+  BriefingTitleElement.textContent = Presentation.title;
+  BriefingBodyElement.textContent = Presentation.body;
+  BriefingProgressElement.textContent = Presentation.progressLabel;
+  BriefingContinueButtonElement.textContent = Presentation.continueLabel;
+  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob81`;
+  BriefingPortraitElement.alt = Presentation.speaker;
+  OpeningBriefingElement.classList.remove('is-warden', 'is-haven', 'is-courier', 'is-runner');
+  OpeningBriefingElement.classList.add(`is-${Presentation.tone}`);
+  OpeningBriefingElement.hidden = false;
+  InstructionPanelElement.classList.add('is-hidden');
+  InstructionPanelElement.setAttribute('aria-hidden', 'true');
+  GameCanvas.dataset.openingBriefing = Presentation.progressLabel;
+  if (playVoice) {
+    WorldseedSound.briefingVoice(Presentation.speaker);
+  }
+  BriefingContinueButtonElement.focus({ preventScroll: true });
+}
+
+function beginOpeningBriefing() {
+  const Pages = ActiveSystem.openingBriefing ?? [];
+  if (Pages.length < 1 || ReplayPlaybackState !== null) {
+    hideOpeningBriefing();
+    return false;
+  }
+  presentOpeningBriefingPage(0, { playVoice: Boolean(WorldseedSound.context) });
+  return true;
+}
+
+function advanceOpeningBriefing() {
+  if (!IsOpeningBriefingActive) {
+    return;
+  }
+  WorldseedSound.ensureStarted();
+  const Pages = ActiveSystem.openingBriefing ?? [];
+  if (OpeningBriefingPageIndex >= Pages.length - 1) {
+    finishOpeningBriefing();
+    return;
+  }
+  presentOpeningBriefingPage(OpeningBriefingPageIndex + 1, { playVoice: true });
+}
+
+function finishOpeningBriefing() {
+  if (!IsOpeningBriefingActive && OpeningBriefingElement.hidden) {
+    return;
+  }
+  WorldseedSound.ensureStarted();
+  hideOpeningBriefing();
+  const OpeningRouteChoices = getRouteChoices(
+    CampaignNodeDefinitions,
+    StartingWorldIdentifier,
+    2,
+    ActiveSystem.routeSuggestions[StartingWorldIdentifier] ?? [],
+  );
+  showInstruction(
+    'Choose ' + OpeningRouteChoices[0].label + ' or ' + OpeningRouteChoices[1].label,
+    ActiveSystem.openingBody,
+  );
+  if (ActiveSystem.openingBroadcast) {
+    showStatusToast(ActiveSystem.openingBroadcast, 2200, 'warden');
+  }
+  GameCanvas.focus({ preventScroll: true });
+}
+
 /** Ends a caught attempt after a brief, readable failure beat. */
 function scheduleRunFailure(Reason = 'THE WARDEN REACHED THE RUNNER') {
   if (GamePhase === 'runFailed' || RunState.status !== 'failed') {
@@ -6829,6 +6918,9 @@ function cancelKeyboardAim() {
 
 /** Routes focused canvas keys into the same aim and launch state as a pointer gesture. */
 function handleKeyboardAimKey(KeyboardEventData) {
+  if (IsOpeningBriefingActive) {
+    return false;
+  }
   if (document.activeElement !== GameCanvas) {
     return false;
   }
@@ -6904,6 +6996,9 @@ function handleKeyboardAimKey(KeyboardEventData) {
  * @param {PointerEvent} PointerEventData - Browser pointer event.
  */
 function handlePointerDown(PointerEventData) {
+  if (IsOpeningBriefingActive) {
+    return;
+  }
   if (
     GamePhase !== 'attached'
     || RunState.status !== 'active'
@@ -8085,7 +8180,8 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
 
   const IsOpeningCoachVisible = GamePhase === 'attached'
     && CurrentWorldIdentifier === StartingWorldIdentifier
-    && !HasLaunchedOnce;
+    && !HasLaunchedOnce
+    && !IsOpeningBriefingActive;
   PullGuideLine.visible = IsOpeningCoachVisible;
   updateTargetBeacons(ElapsedTimeSeconds);
   if (IsOpeningCoachVisible) {
@@ -8654,21 +8750,23 @@ function resetGame() {
   updateStardustCounter();
   updateWorldheartObjective();
   updateTargetBeacons(0);
-  const OpeningRouteChoices = getRouteChoices(
-    CampaignNodeDefinitions,
-    StartingWorldIdentifier,
-    2,
-    ActiveSystem.routeSuggestions[StartingWorldIdentifier] ?? [],
-  );
-  showInstruction(
-    'Choose ' + OpeningRouteChoices[0].label + ' or ' + OpeningRouteChoices[1].label,
-    ActiveSystem.openingBody,
-  );
-  if (ActiveSystem.openingBroadcast) {
-    showStatusToast(ActiveSystem.openingBroadcast, 2200, 'warden');
-  }
-  if (ShouldRestoreCanvasFocus) {
-    GameCanvas.focus({ preventScroll: true });
+  if (!beginOpeningBriefing()) {
+    const OpeningRouteChoices = getRouteChoices(
+      CampaignNodeDefinitions,
+      StartingWorldIdentifier,
+      2,
+      ActiveSystem.routeSuggestions[StartingWorldIdentifier] ?? [],
+    );
+    showInstruction(
+      'Choose ' + OpeningRouteChoices[0].label + ' or ' + OpeningRouteChoices[1].label,
+      ActiveSystem.openingBody,
+    );
+    if (ActiveSystem.openingBroadcast) {
+      showStatusToast(ActiveSystem.openingBroadcast, 2200, 'warden');
+    }
+    if (ShouldRestoreCanvasFocus) {
+      GameCanvas.focus({ preventScroll: true });
+    }
   }
 }
 
@@ -8877,6 +8975,7 @@ function watchSerializedReplay(SerializedReplay, ReplayLabel) {
   }
   closeLeaderboardPanel(false);
   resetGame();
+  hideOpeningBriefing();
   ReplayState = CompletedReplay;
   ReplayPlaybackState = createReplayPlaybackState(CompletedReplay);
   GameCanvas.dataset.replayPayload = SerializedReplay;
@@ -9130,6 +9229,36 @@ ReducedMotionMediaQuery.addEventListener('change', () => {
   applyMotionPreference();
 });
 window.addEventListener('keydown', (KeyboardEventData) => {
+  if (IsOpeningBriefingActive) {
+    const PressedBriefingKey = KeyboardEventData.key.toLowerCase();
+    if (PressedBriefingKey === 'escape') {
+      KeyboardEventData.preventDefault();
+      finishOpeningBriefing();
+      return;
+    }
+    if (PressedBriefingKey === 'enter' || PressedBriefingKey === ' ') {
+      if (OpeningBriefingElement.contains(KeyboardEventData.target)
+        && KeyboardEventData.target.tagName === 'BUTTON') {
+        return;
+      }
+      KeyboardEventData.preventDefault();
+      advanceOpeningBriefing();
+      return;
+    }
+    if (KeyboardEventData.key === 'Tab') {
+      const FocusableElements = [BriefingContinueButtonElement, BriefingSkipButtonElement];
+      const FirstFocusableElement = FocusableElements[0];
+      const LastFocusableElement = FocusableElements.at(-1);
+      if (KeyboardEventData.shiftKey && document.activeElement === FirstFocusableElement) {
+        KeyboardEventData.preventDefault();
+        LastFocusableElement?.focus();
+      } else if (!KeyboardEventData.shiftKey && document.activeElement === LastFocusableElement) {
+        KeyboardEventData.preventDefault();
+        FirstFocusableElement?.focus();
+      }
+      return;
+    }
+  }
   if (KeyboardEventData.key === 'Escape' && !LeaderboardPanelElement.hidden) {
     KeyboardEventData.preventDefault();
     closeLeaderboardPanel();
@@ -9137,7 +9266,9 @@ window.addEventListener('keydown', (KeyboardEventData) => {
   }
   const ActiveModalElement = !LeaderboardPanelElement.hidden
     ? LeaderboardPanelElement
-    : (!VictoryPanelElement.hidden ? VictoryPanelElement : null);
+    : (!VictoryPanelElement.hidden
+      ? VictoryPanelElement
+      : (IsOpeningBriefingActive ? OpeningBriefingElement : null));
   if (KeyboardEventData.key === 'Tab' && ActiveModalElement) {
     const FocusableElements = [...ActiveModalElement.querySelectorAll('input, button')]
       .filter((Element) => !Element.disabled && !Element.hidden && Element.offsetParent !== null);
@@ -9221,7 +9352,9 @@ window.addEventListener('keydown', (KeyboardEventData) => {
 document.addEventListener('focusin', (FocusEventData) => {
   const ActiveModalElement = !LeaderboardPanelElement.hidden
     ? LeaderboardPanelElement
-    : (!VictoryPanelElement.hidden ? VictoryPanelElement : null);
+    : (!VictoryPanelElement.hidden
+      ? VictoryPanelElement
+      : (IsOpeningBriefingActive ? OpeningBriefingElement : null));
   if (!ActiveModalElement || ActiveModalElement.contains(FocusEventData.target)) {
     return;
   }
@@ -9230,6 +9363,14 @@ document.addEventListener('focusin', (FocusEventData) => {
 });
 ResetButtonElement.addEventListener('click', resetGame);
 ReplayButtonElement.addEventListener('click', resetGame);
+BriefingContinueButtonElement.addEventListener('click', (PointerEventData) => {
+  PointerEventData.stopPropagation();
+  advanceOpeningBriefing();
+});
+BriefingSkipButtonElement.addEventListener('click', (PointerEventData) => {
+  PointerEventData.stopPropagation();
+  finishOpeningBriefing();
+});
 WatchReplayButtonElement.addEventListener('click', watchCompletedReplay);
 LeaderboardButtonElement.addEventListener('click', openLeaderboardPanel);
 LeaderboardFormElement.addEventListener('submit', submitVerifiedScore);

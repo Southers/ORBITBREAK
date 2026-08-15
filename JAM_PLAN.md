@@ -870,10 +870,10 @@ Runner visual scale is 0.52, landed follow frames one world, and Scout zoom now 
 Physics identity, scoring and replay inputs are unchanged. Art is still not a 9: living routes
 remain a luminous segment plus one cone, and prosperity houses are the next checkpoint.
 
-Checkpoint 2 — 15 August 2026: the opening is one purpose line, *They are still out there. Carry
-the first word.*, under the existing Warden broadcast. Hidden-Warden HUD uses neighbourhood
-language instead of counting relays toward a hunt. Coaches stay one line: purpose, then wake,
-then the range veil. Hunt copy waits until pursuit exists.
+Checkpoint 2 — 15 August 2026: the opening is now a four-page story board before play:
+Warden edict, stolen courier, last free garden, and the charge to wake the neighbourhood.
+Portraits, speaker names and in-engine voices. Continue/Skip at 44px. The live coach after
+the board still uses the purpose line *They are still out there. Carry the first word.*
 
 Checkpoint 3 — 15 August 2026: free walkers share the inhabitant draw with worker, child-scale
 and pack silhouettes. Isolated Haven stays three people; tyrant worlds keep two guards and four

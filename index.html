@@ -11,7 +11,7 @@
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
   <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260814-ob13" />
-  <link rel="stylesheet" href="./src/style.css?v=20260815-ob80" />
+  <link rel="stylesheet" href="./src/style.css?v=20260815-ob81" />
 
   <!--
     Buildless release import map. Three.js is pinned and vendored so startup
@@ -43,6 +43,37 @@
       keyboard aiming. R resets, M toggles audio, and P changes motion.
     </p>
     <div id="LiberationFlash" class="liberation-flash" aria-hidden="true"></div>
+
+    <section
+      id="OpeningBriefing"
+      class="opening-briefing"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="BriefingTitle"
+      aria-describedby="BriefingBody"
+      hidden
+    >
+      <div class="opening-briefing__board">
+        <p class="opening-briefing__kicker" id="BriefingKicker">SECTOR BROADCAST</p>
+        <figure class="opening-briefing__portrait">
+          <img
+            id="BriefingPortrait"
+            src="./assets/warden-portrait.jpg?v=20260815-ob81"
+            alt=""
+          />
+          <figcaption id="BriefingSpeaker">THE WARDEN</figcaption>
+        </figure>
+        <h1 id="BriefingTitle">Travel is forbidden.</h1>
+        <p id="BriefingBody">
+          Silence keeps you safe. Stay on your world. Connection is disorder. Movement is disobedience.
+        </p>
+        <p class="opening-briefing__progress" id="BriefingProgress">1 / 4</p>
+        <div class="opening-briefing__actions">
+          <button id="BriefingContinueButton" type="button">Continue</button>
+          <button id="BriefingSkipButton" type="button" class="is-secondary">Skip intro</button>
+        </div>
+      </div>
+    </section>
 
     <header class="hud hud--top">
       <div class="brand">
@@ -205,6 +236,6 @@
     </footer>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260815-ob80"></script>
+  <script type="module" src="./src/main.js?v=20260815-ob81"></script>
 </body>
 </html>

@@ -37,6 +37,9 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     BreakerReachSystemDefinition.openingBroadcast,
     'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
   );
+  assert.equal(BreakerReachSystemDefinition.openingBriefing.length, 4);
+  assert.equal(BreakerReachSystemDefinition.openingBriefing[0].speaker, 'THE WARDEN');
+  assert.equal(BreakerReachSystemDefinition.openingBriefing[3].title, 'Wake the neighbourhood.');
   assert.equal(
     BreakerReachSystemDefinition.wardenArrivalBroadcast,
     'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',

@@ -85,6 +85,22 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
       );
     }
   }
+  if (SystemDefinition.openingBriefing !== undefined) {
+    if (!Array.isArray(SystemDefinition.openingBriefing)
+      || SystemDefinition.openingBriefing.length < 1) {
+      Errors.push('Authored system openingBriefing must be a non-empty array when present.');
+    } else {
+      SystemDefinition.openingBriefing.forEach((Page, PageIndex) => {
+        for (const Field of ['speaker', 'kicker', 'title', 'body', 'portrait']) {
+          if (typeof Page?.[Field] !== 'string' || Page[Field].trim() === '') {
+            Errors.push(
+              `Authored system openingBriefing page ${PageIndex + 1} requires ${Field}.`,
+            );
+          }
+        }
+      });
+    }
+  }
   if (!Number.isInteger(SystemDefinition.launchBudget) || SystemDefinition.launchBudget < 1) {
     Errors.push('Authored system requires a positive integer launchBudget.');
   }
@@ -555,6 +571,15 @@ export function createAuthoredSystemRuntime(
     contentVersion: SystemDefinition.contentVersion,
     openingBody: SystemDefinition.openingBody,
     openingBroadcast: SystemDefinition.openingBroadcast ?? null,
+    openingBriefing: Array.isArray(SystemDefinition.openingBriefing)
+      ? SystemDefinition.openingBriefing.map((Page) => ({
+        speaker: Page.speaker,
+        kicker: Page.kicker,
+        title: Page.title,
+        body: Page.body,
+        portrait: Page.portrait,
+      }))
+      : [],
     wardenArrivalBroadcast: SystemDefinition.wardenArrivalBroadcast ?? null,
     rangeUnlockLine: SystemDefinition.rangeUnlockLine ?? null,
     furtherLandingLine: SystemDefinition.furtherLandingLine ?? null,
@@ -765,6 +790,36 @@ export const BreakerReachSystemDefinition = {
   openingBroadcast: 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
   wardenArrivalBroadcast: 'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',
   openingBody: 'They are still out there. Carry the first word.',
+  openingBriefing: [
+    {
+      speaker: 'THE WARDEN',
+      kicker: 'SECTOR BROADCAST',
+      portrait: 'warden',
+      title: 'Travel is forbidden.',
+      body: 'Silence keeps you safe. Stay on your world. Connection is disorder. Movement is disobedience.',
+    },
+    {
+      speaker: 'THE RUNNER',
+      kicker: 'STOLEN COURIER',
+      portrait: 'runner',
+      title: 'I stole the last ship.',
+      body: 'I am a maintenance astronaut. This is the Orbitbreaker, the forbidden courier that can cross their isolation cages.',
+    },
+    {
+      speaker: 'HAVEN',
+      kicker: "BREAKER'S REACH",
+      portrait: 'haven',
+      title: 'They are still out there.',
+      body: 'Haven is the last free garden. Ember, Grove and the rest sit dark, mined and silent. Carry the first word before the Warden notices.',
+    },
+    {
+      speaker: 'THE RUN',
+      kicker: 'YOUR CHARGE',
+      portrait: 'orbitbreaker',
+      title: 'Wake the neighbourhood.',
+      body: 'Land. Link. Watch tiny worlds come alive. When the Reach starts talking, the Warden will hunt. Close the loops. Break Command.',
+    },
+  ],
   rangeUnlockLine: 'The dark is not as wide as they said.',
   furtherLandingLine: 'A whole neighbourhood is talking.',
   commandApproachLine: 'A network cannot be imprisoned.',

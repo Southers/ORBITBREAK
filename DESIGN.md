@@ -16,6 +16,8 @@ The player is the Runner, a maintenance astronaut who steals the last impounded 
 
 The first connections create small, specific signs of hope: two worlds answer one another, windows illuminate, music gains a voice and tiny trade ships begin moving along the route. An isolated breach resembles a fault. The opening act lets the Runner reconnect a neighbourhood and watch it prosper until travel further into the Reach feels easy. Only once that hopeful system is visible does the Warden triangulate a rebellion. It arrives, suppresses vulnerable frontier worlds and follows the network toward the Runner.
 
+The run opens on a four-page story board before any launch: the Warden's edict, the Runner stealing the Orbitbreaker, Haven as the last free garden, and the charge to wake the neighbourhood. It is authored dialogue with portraits, not a control dump and not a branching conversation. Play waits until the player continues or skips. In-engine voices speak each page after the first gesture. External voice or image APIs are expansion, not the first briefing.
+
 The Runner wins by creating a network strong enough to expose the Warden's command vessel, then boarding and disabling it. The ending may reveal that this Warden was one node in a larger authority, but the sector is saved and the run is complete.
 
 The Warden's ideology is concise and visible:

@@ -39,6 +39,7 @@ import {
   getWorldLandingAimLabel,
   getLoopObjectivePresentation,
   getHiddenWardenRouteCoach,
+  getOpeningBriefingPresentation,
   separateOverlappingTacticalLabels,
   separateOverlappingRouteLabels,
   separateRouteLabelsFromTacticalLabels,
@@ -189,6 +190,35 @@ test('new relay couriers depart from the origin of the live link', () => {
   assert.equal(getRelayCourierTravelProgress(0.5 / 0.11).travelProgress, 0.5);
   assert.equal(getRelayCourierTravelProgress(1.25 / 0.11).isReturning, true);
   assert.throws(() => getRelayCourierTravelProgress(-1), /non-negative age/);
+});
+
+test('opening briefing names the Runner, the Reach and the charge', () => {
+  const Pages = [
+    {
+      speaker: 'THE WARDEN',
+      kicker: 'SECTOR BROADCAST',
+      portrait: 'warden',
+      title: 'Travel is forbidden.',
+      body: 'Silence keeps you safe.',
+    },
+    {
+      speaker: 'THE RUNNER',
+      kicker: 'STOLEN COURIER',
+      portrait: 'runner',
+      title: 'I stole the last ship.',
+      body: 'This is the Orbitbreaker.',
+    },
+  ];
+  const First = getOpeningBriefingPresentation(Pages, 0);
+  assert.equal(First.speaker, 'THE WARDEN');
+  assert.equal(First.tone, 'warden');
+  assert.equal(First.continueLabel, 'Continue');
+  assert.equal(First.progressLabel, '1 / 2');
+  assert.match(First.portraitSrc, /warden-portrait/);
+  const Last = getOpeningBriefingPresentation(Pages, 1);
+  assert.equal(Last.isLast, true);
+  assert.equal(Last.continueLabel, 'Take the Orbitbreaker');
+  assert.throws(() => getOpeningBriefingPresentation([], 0), /at least one/);
 });
 
 test('hidden Warden coach teaches purpose, then waking, then range', () => {
