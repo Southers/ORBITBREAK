@@ -125,6 +125,18 @@ export function auditReleaseReadiness() {
     ReleaseBrief.includes('Known gated items'),
     'RELEASE.md must list incomplete or externally gated release work.',
   );
+  const CandidateBuildVersion = ReleaseBrief.match(/Build `([^`]+)` passes/)?.[1];
+  requireCondition(
+    CandidateBuildVersion === MainBuildVersion,
+    'RELEASE.md candidate evidence must match the published canvas build identifier.',
+  );
+  requireCondition(
+    ReleaseBrief.includes('Breaker Burn')
+      && ReleaseBrief.includes('surface walking')
+      && ReleaseBrief.includes('zero-bonus-fuel continuation')
+      && !ReleaseBrief.includes('eight-launch failure'),
+    'RELEASE.md must describe the current surface, Burn and bonus-fuel rules.',
+  );
 
   return {
     build: MainBuildVersion ?? null,
