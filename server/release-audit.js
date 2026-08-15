@@ -133,6 +133,11 @@ export function auditReleaseReadiness() {
     'Aim preview and Breaker Burn labels must retain their named, legible action hierarchy.',
   );
   requireCondition(
+    /\.result-breakdown\s+dt\s*\{[^}]*color:\s*rgba\(214,\s*228,\s*235,\s*0\.68\);[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+      && /\.emblem\s+small\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),
+    'Verified score categories and earned emblem captions must retain their legible type floor.',
+  );
+  requireCondition(
     /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
       && /\.objective-panel__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.objective-panel__state\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),

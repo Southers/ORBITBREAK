@@ -890,10 +890,11 @@ button[aria-disabled='true'] {
 
 .result-breakdown dt {
   overflow: hidden;
-  color: rgba(214, 228, 235, 0.44);
-  font-size: 7px;
+  color: rgba(214, 228, 235, 0.68);
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
+  line-height: 1.2;
   text-overflow: ellipsis;
 }
 
@@ -984,9 +985,10 @@ button[aria-disabled='true'] {
 }
 
 .emblem small {
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.08em;
+  line-height: 1.2;
 }
 
 .emblem.is-earned {

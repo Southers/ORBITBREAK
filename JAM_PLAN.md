@@ -678,6 +678,20 @@ At 1280×720, both `EMBER TARGET` and `LONG ARC` remained single-line and overfl
 errors. The release audit protects the group name, label bounds and type floors. This presentation-only
 pass changes no aim math, Burn impulse, input mapping, physics, prediction, score or replay behavior.
 
+Gauntlet pass 37 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The verified ending still reduced its most judgeable evidence
+to microtype: `SLINGSHOTS / NETWORK / VICTORY / FLIGHT TIME` and the three earned emblem captions all
+rendered at 7px. A fresh six-launch Haven–Ember–Grove–Haven–Frost–Grove route opened the moving Command
+lock, reached Pulse range in seven prompted steps and produced an independently verified 11,250 result.
+Those score categories and emblem captions now use a 10px/1.2 floor, and breakdown contrast rises from
+44% to 68% without changing the hierarchy of their 12px values. At 390×844, the result grew only from
+662.9px to 672.5px, retained all three 45–67px actions and had no page or panel overflow. At 1280×720,
+the 520×671.5px panel remained centred and fully visible. At 844×390, the existing bounded scroll
+fallback absorbed a 3px internal range while the sticky three-action row stayed entirely visible at
+y319–365 inside the y12–378 panel. Focus remained on `Watch replay` and the browser reported no errors
+through every resize. The release audit protects the caption floors and contrast. This evidence-only
+pass changes no result data, scoring, focus order, physics, pursuit, replay or leaderboard behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
