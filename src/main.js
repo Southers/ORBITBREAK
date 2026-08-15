@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260815-ob82';
+import { WorldseedAudio } from './audio.js?v=20260815-ob85';
 import {
   SurfaceGestureModes,
   adjustSurfaceAngle,
@@ -109,6 +109,7 @@ import {
   getLiveLinkShipCount,
   getStoryBoardPresentation,
   getTriggeredCampaignStoryBoardIds,
+  isCampaignStoryBoardReadyToPresent,
   getPersonalBestStatus,
   getPlayfieldLabelVerticalBounds,
   getProsperityPresence,
@@ -140,7 +141,7 @@ import {
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob82';
+} from './presentation.js?v=20260815-ob85';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -314,7 +315,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob84';
+GameCanvas.dataset.build = '20260815-ob85';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -442,6 +443,7 @@ let IsPointerScouting = false;
 const CameraPanOffset = new THREE.Vector3();
 const PanOffsetStart = new THREE.Vector3();
 let CameraZoomScale = 1;
+let AimZoomScale = 1;
 const PointerByIdentifier = new Map();
 let PinchState = null;
 let IsBurnAiming = false;
@@ -5966,6 +5968,7 @@ function hideStoryBoardOverlay() {
     'is-grove',
     'is-command',
   );
+  WorldseedSound.setStoryPaused(false);
 }
 
 function hideOpeningBriefing() {
@@ -6000,7 +6003,7 @@ function presentStoryBoardPage(PageIndex, { playVoice = false } = {}) {
   BriefingProgressElement.textContent = Presentation.progressLabel;
   BriefingContinueButtonElement.textContent = Presentation.continueLabel;
   BriefingSkipButtonElement.textContent = Board.skipLabel;
-  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob82`;
+  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob85`;
   BriefingPortraitElement.alt = Presentation.speaker;
   OpeningBriefingElement.classList.remove(
     'is-warden',
@@ -6016,6 +6019,7 @@ function presentStoryBoardPage(PageIndex, { playVoice = false } = {}) {
   InstructionPanelElement.classList.add('is-hidden');
   InstructionPanelElement.setAttribute('aria-hidden', 'true');
   GameCanvas.dataset.openingBriefing = `${ActiveStoryBoardId}:${Presentation.progressLabel}`;
+  WorldseedSound.setStoryPaused(true);
   if (playVoice) {
     WorldseedSound.briefingVoice(Presentation.speaker);
   }
@@ -6053,7 +6057,7 @@ function presentNextQueuedStoryBoard() {
       return;
     }
     if (GamePhase === 'attached' || GamePhase === 'restoring') {
-      showRouteChoiceInstruction();
+      if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
       GameCanvas.focus({ preventScroll: true });
     }
     return;
@@ -6077,10 +6081,29 @@ function enqueueCampaignStoryBoards(BoardIds, tokens = {}) {
     StoryBoardQueue.push({ id: BoardId, tokens });
     QueuedCount += 1;
   }
-  if (QueuedCount > 0 && !IsOpeningBriefingActive) {
-    presentNextQueuedStoryBoard();
+  if (QueuedCount > 0) {
+    flushQueuedStoryBoardsIfReady();
   }
   return QueuedCount > 0;
+}
+
+function flushQueuedStoryBoardsIfReady() {
+  if (StoryBoardQueue.length < 1 || IsOpeningBriefingActive) {
+    return false;
+  }
+  if (!isCampaignStoryBoardReadyToPresent({
+    briefingActive: IsOpeningBriefingActive,
+    replayActive: ReplayPlaybackState !== null,
+    gamePhase: GamePhase,
+    relayRevealActive: Boolean(
+      RelayRevealLookTarget
+      && RelayRevealHoldUntilSeconds > GameElapsedTimeSeconds
+    ),
+  })) {
+    return false;
+  }
+  presentNextQueuedStoryBoard();
+  return true;
 }
 
 function beginOpeningBriefing() {
@@ -6112,6 +6135,7 @@ function finishOpeningBriefing() {
     return;
   }
   WorldseedSound.ensureStarted();
+  WorldseedSound.stopTransients();
   if (ActiveStoryBoardId === 'opening') {
     hideStoryBoardOverlay();
     const OpeningRouteChoices = getRouteChoices(
@@ -6870,6 +6894,20 @@ function applySectorPlanningCamera() {
   GameCanvas.dataset.planningCameraScale = PlanningCamera.scale.toFixed(2);
 }
 
+/** Jumps to the sector aim frame so landed pan/zoom cannot hide the path in fog. */
+function snapLiveCameraToPlanningView() {
+  applySectorPlanningCamera();
+  CameraLookTarget.copy(PlanningCameraLookTarget);
+  DesiredCameraLookTarget.copy(PlanningCameraLookTarget);
+  CameraDistanceScale = PlanningCameraScale * AimZoomScale;
+  Camera.position.set(
+    CameraLookTarget.x,
+    CameraLookTarget.y,
+    BaseCameraDistance * CameraDistanceScale,
+  );
+  Camera.lookAt(CameraLookTarget);
+}
+
 function shouldUseSectorPlanningCamera() {
   return (IsPointerAiming || IsKeyboardAiming || GamePhase === 'flying')
     && !IsScoutMode
@@ -7264,11 +7302,14 @@ function beginKeyboardAim() {
       powerRatio: 1,
     });
   IsKeyboardAiming = true;
+  CameraPanOffset.set(0, 0, 0);
+  AimZoomScale = 1;
   WorldseedSound.beginAim();
   GameCanvas.classList.add('is-aiming');
   PullGuideLine.visible = false;
   AimPanelElement.hidden = false;
   updateKeyboardAimPreview();
+  snapLiveCameraToPlanningView();
   showInstruction(
     'Keyboard aim ready',
     'Left/right steer · up/down set power · Shift makes fine adjustments · Enter launches.',
@@ -7784,11 +7825,14 @@ function handlePointerDown(PointerEventData) {
     PointerGestureStartWorldPosition.copy(CurrentPointerWorldPosition);
     LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
     captureAimInteractionCamera();
+    CameraPanOffset.set(0, 0, 0);
+    AimZoomScale = 1;
     IsPointerAiming = true;
     WorldseedSound.beginAim();
     GameCanvas.classList.add('is-aiming');
     AimPanelElement.hidden = false;
     updateAimPreview(CurrentPointerWorldPosition);
+    snapLiveCameraToPlanningView();
     PointerEventData.preventDefault();
     return;
   }
@@ -8628,6 +8672,7 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
             if (!DidBeginHostileEncounter && !ShouldPreserveWardenReveal) {
               showRouteChoiceInstruction();
             }
+            flushQueuedStoryBoardsIfReady();
           }
         }
       }
@@ -9029,6 +9074,15 @@ function adjustScoutZoom(Direction) {
 
 function adjustViewZoom(Direction) {
   const MaximumScale = getActiveMaximumScoutZoomScale();
+  if (shouldUseSectorPlanningCamera()) {
+    const PreviousScale = AimZoomScale;
+    AimZoomScale = THREE.MathUtils.clamp(
+      AimZoomScale + (Math.sign(Direction) * 0.1),
+      MinimumScoutZoomScale,
+      MaximumScale,
+    );
+    return AimZoomScale !== PreviousScale;
+  }
   const PreviousScale = CameraZoomScale;
   CameraZoomScale = THREE.MathUtils.clamp(
     CameraZoomScale + (Math.sign(Direction) * 0.1),
@@ -9094,7 +9148,7 @@ function updateCamera(DeltaTimeSeconds) {
   if (IsScoutMode) {
     DesiredDistanceScale = ScoutZoomScale;
   } else if (UsesPlanningCamera) {
-    DesiredDistanceScale = PlanningCameraScale;
+    DesiredDistanceScale = PlanningCameraScale * AimZoomScale;
   } else if (
     UsesExplorationCamera
     && (GamePhase === 'attached' || GamePhase === 'restoring')
@@ -9108,7 +9162,7 @@ function updateCamera(DeltaTimeSeconds) {
       : 0.5;
     GameCanvas.dataset.landedCameraScale = DesiredDistanceScale.toFixed(2);
   }
-  if (!IsScoutMode) {
+  if (!IsScoutMode && !UsesPlanningCamera) {
     DesiredDistanceScale *= CameraZoomScale;
   }
   CameraDistanceScale += (DesiredDistanceScale - CameraDistanceScale) * CameraFollowAlpha;
@@ -9262,6 +9316,7 @@ function resetGame() {
   IsScoutMode = false;
   ScoutZoomScale = 1;
   CameraZoomScale = 1;
+  AimZoomScale = 1;
   CameraPanOffset.set(0, 0, 0);
   PointerByIdentifier.clear();
   PinchState = null;
@@ -9811,6 +9866,12 @@ function renderFrame() {
     return;
   }
 
+  if (IsOpeningBriefingActive) {
+    Clock.getDelta();
+    Renderer.render(Scene, Camera);
+    return;
+  }
+
   const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
   GameElapsedTimeSeconds += DeltaTimeSeconds;
   const ElapsedTimeSeconds = GameElapsedTimeSeconds;
@@ -9840,6 +9901,7 @@ function renderFrame() {
     RelayRevealLookTarget = null;
     RelayRevealHoldUntilSeconds = 0;
     GameCanvas.dataset.relayReveal = '';
+    flushQueuedStoryBoardsIfReady();
   }
   updateCamera(DeltaTimeSeconds);
   const InstructionTop = InstructionPanelElement.getBoundingClientRect().top;

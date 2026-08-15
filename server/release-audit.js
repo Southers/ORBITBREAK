@@ -27,6 +27,7 @@ export function auditReleaseReadiness() {
   const PresentationSource = readRepositoryFile('src/presentation.js');
   const PhysicsSource = readRepositoryFile('src/physics.js');
   const ScoringSource = readRepositoryFile('src/scoring.js');
+  const AudioSource = readRepositoryFile('src/audio.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -72,6 +73,8 @@ export function auditReleaseReadiness() {
     PresentationSource.includes('export function getSectorPlanningCamera(')
       && MainSource.includes('MaximumTrajectoryPredictionSteps = 720')
       && MainSource.includes('applySectorPlanningCamera(')
+      && MainSource.includes('snapLiveCameraToPlanningView(')
+      && MainSource.includes('PlanningCameraScale * AimZoomScale')
       && MainSource.includes('updateFlightPlanningPresentation('),
     'Aiming must frame the whole sector and draw the exact remaining path.',
   );
@@ -104,6 +107,11 @@ export function auditReleaseReadiness() {
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
         ?.storyBoards?.commandExposed?.pages?.length >= 2
       && MainSource.includes('enqueueCampaignStoryBoards(')
+      && MainSource.includes('flushQueuedStoryBoardsIfReady(')
+      && PresentationSource.includes('export function isCampaignStoryBoardReadyToPresent(')
+      && MainSource.includes('WorldseedSound.setStoryPaused(true)')
+      && MainSource.includes('WorldseedSound.stopTransients()')
+      && AudioSource.includes('TransientSource.disconnect()')
       && PresentationSource.includes('export function getTriggeredCampaignStoryBoardIds(')
       && Credits.includes('assets/ember-portrait.jpg')
       && Credits.includes('assets/command-portrait.jpg'),
