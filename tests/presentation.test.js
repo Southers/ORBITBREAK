@@ -12,6 +12,7 @@ import {
   getRunnerPose,
   getStillnessPresentation,
   getWorldLandingAimLabel,
+  separateOverlappingRouteLabels,
 } from '../src/presentation.js';
 
 test('published Warden state distinguishes exposure from final defeat', () => {
@@ -28,6 +29,34 @@ test('published Warden state distinguishes exposure from final defeat', () => {
     landmark: 'command-world-disabled',
   });
   assert.throws(() => getPublishedWardenState(''), /requires a pursuit status/);
+});
+
+test('nearby route labels separate without changing distant or edge-clamped layouts', () => {
+  assert.deepEqual(
+    separateOverlappingRouteLabels([
+      { x: 160, y: 90 },
+      { x: 300, y: 96 },
+    ], { minimumX: 58, maximumX: 786 }),
+    [{ x: 160, y: 90 }, { x: 300, y: 96 }],
+  );
+  assert.deepEqual(
+    separateOverlappingRouteLabels([
+      { x: 618, y: 91 },
+      { x: 663, y: 78 },
+    ], { minimumX: 58, maximumX: 786 }),
+    [{ x: 602.5, y: 91 }, { x: 678.5, y: 78 }],
+  );
+  assert.deepEqual(
+    separateOverlappingRouteLabels([
+      { x: 60, y: 80 },
+      { x: 64, y: 82 },
+    ], { minimumX: 58, maximumX: 786 }),
+    [{ x: 58, y: 80 }, { x: 134, y: 82 }],
+  );
+  assert.throws(
+    () => separateOverlappingRouteLabels([{ x: Number.NaN, y: 4 }]),
+    /requires finite positions and bounds/,
+  );
 });
 
 test('relay links retain a bright bounded pulse for system-scale readability', () => {

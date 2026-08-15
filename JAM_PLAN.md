@@ -490,6 +490,16 @@ a 154/190 peak. The release audit protects both the exact phrase and its legibil
 presentation-only change does not alter controls, layout anchors, simulation, scoring, pursuit or
 replay state.
 
+Gauntlet pass 21 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The score-chaser audit found `EMBER` and offscreen `↑ FROST`
+overlapping by roughly 12px at 844×390 after the authored -115° dark-rim reposition. A pure HUD
+layout rule now preserves a 76px horizontal centre gap when two projected route labels converge,
+retains their projected order and clamps the pair inside the existing safe margins. Focused coverage
+protects distant, overlapping and edge-clamped layouts. Replaying the exact reposition removed the
+collision at 148/190 calls. A desktop first relay kept its already-clear labels at 150/190, while
+390×844 retained separated labels, 44px controls, no overflow and a 156/190 peak. This changes no
+route choice, beacon, camera, input, fixed-step physics, score, pursuit or replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

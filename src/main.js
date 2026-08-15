@@ -97,7 +97,8 @@ import {
   getRunnerPose,
   getStillnessPresentation,
   getWorldLandingAimLabel,
-} from './presentation.js?v=20260815-ob49';
+  separateOverlappingRouteLabels,
+} from './presentation.js?v=20260815-ob51';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -258,7 +259,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob50';
+GameCanvas.dataset.build = '20260815-ob51';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -4307,6 +4308,10 @@ function updateRouteLabels() {
   const RouteChoices = GamePhase === 'attached'
     ? getCurrentRouteChoices(RouteLabelElements.length)
     : [];
+  const HorizontalMargin = window.innerWidth <= 640 ? 48 : 58;
+  const TopMargin = window.innerWidth <= 640 ? 172 : 78;
+  const BottomMargin = window.innerWidth <= 640 ? 112 : 82;
+  const LabelPositions = [];
 
   for (let LabelIndex = 0; LabelIndex < RouteLabelElements.length; LabelIndex += 1) {
     const RouteLabelElement = RouteLabelElements[LabelIndex];
@@ -4330,23 +4335,29 @@ function updateRouteLabels() {
         : (RouteLabelProjection.y > 0 ? '↑ ' : '↓ ');
     }
     RouteLabelElement.textContent = DirectionPrefix + WorldDefinition.label;
-    const HorizontalMargin = window.innerWidth <= 640 ? 48 : 58;
-    const TopMargin = window.innerWidth <= 640 ? 172 : 78;
-    const BottomMargin = window.innerWidth <= 640 ? 112 : 82;
-    RouteLabelElement.style.left = Math.round(
-      THREE.MathUtils.clamp(
-        (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth,
-        HorizontalMargin,
-        window.innerWidth - HorizontalMargin,
+    LabelPositions.push({
+      x: Math.round(
+        THREE.MathUtils.clamp(
+          (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth,
+          HorizontalMargin,
+          window.innerWidth - HorizontalMargin,
+        ),
       ),
-    ) + 'px';
-    RouteLabelElement.style.top = Math.round(
-      THREE.MathUtils.clamp(
+      y: Math.round(THREE.MathUtils.clamp(
         (-RouteLabelProjection.y * 0.5 + 0.5) * window.innerHeight,
         TopMargin,
         window.innerHeight - BottomMargin,
-      ),
-    ) + 'px';
+      )),
+    });
+  }
+
+  const ResolvedLabelPositions = separateOverlappingRouteLabels(LabelPositions, {
+    minimumX: HorizontalMargin,
+    maximumX: window.innerWidth - HorizontalMargin,
+  });
+  for (let LabelIndex = 0; LabelIndex < ResolvedLabelPositions.length; LabelIndex += 1) {
+    RouteLabelElements[LabelIndex].style.left = `${ResolvedLabelPositions[LabelIndex].x}px`;
+    RouteLabelElements[LabelIndex].style.top = `${ResolvedLabelPositions[LabelIndex].y}px`;
   }
 }
 

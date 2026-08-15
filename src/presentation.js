@@ -133,3 +133,49 @@ export function getPublishedWardenState(PursuitStatus, IsCommandDefeated = false
       : (IsExposed ? 'command-world-exposed' : (IsVisible ? 'iron-crown-pursuit' : 'hidden')),
   };
 }
+
+/** Separates two nearby route labels horizontally while preserving their projected order. */
+export function separateOverlappingRouteLabels(
+  LabelPositions,
+  {
+    minimumGap = 76,
+    verticalClearance = 24,
+    minimumX = 0,
+    maximumX = Number.POSITIVE_INFINITY,
+  } = {},
+) {
+  if (
+    !Array.isArray(LabelPositions)
+    || LabelPositions.some((Position) => (
+      !Number.isFinite(Position?.x) || !Number.isFinite(Position?.y)
+    ))
+    || !Number.isFinite(minimumGap)
+    || minimumGap < 0
+    || !Number.isFinite(verticalClearance)
+    || verticalClearance < 0
+    || !Number.isFinite(minimumX)
+    || maximumX < minimumX + minimumGap
+  ) {
+    throw new Error('Route label separation requires finite positions and bounds.');
+  }
+
+  const ResolvedPositions = LabelPositions.map((Position) => ({ ...Position }));
+  if (ResolvedPositions.length !== 2) return ResolvedPositions;
+  const [FirstPosition, SecondPosition] = ResolvedPositions;
+  if (
+    Math.abs(FirstPosition.x - SecondPosition.x) >= minimumGap
+    || Math.abs(FirstPosition.y - SecondPosition.y) >= verticalClearance
+  ) {
+    return ResolvedPositions;
+  }
+
+  const MidpointX = (FirstPosition.x + SecondPosition.x) * 0.5;
+  const LeftX = Math.max(
+    minimumX,
+    Math.min(maximumX - minimumGap, MidpointX - (minimumGap * 0.5)),
+  );
+  const FirstIsLeft = FirstPosition.x <= SecondPosition.x;
+  ResolvedPositions[FirstIsLeft ? 0 : 1].x = LeftX;
+  ResolvedPositions[FirstIsLeft ? 1 : 0].x = LeftX + minimumGap;
+  return ResolvedPositions;
+}
