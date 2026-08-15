@@ -119,7 +119,7 @@ export function auditReleaseReadiness() {
     /id="ScannerPanel"[^>]*role="img"[^>]*aria-label="System scanner"/.test(IndexHtml)
       && /\.scanner-panel\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.counter__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
-      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.counter__label\s*\{[^}]*font-size:\s*9px;/s.test(StyleSheet)
+      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.counter__label\s*\{[^}]*font-size:\s*10px;/s.test(StyleSheet)
       && MainSource.includes('getScannerAccessibleLabel({')
       && MainSource.includes('getPlayfieldLabelTopMargin({')
       && MainSource.includes("ScannerPanelElement.setAttribute('aria-label', ScannerAccessibleLabel)"),
@@ -136,6 +136,19 @@ export function auditReleaseReadiness() {
     /\.result-breakdown\s+dt\s*\{[^}]*color:\s*rgba\(214,\s*228,\s*235,\s*0\.68\);[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.emblem\s+small\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),
     'Verified score categories and earned emblem captions must retain their legible type floor.',
+  );
+  requireCondition(
+    /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.hud__actions\s*\{[^}]*gap:\s*4px;/s.test(StyleSheet)
+      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?#ResetButton,[\s\S]*?\.scout-zoom-button\s*\{[^}]*min-width:\s*44px;[^}]*padding-inline:\s*5px;[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.scout-zoom-button\s*\{[^}]*font-size:\s*19px;[^}]*line-height:\s*1;/s.test(StyleSheet)
+      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.counter__label\s*\{[^}]*font-size:\s*10px;/s.test(StyleSheet),
+    'Portrait utility controls and counters must retain 44px targets and a 10px text floor.',
+  );
+  requireCondition(
+    /@media\s*\(max-width:\s*380px\)\s*\{[^}]*\.instruction-panel\s*\{[^}]*bottom:\s*max\(70px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*64px\)\);/s.test(StyleSheet)
+      && /@media\s*\(max-width:\s*340px\)\s*\{[\s\S]*?\.hud__actions\s*\{[^}]*flex-wrap:\s*wrap;/s.test(StyleSheet)
+      && /@media\s*\(max-width:\s*340px\)\s*\{[\s\S]*?\.instruction-panel\s*\{[^}]*bottom:\s*max\(118px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*112px\)\);/s.test(StyleSheet),
+    'Narrow phones must reserve instruction space above wrapped Scout controls.',
   );
   requireCondition(
     /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)

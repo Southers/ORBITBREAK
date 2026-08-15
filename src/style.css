@@ -1082,7 +1082,7 @@ button[aria-disabled='true'] {
   .hud__actions {
     width: 100%;
     justify-content: center;
-    gap: 5px;
+    gap: 4px;
   }
 
   #ResetButton,
@@ -1092,8 +1092,14 @@ button[aria-disabled='true'] {
   #GhostButton,
   .scout-zoom-button {
     min-width: 44px;
-    padding-inline: 7px;
-    font-size: 9px;
+    padding-inline: 5px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .scout-zoom-button {
+    font-size: 19px;
+    line-height: 1;
   }
 
   .instruction-panel {
@@ -1117,7 +1123,7 @@ button[aria-disabled='true'] {
   }
 
   .counter__label {
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 0.1em;
   }
 
@@ -1186,6 +1192,22 @@ button[aria-disabled='true'] {
 
   .aim-panel {
     bottom: max(126px, calc(env(safe-area-inset-bottom) + 120px));
+  }
+}
+
+@media (max-width: 380px) {
+  .instruction-panel {
+    bottom: max(70px, calc(env(safe-area-inset-bottom) + 64px));
+  }
+}
+
+@media (max-width: 340px) {
+  .hud__actions {
+    flex-wrap: wrap;
+  }
+
+  .instruction-panel {
+    bottom: max(118px, calc(env(safe-area-inset-bottom) + 112px));
   }
 }
 

@@ -692,6 +692,19 @@ y319–365 inside the y12–378 panel. Focus remained on `Watch replay` and the 
 through every resize. The release audit protects the caption floors and contrast. This evidence-only
 pass changes no result data, scoring, focus order, physics, pursuit, replay or leaderboard behavior.
 
+Gauntlet pass 38 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The persistent mobile utility row and counter were the weakest
+remaining always-visible type: all five utility labels and the counter rendered at 9px. They now share
+a 10px/1.2 floor, with tighter gaps and padding preserving every 44px touch target. At 390×844 the five
+utilities spanned 332.2px without overflow; at 360×800 they fit exactly between x14 and x346. Entering
+Scout exposed a cascade regression that had reduced the dedicated zoom glyphs to the same tiny label
+size, so their intended 19px/1 rendering is now explicitly restored. Seven Scout controls fit one row
+at 390px; at 360px the instruction panel retains 2.4px of real clearance above the 51.6px footer. At
+320×568 the footer wraps to two rows, every control remains at least 44px, the instruction panel keeps
+a 10px gap, Scout retains focus and the page remains overflow-free. Responsive release checks protect
+the type floors, spacing, zoom exception and narrow-screen clearance. This legibility-only pass changes
+no input mapping, camera scale, physics, scoring, pursuit, replay or leaderboard behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
