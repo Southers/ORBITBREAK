@@ -274,6 +274,14 @@ Run a concise judging check after every playable milestone. After Milestone 6, r
 5. Run the validation gate, replay the same scenarios and compare before/after evidence.
 6. Commit a proven improvement and repeat from step 1. If the hypothesis fails, fix or discard that pass before moving on.
 
+Gauntlet pass 1 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The highest-leverage defect was a contradictory victory state:
+the centre of the screen said `COMMAND BROKEN` while the red Warden card still said `EXPOSED`.
+The card now cools to the network palette and reads `WARDEN DEFEATED / SIGNAL BROKEN / WORLDS
+RESPONDING`. The same replay-derived desktop route produced a verified 12,250 result at 186/190
+draw calls, and a 390×844 resize retained the defeated state without page overflow. The hypothesis
+held: the final composition now changes threat, objective and status language together.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

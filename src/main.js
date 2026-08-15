@@ -201,6 +201,7 @@ const ObjectivePanelElement = document.querySelector('#ObjectivePanel');
 const ObjectiveStateElement = document.querySelector('#ObjectiveState');
 const ObjectivePipsElement = document.querySelector('#ObjectivePips');
 const WardenPanelElement = document.querySelector('#WardenPanel');
+const WardenStateLabelElement = document.querySelector('#WardenStateLabel');
 const WardenDistanceElement = document.querySelector('#WardenDistance');
 const WardenTargetElement = document.querySelector('#WardenTarget');
 let ObjectivePipElements = [];
@@ -248,7 +249,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob28';
+GameCanvas.dataset.build = '20260815-ob29';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -3177,7 +3178,9 @@ function publishWardenState() {
   const IsVisible = WardenPursuitState.status !== 'hidden';
   const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
   const IsCommandExposed = WardenPursuitState.status === 'exposed';
+  const IsCommandDefeated = WorldheartDefinition.restored;
   WardenPanelElement.hidden = !IsVisible;
+  WardenPanelElement.classList.toggle('is-defeated', IsCommandDefeated);
   if (IsVisible) {
     ScannerWardenElement.removeAttribute('hidden');
   } else {
@@ -3197,12 +3200,19 @@ function publishWardenState() {
   WardenCitadelMaterial.emissive.setHex(IsCommandExposed ? 0xffae32 : 0xb51f25);
   WardenBeaconMaterial.color.setHex(IsCommandExposed ? 0xffe79a : 0xff5148);
   WardenForecastLine.visible = IsVisible && Boolean(TargetWorld) && !IsCommandExposed;
-  WardenDistanceElement.textContent = IsCommandExposed
+  WardenStateLabelElement.textContent = IsCommandDefeated
+    ? 'WARDEN DEFEATED'
+    : 'WARDEN APPROACH';
+  WardenDistanceElement.textContent = IsCommandDefeated
+    ? 'SIGNAL BROKEN'
+    : IsCommandExposed
     ? 'EXPOSED'
     : WardenPursuitState.distance === 0
     ? 'ARRIVING NOW'
     : `${WardenPursuitState.distance} FLIGHT${WardenPursuitState.distance === 1 ? '' : 'S'}`;
-  WardenTargetElement.textContent = IsCommandExposed
+  WardenTargetElement.textContent = IsCommandDefeated
+    ? 'WORLDS RESPONDING'
+    : IsCommandExposed
     ? 'COMMAND WORLD'
     : TargetWorld
     ? `NEXT: ${TargetWorld.label}`
@@ -5388,6 +5398,7 @@ function completeWorldheartLiberation() {
   startWardenEventPulse(WorldheartDefinition.position, 0x72d9ff, 'defeat');
   GamePhase = 'victoryPending';
   updateWorldheartObjective();
+  publishWardenState();
   updateVictorySummary();
   hideInstruction();
   beginFinaleRestoration();

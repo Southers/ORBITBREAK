@@ -326,6 +326,17 @@ button:focus-visible,
   letter-spacing: 0.08em;
 }
 
+.warden-panel.is-defeated {
+  border-color: rgba(223, 245, 167, 0.58);
+  background: rgba(10, 34, 37, 0.86);
+  box-shadow: 0 0 24px rgba(146, 220, 188, 0.16);
+  color: #dcf6db;
+}
+
+.warden-panel.is-defeated strong {
+  color: #dff5a7;
+}
+
 .burn-button {
   position: absolute;
   z-index: 7;
