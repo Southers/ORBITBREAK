@@ -30,7 +30,7 @@ The Warden's ideology is concise and visible:
 2. **Choose:** balance a safe connection, a valuable occupied world, a scoring slingshot or a route that protects the existing network.
 3. **Reposition:** walk clockwise or counter-clockwise around the current world's orbital-plane circumference to choose a launch point or reach a local relay obstacle.
 4. **Launch:** pull away from the Runner and release. The astronaut folds into a launch craft, then a small ship, while retaining one deterministic physics body.
-5. **Fly:** read the exact full-path prediction, chain gravity assists through visible wells and optionally spend one Breaker Burn to thrust along the current heading.
+5. **Fly:** read the exact full-path prediction, chain gravity assists through visible wells and optionally spend one Breaker Burn. Drag from the ship to choose a direction, or fire along heading with Space.
 6. **Land:** unfold back into the Runner. A successful new landing breaks the local cage, activates its relay and establishes a visible link from the origin world. A first traversal between two active relays can also create a missing link.
 7. **Resolve:** bank the flight's score, animate life and trade along connected routes, then advance the Warden one predictable pursuit beat.
 8. **Continue:** expand, reinforce, recapture or attack. Complete resilient links to push the Warden back and open the final confrontation.
