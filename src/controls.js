@@ -168,3 +168,68 @@ export function findNearestKeyboardAimAngle(
   }
   return NormalizedBaseAngle;
 }
+
+/** Wheel and pinch share one scale so Scout, follow and flight stay on the same zoom. */
+export function clampCameraZoomScale(
+  Scale,
+  { minimumScale = 0.38, maximumScale = 1.95 } = {},
+) {
+  if (
+    !Number.isFinite(Scale)
+    || !Number.isFinite(minimumScale)
+    || !Number.isFinite(maximumScale)
+    || minimumScale <= 0
+    || maximumScale <= minimumScale
+  ) {
+    throw new Error('Camera zoom requires finite bounds.');
+  }
+  return Math.min(maximumScale, Math.max(minimumScale, Scale));
+}
+
+/** Spreading fingers zooms in (smaller camera scale). */
+export function getPinchZoomScale(
+  StartDistance,
+  CurrentDistance,
+  StartScale,
+  { minimumScale = 0.38, maximumScale = 1.95 } = {},
+) {
+  if (!(StartDistance > 0) || !(CurrentDistance > 0) || !Number.isFinite(StartScale)) {
+    throw new Error('Pinch zoom requires positive pointer distance and a finite start scale.');
+  }
+  return clampCameraZoomScale(
+    StartScale * (StartDistance / CurrentDistance),
+    { minimumScale, maximumScale },
+  );
+}
+
+export function getPointerClientDistance(FirstPointer, SecondPointer) {
+  if (
+    !Number.isFinite(FirstPointer?.clientX)
+    || !Number.isFinite(FirstPointer?.clientY)
+    || !Number.isFinite(SecondPointer?.clientX)
+    || !Number.isFinite(SecondPointer?.clientY)
+  ) {
+    throw new Error('Pinch distance requires two client pointers.');
+  }
+  return Math.hypot(
+    SecondPointer.clientX - FirstPointer.clientX,
+    SecondPointer.clientY - FirstPointer.clientY,
+  );
+}
+
+/**
+ * A committed pull still launches. Dragging back onto the ship, or never pulling far
+ * enough, cancels without spending the flight.
+ */
+export function shouldCancelAimedLaunch({
+  pointerDistanceFromShip,
+  cancelRadius = 0.85,
+} = {}) {
+  if (!Number.isFinite(pointerDistanceFromShip) || pointerDistanceFromShip < 0) {
+    throw new Error('Launch cancel requires a non-negative ship distance.');
+  }
+  if (!(cancelRadius > 0) || !Number.isFinite(cancelRadius)) {
+    throw new Error('Launch cancel requires a positive cancel radius.');
+  }
+  return pointerDistanceFromShip <= cancelRadius;
+}

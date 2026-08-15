@@ -676,6 +676,11 @@ button[aria-disabled='true'] {
   box-shadow: 0 0 24px rgba(141, 204, 112, 0.12);
 }
 
+.aim-panel.is-cancel {
+  border-color: rgba(255, 176, 120, 0.45);
+  color: #ffe0c2;
+}
+
 .aim-panel__meter {
   height: 4px;
   overflow: hidden;
