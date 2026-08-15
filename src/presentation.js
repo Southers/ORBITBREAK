@@ -986,6 +986,19 @@ export function getTriggeredCampaignStoryBoardIds({
   return Triggered;
 }
 
+/** Boards wait for the landing beat, then pause play. They never cover a live liberation. */
+export function isCampaignStoryBoardReadyToPresent({
+  briefingActive = false,
+  replayActive = false,
+  gamePhase = 'attached',
+  relayRevealActive = false,
+} = {}) {
+  if (briefingActive === true || replayActive === true || relayRevealActive === true) {
+    return false;
+  }
+  return gamePhase === 'attached';
+}
+
 /** Turns authored briefing pages into one readable story board. */
 export function getStoryBoardPresentation(pages, pageIndex, {
   lastContinueLabel = 'Continue',

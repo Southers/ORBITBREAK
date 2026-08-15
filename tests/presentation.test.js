@@ -43,6 +43,7 @@ import {
   getStoryBoardPresentation,
   formatStoryBoardCopy,
   getTriggeredCampaignStoryBoardIds,
+  isCampaignStoryBoardReadyToPresent,
   separateOverlappingTacticalLabels,
   separateOverlappingRouteLabels,
   separateRouteLabelsFromTacticalLabels,
@@ -256,6 +257,16 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
     wardenJustRevealed: true,
     worldJustSuppressed: true,
   }), ['suppression']);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'restoring',
+  }), false);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'attached',
+    relayRevealActive: true,
+  }), false);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'attached',
+  }), true);
 });
 
 test('hidden Warden coach teaches purpose, then waking, then range', () => {

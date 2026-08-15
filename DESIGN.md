@@ -160,7 +160,7 @@ The local personal-best replay becomes a visible ghost in Scout view and during 
 
 Story is delivered through authored story boards at the campaign's turning points, then short coaches while you aim. It is not a control dump, a lore dump or a dialogue tree.
 
-The opening is a four-page board before any launch: the Warden's edict, the Runner stealing the Orbitbreaker, Haven as the last free garden, and the charge to wake the neighbourhood. After that, the same skippable board returns at first answer, second voice, range unlock, neighbourhood, Warden arrival, first circuit, suppression, recapture, Command exposure and a lost run. Play waits while a board is open. Reading never advances pursuit. Replay playback skips every board.
+The opening is a four-page board before any launch: the Warden's edict, the Runner stealing the Orbitbreaker, Haven as the last free garden, and the charge to wake the neighbourhood. After that, the same skippable board returns at first answer, second voice, range unlock, neighbourhood, Warden arrival, first circuit, suppression, recapture, Command exposure and a lost run. A landing always plays its liberation and relay camera first. The board then pauses the game. Dialogue voices stop when the player continues or skips, and the game bed returns. Reading never advances pursuit. Replay playback skips every board.
 
 Coach copy between boards stays one sentence. Controls appear when the verb is available. External voice or image APIs are expansion once keys exist; in-engine voices and authored portraits ship with the static Pages build.
 

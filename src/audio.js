@@ -16,7 +16,9 @@ export class WorldseedAudio {
     this.isMuted = false;
     this.wasLandingLocked = false;
     this.closePassPlayed = false;
-    this.lifeLayerGains = null;
+    this.lastRestoredWorldCount = 0;
+    this.lastWorldLifeMix = { rumble: 0, garden: 0, dock: 0 };
+    this.storyPaused = false;
   }
 
   /** Creates the graph lazily inside a trusted pointer or button gesture. */
@@ -108,8 +110,16 @@ export class WorldseedAudio {
     if (!this.context || !this.lifeLayerGains) {
       return;
     }
-    const Now = this.context.currentTime;
     const SafeMix = Mix ?? { rumble: 0, garden: 0, dock: 0 };
+    this.lastWorldLifeMix = {
+      rumble: SafeMix.rumble,
+      garden: SafeMix.garden,
+      dock: SafeMix.dock,
+    };
+    if (this.storyPaused) {
+      return;
+    }
+    const Now = this.context.currentTime;
     for (const [LayerKey, LayerStrength] of [
       ['rumble', SafeMix.rumble],
       ['garden', SafeMix.garden],
@@ -156,6 +166,10 @@ export class WorldseedAudio {
 
   setRestoredWorldCount(RestoredWorldCount) {
     if (!this.context) {
+      return;
+    }
+    this.lastRestoredWorldCount = Math.max(0, RestoredWorldCount);
+    if (this.storyPaused) {
       return;
     }
     const Now = this.context.currentTime;
@@ -224,7 +238,7 @@ export class WorldseedAudio {
   }
 
   beginAim() {
-    if (!this.ensureStarted() || this.aimVoice) {
+    if (this.storyPaused || !this.ensureStarted() || this.aimVoice) {
       return;
     }
     const Oscillator = this.context.createOscillator();
@@ -362,6 +376,7 @@ export class WorldseedAudio {
   }
 
   briefingVoice(Speaker) {
+    this.stopTransients();
     const Voices = {
       'THE WARDEN': { root: 68, type: 'sawtooth', noise: 140, volume: 0.1 },
       'THE RUNNER': { root: 233, type: 'triangle', noise: 980, volume: 0.07 },
@@ -479,20 +494,65 @@ export class WorldseedAudio {
   }
 
   reset() {
+    this.storyPaused = false;
     this.endAim();
     this.endFlight();
-    for (const TransientSource of this.transientSources) {
-      try {
-        TransientSource.stop();
-      } catch {
-        // A source can finish between iteration and stop; it will be removed by `ended`.
-      }
-    }
-    this.transientSources.clear();
+    this.stopTransients();
     this.setRestoredWorldCount(0);
     this.setWorldLifeMix({ rumble: 0, garden: 0, dock: 0 });
     this.closePassPlayed = false;
     this.wasLandingLocked = false;
+  }
+
+  stopTransients() {
+    const Now = this.context?.currentTime;
+    for (const TransientSource of [...this.transientSources]) {
+      try {
+        TransientSource.disconnect();
+      } catch {
+        // Already-silent sources can already be disconnected.
+      }
+      if (Now === undefined) {
+        continue;
+      }
+      try {
+        TransientSource.stop(Now);
+      } catch {
+        // A source can already have a scheduled stop; disconnect is what silences it.
+      }
+    }
+    this.transientSources.clear();
+  }
+
+  setStoryPaused(IsPaused) {
+    const ShouldPause = IsPaused === true;
+    if (this.storyPaused === ShouldPause && this.context) {
+      if (ShouldPause) this.stopTransients();
+      return;
+    }
+    this.storyPaused = ShouldPause;
+    this.stopTransients();
+    this.endAim();
+    this.endFlight();
+    if (!this.context) {
+      return;
+    }
+    const Now = this.context.currentTime;
+    if (ShouldPause) {
+      this.musicLayerGains.forEach((MusicLayer) => {
+        MusicLayer.gain.gain.cancelScheduledValues(Now);
+        MusicLayer.gain.gain.setTargetAtTime(0, Now, 0.06);
+      });
+      if (this.lifeLayerGains) {
+        for (const LifeLayer of Object.values(this.lifeLayerGains)) {
+          LifeLayer.gain.gain.cancelScheduledValues(Now);
+          LifeLayer.gain.gain.setTargetAtTime(0, Now, 0.06);
+        }
+      }
+      return;
+    }
+    this.setRestoredWorldCount(this.lastRestoredWorldCount);
+    this.setWorldLifeMix(this.lastWorldLifeMix);
   }
 
   toggleMute() {
