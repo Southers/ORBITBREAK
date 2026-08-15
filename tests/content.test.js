@@ -88,6 +88,10 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     BreakerReachSystemDefinition.routeSuggestions.meadow,
     ['ember', 'frost'],
   );
+  const EmberDefinition = BreakerReachSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'ember',
+  );
+  assert.deepEqual(EmberDefinition.hostileEncounter.clampOffsetsRadians, [0.55]);
   const BastionDefinition = BreakerReachSystemDefinition.worlds.find(
     (WorldDefinition) => WorldDefinition.id === 'bastion',
   );

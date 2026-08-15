@@ -1108,17 +1108,112 @@ export function getTriggeredCampaignStoryBoardIds({
   return Triggered;
 }
 
+/** Command and Bastion speak on the rim before Cut. Other boards wait for leftover teeth. */
+export const StoryBoardsAllowedDuringEncounter = Object.freeze([
+  'commandApproach',
+  'firstBastion',
+]);
+
 /** Boards wait for the landing beat, then pause play. They never cover a live liberation. */
 export function isCampaignStoryBoardReadyToPresent({
   briefingActive = false,
   replayActive = false,
   gamePhase = 'attached',
   relayRevealActive = false,
+  hostileEncounterActive = false,
+  boardId = '',
 } = {}) {
   if (briefingActive === true || replayActive === true || relayRevealActive === true) {
     return false;
   }
+  if (
+    hostileEncounterActive === true
+    && !StoryBoardsAllowedDuringEncounter.includes(boardId)
+  ) {
+    return false;
+  }
   return gamePhase === 'attached' || gamePhase === 'victoryPending';
+}
+
+export const DefaultRelayRevealHoldDurationSeconds = 0.85;
+export const LinkedRelayRevealHoldDurationSeconds = 1.7;
+
+/** After the first live link, hold the committed chain longer. Reduced motion skips it. */
+export function getRelayRevealHoldDurationSeconds({
+  liveRelayCount = 0,
+  prefersReducedMotion = false,
+} = {}) {
+  if (!Number.isInteger(liveRelayCount) || liveRelayCount < 0) {
+    throw new Error('Relay reveal hold requires a non-negative live relay count.');
+  }
+  if (prefersReducedMotion === true) {
+    return 0;
+  }
+  return liveRelayCount >= 2
+    ? LinkedRelayRevealHoldDurationSeconds
+    : DefaultRelayRevealHoldDurationSeconds;
+}
+
+/** Same true path; the camera overlay keeps the committed chain before the remaining-path update. */
+export function shouldHoldCommittedPrediction({
+  liveRelayCount = 0,
+  flightElapsedSeconds = 0,
+  prefersReducedMotion = false,
+  committedPointCount = 0,
+} = {}) {
+  if (!Number.isInteger(liveRelayCount) || liveRelayCount < 0) {
+    throw new Error('Committed prediction hold requires a non-negative live relay count.');
+  }
+  if (!Number.isInteger(committedPointCount) || committedPointCount < 0) {
+    throw new Error('Committed prediction hold requires a non-negative point count.');
+  }
+  if (!Number.isFinite(flightElapsedSeconds) || flightElapsedSeconds < 0) {
+    throw new Error('Committed prediction hold requires a non-negative flight age.');
+  }
+  if (prefersReducedMotion === true || liveRelayCount < 2 || committedPointCount < 2) {
+    return false;
+  }
+  return flightElapsedSeconds < getRelayRevealHoldDurationSeconds({
+    liveRelayCount,
+    prefersReducedMotion,
+  });
+}
+
+/** Keyboard intercept lead is the finale gift, not an early Command snipe. */
+export function shouldAssistCommandLock({
+  wardenStatus = 'hidden',
+  routeAvailable = false,
+} = {}) {
+  if (typeof wardenStatus !== 'string' || wardenStatus.length < 1) {
+    throw new Error('Command lock assist requires a Warden status.');
+  }
+  return wardenStatus === 'exposed' && routeAvailable === true;
+}
+
+/** Run-local ladder. Gifts reset with the run. Extra Break stays a later ranked schema bump. */
+export function getRunUnlockState({
+  liveRelayCount = 0,
+  uniqueCircuitCount = 0,
+  wardenStatus = 'hidden',
+  recaptureCutAvailable = false,
+  prefersReducedMotion = false,
+} = {}) {
+  if (!Number.isInteger(liveRelayCount) || liveRelayCount < 0) {
+    throw new Error('Run unlocks require a non-negative live relay count.');
+  }
+  if (!Number.isInteger(uniqueCircuitCount) || uniqueCircuitCount < 0) {
+    throw new Error('Run unlocks require a non-negative unique circuit count.');
+  }
+  if (typeof wardenStatus !== 'string' || wardenStatus.length < 1) {
+    throw new Error('Run unlocks require a Warden status.');
+  }
+  return {
+    predictionHold: liveRelayCount >= 2 && prefersReducedMotion !== true,
+    leftoverCut: liveRelayCount >= 2,
+    circuitBeacon: uniqueCircuitCount >= 1,
+    commandLock: wardenStatus === 'exposed',
+    recaptureCut: recaptureCutAvailable === true,
+  };
 }
 
 /** Turns authored briefing pages into one readable story board. */

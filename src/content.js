@@ -1238,6 +1238,11 @@ export const BreakerReachSystemDefinition = {
       ...FirstLightSystemDefinition.worlds[1],
       position: { x: -8, y: -13, z: 0 }, radius: 3.2, gravitationalParameter: 340,
       occupationScarAngles: [2.28, 2.5, 2.72, 2.94],
+      hostileEncounter: {
+        clampOffsetsRadians: [0.55],
+        cutHitRadius: 0.48,
+        maxCutLength: 2.85,
+      },
       memory: 'The furnaces remember who they warmed.',
     },
     {

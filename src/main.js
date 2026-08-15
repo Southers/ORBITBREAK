@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260815-ob86';
+import { WorldseedAudio } from './audio.js?v=20260815-ob87';
 import {
   SurfaceGestureModes,
   adjustSurfaceAngle,
@@ -20,10 +20,11 @@ import {
   getCutHits,
   getHostileEncounterAngularDistance,
   getHostileEncounterMoveDirection,
+  getLeftoverHostileEncounter,
   getNearestClampCut,
   getRemainingClamps,
   resolveHostileCut,
-} from './encounter.js?v=20260815-ob84';
+} from './encounter.js?v=20260815-ob87';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -43,7 +44,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob86';
+} from './content.js?v=20260815-ob87';
 
 import {
   countRestoredWorlds,
@@ -73,6 +74,7 @@ import {
   connectRelayWorlds,
   countLiveRelayWorlds,
   createRelayNetworkState,
+  findCircuitBeaconLink,
   getRelayDegree,
   isRelayWorldLive,
   listLiveRelayCircuits,
@@ -83,7 +85,7 @@ import {
   listVulnerableRelayWorlds,
   suppressRelayWorld,
   wouldCloseRelayCircuit,
-} from './network.js?v=20260814-ob18';
+} from './network.js?v=20260815-ob87';
 import {
   WardenPursuitEvents,
   chooseWardenTarget,
@@ -121,8 +123,12 @@ import {
   getRangeVeilStrength,
   getRelayCourierTravelProgress,
   getRelayLinkOpacity,
+  getRelayRevealHoldDurationSeconds,
   getRelayRevealLookTarget,
+  getRunUnlockState,
   getSectorPlanningCamera,
+  shouldAssistCommandLock,
+  shouldHoldCommittedPrediction,
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
@@ -146,7 +152,7 @@ import {
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
-} from './presentation.js?v=20260815-ob86';
+} from './presentation.js?v=20260815-ob87';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -320,7 +326,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob86';
+GameCanvas.dataset.build = '20260815-ob87';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -462,7 +468,10 @@ let KeyboardAimState = createKeyboardAimState();
 let IsScoutMode = false;
 let RelayRevealLookTarget = null;
 let RelayRevealHoldUntilSeconds = 0;
-const RelayRevealHoldDurationSeconds = 0.85;
+let CommittedPredictionPoints = null;
+let RecaptureCutGiftAvailable = false;
+let PendingRecaptureCutWorldIdentifier = null;
+let HasAnnouncedCommandLockGift = false;
 const CourierStartTimesByLinkId = new Map();
 const MinimumScoutZoomScale = 0.38;
 const MaximumScoutZoomScaleOpen = 1.95;
@@ -3603,6 +3612,47 @@ function publishRelayNetworkState() {
   GameCanvas.dataset.relayActiveWorlds = [...RelayNetworkState.activeWorldIdentifiers]
     .sort()
     .join(',');
+  publishRunUnlockState();
+}
+
+function publishRunUnlockState() {
+  const UnlockState = getRunUnlockState({
+    liveRelayCount: countLiveRelayWorlds(RelayNetworkState),
+    uniqueCircuitCount: listRelayCircuits(RelayNetworkState).length,
+    wardenStatus: WardenPursuitState.status,
+    recaptureCutAvailable: RecaptureCutGiftAvailable,
+    prefersReducedMotion: PrefersReducedMotion,
+  });
+  GameCanvas.dataset.predictionHold = String(UnlockState.predictionHold);
+  GameCanvas.dataset.leftoverCut = String(UnlockState.leftoverCut);
+  GameCanvas.dataset.circuitBeacon = UnlockState.circuitBeacon
+    ? (GameCanvas.dataset.circuitBeaconLink || 'ready')
+    : '';
+  GameCanvas.dataset.commandLockGift = String(UnlockState.commandLock);
+  GameCanvas.dataset.recaptureCutGift = String(UnlockState.recaptureCut);
+}
+
+function synchronizeCircuitBeacon() {
+  const Beacon = findCircuitBeaconLink(RelayNetworkState, CurrentWorldIdentifier);
+  if (!Beacon) {
+    CircuitBeaconLine.visible = false;
+    GameCanvas.dataset.circuitBeaconLink = '';
+    return;
+  }
+  const Origin = getWorldDefinition(Beacon.originWorldIdentifier);
+  const Destination = getWorldDefinition(Beacon.destinationWorldIdentifier);
+  if (!Origin || !Destination) {
+    CircuitBeaconLine.visible = false;
+    GameCanvas.dataset.circuitBeaconLink = '';
+    return;
+  }
+  CircuitBeaconGeometry.setFromPoints([
+    new THREE.Vector3(Origin.position.x, Origin.position.y, 0.18),
+    new THREE.Vector3(Destination.position.x, Destination.position.y, 0.18),
+  ]);
+  CircuitBeaconLine.computeLineDistances();
+  CircuitBeaconLine.visible = true;
+  GameCanvas.dataset.circuitBeaconLink = Beacon.id;
 }
 
 function synchronizeRelayNetworkVisuals() {
@@ -3623,6 +3673,7 @@ function synchronizeRelayNetworkVisuals() {
   }
   RelayLinkGeometry.setDrawRange(0, Links.length * 2);
   RelayLinkPositionAttribute.needsUpdate = true;
+  synchronizeCircuitBeacon();
   publishRelayNetworkState();
 }
 
@@ -4011,6 +4062,7 @@ function publishWardenState() {
   GameCanvas.dataset.wardenResolvedFlights = String(WardenPursuitState.resolvedFlightCount);
   GameCanvas.dataset.wardenShieldLayers = String(WardenPursuitState.shieldLayers);
   GameCanvas.dataset.wardenLandmark = PublishedWardenState.landmark;
+  publishRunUnlockState();
 }
 
 function listLiveWorldIdentifiers() {
@@ -4106,6 +4158,8 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
       `${ArrivalAnswerLine ? `${ArrivalAnswerLine} ` : ''}The Warden is targeting ${TargetWorld?.label ?? 'the frontier'} · ${WardenPursuitState.distance} resolved flights away.`,
     );
     GameCanvas.dataset.wardenArrivalBroadcast = ActiveSystem.wardenArrivalBroadcast ?? '';
+    RecaptureCutGiftAvailable = true;
+    publishRunUnlockState();
     if (ActiveSystem.wardenArrivalBroadcast && !ActiveSystem.storyBoards?.wardenArrival) {
       showStatusToast(ActiveSystem.wardenArrivalBroadcast, 3600, 'warden');
     }
@@ -4773,6 +4827,22 @@ const CutGuideLine = new THREE.Line(CutGuideGeometry, CutGuideMaterial);
 CutGuideLine.visible = false;
 CutGuideLine.renderOrder = 21;
 Scene.add(CutGuideLine);
+
+const CircuitBeaconGeometry = new THREE.BufferGeometry();
+const CircuitBeaconMaterial = new THREE.LineDashedMaterial({
+  color: 0xffd98a,
+  transparent: true,
+  opacity: 0.78,
+  dashSize: 0.55,
+  gapSize: 0.28,
+  depthWrite: false,
+  depthTest: false,
+});
+const CircuitBeaconLine = new THREE.Line(CircuitBeaconGeometry, CircuitBeaconMaterial);
+CircuitBeaconLine.visible = false;
+CircuitBeaconLine.renderOrder = 18;
+CircuitBeaconLine.frustumCulled = false;
+Scene.add(CircuitBeaconLine);
 
 /**
  * Creates a small trail behind the flying seed as one instanced draw call. Pooling avoids
@@ -5976,6 +6046,12 @@ function showHostileEncounterInstruction() {
         ? 'Grab the ship and drag through a gold tooth. Drag back onto it to cancel.'
         : `${RemainingCount} left. A longer drag can take more than one.`,
     );
+  } else if (RemainingCount === ActiveHostileEncounterState.clamps.length
+    && RemainingCount === 1) {
+    showInstruction(
+      `${AttachedWorld.label} has one leftover tooth.`,
+      'Grab the ship and drag through it. This is Cut.',
+    );
   } else if (RemainingCount === 3) {
     showInstruction(
       `${AttachedWorld.label} still has teeth.`,
@@ -5992,9 +6068,10 @@ function showHostileEncounterInstruction() {
   return true;
 }
 
-function beginHostileEncounter(WorldDefinition) {
+function beginHostileEncounter(WorldDefinition, EncounterDefinition = WorldDefinition.hostileEncounter) {
   if (
-    !WorldDefinition.hostileEncounter
+    ReplayPlaybackState !== null
+    || !EncounterDefinition
     || CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id)
   ) {
     return false;
@@ -6003,7 +6080,7 @@ function beginHostileEncounter(WorldDefinition) {
   ActiveHostileEncounterState = createHostileEncounterState({
     worldIdentifier: WorldDefinition.id,
     runnerSurfaceAngle: getRunnerSurfaceAngle(WorldDefinition),
-    ...WorldDefinition.hostileEncounter,
+    ...EncounterDefinition,
   });
   IsKeyboardAiming = false;
   IsPointerAiming = false;
@@ -6188,7 +6265,7 @@ function presentStoryBoardPage(PageIndex, { playVoice = false } = {}) {
   BriefingProgressElement.textContent = Presentation.progressLabel;
   BriefingContinueButtonElement.textContent = Presentation.continueLabel;
   BriefingSkipButtonElement.textContent = Board.skipLabel;
-  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob86`;
+  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob87`;
   BriefingPortraitElement.alt = Presentation.speaker;
   OpeningBriefingElement.classList.remove(
     'is-warden',
@@ -6287,6 +6364,7 @@ function flushQueuedStoryBoardsIfReady() {
   if (StoryBoardQueue.length < 1 || IsOpeningBriefingActive) {
     return false;
   }
+  const NextBoardId = StoryBoardQueue[0]?.id ?? '';
   if (!isCampaignStoryBoardReadyToPresent({
     briefingActive: IsOpeningBriefingActive,
     replayActive: ReplayPlaybackState !== null,
@@ -6295,6 +6373,8 @@ function flushQueuedStoryBoardsIfReady() {
       RelayRevealLookTarget
       && RelayRevealHoldUntilSeconds > GameElapsedTimeSeconds
     ),
+    hostileEncounterActive: ActiveHostileEncounterState !== null,
+    boardId: NextBoardId,
   })) {
     return false;
   }
@@ -6571,6 +6651,8 @@ function suppressWorld(WorldDefinition) {
 function attachSeedToWorld(WorldDefinition, ImpactPosition) {
   IsBreakerBurnAvailable = false;
   IsBreakerBurnPending = false;
+  CommittedPredictionPoints = null;
+  GameCanvas.dataset.predictionHoldActive = 'false';
   const LandingOriginWorldIdentifier = FlightOriginWorldIdentifier;
   const SurfaceRestPosition = calculateSurfaceRestPosition(WorldDefinition, ImpactPosition);
 
@@ -6635,6 +6717,14 @@ function attachSeedToWorld(WorldDefinition, ImpactPosition) {
     synchronizeRelayNetworkVisuals();
     CourierStartTimesByLinkId.set(RelayConnection.link.id, GameElapsedTimeSeconds);
     WorldseedSound.tradeLane();
+  }
+  if (
+    RelayConnection?.destinationReactivated
+    && RecaptureCutGiftAvailable
+    && !WorldDefinition.hostileEncounter
+    && !CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id)
+  ) {
+    PendingRecaptureCutWorldIdentifier = WorldDefinition.id;
   }
   GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
   commitFlightStardust();
@@ -7185,7 +7275,45 @@ function renderTrajectoryLine(PredictionPoints) {
   TrajectoryLine.visible = PreviewPointCount > 1;
 }
 
+function captureCommittedLaunchPrediction(LaunchVelocity) {
+  const LiveRelayCount = countLiveRelayWorlds(RelayNetworkState);
+  if (!getRunUnlockState({
+    liveRelayCount: LiveRelayCount,
+    uniqueCircuitCount: listRelayCircuits(RelayNetworkState).length,
+    wardenStatus: WardenPursuitState.status,
+    recaptureCutAvailable: RecaptureCutGiftAvailable,
+    prefersReducedMotion: PrefersReducedMotion,
+  }).predictionHold) {
+    CommittedPredictionPoints = null;
+    GameCanvas.dataset.predictionHoldActive = 'false';
+    return;
+  }
+  const TrajectoryPrediction = predictCurrentLaunchTrajectory(LaunchVelocity, {
+    ignoredWorldIdentifier: LaunchIgnoredWorldIdentifier,
+    ignoredCollisionBodyIdentifier: LaunchIgnoredBodyIdentifier,
+  });
+  CommittedPredictionPoints = TrajectoryPrediction.points.length > 1
+    ? TrajectoryPrediction.points.map((Point) => ({ x: Point.x, y: Point.y, z: Point.z ?? 0 }))
+    : null;
+  GameCanvas.dataset.predictionHoldActive = String(Boolean(CommittedPredictionPoints));
+}
+
 function updateFlightPlanningPresentation() {
+  const LiveRelayCount = countLiveRelayWorlds(RelayNetworkState);
+  if (shouldHoldCommittedPrediction({
+    liveRelayCount: LiveRelayCount,
+    flightElapsedSeconds: FlightElapsedSeconds,
+    prefersReducedMotion: PrefersReducedMotion,
+    committedPointCount: CommittedPredictionPoints?.length ?? 0,
+  })) {
+    renderTrajectoryLine(CommittedPredictionPoints);
+    TrajectoryMaterial.color.set(0xffd98a);
+    TrajectoryMaterial.opacity = 0.86;
+    applySectorPlanningCamera();
+    GameCanvas.dataset.predictionHoldActive = 'true';
+    return;
+  }
+  GameCanvas.dataset.predictionHoldActive = 'false';
   const TrajectoryPrediction = predictCurrentLaunchTrajectory(SeedPhysicsState.velocity, {
     ignoredWorldIdentifier: LaunchIgnoredWorldIdentifier,
     ignoredCollisionBodyIdentifier: LaunchIgnoredBodyIdentifier,
@@ -7464,9 +7592,15 @@ function createSuggestedKeyboardAimState(SuggestedTarget) {
   });
   const IsMovingCommandTarget = SuggestedTarget.id === WorldheartDefinition.id
     && Boolean(WorldheartDefinition.orbit)
-    && WorldheartDefinition.routeAvailable;
+    && shouldAssistCommandLock({
+      wardenStatus: WardenPursuitState.status,
+      routeAvailable: WorldheartDefinition.routeAvailable === true,
+    });
   if (!IsMovingCommandTarget) {
-    GameCanvas.dataset.keyboardAimAssist = 'route';
+    GameCanvas.dataset.keyboardAimAssist = WorldheartDefinition.routeAvailable
+      && SuggestedTarget.id === WorldheartDefinition.id
+      ? 'command-direct'
+      : 'route';
     return DirectAimState;
   }
 
@@ -7486,6 +7620,10 @@ function createSuggestedKeyboardAimState(SuggestedTarget) {
     },
   );
   GameCanvas.dataset.keyboardAimAssist = DidFindCommandLock ? 'command-lock' : 'command-direct';
+  if (DidFindCommandLock && !HasAnnouncedCommandLockGift) {
+    HasAnnouncedCommandLockGift = true;
+    showStatusToast('COMMAND WORLD LOCKED', 1400);
+  }
   return { ...DirectAimState, angleRadians: AssistedAngleRadians };
 }
 
@@ -7838,6 +7976,7 @@ function applyHostileCut(Origin, End) {
       `${AttachedWorld.label} can fly.`,
       'Grab the ship and launch. Drag empty space to look around.',
     );
+    flushQueuedStoryBoardsIfReady();
     return true;
   }
   publishHostileEncounterState();
@@ -8196,6 +8335,7 @@ function releaseAimedLaunch() {
   IsBreakerBurnPending = false;
   updateBreakerBurnInterface();
   HasLaunchedOnce = true;
+  captureCommittedLaunchPrediction(AimLaunchVelocity);
   LaunchPulseMesh.position.copy(SeedGroup.position);
   LaunchPulseMesh.scale.setScalar(1);
   LaunchPulseMesh.visible = true;
@@ -8280,6 +8420,8 @@ function applyBreakerBurnAtCurrentStep({ record = false } = {}) {
   SeedPhysicsState = applyBreakerBurn(SeedPhysicsState, undefined, BurnAimDirection);
   IsBreakerBurnAvailable = false;
   IsBreakerBurnPending = false;
+  CommittedPredictionPoints = null;
+  GameCanvas.dataset.predictionHoldActive = 'false';
   if (record) {
     ReplayState = recordReplayBurn(ReplayState, {
       stepIndex: Math.round(PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz),
@@ -8549,6 +8691,7 @@ function beginReplayLaunch(Launch) {
   IsBreakerBurnPending = false;
   updateBreakerBurnInterface();
   HasLaunchedOnce = true;
+  captureCommittedLaunchPrediction({ x: Launch.velocityX, y: Launch.velocityY, z: 0 });
   LaunchPulseMesh.position.copy(SeedGroup.position);
   LaunchPulseMesh.scale.setScalar(1);
   LaunchPulseMesh.visible = true;
@@ -8880,9 +9023,27 @@ function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
               RelayRevealHoldUntilSeconds = 0;
               GameCanvas.dataset.relayReveal = '';
             } else {
-              RelayRevealHoldUntilSeconds = ElapsedTimeSeconds + RelayRevealHoldDurationSeconds;
+              RelayRevealHoldUntilSeconds = ElapsedTimeSeconds + getRelayRevealHoldDurationSeconds({
+                liveRelayCount: countLiveRelayWorlds(RelayNetworkState),
+                prefersReducedMotion: PrefersReducedMotion,
+              });
             }
-            const DidBeginHostileEncounter = beginHostileEncounter(WorldDefinition);
+            const EncounterDefinition = WorldDefinition.hostileEncounter
+              ?? (
+                PendingRecaptureCutWorldIdentifier === WorldDefinition.id
+                  ? getLeftoverHostileEncounter()
+                  : null
+              );
+            const DidBeginHostileEncounter = beginHostileEncounter(
+              WorldDefinition,
+              EncounterDefinition,
+            );
+            if (DidBeginHostileEncounter
+              && PendingRecaptureCutWorldIdentifier === WorldDefinition.id) {
+              RecaptureCutGiftAvailable = false;
+              PendingRecaptureCutWorldIdentifier = null;
+              showStatusToast('RECAPTURE CUT', 1350);
+            }
             if (!DidBeginHostileEncounter && !ShouldPreserveWardenReveal) {
               showRouteChoiceInstruction();
             }
@@ -9239,6 +9400,9 @@ function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
   }
   if (CutGuideLine.visible) {
     CutGuideMaterial.dashOffset -= DeltaTimeSeconds * 1.4;
+  }
+  if (CircuitBeaconLine.visible) {
+    CircuitBeaconMaterial.dashOffset -= DeltaTimeSeconds * 0.55;
   }
 }
 
@@ -9795,6 +9959,13 @@ function resetGame() {
   ActiveHostileEncounterState = null;
   CompletedHostileEncounterWorldIdentifiers.clear();
   HostilePylonGroup.visible = false;
+  RecaptureCutGiftAvailable = false;
+  PendingRecaptureCutWorldIdentifier = null;
+  HasAnnouncedCommandLockGift = false;
+  CommittedPredictionPoints = null;
+  CircuitBeaconLine.visible = false;
+  GameCanvas.dataset.circuitBeaconLink = '';
+  GameCanvas.dataset.predictionHoldActive = '';
   GamePhase = 'attached';
   updateBreakerBurnInterface();
   PhysicsAccumulatorSeconds = 0;

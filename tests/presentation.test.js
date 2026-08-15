@@ -11,7 +11,9 @@ import {
   getRelayCourierTravelProgress,
   getCourierDockWorldRole,
   getRelayLinkOpacity,
+  getRelayRevealHoldDurationSeconds,
   getRelayRevealLookTarget,
+  getRunUnlockState,
   getSectorPlanningCamera,
   getRunResourceSummary,
   getRunnerAnimationState,
@@ -50,6 +52,8 @@ import {
   formatStoryBoardCopy,
   getTriggeredCampaignStoryBoardIds,
   isCampaignStoryBoardReadyToPresent,
+  shouldAssistCommandLock,
+  shouldHoldCommittedPrediction,
   separateOverlappingTacticalLabels,
   separateOverlappingRouteLabels,
   separateRouteLabelsFromTacticalLabels,
@@ -288,8 +292,74 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
     gamePhase: 'attached',
   }), true);
   assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'attached',
+    hostileEncounterActive: true,
+    boardId: 'firstAnswer',
+  }), false);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'attached',
+    hostileEncounterActive: true,
+    boardId: 'commandApproach',
+  }), true);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
     gamePhase: 'victoryPending',
   }), true);
+});
+
+test('run-local unlocks hold prediction, gate Command lock, and wait for the first link', () => {
+  assert.equal(getRelayRevealHoldDurationSeconds({
+    liveRelayCount: 1,
+    prefersReducedMotion: false,
+  }), 0.85);
+  assert.equal(getRelayRevealHoldDurationSeconds({
+    liveRelayCount: 2,
+    prefersReducedMotion: false,
+  }), 1.7);
+  assert.equal(getRelayRevealHoldDurationSeconds({
+    liveRelayCount: 2,
+    prefersReducedMotion: true,
+  }), 0);
+  assert.equal(shouldHoldCommittedPrediction({
+    liveRelayCount: 2,
+    flightElapsedSeconds: 0.4,
+    committedPointCount: 12,
+  }), true);
+  assert.equal(shouldHoldCommittedPrediction({
+    liveRelayCount: 2,
+    flightElapsedSeconds: 1.8,
+    committedPointCount: 12,
+  }), false);
+  assert.equal(shouldAssistCommandLock({
+    wardenStatus: 'pursuing',
+    routeAvailable: false,
+  }), false);
+  assert.equal(shouldAssistCommandLock({
+    wardenStatus: 'exposed',
+    routeAvailable: true,
+  }), true);
+  assert.deepEqual(getRunUnlockState({
+    liveRelayCount: 1,
+    uniqueCircuitCount: 0,
+    wardenStatus: 'hidden',
+  }), {
+    predictionHold: false,
+    leftoverCut: false,
+    circuitBeacon: false,
+    commandLock: false,
+    recaptureCut: false,
+  });
+  assert.deepEqual(getRunUnlockState({
+    liveRelayCount: 3,
+    uniqueCircuitCount: 1,
+    wardenStatus: 'exposed',
+    recaptureCutAvailable: true,
+  }), {
+    predictionHold: true,
+    leftoverCut: true,
+    circuitBeacon: true,
+    commandLock: true,
+    recaptureCut: true,
+  });
 });
 
 test('hidden Warden coach teaches purpose, then waking, then range', () => {

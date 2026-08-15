@@ -7,6 +7,7 @@ import {
   getCutHits,
   getHostileEncounterAngularDistance,
   getHostileEncounterMoveDirection,
+  getLeftoverHostileEncounter,
   getNearestClampCut,
   getNearestRemainingClamp,
   getPointToSegmentDistance,
@@ -151,4 +152,15 @@ test('point-to-segment distance is zero on the line and positive off it', () => 
     { x: 0, y: 0 },
     { x: 2, y: 0 },
   ) - 1) < 1e-12);
+});
+
+test('leftover Cut is a single tooth, not a Bastion cage', () => {
+  const Leftover = getLeftoverHostileEncounter();
+  const State = createHostileEncounterState({
+    worldIdentifier: 'ember',
+    runnerSurfaceAngle: 0,
+    ...Leftover,
+  });
+  assert.equal(State.clamps.length, 1);
+  assert.equal(Leftover.clampOffsetsRadians.length, 1);
 });
