@@ -128,6 +128,12 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+      ?.routeGuidance?.frost?.ember
+      === 'Ember is the direct lock; Grove is the alternate arc. Either closes the second gold loop and exposes Command.',
+    'The selected one-sector candidate must teach the route to its second circuit.',
+  );
+  requireCondition(
+    AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
       ?.commandApproachLine === 'A network cannot be imprisoned.'
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
         ?.completion.endingReveal === 'You did not save them alone. You reminded them they were never alone.'

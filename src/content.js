@@ -817,6 +817,9 @@ export const BreakerReachSystemDefinition = {
     grove: {
       meadow: "Walk Grove's far rim, then aim back around Ember. Haven lies beyond preview—hold the long arc to close the gold loop.",
     },
+    frost: {
+      ember: 'Ember is the direct lock; Grove is the alternate arc. Either closes the second gold loop and exposes Command.',
+    },
   },
   worlds: [
     {

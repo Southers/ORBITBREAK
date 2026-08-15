@@ -84,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260815-ob41` passes 147 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260815-ob42` passes 147 deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
 - 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
@@ -97,6 +97,7 @@ Suggested 40-second trailer beat sheet:
 - The third relay now answers with the Warden's defining `CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE` broadcast while the complete second answer, target and four-flight forecast remain readable beneath it.
 - Grove's `We thought we were alone` answer now remains in the same instruction as the Warden's target and four-flight arrival forecast instead of being overwritten by it.
 - Once that first network branches, Grove now explains that closing the Haven circuit requires walking its far rim and aiming back around Ember; it also identifies Haven as deliberately beyond the ranked preview, so `LONG ARC` reads as a commitment rather than a failed prediction.
+- After Haven expands to Frost, the live coach now promotes both valid closures—direct Ember or alternate-arc Grove—and explains that either second gold loop exposes Command instead of hiding the objective behind unrelated suggestions.
 - The composite Warden panel and transient story/status toast are polite atomic live regions, so assistive technology receives each complete update rather than a changed fragment.
 - The Command approach now states `A network cannot be imprisoned`; its final Pulse reveals `WARDEN NODE DISCONNECTED · SECTOR WARDENS: 11`, and the verified result carries the authored reminder that the worlds were never alone.
 - Two-ring world contours and Haven's three-blade grass tufts preserve their silhouettes in one draw call each, restoring headroom during fast liberation and Command transitions.

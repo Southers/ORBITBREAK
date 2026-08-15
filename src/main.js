@@ -35,7 +35,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob41';
+} from './content.js?v=20260815-ob42';
 
 import {
   countRestoredWorlds,
@@ -253,7 +253,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob41';
+GameCanvas.dataset.build = '20260815-ob42';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -4165,10 +4165,7 @@ function getCurrentRouteChoices(MaximumChoiceCount = 2) {
       ...ExpansionChoices.filter((Choice) => Choice.id !== WorldheartDefinition.id),
     ].slice(0, MaximumChoiceCount);
   }
-  if (
-    WardenPursuitState.status === 'hidden'
-    || listLiveRelayCircuits(RelayNetworkState).length > 0
-  ) {
+  if (WardenPursuitState.status === 'hidden') {
     return ExpansionChoices;
   }
   const CircuitChoices = WorldDefinitions
@@ -4212,11 +4209,20 @@ function showRouteChoiceInstruction() {
   ));
   if (CircuitChoice) {
     const ExpansionChoice = RouteChoices.find((RouteChoice) => RouteChoice !== CircuitChoice);
+    const AlternateCircuitChoice = ExpansionChoice && wouldCloseRelayCircuit(
+      RelayNetworkState,
+      CurrentWorldIdentifier,
+      ExpansionChoice.id,
+    )
+      ? ExpansionChoice
+      : null;
     const AuthoredGuidance = ActiveSystem.routeGuidance?.[CurrentWorldIdentifier]?.[
       CircuitChoice.id
     ];
     showInstruction(
-      ExpansionChoice
+      AlternateCircuitChoice
+        ? `Close via ${CircuitChoice.label} or ${AlternateCircuitChoice.label}`
+        : ExpansionChoice
         ? `Reinforce ${CircuitChoice.label} or expand to ${ExpansionChoice.label}`
         : `Reinforce the route to ${CircuitChoice.label}`,
       AuthoredGuidance

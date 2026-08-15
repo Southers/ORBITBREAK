@@ -50,6 +50,10 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     "Walk Grove's far rim, then aim back around Ember. Haven lies beyond preview—hold the long arc to close the gold loop.",
   );
   assert.equal(
+    BreakerReachSystemDefinition.routeGuidance.frost.ember,
+    'Ember is the direct lock; Grove is the alternate arc. Either closes the second gold loop and exposes Command.',
+  );
+  assert.equal(
     BreakerReachSystemDefinition.completion.endingReveal,
     'You did not save them alone. You reminded them they were never alone.',
   );

@@ -394,6 +394,18 @@ circuit coach without advancing pursuit. Fresh desktop and 390×844 runs proved 
 and 156 of 190 draw calls; portrait retained 44px controls, no overflow and no browser warnings. This
 story pass changes no flight, network, Warden resolution, score or replay input.
 
+Gauntlet pass 12 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** Once the first shield broke and Haven expanded to Frost, the
+coach discarded every circuit closure and suggested `BASTION or TIDE`, hiding the action required to
+expose Command. Circuit candidates now remain eligible while the Warden is pursuing. Live network
+state found two truthful second loops, so the coach distinguishes a direct Ember lock from Grove's
+alternate arc instead of mislabelling the second closure as expansion; authored copy states that either
+breaks the final shield. On desktop and 390×844 portrait, one `ArrowUp` produced the exact 268.9-degree
+Ember lock, landed, raised unique circuits from one to two and changed shield layers from one to zero
+with `COMMAND EXPOSED`. The transitions peaked at 175 and 156 of 190 calls with no browser warnings.
+Portrait held the full choice in a 58.6px panel above 44px controls with no overflow. The hypothesis
+held without changing valid destinations, fixed-step prediction, flight, score or replay inputs.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
