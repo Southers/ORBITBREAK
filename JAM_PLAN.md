@@ -665,6 +665,19 @@ keep both route and tactical chips below the pursuit HUD. Repeated moving-body s
 audit protect the semantic snapshot, responsive type floors and pursuit boundary. This navigation-only
 pass changes no world position, route, physics, scoring, pursuit or replay behavior.
 
+Gauntlet pass 36 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The two core action displays remained below the new HUD floor:
+at 390×844, `EMBER TARGET` wrapped into two 9px lines and made the aim pill 39.6px tall, while the
+flight-only `BREAKER BURN` label was also 9px. The aim preview is now a named, non-live group with a
+10px/1.2 floor and a bounded 100–160px label column; the same target holds one line in a 27.6px pill,
+while longer warnings retain bounded wrapping. Breaker Burn now shares the 10px/1.2 floor without
+changing its 148×52px touch target. Portrait keyboard launch retained canvas focus and exposed the
+complete `Aim preview · EMBER TARGET · 100%` accessibility tree; a real flight displayed `Breaker Burn
+ready`, accepted the button action at fixed step 47 and changed truthfully to `Breaker Burn spent`.
+At 1280×720, both `EMBER TARGET` and `LONG ARC` remained single-line and overflow-free, with no browser
+errors. The release audit protects the group name, label bounds and type floors. This presentation-only
+pass changes no aim math, Burn impulse, input mapping, physics, prediction, score or replay behavior.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

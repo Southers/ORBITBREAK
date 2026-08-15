@@ -126,6 +126,13 @@ export function auditReleaseReadiness() {
     'Navigation HUD labels must remain legible and the visual scanner must expose a semantic snapshot.',
   );
   requireCondition(
+    /id="AimPanel"[^>]*role="group"[^>]*aria-label="Aim preview"/.test(IndexHtml)
+      && /\.aim-panel\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+      && /#AimLabel\s*\{[^}]*min-width:\s*100px;[^}]*max-width:\s*160px;/s.test(StyleSheet)
+      && /\.burn-button\s+span\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),
+    'Aim preview and Breaker Burn labels must retain their named, legible action hierarchy.',
+  );
+  requireCondition(
     /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
       && /\.objective-panel__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.objective-panel__state\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),

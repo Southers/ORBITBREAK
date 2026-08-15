@@ -376,9 +376,10 @@ button[aria-disabled='true'] {
 }
 
 .burn-button span {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
   letter-spacing: 0.16em;
+  line-height: 1.2;
 }
 
 .burn-button strong {
@@ -512,15 +513,21 @@ button[aria-disabled='true'] {
   border-radius: 999px;
   background: rgba(5, 12, 20, 0.66);
   color: rgba(230, 240, 245, 0.7);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.12em;
+  line-height: 1.2;
   pointer-events: none;
   backdrop-filter: blur(12px);
 }
 
 .aim-panel[hidden] {
   display: none;
+}
+
+#AimLabel {
+  min-width: 100px;
+  max-width: 160px;
 }
 
 .aim-panel.is-locked {
