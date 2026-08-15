@@ -52,6 +52,11 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.equal(BreakerReachSystemDefinition.commandWorldRequiresShieldBreaks, true);
   assert.equal(BreakerReachSystemDefinition.circuitBonusValue, 1250);
   assert.equal(BreakerReachSystemDefinition.wardenVictoryValuePerStep, 1000);
+  assert.deepEqual(BreakerReachSystemDefinition.completion.emblems, {
+    heart: { title: 'COMMAND', subtitle: 'DEFEATED' },
+    bloom: { title: 'SOLIDARITY', subtitle: 'ALL WORLDS' },
+    arc: { title: 'WAYFINDER', subtitle: '3 STARDUST' },
+  });
   assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
   assert.ok(CommandDefinition.hostileEncounter.pulseRangeRadians > 0);
   assert.ok(BreakerReachSystemDefinition.worlds.every(
@@ -62,6 +67,18 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     Runtime.worlds[0].occupationScarAngles,
     BreakerReachSystemDefinition.worlds[0].occupationScarAngles,
   );
+  assert.notEqual(
+    Runtime.completion.emblems.heart,
+    BreakerReachSystemDefinition.completion.emblems.heart,
+  );
+});
+
+test('authored result emblems fail closed when their visible copy is incomplete', () => {
+  const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  InvalidSystemDefinition.completion.emblems.arc.subtitle = '';
+  assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
+    'Authored system completion.emblems.arc requires title and subtitle.',
+  ));
 });
 
 test('authored systems fail closed without a positive launch budget', () => {

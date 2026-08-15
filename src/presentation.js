@@ -56,3 +56,22 @@ export function getLiberationFlashOpacity(RemainingSeconds, DurationSeconds = 0.
   const LifeRatio = Math.min(1, RemainingSeconds / DurationSeconds);
   return Math.sin(LifeRatio * Math.PI * 0.5) * LifeRatio;
 }
+
+/** Describes launches and bonus fuel without implying that zero fuel ends the run. */
+export function getRunResourceSummary(RunState) {
+  const LaunchesUsed = RunState?.launchesUsed;
+  const BonusFuelRemaining = RunState?.remainingLaunches;
+  if (
+    !Number.isInteger(LaunchesUsed)
+    || LaunchesUsed < 0
+    || !Number.isInteger(BonusFuelRemaining)
+    || BonusFuelRemaining < 0
+  ) {
+    throw new Error('Run resource summary requires a valid run state.');
+  }
+  const LaunchLabel = LaunchesUsed === 1 ? 'launch' : 'launches';
+  const FuelLabel = BonusFuelRemaining === 0
+    ? 'bonus fuel spent'
+    : `${BonusFuelRemaining} bonus fuel left`;
+  return `${LaunchesUsed} ${LaunchLabel} · ${FuelLabel}`;
+}

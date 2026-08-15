@@ -3,11 +3,31 @@ import assert from 'node:assert/strict';
 
 import {
   getLiberationFlashOpacity,
+  getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
   getRunnerPose,
   getStillnessPresentation,
 } from '../src/presentation.js';
+
+test('run resource copy treats fuel as a bonus rather than a failure timer', () => {
+  assert.equal(
+    getRunResourceSummary({ launchesUsed: 1, remainingLaunches: 7 }),
+    '1 launch · 7 bonus fuel left',
+  );
+  assert.equal(
+    getRunResourceSummary({ launchesUsed: 7, remainingLaunches: 1 }),
+    '7 launches · 1 bonus fuel left',
+  );
+  assert.equal(
+    getRunResourceSummary({ launchesUsed: 10, remainingLaunches: 0 }),
+    '10 launches · bonus fuel spent',
+  );
+  assert.throws(
+    () => getRunResourceSummary({ launchesUsed: -1, remainingLaunches: 2 }),
+    /valid run state/,
+  );
+});
 
 test('Runner state prioritises recovery, liberation, flight and aim', () => {
   assert.equal(getRunnerAnimationState('runFailed', true), 'recovering');

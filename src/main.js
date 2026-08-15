@@ -34,7 +34,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob25';
+} from './content.js?v=20260815-ob30';
 
 import {
   countRestoredWorlds,
@@ -86,11 +86,12 @@ import {
 } from './records.js?v=20260814-ob8';
 import {
   getLiberationFlashOpacity,
+  getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
   getRunnerPose,
   getStillnessPresentation,
-} from './presentation.js?v=20260814-ob14';
+} from './presentation.js?v=20260815-ob30';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -249,7 +250,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob29';
+GameCanvas.dataset.build = '20260815-ob30';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -449,6 +450,16 @@ function configureSystemInterface() {
     `${ActiveSystem.label} constellation summary`,
   );
   EmblemRowElement.setAttribute('aria-label', `${ActiveSystem.label} emblems`);
+  const EmblemCopy = ActiveSystem.completion.emblems ?? {
+    heart: { title: 'HEART', subtitle: 'RECONNECTED' },
+    bloom: { title: 'BLOOM', subtitle: 'ALL WORLDS' },
+    arc: { title: 'ARC', subtitle: '3 STARDUST' },
+  };
+  for (const EmblemElement of EmblemElements) {
+    const Copy = EmblemCopy[EmblemElement.dataset.emblem];
+    EmblemElement.querySelector('strong').textContent = Copy.title;
+    EmblemElement.querySelector('small').textContent = Copy.subtitle;
+  }
   PlayAgainButtonElement.textContent = NextSystemIdentifier
     ? `Continue to ${getAuthoredSystemDefinition(NextSystemIdentifier).label}`
     : '';
@@ -4669,7 +4680,9 @@ function updateVictorySummary() {
   ResultLiberationScoreElement.textContent = ScoreState.networkScore.toLocaleString('en-GB');
   ResultCompletionBonusElement.textContent = ScoreState.victoryScore.toLocaleString('en-GB');
   ResultFlightTimeElement.textContent = formatFlightTime(RunResult.flightTimeMilliseconds);
-  VictoryBodyElement.textContent = `${CompletionBody} ${RunState.launchesUsed} / ${RunState.maximumLaunches} launches · ${formatFlightTime(RunResult.flightTimeMilliseconds)} flight time.`;
+  VictoryBodyElement.textContent = `${CompletionBody} ${getRunResourceSummary(
+    RunState,
+  )} · ${formatFlightTime(RunResult.flightTimeMilliseconds)} flight time.`;
   GameCanvas.dataset.personalBest = String(PersonalBestScore);
   GameCanvas.dataset.isNewPersonalBest = String(PersonalBestUpdate?.isNewPersonalBest === true);
   GameCanvas.dataset.flightTimeMilliseconds = String(RunResult.flightTimeMilliseconds);

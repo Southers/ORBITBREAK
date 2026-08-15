@@ -129,6 +129,14 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
       Errors.push(`Authored system completion.${CompletionField} is required.`);
     }
   }
+  if (CompletionDefinition?.emblems) {
+    for (const EmblemIdentifier of ['heart', 'bloom', 'arc']) {
+      const EmblemDefinition = CompletionDefinition.emblems[EmblemIdentifier];
+      if (!EmblemDefinition?.title || !EmblemDefinition?.subtitle) {
+        Errors.push(`Authored system completion.emblems.${EmblemIdentifier} requires title and subtitle.`);
+      }
+    }
+  }
 
   const WorldDefinitions = Array.isArray(SystemDefinition.worlds)
     ? SystemDefinition.worlds
@@ -486,7 +494,17 @@ export function createAuthoredSystemRuntime(
         ),
       }
       : null,
-    completion: { ...SystemDefinition.completion },
+    completion: {
+      ...SystemDefinition.completion,
+      emblems: SystemDefinition.completion.emblems
+        ? Object.fromEntries(Object.entries(SystemDefinition.completion.emblems).map(
+          ([EmblemIdentifier, EmblemDefinition]) => [
+            EmblemIdentifier,
+            { ...EmblemDefinition },
+          ],
+        ))
+        : undefined,
+    },
     constellation: {
       nodes: SystemDefinition.constellation.nodes.map((NodeDefinition) => ({
         ...NodeDefinition,
@@ -669,6 +687,11 @@ export const BreakerReachSystemDefinition = {
     perfectTitle: 'Every signal in the Reach is free.',
     body: 'The Runner banks the route while the freed worlds answer one another.',
     perfectBody: 'The entire Reach shines beyond the Stillness.',
+    emblems: {
+      heart: { title: 'COMMAND', subtitle: 'DEFEATED' },
+      bloom: { title: 'SOLIDARITY', subtitle: 'ALL WORLDS' },
+      arc: { title: 'WAYFINDER', subtitle: '3 STARDUST' },
+    },
   },
   constellation: {
     nodes: [

@@ -282,6 +282,17 @@ RESPONDING`. The same replay-derived desktop route produced a verified 12,250 re
 draw calls, and a 390×844 resize retained the defeated state without page overflow. The hypothesis
 held: the final composition now changes threat, objective and status language together.
 
+Gauntlet pass 2 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The verified result still used inherited `HEART / BLOOM /
+ARC` labels and described bonus fuel as a fixed launch ratio. Breaker's Reach now authors `COMMAND /
+DEFEATED`, `SOLIDARITY / ALL WORLDS` and `WAYFINDER / 3 STARDUST`, while the result sentence reports
+launches plus bonus fuel left or spent. The first complete browser gate caught an invalid run-state
+field after replay verification but before victory cleanup; the formatter now consumes the validated
+run-state shape directly and pure coverage includes the zero-fuel continuation case. The corrected
+desktop ending remained verified at 12,250 and 186/190 draw calls. Its 390×844 result had no overflow,
+kept 45px action controls and rendered `7 launches · 1 bonus fuel left`. Page metadata now describes
+the Command World instead of claiming the run ends when launches expire.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

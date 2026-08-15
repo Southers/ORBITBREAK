@@ -89,6 +89,11 @@ export function auditReleaseReadiness() {
   for (const [Label, Pattern] of RequiredMetadataPatterns) {
     requireCondition(Pattern.test(IndexHtml), `index.html is missing ${Label}.`);
   }
+  requireCondition(
+    !IndexHtml.includes('launches expire')
+      && IndexHtml.includes("Warden's moving Command World"),
+    'Page metadata must describe the current Command World and bonus-fuel rules.',
+  );
 
   requireCondition(
     DefaultAuthoredSystemIdentifier === AuthoredCampaignSystemIdentifiers[0],
