@@ -705,6 +705,21 @@ a 10px gap, Scout retains focus and the page remains overflow-free. Responsive r
 the type floors, spacing, zoom exception and narrow-screen clearance. This legibility-only pass changes
 no input mapping, camera scale, physics, scoring, pursuit, replay or leaderboard behavior.
 
+Gauntlet pass 39 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The optional verified rankings panel held the last sub-10px UI:
+its callsign label rendered at 8px/50% contrast, route metadata at 9px/45%, and replay actions were only
+34px high. Both text roles now use a 10px/1.2 floor and 68% contrast, while every Watch action is at
+least 44×44px. An authentic six-launch Haven–Ember–Grove–Haven–Frost–Grove route locked the moving
+Command World, reached its pylons in seven surface steps and produced a verified 11,250 result. Against
+the local-only development board, submission placed that run at rank #2 and exposed two 53×44px Watch
+actions. The live flow also revealed that hiding the successful callsign form discarded keyboard focus;
+success now focuses the first Watch action or the close fallback, while an error returns focus to the
+callsign input. At 390×844, the two-row 362.4×307.8px panel had no internal or page overflow; at
+1280×720 the 520×333.8px panel was equally bounded and retained Watch focus. Escape returned focus to
+Rankings, and the browser reported no errors. The release audit protects type, contrast, targets and
+focus recovery. This accessibility-only pass changes no ranking order, submission validation, replay,
+score, pursuit or physics behavior and touched no production service.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

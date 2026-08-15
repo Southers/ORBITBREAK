@@ -151,6 +151,14 @@ export function auditReleaseReadiness() {
     'Narrow phones must reserve instruction space above wrapped Scout controls.',
   );
   requireCondition(
+    /\.leaderboard-form\s+label\s*\{[^}]*color:\s*rgba\(214,\s*228,\s*235,\s*0\.68\);[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+      && /\.leaderboard-list__runner\s+small\s*\{[^}]*color:\s*rgba\(214,\s*228,\s*235,\s*0\.68\);[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+      && /\.leaderboard-list\s+button\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/s.test(StyleSheet)
+      && MainSource.includes("(LeaderboardListElement.querySelector('button') ?? CloseLeaderboardButtonElement)")
+      && MainSource.includes("CallsignInputElement.focus({ preventScroll: true });"),
+    'Rankings callsigns, replay actions and submission focus must stay accessible.',
+  );
+  requireCondition(
     /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
       && /\.objective-panel__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.objective-panel__state\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),

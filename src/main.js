@@ -269,7 +269,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob68';
+GameCanvas.dataset.build = '20260815-ob69';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -8083,12 +8083,15 @@ async function submitVerifiedScore(SubmitEvent) {
     await refreshLeaderboard(LoadSequence);
     if (LoadSequence === LeaderboardLoadSequence && !LeaderboardPanelElement.hidden) {
       setLeaderboardStatus(SuccessMessage);
+      (LeaderboardListElement.querySelector('button') ?? CloseLeaderboardButtonElement)
+        .focus({ preventScroll: true });
     }
   } catch (CaughtError) {
     setLeaderboardStatus(CaughtError instanceof Error
       ? CaughtError.message
       : 'Score could not be submitted.');
     SubmitScoreButtonElement.disabled = false;
+    CallsignInputElement.focus({ preventScroll: true });
   }
 }
 
