@@ -32,6 +32,7 @@ export function auditReleaseReadiness() {
   const FlightResolverSource = readRepositoryFile('src/flight-resolver.js');
   const LivingWorldSource = readRepositoryFile('src/living-world-visuals.js');
   const PlayerSource = readRepositoryFile('src/player-visuals.js');
+  const StoryDirectorSource = readRepositoryFile('src/story-director.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -117,8 +118,8 @@ export function auditReleaseReadiness() {
       && MainSource.includes('enqueueCampaignStoryBoards(')
       && MainSource.includes('flushQueuedStoryBoardsIfReady(')
       && PresentationSource.includes('export function isCampaignStoryBoardReadyToPresent(')
-      && MainSource.includes('WorldseedSound.setStoryPaused(true)')
-      && MainSource.includes('WorldseedSound.stopTransients()')
+      && StoryDirectorSource.includes('WorldseedSound.setStoryPaused(true)')
+      && StoryDirectorSource.includes('WorldseedSound.stopTransients()')
       && AudioSource.includes('TransientSource.disconnect()')
       && PresentationSource.includes('export function getTriggeredCampaignStoryBoardIds(')
       && Credits.includes('assets/ember-portrait.jpg')

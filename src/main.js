@@ -44,6 +44,7 @@ import { createWorldVisuals } from './world-geometry.js?v=20260815-ob90';
 import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260815-ob90';
 import { createWardenVisuals } from './warden-visuals.js?v=20260815-ob90';
 import { createPlayerVisuals } from './player-visuals.js?v=20260815-ob90';
+import { createStoryDirector } from './story-director.js?v=20260815-ob90';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -2688,231 +2689,62 @@ function showInstruction(Title, Body) {
   refreshInstructionPanelBounds();
 }
 
-function hideStoryBoardOverlay() {
-  IsOpeningBriefingActive = false;
-  ActiveStoryBoardId = null;
-  ActiveStoryBoardTokens = {};
-  OpeningBriefingElement.hidden = true;
-  GameCanvas.dataset.openingBriefing = 'closed';
-  OpeningBriefingElement.classList.remove(
-    'is-warden',
-    'is-haven',
-    'is-courier',
-    'is-runner',
-    'is-ember',
-    'is-grove',
-    'is-tide',
-    'is-frost',
-    'is-bastion',
-    'is-command',
-  );
-  WorldseedSound.setStoryPaused(false);
-}
+const StoryDirector = createStoryDirector({
+  ActiveSystem,
+  GameCanvas,
+  WorldseedSound,
+  CampaignNodeDefinitions,
+  StartingWorldIdentifier,
+  OpeningBriefingElement,
+  BriefingKickerElement,
+  BriefingSpeakerElement,
+  BriefingTitleElement,
+  BriefingBodyElement,
+  BriefingProgressElement,
+  BriefingContinueButtonElement,
+  BriefingSkipButtonElement,
+  BriefingPortraitElement,
+  InstructionPanelElement,
+  showInstruction,
+  showStatusToast,
+  resetGame,
+  revealVictoryPanel,
+  showHostileEncounterInstruction,
+  showRouteChoiceInstruction,
+  get OpeningBriefingPageIndex() { return OpeningBriefingPageIndex; },
+  set OpeningBriefingPageIndex(Value) { OpeningBriefingPageIndex = Value; },
+  get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
+  set IsOpeningBriefingActive(Value) { IsOpeningBriefingActive = Value; },
+  get ActiveStoryBoardId() { return ActiveStoryBoardId; },
+  set ActiveStoryBoardId(Value) { ActiveStoryBoardId = Value; },
+  get ActiveStoryBoardTokens() { return ActiveStoryBoardTokens; },
+  set ActiveStoryBoardTokens(Value) { ActiveStoryBoardTokens = Value; },
+  get StoryBoardQueue() { return StoryBoardQueue; },
+  set StoryBoardQueue(Value) { StoryBoardQueue = Value; },
+  ShownStoryBoardIds,
+  get PendingRunResetAfterStoryBoard() { return PendingRunResetAfterStoryBoard; },
+  set PendingRunResetAfterStoryBoard(Value) { PendingRunResetAfterStoryBoard = Value; },
+  get PendingVictoryAfterStoryBoard() { return PendingVictoryAfterStoryBoard; },
+  set PendingVictoryAfterStoryBoard(Value) { PendingVictoryAfterStoryBoard = Value; },
+  get ReplayPlaybackState() { return ReplayPlaybackState; },
+  get GamePhase() { return GamePhase; },
+  set GamePhase(Value) { GamePhase = Value; },
+  get RelayRevealLookTarget() { return RelayRevealLookTarget; },
+  get RelayRevealHoldUntilSeconds() { return RelayRevealHoldUntilSeconds; },
+  get GameElapsedTimeSeconds() { return GameElapsedTimeSeconds; },
+  get ActiveHostileEncounterState() { return ActiveHostileEncounterState; },
+});
+const {
+  hideStoryBoardOverlay,
+  hideOpeningBriefing,
+  beginStoryBoard,
+  enqueueCampaignStoryBoards,
+  flushQueuedStoryBoardsIfReady,
+  beginOpeningBriefing,
+  advanceOpeningBriefing,
+  finishOpeningBriefing,
+} = StoryDirector;
 
-function hideOpeningBriefing() {
-  StoryBoardQueue = [];
-  PendingRunResetAfterStoryBoard = false;
-  PendingVictoryAfterStoryBoard = false;
-  hideStoryBoardOverlay();
-}
-
-function getActiveStoryBoardDefinition() {
-  if (ActiveStoryBoardId === 'opening') {
-    return {
-      skipLabel: 'Skip intro',
-      continueLabel: 'Take the Orbitbreaker',
-      pages: ActiveSystem.openingBriefing ?? [],
-    };
-  }
-  return ActiveSystem.storyBoards?.[ActiveStoryBoardId] ?? null;
-}
-
-function presentStoryBoardPage(PageIndex, { playVoice = false } = {}) {
-  const Board = getActiveStoryBoardDefinition();
-  const Presentation = getStoryBoardPresentation(Board.pages, PageIndex, {
-    lastContinueLabel: Board.continueLabel,
-    tokens: ActiveStoryBoardTokens,
-  });
-  OpeningBriefingPageIndex = PageIndex;
-  IsOpeningBriefingActive = true;
-  BriefingKickerElement.textContent = Presentation.kicker;
-  BriefingSpeakerElement.textContent = Presentation.speaker;
-  BriefingTitleElement.textContent = Presentation.title;
-  BriefingBodyElement.textContent = Presentation.body;
-  BriefingProgressElement.textContent = Presentation.progressLabel;
-  BriefingContinueButtonElement.textContent = Presentation.continueLabel;
-  BriefingSkipButtonElement.textContent = Board.skipLabel;
-  BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob87`;
-  BriefingPortraitElement.alt = Presentation.speaker;
-  OpeningBriefingElement.classList.remove(
-    'is-warden',
-    'is-haven',
-    'is-courier',
-    'is-runner',
-    'is-ember',
-    'is-grove',
-    'is-tide',
-    'is-frost',
-    'is-bastion',
-    'is-command',
-  );
-  OpeningBriefingElement.classList.add(`is-${Presentation.tone}`);
-  OpeningBriefingElement.hidden = false;
-  InstructionPanelElement.classList.add('is-hidden');
-  InstructionPanelElement.setAttribute('aria-hidden', 'true');
-  GameCanvas.dataset.openingBriefing = `${ActiveStoryBoardId}:${Presentation.progressLabel}`;
-  WorldseedSound.setStoryPaused(true);
-  if (playVoice) {
-    WorldseedSound.briefingVoice(Presentation.speaker);
-  }
-  BriefingContinueButtonElement.focus({ preventScroll: true });
-}
-
-function beginStoryBoard(BoardId, tokens = {}) {
-  if (ReplayPlaybackState !== null) {
-    return false;
-  }
-  const Board = BoardId === 'opening'
-    ? {
-      skipLabel: 'Skip intro',
-      continueLabel: 'Take the Orbitbreaker',
-      pages: ActiveSystem.openingBriefing ?? [],
-    }
-    : ActiveSystem.storyBoards?.[BoardId];
-  if (!Board?.pages?.length) {
-    return false;
-  }
-  ActiveStoryBoardId = BoardId;
-  ActiveStoryBoardTokens = { ...tokens };
-  presentStoryBoardPage(0, { playVoice: Boolean(WorldseedSound.context) });
-  return true;
-}
-
-function presentNextQueuedStoryBoard() {
-  const NextBoard = StoryBoardQueue.shift();
-  if (!NextBoard) {
-    const ShouldReset = PendingRunResetAfterStoryBoard;
-    const ShouldVictory = PendingVictoryAfterStoryBoard;
-    PendingRunResetAfterStoryBoard = false;
-    PendingVictoryAfterStoryBoard = false;
-    hideStoryBoardOverlay();
-    if (ShouldReset) {
-      resetGame();
-      return;
-    }
-    if (ShouldVictory) {
-      revealVictoryPanel();
-      GamePhase = 'victory';
-      WorldseedSound.victory();
-      return;
-    }
-    if (GamePhase === 'attached' || GamePhase === 'restoring') {
-      if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
-      GameCanvas.focus({ preventScroll: true });
-    }
-    return;
-  }
-  beginStoryBoard(NextBoard.id, NextBoard.tokens);
-}
-
-function enqueueCampaignStoryBoards(BoardIds, tokens = {}) {
-  if (ReplayPlaybackState !== null || !Array.isArray(BoardIds) || BoardIds.length < 1) {
-    return false;
-  }
-  let QueuedCount = 0;
-  for (const BoardId of BoardIds) {
-    if (ShownStoryBoardIds.has(BoardId)) {
-      continue;
-    }
-    if (!ActiveSystem.storyBoards?.[BoardId]?.pages?.length) {
-      continue;
-    }
-    ShownStoryBoardIds.add(BoardId);
-    StoryBoardQueue.push({ id: BoardId, tokens });
-    QueuedCount += 1;
-  }
-  if (QueuedCount > 0) {
-    flushQueuedStoryBoardsIfReady();
-  }
-  return QueuedCount > 0;
-}
-
-function flushQueuedStoryBoardsIfReady() {
-  if (StoryBoardQueue.length < 1 || IsOpeningBriefingActive) {
-    return false;
-  }
-  const NextBoardId = StoryBoardQueue[0]?.id ?? '';
-  if (!isCampaignStoryBoardReadyToPresent({
-    briefingActive: IsOpeningBriefingActive,
-    replayActive: ReplayPlaybackState !== null,
-    gamePhase: GamePhase,
-    relayRevealActive: Boolean(
-      RelayRevealLookTarget
-      && RelayRevealHoldUntilSeconds > GameElapsedTimeSeconds
-    ),
-    hostileEncounterActive: ActiveHostileEncounterState !== null,
-    boardId: NextBoardId,
-  })) {
-    return false;
-  }
-  presentNextQueuedStoryBoard();
-  return true;
-}
-
-function beginOpeningBriefing() {
-  StoryBoardQueue = [];
-  ShownStoryBoardIds.clear();
-  PendingRunResetAfterStoryBoard = false;
-  PendingVictoryAfterStoryBoard = false;
-  if ((ActiveSystem.openingBriefing ?? []).length < 1 || ReplayPlaybackState !== null) {
-    hideOpeningBriefing();
-    return false;
-  }
-  return beginStoryBoard('opening');
-}
-
-function advanceOpeningBriefing() {
-  if (!IsOpeningBriefingActive) {
-    return;
-  }
-  WorldseedSound.ensureStarted();
-  const Board = getActiveStoryBoardDefinition();
-  if (!Board?.pages?.length || OpeningBriefingPageIndex >= Board.pages.length - 1) {
-    finishOpeningBriefing();
-    return;
-  }
-  presentStoryBoardPage(OpeningBriefingPageIndex + 1, { playVoice: true });
-}
-
-function finishOpeningBriefing() {
-  if (!IsOpeningBriefingActive && OpeningBriefingElement.hidden) {
-    return;
-  }
-  WorldseedSound.ensureStarted();
-  WorldseedSound.stopTransients();
-  if (ActiveStoryBoardId === 'opening') {
-    hideStoryBoardOverlay();
-    const OpeningRouteChoices = getRouteChoices(
-      CampaignNodeDefinitions,
-      StartingWorldIdentifier,
-      2,
-      ActiveSystem.routeSuggestions[StartingWorldIdentifier] ?? [],
-    );
-    showInstruction(
-      'Choose ' + OpeningRouteChoices[0].label + ' or ' + OpeningRouteChoices[1].label,
-      ActiveSystem.openingBody,
-    );
-    if (ActiveSystem.openingBroadcast) {
-      showStatusToast(ActiveSystem.openingBroadcast, 2200, 'warden');
-    }
-    GameCanvas.focus({ preventScroll: true });
-    return;
-  }
-  if (ActiveStoryBoardId === 'runLost') {
-    PendingRunResetAfterStoryBoard = true;
-  }
-  presentNextQueuedStoryBoard();
-}
 
 /** Ends a caught attempt after a brief, readable failure beat. */
 function scheduleRunFailure(Reason = 'THE WARDEN REACHED THE RUNNER') {
