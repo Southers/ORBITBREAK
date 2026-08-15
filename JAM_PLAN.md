@@ -458,6 +458,16 @@ and no overflow. Closing the first circuit preserved the same geometry while its
 changed cleanly to gold at a 163/190 transition peak. This thematic visibility pass adds no mesh or
 draw call and changes no network topology, protection, pursuit, input, physics, score or replay state.
 
+Gauntlet pass 18 — 15 August 2026: **Art 9/10, Creativity 9/10, Gameplay 9/10,
+Polish 9/10, Tiny Worlds Theme 9/10.** The newly legible relay pulse still animated luminance under
+the explicit Reduced motion setting. That preference now holds every relay at the same readable 80%
+midpoint, while Full and System motion retain the tested 70–90% pulse. Unit coverage proves the
+reduced value remains constant across time. A fresh Reduced-motion desktop route and 390×844 resize
+reached the same two-link third-relay reveal, Warden target and four-flight forecast at 150/190 peak
+calls; portrait retained 44px controls and no overflow. This preference-aware presentation change
+does not alter relay geometry, courier routes, fixed-step input, prediction, physics, scoring, pursuit
+or replay state.
+
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.

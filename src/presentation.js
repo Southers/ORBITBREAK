@@ -111,9 +111,10 @@ export function getWorldLandingAimLabel(WorldLabel, IsNewWorldLanding) {
 }
 
 /** Keeps permanent relay links visible while retaining a restrained network pulse. */
-export function getRelayLinkOpacity(ElapsedTimeSeconds) {
+export function getRelayLinkOpacity(ElapsedTimeSeconds, { reducedMotion = false } = {}) {
   if (!Number.isFinite(ElapsedTimeSeconds)) {
     throw new Error('Relay link presentation requires finite time.');
   }
+  if (reducedMotion) return 0.8;
   return 0.8 + (Math.sin(ElapsedTimeSeconds * 2.4) * 0.1);
 }

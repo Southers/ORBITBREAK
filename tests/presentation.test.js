@@ -17,6 +17,8 @@ test('relay links retain a bright bounded pulse for system-scale readability', (
   assert.equal(getRelayLinkOpacity(0), 0.8);
   assert.ok(Math.abs(getRelayLinkOpacity(Math.PI / 4.8) - 0.9) < 1e-12);
   assert.ok(Math.abs(getRelayLinkOpacity(3 * Math.PI / 4.8) - 0.7) < 1e-12);
+  assert.equal(getRelayLinkOpacity(4, { reducedMotion: true }), 0.8);
+  assert.equal(getRelayLinkOpacity(40, { reducedMotion: true }), 0.8);
   assert.throws(() => getRelayLinkOpacity(Number.NaN), /finite time/);
 });
 
