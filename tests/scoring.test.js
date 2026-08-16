@@ -177,7 +177,7 @@ test('prediction uses the same pass sampling contract as live fixed steps', () =
     runnerRadius: RunnerRadius,
   });
   const LiveState = createScoreState();
-  const LiveEvents = Points.flatMap((Point) => sampleSlingshotBodies(
+  const LiveEvents = Points.slice(1).flatMap((Point) => sampleSlingshotBodies(
     LiveState,
     Point,
     [TestBody],
@@ -185,5 +185,40 @@ test('prediction uses the same pass sampling contract as live fixed steps', () =
   ));
 
   assert.deepEqual(PredictedEvents, LiveEvents);
+});
+
+test('prediction skips the pre-launch rest sample that live scoring never sees', () => {
+  const Band = getSlingshotBand(TestBody);
+  const TrajectoryPoints = [
+    positionAtClearance(Band.deepClearance * 0.8),
+    positionAtClearance(Band.outerClearance + 0.2),
+    positionAtClearance(Band.deepClearance * 0.8),
+    positionAtClearance(Band.outerClearance + 0.2),
+  ];
+  const PredictedEvents = predictSlingshotEvents(TrajectoryPoints, [TestBody], {
+    runnerRadius: RunnerRadius,
+  });
+  const LiveState = createScoreState();
+  const LiveEvents = TrajectoryPoints.slice(1).flatMap((Point) => sampleSlingshotBodies(
+    LiveState,
+    Point,
+    [TestBody],
+    { runnerRadius: RunnerRadius },
+  ));
+  const NaiveState = createScoreState();
+  const NaiveEvents = TrajectoryPoints.flatMap((Point) => sampleSlingshotBodies(
+    NaiveState,
+    Point,
+    [TestBody],
+    { runnerRadius: RunnerRadius },
+  ));
+
+  assert.deepEqual(PredictedEvents, LiveEvents);
+  assert.equal(PredictedEvents.length, 1);
+  assert.equal(NaiveEvents.length, 1);
+  assert.notEqual(
+    PredictedEvents[0].minimumClearance,
+    NaiveEvents[0].minimumClearance,
+  );
 });
 

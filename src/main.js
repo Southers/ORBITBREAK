@@ -7,9 +7,10 @@ import {
   getKeyboardAimDragVector,
   getSphereSurfacePosition,
   getSurfacePosition,
+  isEditingTextField,
   LaunchCancelRadius,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260816-ob97';
+} from './controls.js?v=20260816-ob98';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -38,7 +39,7 @@ import { createInputController } from './input-controller.js?v=20260816-ob97';
 import { createHostileSurface } from './hostile-surface.js?v=20260816-ob93';
 import { createScanner } from './scanner.js?v=20260815-ob90';
 import { createRoutePresentation } from './route-presentation.js?v=20260815-ob90';
-import { createRecordsUi } from './records-ui.js?v=20260815-ob90';
+import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
 import { createFrameVisuals } from './frame-visuals.js?v=20260816-ob93';
 import { createRestorationVisuals } from './restoration-visuals.js?v=20260816-ob92';
 
@@ -166,7 +167,7 @@ import {
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260815-ob79';
+} from './scoring.js?v=20260816-ob98';
 
 const PageSearchParameters = new URLSearchParams(window.location.search);
 const RequestedSystemIdentifier = PageSearchParameters.get('system')
@@ -303,7 +304,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260816-ob97';
+GameCanvas.dataset.build = '20260816-ob98';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -3319,29 +3320,36 @@ function setPageActivity(IsActive) {
   if (IsPageActive) {
     Clock.getDelta();
     resizeRenderer();
-  } else if (IsPointerAiming || IsKeyboardAiming || IsPointerWalking || IsPointerScouting) {
-    const CanceledPointerIdentifier = ActivePointerIdentifier;
-    IsPointerAiming = false;
-    clearCommittedAimCamera();
-    IsPointerWalking = false;
-    IsPointerScouting = false;
-    IsKeyboardAiming = false;
-    ActivePointerIdentifier = null;
-    GameCanvas.dataset.keyboardAimAngle = '';
-    GameCanvas.dataset.keyboardAimPower = '';
-    GameCanvas.dataset.keyboardAimAssist = '';
-    if (
-      CanceledPointerIdentifier !== null
-      && GameCanvas.hasPointerCapture(CanceledPointerIdentifier)
-    ) {
-      GameCanvas.releasePointerCapture(CanceledPointerIdentifier);
+  } else {
+    SmoothPerformanceSampleCount = 0;
+    PerformanceSampleElapsedSeconds = 0;
+    PerformanceSampleDeltaSeconds = 0;
+    PerformanceSampleFrameCount = 0;
+    GameCanvas.dataset.smoothPerformanceSamples = '0';
+    if (IsPointerAiming || IsKeyboardAiming || IsPointerWalking || IsPointerScouting) {
+      const CanceledPointerIdentifier = ActivePointerIdentifier;
+      IsPointerAiming = false;
+      clearCommittedAimCamera();
+      IsPointerWalking = false;
+      IsPointerScouting = false;
+      IsKeyboardAiming = false;
+      ActivePointerIdentifier = null;
+      GameCanvas.dataset.keyboardAimAngle = '';
+      GameCanvas.dataset.keyboardAimPower = '';
+      GameCanvas.dataset.keyboardAimAssist = '';
+      if (
+        CanceledPointerIdentifier !== null
+        && GameCanvas.hasPointerCapture(CanceledPointerIdentifier)
+      ) {
+        GameCanvas.releasePointerCapture(CanceledPointerIdentifier);
+      }
+      GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
+      AimPanelElement.hidden = true;
+      releaseAimInteractionCamera();
+      clearTrajectoryPreview();
+      WorldseedSound.endAim();
+      showInstruction('Aim again', 'Your shot was canceled while the game was in the background.');
     }
-    GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
-    AimPanelElement.hidden = true;
-    releaseAimInteractionCamera();
-    clearTrajectoryPreview();
-    WorldseedSound.endAim();
-    showInstruction('Aim again', 'Your shot was canceled while the game was in the background.');
   }
 }
 
@@ -3484,6 +3492,12 @@ GameCanvas.addEventListener('webglcontextrestored', () => {
 ReducedMotionMediaQuery.addEventListener('change', () => {
   applyMotionPreference();
 });
+/** Visible modal fields used by both the Tab cycle and the focus-in trap. */
+function getVisibleModalFocusables(ModalElement) {
+  return [...ModalElement.querySelectorAll('input, button')]
+    .filter((Element) => !Element.disabled && !Element.hidden && Element.offsetParent !== null);
+}
+
 window.addEventListener('keydown', (KeyboardEventData) => {
   if (IsOpeningBriefingActive) {
     const PressedBriefingKey = KeyboardEventData.key.toLowerCase();
@@ -3526,8 +3540,7 @@ window.addEventListener('keydown', (KeyboardEventData) => {
       ? VictoryPanelElement
       : (IsOpeningBriefingActive ? OpeningBriefingElement : null));
   if (KeyboardEventData.key === 'Tab' && ActiveModalElement) {
-    const FocusableElements = [...ActiveModalElement.querySelectorAll('input, button')]
-      .filter((Element) => !Element.disabled && !Element.hidden && Element.offsetParent !== null);
+    const FocusableElements = getVisibleModalFocusables(ActiveModalElement);
     const FirstFocusableElement = FocusableElements[0];
     const LastFocusableElement = FocusableElements.at(-1);
     if (
@@ -3543,6 +3556,16 @@ window.addEventListener('keydown', (KeyboardEventData) => {
       KeyboardEventData.preventDefault();
       FirstFocusableElement?.focus();
     }
+    return;
+  }
+  if (isEditingTextField(KeyboardEventData.target)) {
+    return;
+  }
+  if (
+    KeyboardEventData.ctrlKey
+    || KeyboardEventData.metaKey
+    || KeyboardEventData.altKey
+  ) {
     return;
   }
   const PressedKey = KeyboardEventData.key.toLowerCase();
@@ -3589,12 +3612,7 @@ window.addEventListener('keydown', (KeyboardEventData) => {
   if (handleKeyboardAimKey(KeyboardEventData)) {
     return;
   }
-  if (
-    KeyboardEventData.repeat
-    || KeyboardEventData.ctrlKey
-    || KeyboardEventData.metaKey
-    || KeyboardEventData.altKey
-  ) {
+  if (KeyboardEventData.repeat) {
     return;
   }
 
@@ -3618,7 +3636,7 @@ document.addEventListener('focusin', (FocusEventData) => {
   if (!ActiveModalElement || ActiveModalElement.contains(FocusEventData.target)) {
     return;
   }
-  ActiveModalElement.querySelector('input:not([disabled]), button:not([disabled])')
+  getVisibleModalFocusables(ActiveModalElement)[0]
     ?.focus({ preventScroll: true });
 });
 ResetButtonElement.addEventListener('click', resetGame);

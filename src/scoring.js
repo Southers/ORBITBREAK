@@ -190,10 +190,11 @@ export function predictSlingshotEvents(
 ) {
   const PredictionScoreState = createScoreState();
   const Events = [];
-  for (const TrajectoryPoint of TrajectoryPoints) {
+  // Skip the pre-launch rest sample. Live scoring samples after simulatePhysicsStep.
+  for (let PointIndex = 1; PointIndex < TrajectoryPoints.length; PointIndex += 1) {
     Events.push(...sampleSlingshotBodies(
       PredictionScoreState,
-      TrajectoryPoint,
+      TrajectoryPoints[PointIndex],
       BodyDefinitions,
       Settings,
     ));

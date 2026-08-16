@@ -517,6 +517,18 @@ export function getAimCameraStage({
   return AimCameraStages.globe;
 }
 
+/** True when a key should type into a field instead of firing a game hotkey. */
+export function isEditingTextField(Target) {
+  if (!Target || typeof Target !== 'object') {
+    return false;
+  }
+  if (Target.isContentEditable === true) {
+    return true;
+  }
+  const TagName = typeof Target.tagName === 'string' ? Target.tagName.toUpperCase() : '';
+  return TagName === 'INPUT' || TagName === 'TEXTAREA' || TagName === 'SELECT';
+}
+
 /** World-space cancel disk used when the planning camera has not jumped yet. */
 export const LaunchCancelRadius = 0.85;
 /** Screen-space cancel disk so a zoomed-out aim can still be dropped on the visible ship. */

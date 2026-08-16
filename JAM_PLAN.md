@@ -961,6 +961,13 @@ immediate; the neighbourhood map waits until the pull leaves the cancel disk.
 Walking still names the facing neighbour until ship grab, pan or keyboard aim.
 Physics identity and `breaker-reach-7` are unchanged.
 
+Checkpoint 20 — 16 August 2026: still-relevant preview-PR review follow-ups. Game
+hotkeys yield to callsign typing and Ctrl/Meta/Alt; Shift still fine-aims.
+Hiding the tab resets adaptive-quality recovery samples. Rankings discard
+stale watch/submit results after reset. Slingshot prediction skips the
+pre-launch rest sample so it matches live fixed-step scoring. Runtime JS/CSS
+cannot load remote URLs. Restoration-vs-validator honesty stays deferred.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

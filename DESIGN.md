@@ -211,6 +211,7 @@ The Reach has the verbs, sphere walking, staged prosperity and instanced life. C
 - Living clusters emit a limb glow, so the other face advertises a harbour or mine without quest markers. Meadow, Ember and Frost diorama props now occupy the far hemisphere too.
 - Destroy pylons, flight, prediction and replay stay in the orbital plane. Physics identity and `breaker-reach-7` are unchanged.
 - Walk-to-launch (checkpoint 19): ship grab aims from a screen pull even over crust; the map camera waits until the pull leaves cancel. Facing coach survives walk release.
+- Review follow-ups (checkpoint 20): callsign typing and Ctrl/Meta/Alt no longer fire game hotkeys; hiding the tab resets adaptive-quality recovery; rankings ignore stale watch/submit results; slingshot prediction skips the pre-launch rest sample.
 - Draw-call ceiling remains 190. New life is instanced and pooled.
 
 Judging from current evidence: **Art** and **Theme** now have a still-frame of different roofs and ships on linked worlds, and walking has a visual reason. Remaining gauntlet work is density, readability and mobile polish — not a second game.
@@ -328,7 +329,7 @@ Implement in this order. Each checkpoint is one coherent commit, with `npm test`
 7. **Sound and breathing room.** Distinct dock, crowd, mine and lane layers; hold the camera on the change before handing control back.
 8. **Stance retune if needed.** Larger world radii and well restance only if zoom and shrink were not enough. New `contentVersion`, new goldens, same verbs.
 
-Checkpoints 2–7 are in the playable Breaker's Reach build (`breaker-reach-7`). The authored sector is nine worlds: the original inner garden plus Spindle, Quarry and Mirage on the outer Reach. Checkpoint 8 was skipped: the 0.52 Runner and landed follow already make the courier a visitor, so radii and wells were not restanced. Checkpoints 15–18 put life on the sphere with culture-true pooled silhouettes and far-face glow. Checkpoint 19 keeps facing after a walk and lets a ship pull start aim without waiting for the ray to miss the globe.
+Checkpoints 2–7 are in the playable Breaker's Reach build (`breaker-reach-7`). The authored sector is nine worlds: the original inner garden plus Spindle, Quarry and Mirage on the outer Reach. Checkpoint 8 was skipped: the 0.52 Runner and landed follow already make the courier a visitor, so radii and wells were not restanced. Checkpoints 15–18 put life on the sphere with culture-true pooled silhouettes and far-face glow. Checkpoint 19 keeps facing after a walk and lets a ship pull start aim without waiting for the ray to miss the globe. Checkpoint 20 applies still-relevant preview-PR review follow-ups without adding verbs.
 
 Stop conditions:
 

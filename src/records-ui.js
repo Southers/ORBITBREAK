@@ -353,8 +353,12 @@ export function createRecordsUi(THREE, host) {
       WatchButtonElement.addEventListener('click', async () => {
         WatchButtonElement.disabled = true;
         setLeaderboardStatus(`Loading ${CallsignElement.textContent}'s verified route…`);
+        const LoadSequence = host.LeaderboardLoadSequence;
         try {
           const ReplayRecord = await LeaderboardClient.getReplay(Entry.id);
+          if (LoadSequence !== host.LeaderboardLoadSequence || LeaderboardPanelElement.hidden) {
+            return;
+          }
           if (!watchSerializedReplay(
             ReplayRecord.replay,
             `${ReplayRecord.callsign ?? CallsignElement.textContent}'s verified route`,
@@ -362,6 +366,9 @@ export function createRecordsUi(THREE, host) {
             throw new Error('Remote replay did not validate for this system.');
           }
         } catch (CaughtError) {
+          if (LoadSequence !== host.LeaderboardLoadSequence || LeaderboardPanelElement.hidden) {
+            return;
+          }
           setLeaderboardStatus(CaughtError instanceof Error
             ? CaughtError.message
             : 'Replay could not load.');
@@ -452,11 +459,17 @@ export function createRecordsUi(THREE, host) {
     }
     SubmitScoreButtonElement.disabled = true;
     setLeaderboardStatus('Re-simulating route on the leaderboard…');
+    const LoadSequence = host.LeaderboardLoadSequence;
+    const ReplayPayload = GameCanvas.dataset.replayPayload;
+    const Callsign = CallsignInputElement.value;
     try {
       const Submission = await LeaderboardClient.submit({
-        callsign: CallsignInputElement.value,
-        replay: GameCanvas.dataset.replayPayload,
+        callsign: Callsign,
+        replay: ReplayPayload,
       });
+      if (LoadSequence !== host.LeaderboardLoadSequence) {
+        return;
+      }
       try {
         window.localStorage.setItem('orbitbreak.callsign', Submission.entry.callsign);
       } catch {
@@ -468,14 +481,17 @@ export function createRecordsUi(THREE, host) {
         ? `Verified and banked at rank #${Submission.rank}.`
         : 'Verified and banked online.';
       setLeaderboardStatus(SuccessMessage);
-      const LoadSequence = ++host.LeaderboardLoadSequence;
-      await refreshLeaderboard(LoadSequence);
-      if (LoadSequence === host.LeaderboardLoadSequence && !LeaderboardPanelElement.hidden) {
+      const RefreshSequence = ++host.LeaderboardLoadSequence;
+      await refreshLeaderboard(RefreshSequence);
+      if (RefreshSequence === host.LeaderboardLoadSequence && !LeaderboardPanelElement.hidden) {
         setLeaderboardStatus(SuccessMessage);
         (LeaderboardListElement.querySelector('button') ?? CloseLeaderboardButtonElement)
           .focus({ preventScroll: true });
       }
     } catch (CaughtError) {
+      if (LoadSequence !== host.LeaderboardLoadSequence) {
+        return;
+      }
       setLeaderboardStatus(CaughtError instanceof Error
         ? CaughtError.message
         : 'Score could not be submitted.');
