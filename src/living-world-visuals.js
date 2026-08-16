@@ -759,8 +759,8 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     ProsperityWindowMesh.count = OccupationScarInstances.length * 3;
     const HasLiveCircuit = getFrameLiveRelayCircuits().length > 0;
     const WindowPulse = PrefersReducedMotion
-      ? 0.38
-      : 0.28 + (Math.sin(ElapsedTimeSeconds * (HasLiveCircuit ? 4.2 : 2.4)) * 0.16);
+      ? 0.68
+      : 0.58 + (Math.sin(ElapsedTimeSeconds * (HasLiveCircuit ? 4.2 : 2.4)) * 0.28);
     ProsperityBuildingMaterial.emissiveIntensity = WindowPulse;
     ProsperityWindowMaterial.opacity = PrefersReducedMotion
       ? 0.72
@@ -1017,7 +1017,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   RelayLinkGeometry.setAttribute('position', RelayLinkPositionAttribute);
   RelayLinkGeometry.setDrawRange(0, 0);
   const RelayLinkMaterial = new THREE.LineBasicMaterial({
-    color: 0x72e8ff,
+    color: new THREE.Color(0x72e8ff).multiplyScalar(1.55),
     transparent: true,
     opacity: 0.8,
     depthWrite: false,

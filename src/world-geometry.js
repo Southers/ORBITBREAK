@@ -11,6 +11,222 @@ export function createWorldVisuals(THREE, Scene, {
   const DarkWorldColor = new THREE.Color(0x2c3337);
   const TemporaryThreeVector = new THREE.Vector3();
 
+  /** Deterministic per-world random stream so scatter layouts never shift between runs. */
+  function createSeededRandom(SeedText) {
+    let RandomState = 2166136261;
+    for (let CharIndex = 0; CharIndex < SeedText.length; CharIndex += 1) {
+      RandomState = Math.imul(RandomState ^ SeedText.charCodeAt(CharIndex), 16777619) >>> 0;
+    }
+    return function nextRandomValue() {
+      RandomState = (Math.imul(RandomState, 1664525) + 1013904223) >>> 0;
+      return RandomState / 4294967296;
+    };
+  }
+
+  /**
+   * Fresnel atmosphere shell shared by every world. The rim brightens as the
+   * world restores; restoration-visuals keeps driving the same `color` and
+   * `opacity` contract the old basic-material shell exposed.
+   */
+  function createAtmosphereRimShell(WorldDefinition) {
+    const ShellUniforms = {
+      uColor: { value: WorldDefinition.atmosphereColor.clone() },
+      uOpacity: { value: WorldDefinition.restored ? 0.1 : 0.025 },
+    };
+    const ShellMaterial = new THREE.ShaderMaterial({
+      uniforms: ShellUniforms,
+      vertexShader: `
+        varying vec3 vViewNormal;
+        varying vec3 vViewDirection;
+        void main() {
+          vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewNormal = normalize(normalMatrix * normal);
+          vViewDirection = normalize(-viewPosition.xyz);
+          gl_Position = projectionMatrix * viewPosition;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vViewNormal;
+        varying vec3 vViewDirection;
+        uniform vec3 uColor;
+        uniform float uOpacity;
+        void main() {
+          float fresnel = pow(
+            1.0 - max(dot(normalize(vViewNormal), normalize(vViewDirection)), 0.0),
+            3.3
+          );
+          gl_FragColor = vec4(uColor * (1.0 + (fresnel * 1.5)), fresnel * uOpacity * 3.4);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    ShellMaterial.opacity = ShellUniforms.uOpacity.value;
+    ShellMaterial.color = ShellUniforms.uColor.value;
+    const ShellMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(WorldDefinition.radius * 1.12, 40, 26),
+      ShellMaterial,
+    );
+    ShellMesh.onBeforeRender = () => {
+      ShellUniforms.uOpacity.value = ShellMaterial.opacity;
+    };
+    ShellMesh.renderOrder = 4;
+    return { mesh: ShellMesh, material: ShellMaterial };
+  }
+
+  /**
+   * Injects the spherical restoration wave into a scatter material so growth
+   * and dead-to-alive colour run fully on the GPU from the shared uniforms.
+   */
+  function applyScatterRestorationShader(Material, RestorationUniforms, CacheKey) {
+    Material.onBeforeCompile = (Shader) => {
+      Shader.uniforms.restorationOrigin = RestorationUniforms.restorationOrigin;
+      Shader.uniforms.restorationProgress = RestorationUniforms.restorationProgress;
+      Shader.uniforms.scatterDeadColor = { value: DarkWorldColor.clone() };
+      Shader.vertexShader = Shader.vertexShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+          uniform vec3 restorationOrigin;
+          uniform float restorationProgress;
+          attribute vec3 scatterDirection;
+          varying float vScatterGrowth;`,
+        )
+        .replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+          float scatterDistance = acos(clamp(dot(
+            normalize(scatterDirection),
+            normalize(restorationOrigin)
+          ), -1.0, 1.0)) / PI;
+          vScatterGrowth = smoothstep(scatterDistance, scatterDistance + 0.16, restorationProgress);
+          transformed *= vScatterGrowth;`,
+        );
+      Shader.fragmentShader = Shader.fragmentShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+          uniform vec3 scatterDeadColor;
+          varying float vScatterGrowth;`,
+        )
+        .replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+          diffuseColor.rgb = mix(scatterDeadColor, diffuseColor.rgb, vScatterGrowth);`,
+        )
+        .replace(
+          '#include <emissivemap_fragment>',
+          `#include <emissivemap_fragment>
+          totalEmissiveRadiance *= vScatterGrowth;`,
+        );
+    };
+    Material.customProgramCacheKey = () => CacheKey;
+  }
+
+  function createScatterInstances(Geometry, Material, WorldDefinition, {
+    count,
+    nextRandomValue,
+    minimumScale,
+    maximumScale,
+    surfaceInset = 0.005,
+  }) {
+    const ScatterMesh = new THREE.InstancedMesh(Geometry, Material, count);
+    const ScatterDirections = new Float32Array(count * 3);
+    const InstanceMatrix = new THREE.Matrix4();
+    const InstanceQuaternion = new THREE.Quaternion();
+    const InstancePosition = new THREE.Vector3();
+    const InstanceScale = new THREE.Vector3();
+    const UpAxis = new THREE.Vector3(0, 1, 0);
+    for (let InstanceIndex = 0; InstanceIndex < count; InstanceIndex += 1) {
+      const PoleOffset = (nextRandomValue() * 2) - 1;
+      const RingAngle = nextRandomValue() * Math.PI * 2;
+      const RingRadius = Math.sqrt(Math.max(0, 1 - (PoleOffset * PoleOffset)));
+      TemporaryThreeVector.set(
+        RingRadius * Math.cos(RingAngle),
+        RingRadius * Math.sin(RingAngle),
+        PoleOffset,
+      ).normalize();
+      ScatterDirections[InstanceIndex * 3] = TemporaryThreeVector.x;
+      ScatterDirections[(InstanceIndex * 3) + 1] = TemporaryThreeVector.y;
+      ScatterDirections[(InstanceIndex * 3) + 2] = TemporaryThreeVector.z;
+      InstancePosition.copy(TemporaryThreeVector)
+        .multiplyScalar(WorldDefinition.radius * (1 - surfaceInset));
+      InstanceQuaternion.setFromUnitVectors(UpAxis, TemporaryThreeVector);
+      const ScatterScale = minimumScale + (nextRandomValue() * (maximumScale - minimumScale));
+      InstanceScale.setScalar(ScatterScale);
+      InstanceMatrix.compose(InstancePosition, InstanceQuaternion, InstanceScale);
+      ScatterMesh.setMatrixAt(InstanceIndex, InstanceMatrix);
+    }
+    Geometry.setAttribute(
+      'scatterDirection',
+      new THREE.InstancedBufferAttribute(ScatterDirections, 3),
+    );
+    ScatterMesh.instanceMatrix.needsUpdate = true;
+    ScatterMesh.frustumCulled = false;
+    ScatterMesh.receiveShadow = true;
+    return ScatterMesh;
+  }
+
+  /**
+   * Dense instanced ground cover for every restorable world: flora sprouts in
+   * the world's alive palette plus emissive settlement lights that bloom once
+   * the liberation wave reaches them. Two draw calls per world.
+   */
+  function createLifeScatter(WorldDefinition, RestorationUniforms) {
+    const ScatterGroup = new THREE.Group();
+    const nextRandomValue = createSeededRandom(`${WorldDefinition.id}-life-scatter`);
+    const SurfaceAreaScale = WorldDefinition.radius * WorldDefinition.radius;
+    const FloraCount = Math.round(THREE.MathUtils.clamp(SurfaceAreaScale * 30, 70, 260));
+    const GlowCount = Math.round(THREE.MathUtils.clamp(SurfaceAreaScale * 6, 14, 52));
+
+    const FloraGeometry = new THREE.ConeGeometry(0.052, 0.2, 5);
+    FloraGeometry.translate(0, 0.1, 0);
+    const FloraColor = (WorldDefinition.aliveColor ?? DeadWorldColor).clone();
+    FloraColor.offsetHSL(0.03, 0.06, 0.02);
+    const FloraMaterial = new THREE.MeshStandardMaterial({
+      color: FloraColor,
+      roughness: 0.86,
+      metalness: 0.02,
+    });
+    applyScatterRestorationShader(
+      FloraMaterial,
+      RestorationUniforms,
+      'orbitbreak-life-scatter-flora-v1',
+    );
+    ScatterGroup.add(createScatterInstances(FloraGeometry, FloraMaterial, WorldDefinition, {
+      count: FloraCount,
+      nextRandomValue,
+      minimumScale: 0.65,
+      maximumScale: 1.45,
+    }));
+
+    const GlowGeometry = new THREE.SphereGeometry(0.05, 6, 5);
+    GlowGeometry.translate(0, 0.055, 0);
+    const GlowColor = (WorldDefinition.accentColor ?? WorldDefinition.aliveColor
+      ?? DeadWorldColor).clone();
+    const GlowMaterial = new THREE.MeshStandardMaterial({
+      color: 0x141a1e,
+      roughness: 0.5,
+      metalness: 0,
+      emissive: GlowColor,
+      emissiveIntensity: 2.3,
+    });
+    applyScatterRestorationShader(
+      GlowMaterial,
+      RestorationUniforms,
+      'orbitbreak-life-scatter-glow-v1',
+    );
+    ScatterGroup.add(createScatterInstances(GlowGeometry, GlowMaterial, WorldDefinition, {
+      count: GlowCount,
+      nextRandomValue,
+      minimumScale: 0.7,
+      maximumScale: 1.25,
+    }));
+
+    return ScatterGroup;
+  }
+
   /**
    * Creates simple contour rings around a world. These are placeholder composition tools,
    * but they already make each sphere read as a self-contained miniature object rather than
@@ -197,13 +413,19 @@ export function createWorldVisuals(THREE, Scene, {
             controlLatitude,
             controlLongitude
           ));
-          vec3 occupiedColor = deadColor * (0.72 + (surfacePattern * 0.035));
+          vec3 occupiedColor = deadColor * (0.62 + (surfacePattern * 0.03));
           occupiedColor += vec3(0.11, 0.2, 0.23) * controlGrid;
+          float emberSeed = sin(vRestorationDirection.x * 41.0)
+            * sin(vRestorationDirection.y * 37.0)
+            * sin(vRestorationDirection.z * 43.0);
+          float emberGlow = smoothstep(0.955, 0.995, emberSeed)
+            * (0.62 + (0.38 * sin((vRestorationDirection.x * 30.0) + (biomeTime * 1.7))));
+          occupiedColor += vec3(0.58, 0.19, 0.05) * emberGlow;
           diffuseColor.rgb = mix(occupiedColor, variedAliveColor, restoredSurface);
           diffuseColor.rgb += waveColor * restorationBand * activeRestorationWave * 0.9;`,
         );
     };
-    SurfaceMaterial.customProgramCacheKey = () => 'orbitbreak-restoration-surface-v3';
+    SurfaceMaterial.customProgramCacheKey = () => 'orbitbreak-restoration-surface-v4';
 
     return { material: SurfaceMaterial, uniforms: RestorationUniforms };
   }
@@ -1859,26 +2081,15 @@ export function createWorldVisuals(THREE, Scene, {
     );
     WorldGroup.add(RestorationWaveShell.mesh);
 
-    let AtmosphereMaterial;
-    let AtmosphereMesh;
+    const AtmosphereRimShell = createAtmosphereRimShell(WorldDefinition);
+    const AtmosphereMaterial = AtmosphereRimShell.material;
+    const AtmosphereMesh = AtmosphereRimShell.mesh;
+    WorldGroup.add(AtmosphereMesh);
+
     let ContourRingGroup;
     if (UsesMergedSurfaceLandmarks) {
-      /** Merged landmarks preserve a strong silhouette without extra atmosphere draw calls. */
-      AtmosphereMaterial = { opacity: 0 };
-      AtmosphereMesh = new THREE.Object3D();
       ContourRingGroup = new THREE.Group();
     } else {
-      const AtmosphereGeometry = new THREE.SphereGeometry(WorldDefinition.radius * 1.09, 48, 32);
-      AtmosphereMaterial = new THREE.MeshBasicMaterial({
-        color: WorldDefinition.atmosphereColor,
-        transparent: true,
-        opacity: WorldDefinition.restored ? 0.10 : 0.025,
-        side: THREE.BackSide,
-        depthWrite: false,
-      });
-      AtmosphereMesh = new THREE.Mesh(AtmosphereGeometry, AtmosphereMaterial);
-      WorldGroup.add(AtmosphereMesh);
-
       ContourRingGroup = createWorldContourRings(
         WorldDefinition.radius,
         WorldDefinition.atmosphereColor,
@@ -1886,6 +2097,9 @@ export function createWorldVisuals(THREE, Scene, {
       ContourRingGroup.visible = WorldDefinition.restored;
       WorldGroup.add(ContourRingGroup);
     }
+
+    const LifeScatterGroup = createLifeScatter(WorldDefinition, SurfaceRestoration.uniforms);
+    WorldGroup.add(LifeScatterGroup);
 
     const SurfacePropFactories = {
       meadow: createMeadowSurfaceProps,

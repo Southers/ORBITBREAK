@@ -224,7 +224,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   const TrajectoryMaterial = new THREE.LineBasicMaterial({
     color: 0xd9f6cc,
     transparent: true,
-    opacity: 0.62,
+    opacity: 0.78,
     depthWrite: false,
   });
   const TrajectoryLine = new THREE.Line(TrajectoryGeometry, TrajectoryMaterial);
@@ -302,12 +302,12 @@ export function createPlayerVisuals(THREE, Scene, host) {
    * allocation spikes and protects the restoration draw-call budget during flight.
    */
   const TrailParticlePool = [];
-  const TrailParticleCount = 22;
-  const TrailParticleGeometry = new THREE.SphereGeometry(0.10, 6, 4);
+  const TrailParticleCount = 30;
+  const TrailParticleGeometry = new THREE.SphereGeometry(0.11, 6, 4);
   const TrailParticleMaterial = new THREE.MeshBasicMaterial({
-    color: 0xc9efb8,
+    color: 0xd9f8c8,
     transparent: true,
-    opacity: 0.45,
+    opacity: 0.62,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
@@ -326,7 +326,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
       index: TrailParticleIndex,
       position: new THREE.Vector3(),
       lifeRemainingSeconds: 0,
-      maximumLifeSeconds: 0.42,
+      maximumLifeSeconds: 0.58,
     };
     TrailParticlePool.push(TrailParticle);
     updateTrailParticleInstance(TrailParticle, 0);
