@@ -3,23 +3,12 @@ import * as THREE from 'three';
 import { WorldseedAudio } from './audio.js?v=20260815-ob87';
 import {
   SurfaceGestureModes,
-  adjustSurfaceAngle,
   createKeyboardAimState,
   getKeyboardAimDragVector,
   getSurfacePosition,
   shouldCancelAimedLaunch,
 } from './controls.js?v=20260815-ob84';
-import {
-  createHostileEncounterState,
-  getCutEndPoint,
-  getCutHits,
-  getHostileEncounterAngularDistance,
-  getHostileEncounterMoveDirection,
-  getLeftoverHostileEncounter,
-  getNearestClampCut,
-  getRemainingClamps,
-  resolveHostileCut,
-} from './encounter.js?v=20260815-ob87';
+import { getLeftoverHostileEncounter } from './encounter.js?v=20260815-ob87';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -45,6 +34,7 @@ import { createAimPreview } from './aim-preview.js?v=20260815-ob90';
 import { createLandingDirector } from './landing-director.js?v=20260815-ob90';
 import { createCameraController } from './camera-controller.js?v=20260815-ob90';
 import { createInputController } from './input-controller.js?v=20260815-ob90';
+import { createHostileSurface } from './hostile-surface.js?v=20260815-ob90';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -88,7 +78,6 @@ import {
 } from './sector.js?v=20260815-ob89';
 import {
   advanceSimulatedFlightStep,
-  calculateSurfaceRestPosition as calculateSharedSurfaceRestPosition,
   collectFlightStardust,
   resolveWardenAfterNonCommandFlight,
   rollbackFlightStardust as rollbackSharedFlightStardust,
@@ -2260,257 +2249,59 @@ function updateStardustVisuals(ElapsedTimeSeconds) {
  * @param {{x:number,y:number,z:number}} ImpactPosition - Approximate collision position.
  * @returns {{x:number,y:number,z:number}} Snapped seed position on the surface.
  */
-function calculateSurfaceRestPosition(WorldDefinition, ImpactPosition, BodyPosition = WorldDefinition.position) {
-  return calculateSharedSurfaceRestPosition(WorldDefinition, ImpactPosition, BodyPosition);
-}
-
-function getCurrentAttachedWorld() {
-  if (GamePhase !== 'attached') return null;
-  return CurrentWorldIdentifier === WorldheartDefinition.id
-    ? WorldheartDefinition
-    : getWorldDefinition(CurrentWorldIdentifier);
-}
-
-function getRunnerSurfaceAngle(WorldDefinition) {
-  return Math.atan2(
-    SeedPhysicsState.position.y - WorldDefinition.position.y,
-    SeedPhysicsState.position.x - WorldDefinition.position.x,
-  );
-}
-
-function getShipCutOrigin() {
-  return {
-    x: SeedPhysicsState.position.x,
-    y: SeedPhysicsState.position.y,
-  };
-}
-
-function getCurrentCutPreview() {
-  if (!ActiveHostileEncounterState) return null;
-  const AttachedWorld = getCurrentAttachedWorld();
-  if (!AttachedWorld) return null;
-  const Origin = getShipCutOrigin();
-  if (CutAimPointer) {
-    const End = getCutEndPoint(
-      Origin,
-      CutAimPointer,
-      ActiveHostileEncounterState.maxCutLength,
-    );
-    const Distance = Math.hypot(CutAimPointer.x - Origin.x, CutAimPointer.y - Origin.y);
-    return {
-      origin: Origin,
-      end: End,
-      distance: Distance,
-      willCancel: shouldCancelAimedLaunch({
-        pointerDistanceFromShip: Distance,
-        cancelRadius: LaunchCancelRadius,
-      }),
-      hits: getCutHits(ActiveHostileEncounterState, Origin, End, AttachedWorld),
-    };
-  }
-  const RunnerSurfaceAngle = getRunnerSurfaceAngle(AttachedWorld);
-  const AutoCut = getNearestClampCut(
-    ActiveHostileEncounterState,
-    Origin,
-    AttachedWorld,
-    RunnerSurfaceAngle,
-  );
-  return AutoCut
-    ? {
-      origin: AutoCut.origin,
-      end: AutoCut.end,
-      distance: Math.hypot(AutoCut.end.x - Origin.x, AutoCut.end.y - Origin.y),
-      willCancel: false,
-      hits: AutoCut.hits,
-    }
-    : null;
-}
-
-function getCurrentCutHitIds() {
-  const Preview = getCurrentCutPreview();
-  if (!Preview || Preview.willCancel) return [];
-  return Preview.hits.map((Hit) => Hit.id);
-}
-
-function hideCutGuide() {
-  CutGuideLine.visible = false;
-}
-
-function renderCutGuide(Preview) {
-  if (!Preview || Preview.willCancel) {
-    hideCutGuide();
-    return;
-  }
-  CutGuideGeometry.setFromPoints([
-    new THREE.Vector3(Preview.origin.x, Preview.origin.y, 0.28),
-    new THREE.Vector3(Preview.end.x, Preview.end.y, 0.28),
-  ]);
-  CutGuideLine.computeLineDistances();
-  CutGuideMaterial.color.setHex(Preview.hits.length > 0 ? 0xffd678 : 0xff766d);
-  CutGuideMaterial.opacity = Preview.hits.length > 0 ? 0.95 : 0.55;
-  CutGuideLine.visible = true;
-}
-
-function refreshHostileClampVisuals() {
-  const AttachedWorld = getCurrentAttachedWorld();
-  if (!AttachedWorld || !ActiveHostileEncounterState) {
-    hideCutGuide();
-    HostilePylonGroup.visible = false;
-    return;
-  }
-  const Preview = getCurrentCutPreview();
-  positionHostilePylons(
-    AttachedWorld,
-    ActiveHostileEncounterState,
-    Preview && !Preview.willCancel ? Preview.hits.map((Hit) => Hit.id) : [],
-  );
-  if (IsCutAiming) {
-    renderCutGuide(Preview);
-  } else {
-    hideCutGuide();
-  }
-}
-
-function publishHostileEncounterState() {
-  const AttachedWorld = getCurrentAttachedWorld();
-  const RunnerSurfaceAngle = AttachedWorld
-    ? getRunnerSurfaceAngle(AttachedWorld)
-    : 0;
-  const RemainingCount = ActiveHostileEncounterState
-    ? getRemainingClamps(ActiveHostileEncounterState).length
-    : 0;
-  const Preview = getCurrentCutPreview();
-  const CutReady = Boolean(Preview && Preview.hits.length > 0 && !Preview.willCancel);
-  GameCanvas.dataset.hostileEncounter = ActiveHostileEncounterState?.worldIdentifier ?? '';
-  GameCanvas.dataset.hostilePulseReady = String(CutReady);
-  GameCanvas.dataset.hostileClampCount = String(RemainingCount);
-  GameCanvas.dataset.hostilePylonAngle = ActiveHostileEncounterState
-    ? (getRemainingClamps(ActiveHostileEncounterState)[0]?.surfaceAngle ?? 0).toFixed(4)
-    : '';
-  refreshHostileClampVisuals();
-  return CutReady;
-}
-
-function showHostileEncounterInstruction() {
-  const AttachedWorld = getCurrentAttachedWorld();
-  if (!AttachedWorld || !ActiveHostileEncounterState) return false;
-  const IsCommandApproach = AttachedWorld.kind === 'worldheart';
-  const RemainingCount = getRemainingClamps(ActiveHostileEncounterState).length;
-  const CommandApproachTitle = ActiveSystem.commandApproachLine
-    ?? 'The lattice is open.';
-  const RunnerSurfaceAngle = getRunnerSurfaceAngle(AttachedWorld);
-  const MoveKey = getHostileEncounterMoveDirection(
-    ActiveHostileEncounterState,
-    RunnerSurfaceAngle,
-  ) > 0 ? 'Q' : 'E';
-  const DistanceDegrees = Math.round(THREE.MathUtils.radToDeg(
-    getHostileEncounterAngularDistance(ActiveHostileEncounterState, RunnerSurfaceAngle),
-  ));
-  if (IsCommandApproach) {
-    showInstruction(
-      CommandApproachTitle,
-      RemainingCount === 3
-        ? 'Grab the ship and drag through a gold tooth. Drag back onto it to cancel.'
-        : `${RemainingCount} left. A longer drag can take more than one.`,
-    );
-  } else if (RemainingCount === ActiveHostileEncounterState.clamps.length
-    && RemainingCount === 1) {
-    showInstruction(
-      `${AttachedWorld.label} has one leftover tooth.`,
-      'Grab the ship and drag through it. This is Cut.',
-    );
-  } else if (RemainingCount === 3) {
-    showInstruction(
-      `${AttachedWorld.label} still has teeth.`,
-      'Grab the ship and drag through a clamp. Walk with Q/E if the cut cannot reach.',
-    );
-  } else {
-    showInstruction(
-      `${RemainingCount} clamp${RemainingCount === 1 ? '' : 's'} left on ${AttachedWorld.label}.`,
-      DistanceDegrees > 18
-        ? `Walk ${MoveKey} toward the next one, then drag through it.`
-        : 'A longer drag can take more than one.',
-    );
-  }
-  return true;
-}
-
-function beginHostileEncounter(WorldDefinition, EncounterDefinition = WorldDefinition.hostileEncounter) {
-  if (
-    ReplayPlaybackState !== null
-    || !EncounterDefinition
-    || CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id)
-  ) {
-    return false;
-  }
-  cancelCutAim({ announce: false });
-  ActiveHostileEncounterState = createHostileEncounterState({
-    worldIdentifier: WorldDefinition.id,
-    runnerSurfaceAngle: getRunnerSurfaceAngle(WorldDefinition),
-    ...EncounterDefinition,
-  });
-  IsKeyboardAiming = false;
-  IsPointerAiming = false;
-  GameCanvas.classList.remove('is-aiming');
-  AimPanelElement.hidden = true;
-  GameCanvas.dataset.keyboardAimAngle = '';
-  GameCanvas.dataset.keyboardAimPower = '';
-  GameCanvas.dataset.keyboardAimAssist = '';
-  clearTrajectoryPreview();
-  publishHostileEncounterState();
-  updateBreakerBurnInterface();
-  showHostileEncounterInstruction();
-  return true;
-}
-
-/** Repositions the Runner around a world's playable great-circle without spending a launch. */
-function setRunnerSurfaceAngle(AngleRadians, InputKind = 'pointer') {
-  const AttachedWorld = getCurrentAttachedWorld();
-  if (!AttachedWorld || ReplayPlaybackState !== null) return false;
-  const SurfacePosition = getSurfacePosition(
-    AttachedWorld.position,
-    AttachedWorld.radius + SeedRadius + 0.03,
-    AngleRadians,
-  );
-  SeedPhysicsState.position = createVector(
-    SurfacePosition.x,
-    SurfacePosition.y,
-    SurfacePosition.z,
-  );
-  SeedPhysicsState.velocity = createVector();
-  SeedGroup.position.set(SurfacePosition.x, SurfacePosition.y, SurfacePosition.z);
-  LastSafeWorldIdentifier = CurrentWorldIdentifier;
-  LastSafeSeedPosition = createVector(SurfacePosition.x, SurfacePosition.y, SurfacePosition.z);
-  if (CurrentWorldIdentifier === WorldheartDefinition.id) {
-    AttachedWorldheartSurfaceAngle = AngleRadians;
-  }
-  publishAttachedSeedState(CurrentWorldIdentifier, SurfacePosition);
-  GameCanvas.dataset.surfaceAngle = AngleRadians.toFixed(4);
-  GameCanvas.dataset.surfaceInput = InputKind;
-  if (ActiveHostileEncounterState) {
-    publishHostileEncounterState();
-    updateBreakerBurnInterface();
-    showHostileEncounterInstruction();
-  }
-  return true;
-}
-
-function moveRunnerAroundSurface(Direction, Fine = false) {
-  const AttachedWorld = getCurrentAttachedWorld();
-  if (!AttachedWorld) return false;
-  const CurrentAngle = Math.atan2(
-    SeedPhysicsState.position.y - AttachedWorld.position.y,
-    SeedPhysicsState.position.x - AttachedWorld.position.x,
-  );
-  return setRunnerSurfaceAngle(
-    adjustSurfaceAngle(CurrentAngle, Direction, { fine: Fine }),
-    'keyboard',
-  );
-}
-
-
-
-
+const HostileSurface = createHostileSurface(THREE, {
+  GameCanvas,
+  AimPanelElement,
+  SeedGroup,
+  SeedRadius,
+  LaunchCancelRadius,
+  ActiveSystem,
+  WorldheartDefinition,
+  CutGuideLine,
+  CutGuideGeometry,
+  CutGuideMaterial,
+  HostilePylonGroup,
+  CompletedHostileEncounterWorldIdentifiers,
+  positionHostilePylons,
+  getWorldDefinition,
+  publishAttachedSeedState,
+  showInstruction,
+  clearTrajectoryPreview,
+  cancelCutAim: (...Args) => cancelCutAim(...Args),
+  updateBreakerBurnInterface: (...Args) => updateBreakerBurnInterface(...Args),
+  get GamePhase() { return GamePhase; },
+  get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
+  get SeedPhysicsState() { return SeedPhysicsState; },
+  get CutAimPointer() { return CutAimPointer; },
+  get IsCutAiming() { return IsCutAiming; },
+  get ReplayPlaybackState() { return ReplayPlaybackState; },
+  get ActiveHostileEncounterState() { return ActiveHostileEncounterState; },
+  set ActiveHostileEncounterState(Value) { ActiveHostileEncounterState = Value; },
+  get IsKeyboardAiming() { return IsKeyboardAiming; },
+  set IsKeyboardAiming(Value) { IsKeyboardAiming = Value; },
+  get IsPointerAiming() { return IsPointerAiming; },
+  set IsPointerAiming(Value) { IsPointerAiming = Value; },
+  get LastSafeWorldIdentifier() { return LastSafeWorldIdentifier; },
+  set LastSafeWorldIdentifier(Value) { LastSafeWorldIdentifier = Value; },
+  get LastSafeSeedPosition() { return LastSafeSeedPosition; },
+  set LastSafeSeedPosition(Value) { LastSafeSeedPosition = Value; },
+  get AttachedWorldheartSurfaceAngle() { return AttachedWorldheartSurfaceAngle; },
+  set AttachedWorldheartSurfaceAngle(Value) { AttachedWorldheartSurfaceAngle = Value; },
+});
+const {
+  calculateSurfaceRestPosition,
+  getCurrentAttachedWorld,
+  getRunnerSurfaceAngle,
+  getShipCutOrigin,
+  getCurrentCutPreview,
+  getCurrentCutHitIds,
+  hideCutGuide,
+  publishHostileEncounterState,
+  showHostileEncounterInstruction,
+  beginHostileEncounter,
+  setRunnerSurfaceAngle,
+  moveRunnerAroundSurface,
+} = HostileSurface;
 
 
 const StoryDirector = createStoryDirector({
