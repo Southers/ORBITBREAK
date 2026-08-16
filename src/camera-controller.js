@@ -181,7 +181,17 @@ function updateFlightPlanningPresentation() {
 }
 
 function refreshPlanningZoomControls({ announce = false } = {}) {
-  const Visible = host.IsScoutMode || shouldUseSectorPlanningCamera();
+  const Visible = host.IsScoutMode
+    || shouldUseSectorPlanningCamera()
+    || (
+      ActiveSystem.camera?.followPlayer === true
+      && host.ReplayPlaybackState === null
+      && (
+        host.GamePhase === 'attached'
+        || host.GamePhase === 'restoring'
+        || host.GamePhase === 'flying'
+      )
+    );
   ScoutZoomOutButtonElement.hidden = !Visible;
   ScoutZoomInButtonElement.hidden = !Visible;
   if (!Visible) {
@@ -265,7 +275,7 @@ function adjustViewZoom(Direction) {
   );
   host.ScoutZoomScale = host.CameraZoomScale;
   const DidChange = host.CameraZoomScale !== PreviousScale;
-  if (host.IsScoutMode) updateScoutZoomInterface({ announce: DidChange });
+  updateScoutZoomInterface({ announce: DidChange });
   if (!DidChange) return false;
   GameCanvas.dataset.scoutZoom = host.CameraZoomScale.toFixed(2);
   resizeRenderer();
@@ -494,7 +504,8 @@ function updateCamera(DeltaTimeSeconds) {
     && !host.IsScoutMode
     && !StoryLookPoint
     && !host.RelayRevealLookTarget
-    && (host.GamePhase === 'attached' || host.GamePhase === 'restoring');
+    && (host.GamePhase === 'attached' || host.GamePhase === 'restoring')
+    && host.CameraZoomScale <= 1.05;
   const LandedWorld = UsesLandedFacingCamera
     ? getLandedCameraWorld()
     : null;

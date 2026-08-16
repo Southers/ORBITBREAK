@@ -43,7 +43,7 @@ The game remains one-pointer/touch accessible.
 
 - Drag the ship, then pull away to aim and build a relay. Drag across the globe to walk in 3D, including over the poles; the camera stays on the visible face. Release on the ship, or press Escape, to cancel without spending the flight.
 - Q/E walk around, R/F walk over the poles. Keyboard and pointer reach the same sphere.
-- Drag empty space to pan. Pinch or mouse wheel to zoom. C snaps the camera back to the Runner.
+- Drag empty space to pan. Pinch, −/+, or mouse wheel to zoom out from a landed world to the whole Reach. C snaps the camera back to the Runner.
 - During flight, drag from the ship to **break** your line in any direction, then release. Space still breaks along heading. The preview cannot solve a future player-timed break at launch time.
 - On a caged world, drag from the ship through a clamp to **destroy** it. A longer drag can take more than one. Drag back onto the ship, or press Escape, to cancel. Misses do not spend the flight. No health bars.
 - Keyboard controls must reach the same deterministic actions as pointer controls.
@@ -52,7 +52,7 @@ Surface movement is spherical. It creates launch-position choice and a readable 
 
 ## Flight skill
 
-Aiming frames the readable neighbourhood and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. Pinch, wheel or the zoom buttons move from a close world to the whole authored Reach. Fog lifts while planning so the map stays bright. After release the camera follows the ship. A landing recenters on the new world and sits outside the Runner's current face so walking traverses the globe in 3D; reduced motion keeps the top-down follow. Story boards look at the speaker's world or the Warden. A committed chain is visible before release, including three- and four-world slingshots. Breaker's Reach, Shatterbelt and Verdant Caravan are the three authored Warden sectors; Long Night and Worldheart stay expansion fixtures.
+Aiming frames the readable neighbourhood and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. Pinch, wheel or the zoom buttons move from a close world to the whole authored Reach, including from the landed globe. Fog lifts while planning so the map stays bright. After release the camera follows the ship. A landing recenters on the new world and sits outside the Runner's current face so walking traverses the globe in 3D; zooming out lifts to the neighbourhood map; reduced motion keeps the top-down follow. Story boards look at the speaker's world or the Warden. A committed chain is visible before release, including three- and four-world slingshots. Breaker's Reach, Shatterbelt and Verdant Caravan are the three authored Warden sectors; Long Night and Worldheart stay expansion fixtures.
 
 Skill comes from:
 

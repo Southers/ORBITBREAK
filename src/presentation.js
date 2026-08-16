@@ -491,7 +491,9 @@ export function getLandedSurfaceCameraPose({
   const CameraDirectionX = DirectionX / LiftedDistance;
   const CameraDirectionY = DirectionY / LiftedDistance;
   const CameraDirectionZ = LiftedZ / LiftedDistance;
-  const RadialPull = worldRadius * 2.45;
+  const ClosePull = worldRadius * 2.35;
+  const ZoomPull = baseCameraDistance * cameraScale;
+  const RadialPull = Math.max(ClosePull, ZoomPull);
   return {
     cameraX: worldX + (CameraDirectionX * RadialPull),
     cameraY: worldY + (CameraDirectionY * RadialPull),
