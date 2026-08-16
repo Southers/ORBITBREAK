@@ -14,6 +14,8 @@ import {
   shouldCancelAimedLaunch,
 } from './controls.js';
 import {
+  getHostileEncounterAngularDistance,
+  getHostileEncounterMoveDirection,
   getNearestClampCut,
   getRemainingClamps,
   resolveHostileCut,
@@ -675,11 +677,32 @@ function fireNearestHostileCut() {
   const AttachedWorld = getCurrentAttachedWorld();
   if (!AttachedWorld || !host.ActiveHostileEncounterState) return false;
   host.CutAimPointer = null;
-  const Preview = getCurrentCutPreview();
+  let Preview = getCurrentCutPreview();
   if (!Preview || Preview.hits.length < 1) {
-    showStatusToast('TOO FAR', 700);
-    showHostileEncounterInstruction();
-    return false;
+    // Out of reach: each tap walks the rim toward the nearest clamp so the
+    // one-pointer CUT button can never feel like a soft-lock.
+    const RunnerAngle = getRunnerSurfaceAngle(AttachedWorld);
+    const MoveDirection = getHostileEncounterMoveDirection(
+      host.ActiveHostileEncounterState,
+      RunnerAngle,
+    );
+    const AngularDistance = getHostileEncounterAngularDistance(
+      host.ActiveHostileEncounterState,
+      RunnerAngle,
+    );
+    const StepRadians = Math.min(0.35, Math.max(0, AngularDistance - 0.45));
+    if (MoveDirection !== 0 && StepRadians > 0.001) {
+      setRunnerSurfaceAngle(RunnerAngle + (MoveDirection * StepRadians), 'keyboard');
+      Preview = getCurrentCutPreview();
+    }
+    if (!Preview || Preview.hits.length < 1) {
+      showStatusToast(
+        MoveDirection !== 0 ? 'WALKING TO THE CLAMP · CUT AGAIN' : 'TOO FAR',
+        950,
+      );
+      showHostileEncounterInstruction();
+      return false;
+    }
   }
   return applyHostileCut(Preview.origin, Preview.end);
 }

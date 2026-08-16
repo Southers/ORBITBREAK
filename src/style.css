@@ -101,7 +101,7 @@ button[aria-disabled='true'] {
 
 .score-burst {
   position: absolute;
-  z-index: 3;
+  z-index: 8;
   left: var(--burst-x, 50%);
   top: var(--burst-y, 50%);
   transform: translate(-50%, -50%);
