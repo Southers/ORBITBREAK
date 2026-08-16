@@ -39,6 +39,7 @@ export function auditReleaseReadiness() {
   const CameraSource = readRepositoryFile('src/camera-controller.js');
   const ScannerSource = readRepositoryFile('src/scanner.js');
   const RoutePresentationSource = readRepositoryFile('src/route-presentation.js');
+  const RecordsUiSource = readRepositoryFile('src/records-ui.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -254,8 +255,8 @@ export function auditReleaseReadiness() {
     /\.leaderboard-form\s+label\s*\{[^}]*color:\s*rgba\(214,\s*228,\s*235,\s*0\.68\);[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.leaderboard-list__runner\s+small\s*\{[^}]*color:\s*rgba\(214,\s*228,\s*235,\s*0\.68\);[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.leaderboard-list\s+button\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/s.test(StyleSheet)
-      && MainSource.includes("(LeaderboardListElement.querySelector('button') ?? CloseLeaderboardButtonElement)")
-      && MainSource.includes("CallsignInputElement.focus({ preventScroll: true });"),
+      && RecordsUiSource.includes("(LeaderboardListElement.querySelector('button') ?? CloseLeaderboardButtonElement)")
+      && RecordsUiSource.includes("CallsignInputElement.focus({ preventScroll: true });"),
     'Rankings callsigns, replay actions and submission focus must stay accessible.',
   );
   requireCondition(
