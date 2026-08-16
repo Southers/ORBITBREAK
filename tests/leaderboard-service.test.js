@@ -146,4 +146,10 @@ test('HTTP boundary echoes only client-safe errors and hides internal failures',
     'System and content version are required.',
   );
   assert.equal(MissingQueryResponse.headers.get('x-content-type-options'), 'nosniff');
+
+  const InvalidList = await ValidationHandler(new Request(
+    'https://scores.example/api/leaderboard?system=<script>&content=breaker-reach-4',
+  ));
+  assert.equal(InvalidList.status, 400);
+  assert.equal((await InvalidList.json()).error, 'System identifier is invalid.');
 });

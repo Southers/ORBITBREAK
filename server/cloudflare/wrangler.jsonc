@@ -3,7 +3,7 @@
   "name": "orbitbreak-leaderboard",
   "main": "./worker.js",
   "compatibility_date": "2026-08-14",
-  "workers_dev": true,
+  "workers_dev": false,
   "vars": {
     "ALLOWED_ORIGIN": "https://southers.github.io"
   },

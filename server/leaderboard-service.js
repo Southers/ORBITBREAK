@@ -12,6 +12,12 @@ function clientError(Message) {
   return CreatedError;
 }
 
+function assertLeaderboardIdentifier(Value, Label) {
+  if (typeof Value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/.test(Value)) {
+    throw clientError(`${Label} is invalid.`);
+  }
+}
+
 export function normalizeCallsign(Value) {
   if (typeof Value !== 'string') {
     throw clientError('Callsign must be text.');
@@ -128,6 +134,8 @@ export function createLeaderboardService({
       if (typeof systemIdentifier !== 'string' || typeof contentVersion !== 'string') {
         throw clientError('System and content version are required.');
       }
+      assertLeaderboardIdentifier(systemIdentifier, 'System identifier');
+      assertLeaderboardIdentifier(contentVersion, 'Content version');
       const SafeLimit = Math.max(1, Math.min(
         MaximumLeaderboardLimit,
         Number.isInteger(limit) ? limit : 20,

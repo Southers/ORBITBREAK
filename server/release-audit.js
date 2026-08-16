@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -65,6 +66,21 @@ export function auditReleaseReadiness() {
   requireCondition(
     IndexHtml.includes('"three": "./vendor/three.module.min.js?v=0.179.1"'),
     'The import map must retain the pinned vendored Three.js runtime.',
+  );
+  const ImportMapMatch = IndexHtml.match(/<script type="importmap">([\s\S]*?)<\/script>/);
+  requireCondition(Boolean(ImportMapMatch), 'index.html must retain a hashed import map.');
+  if (ImportMapMatch) {
+    const ImportMapHash = createHash('sha256').update(ImportMapMatch[1]).digest('base64');
+    requireCondition(
+      IndexHtml.includes(`'sha256-${ImportMapHash}'`)
+        && IndexHtml.includes("connect-src 'self' http://127.0.0.1:* http://localhost:*")
+        && !/connect-src[^"]*https:/.test(IndexHtml),
+      'The public CSP must hash the import map and keep network access fail-closed.',
+    );
+  }
+  requireCondition(
+    readRepositoryFile('server/cloudflare/wrangler.jsonc').includes('"workers_dev": false'),
+    'The Cloudflare adapter must not publish a workers.dev preview URL.',
   );
 
   const MainBuildVersion = MainSource.match(/GameCanvas\.dataset\.build = '([^']+)'/)?.[1];
@@ -325,6 +341,17 @@ export function auditReleaseReadiness() {
     'Release diagnostics must remain restricted to local development hosts.',
   );
   requireCondition(
+    MainSource.includes('resolveLeaderboardBaseUrl({')
+      && MainSource.includes('queryOverride: PageSearchParameters.get(\'leaderboardApi\')')
+      && /<meta name="orbitbreak-leaderboard-api" content="" \/>/.test(IndexHtml),
+    'Public builds must keep the leaderboard endpoint empty and ignore remote query overrides.',
+  );
+  requireCondition(
+    existsSync(resolve(RepositoryRoot, 'SECURITY.md'))
+      && readRepositoryFile('SECURITY.md').includes('https://southers.github.io/ORBITBREAK/'),
+    'SECURITY.md must describe the public playtest surface.',
+  );
+  requireCondition(
     existsSync(resolve(RepositoryRoot, 'src/performance.js'))
       && MainSource.includes('advanceAdaptivePixelRatio')
       && MainSource.includes("DiagnosticKind === 'performance'"),
@@ -336,6 +363,9 @@ export function auditReleaseReadiness() {
     ['UTF-8 charset', /<meta charset="UTF-8"\s*\/>/],
     ['responsive viewport', /name="viewport"/],
     ['theme colour', /name="theme-color"/],
+    ['Content-Security-Policy', /http-equiv="Content-Security-Policy"/],
+    ['referrer policy', /name="referrer" content="no-referrer"/],
+    ['Permissions-Policy', /http-equiv="Permissions-Policy"/],
     ['page description', /name="description"/],
     ['Open Graph title', /property="og:title"/],
     ['Open Graph description', /property="og:description"/],

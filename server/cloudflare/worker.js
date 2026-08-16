@@ -50,7 +50,12 @@ export default {
   async fetch(RequestData, Environment) {
     const AllowedOrigin = Environment.ALLOWED_ORIGIN;
     const RequestOrigin = RequestData.headers.get('origin');
-    if (RequestOrigin && RequestOrigin !== AllowedOrigin) {
+    const OriginMatches = RequestOrigin === AllowedOrigin;
+    if (RequestData.method === 'GET') {
+      if (RequestOrigin && !OriginMatches) {
+        return jsonError('Origin is not allowed.', 403, AllowedOrigin);
+      }
+    } else if (!OriginMatches) {
       return jsonError('Origin is not allowed.', 403, AllowedOrigin);
     }
 

@@ -59,6 +59,8 @@ Optional: `npm run test:boot` loads the playable shell in headless Chromium, and
 - `DESIGN.md` locks the story, core loop, Warden, network, score and ending.
 - `JAM_PLAN.md` defines milestone order, exit gates, cut rules and the post-milestone judging gauntlet.
 - `RELEASE.md` contains current release evidence and approval boundaries.
+- `SECURITY.md` describes the public GitHub Pages surface and undeployed leaderboard boundary.
+- `ARCHITECTURE.md` maps module layers, the host-object pattern and enforced boundaries.
 - `src/content.js` contains the authored-system data boundary.
 - `CREDITS.md` records dependencies, assets and source provenance.
 

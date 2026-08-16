@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createLeaderboardClient } from '../src/leaderboard-client.js';
+import { createLeaderboardClient, resolveLeaderboardBaseUrl } from '../src/leaderboard-client.js';
 
 test('leaderboard client stays explicitly offline without an endpoint', async () => {
   const Client = createLeaderboardClient({ fetch: async () => assert.fail('fetch should not run') });
@@ -45,10 +45,11 @@ test('leaderboard client lists, submits and fetches replays through the contract
 });
 
 test('leaderboard client preserves useful server errors and rejects unsafe endpoints', async () => {
-  assert.throws(
-    () => createLeaderboardClient({ baseUrl: 'http://scores.example', fetch: async () => {} }),
-    /HTTPS/,
-  );
+  const OfflineClient = createLeaderboardClient({
+    baseUrl: 'http://scores.example',
+    fetch: async () => assert.fail('fetch should not run'),
+  });
+  assert.equal(OfflineClient.configured, false);
   const Client = createLeaderboardClient({
     baseUrl: 'https://scores.example',
     fetch: async () => Response.json({ error: 'Replay was already submitted.' }, { status: 409 }),
@@ -57,4 +58,39 @@ test('leaderboard client preserves useful server errors and rejects unsafe endpo
     () => Client.submit({ callsign: 'ACE', replay: '{}' }),
     /already submitted/,
   );
+});
+
+test('public hosts ignore query overrides and keep invalid URLs offline', async () => {
+  assert.equal(resolveLeaderboardBaseUrl({
+    configuredBaseUrl: '',
+    queryOverride: 'https://attacker.example',
+    hostname: 'southers.github.io',
+  }), '');
+  assert.equal(resolveLeaderboardBaseUrl({
+    configuredBaseUrl: 'https://scores.example/',
+    queryOverride: 'https://attacker.example',
+    hostname: 'southers.github.io',
+  }), 'https://scores.example');
+  assert.equal(resolveLeaderboardBaseUrl({
+    configuredBaseUrl: 'http://127.0.0.1:8787',
+    hostname: 'southers.github.io',
+  }), '');
+});
+
+test('localhost query overrides accept only loopback HTTP', async () => {
+  assert.equal(resolveLeaderboardBaseUrl({
+    configuredBaseUrl: '',
+    queryOverride: 'http://127.0.0.1:8787/',
+    hostname: 'localhost',
+  }), 'http://127.0.0.1:8787');
+  assert.equal(resolveLeaderboardBaseUrl({
+    configuredBaseUrl: 'https://scores.example',
+    queryOverride: 'https://attacker.example',
+    hostname: 'localhost',
+  }), 'https://scores.example');
+  assert.equal(resolveLeaderboardBaseUrl({
+    configuredBaseUrl: '',
+    queryOverride: 'javascript:alert(1)',
+    hostname: 'localhost',
+  }), '');
 });
