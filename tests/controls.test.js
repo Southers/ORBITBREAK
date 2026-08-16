@@ -13,6 +13,7 @@ import {
   getSurfacePosition,
   adjustSurfacePose,
   classifySphereSurfaceGesture,
+  classifyPendingShipGrab,
   createSurfacePose,
   flattenSurfacePoseToEquator,
   getSphereSurfacePosition,
@@ -25,6 +26,9 @@ import {
   clampCameraZoomScale,
   getPinchZoomScale,
   getPointerClientDistance,
+  getAimCameraStage,
+  AimCameraStages,
+  ShipGrabAimDeadzonePixels,
   shouldCancelAimedLaunch,
 } from '../src/controls.js';
 
@@ -175,6 +179,48 @@ test('a ray hitting the globe walks and a pull into space aims', () => {
     sphereHit: null,
     planePosition: { x: 3.2, y: 0 },
   }), SurfaceGestureModes.aim);
+});
+
+test('a ship grab aims from a screen pull even while the globe is still under the pointer', () => {
+  assert.equal(classifyPendingShipGrab({
+    screenDistanceFromShip: 10,
+  }), SurfaceGestureModes.pending);
+  assert.equal(classifyPendingShipGrab({
+    screenDistanceFromShip: ShipGrabAimDeadzonePixels - 0.1,
+  }), SurfaceGestureModes.pending);
+  assert.equal(classifyPendingShipGrab({
+    screenDistanceFromShip: ShipGrabAimDeadzonePixels,
+  }), SurfaceGestureModes.aim);
+  assert.equal(classifyPendingShipGrab({
+    screenDistanceFromShip: 25,
+  }), SurfaceGestureModes.aim);
+  assert.notEqual(classifyPendingShipGrab({
+    screenDistanceFromShip: 25,
+  }), SurfaceGestureModes.walk);
+  assert.throws(
+    () => classifyPendingShipGrab({ screenDistanceFromShip: -1 }),
+    /non-negative screen distance/,
+  );
+});
+
+test('aim keeps the globe camera until the pull leaves cancel, then stays on the map', () => {
+  assert.equal(getAimCameraStage({
+    willCancel: true,
+    hasCommitted: false,
+  }), AimCameraStages.globe);
+  assert.equal(getAimCameraStage({
+    willCancel: false,
+    hasCommitted: false,
+  }), AimCameraStages.planning);
+  assert.equal(getAimCameraStage({
+    willCancel: true,
+    hasCommitted: true,
+  }), AimCameraStages.planning);
+  assert.equal(getAimCameraStage({
+    willCancel: true,
+    hasCommitted: false,
+    prefersReducedMotion: true,
+  }), AimCameraStages.planning);
 });
 
 test('Scout zoom presentation announces percentage and marks only reached limits unavailable', () => {

@@ -112,6 +112,14 @@ export function auditReleaseReadiness() {
     'Aiming must frame the readable neighbourhood, lift fog and keep pinch zoom on the exact remaining path.',
   );
   requireCondition(
+    InputControllerSource.includes('classifyPendingShipGrab(')
+      && CameraSource.includes('commitAimPlanningCamera(')
+      && CameraSource.includes('host.HasCommittedAimCamera')
+      && InputControllerSource.includes('dataset.aimCamera')
+      && InputControllerSource.includes('showWalkFacingInstruction(getCurrentAttachedWorld())'),
+    'Ship grab must commit aim from a screen pull, keep the globe camera until cancel, and retain facing after a walk.',
+  );
+  requireCondition(
     PresentationSource.includes('export function getWorldLifeStage(')
       && PresentationSource.includes("return 'tyrant';")
       && LivingWorldSource.includes('OccupationMineMesh')

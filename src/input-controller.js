@@ -6,9 +6,10 @@
 import {
   SurfaceGestureModes,
   adjustKeyboardAimState,
-  classifySphereSurfaceGesture,
+  classifyPendingShipGrab,
   createKeyboardAimState,
   findNearestKeyboardAimAngle,
+  getAimCameraStage,
   getKeyboardAimDragVector,
   getPinchZoomScale,
   getPointerClientDistance,
@@ -103,7 +104,8 @@ export function createInputController(THREE, host) {
     captureAimInteractionCamera,
     releaseAimInteractionCamera,
     applySectorPlanningCamera,
-    snapLiveCameraToPlanningView,
+    commitAimPlanningCamera,
+    clearCommittedAimCamera,
     clearTrajectoryPreview,
     updateAimPreview,
     updateKeyboardAimPreview,
@@ -138,33 +140,40 @@ function getPointerWorldPosition(PointerEventData, UnprojectCamera = Camera) {
   ) + 1;
 
   PointerRaycaster.setFromCamera(PointerNormalizedDeviceCoordinates, UnprojectCamera);
+  const ForceOrbitalPlane = host.IsPointerAiming || host.IsKeyboardAiming;
   const RayDirectionZ = PointerRaycaster.ray.direction.z;
-  if (Math.abs(RayDirectionZ) > 0.12) {
+  if (ForceOrbitalPlane || Math.abs(RayDirectionZ) > 0.12) {
     const PlaneHit = PointerRaycaster.ray.intersectPlane(OrbitalPlane, PointerWorldPosition);
     if (
       PlaneHit
       && PointerWorldPosition.distanceTo(PointerRaycaster.ray.origin) > 0.5
     ) {
+      PointerWorldPosition.z = 0;
       return PointerWorldPosition;
     }
   }
-  const AttachedWorld = getCurrentAttachedWorld();
-  if (AttachedWorld) {
-    const GlobeHit = intersectRaySphere(
-      PointerRaycaster.ray.origin,
-      PointerRaycaster.ray.direction,
-      AttachedWorld.position,
-      AttachedWorld.radius + 0.45,
-    );
-    if (GlobeHit) {
-      PointerWorldPosition.set(GlobeHit.x, GlobeHit.y, GlobeHit.z);
-      return PointerWorldPosition;
+  if (!ForceOrbitalPlane) {
+    const AttachedWorld = getCurrentAttachedWorld();
+    if (AttachedWorld) {
+      const GlobeHit = intersectRaySphere(
+        PointerRaycaster.ray.origin,
+        PointerRaycaster.ray.direction,
+        AttachedWorld.position,
+        AttachedWorld.radius + 0.45,
+      );
+      if (GlobeHit) {
+        PointerWorldPosition.set(GlobeHit.x, GlobeHit.y, GlobeHit.z);
+        return PointerWorldPosition;
+      }
     }
   }
   PointerFallbackNormal.copy(UnprojectCamera.getWorldDirection(PointerFallbackNormal));
   PointerFallbackPoint.copy(UnprojectCamera.position).addScaledVector(PointerFallbackNormal, 12);
   PointerFallbackPlane.setFromNormalAndCoplanarPoint(PointerFallbackNormal, PointerFallbackPoint);
   const FacingHit = PointerRaycaster.ray.intersectPlane(PointerFallbackPlane, PointerWorldPosition);
+  if (FacingHit && ForceOrbitalPlane) {
+    PointerWorldPosition.z = 0;
+  }
   return FacingHit ? PointerWorldPosition : null;
 }
 
@@ -211,6 +220,11 @@ function rememberAimScreenDistance(PointerEventData) {
 
 function clearAimScreenDistance() {
   host.LastAimScreenDistancePixels = Number.POSITIVE_INFINITY;
+}
+
+function clearWalkFacingDataset() {
+  GameCanvas.dataset.facingWorld = '';
+  GameCanvas.dataset.facingAlignment = '';
 }
 
 function isPointerOverAttachedWorld(WorldPosition) {
@@ -447,6 +461,7 @@ function beginKeyboardAim() {
   }
 
   flattenRunnerToEquator('keyboard');
+  clearWalkFacingDataset();
   const SuggestedTarget = getCurrentRouteChoices(1)[0];
   const SuggestedTargetPosition = SuggestedTarget?.position ?? {
     x: host.SeedPhysicsState.position.x + 1,
@@ -468,8 +483,7 @@ function beginKeyboardAim() {
   PullGuideLine.visible = false;
   AimPanelElement.hidden = false;
   updateKeyboardAimPreview();
-  snapLiveCameraToPlanningView();
-  refreshPlanningZoomControls();
+  commitAimPlanningCamera();
   showInstruction(
     'Keyboard aim ready',
     'Left/right steer · up/down set power · pinch or wheel to zoom the map · Enter launches.',
@@ -493,10 +507,14 @@ function cancelAimedLaunch({ announce = true } = {}) {
   GameCanvas.dataset.keyboardAimPower = '';
   GameCanvas.dataset.keyboardAimAssist = '';
   releaseAimInteractionCamera();
+  clearCommittedAimCamera();
   clearTrajectoryPreview();
   if (WasAiming) WorldseedSound.endAim();
   if (WasAiming && announce) showStatusToast('LAUNCH CANCELED', 700);
-  if (WasAiming) showRouteChoiceInstruction();
+  if (WasAiming) {
+    clearWalkFacingDataset();
+    showRouteChoiceInstruction();
+  }
   refreshPlanningZoomControls();
   clearAimScreenDistance();
 }
@@ -580,7 +598,9 @@ function handleKeyboardAimKey(KeyboardEventData) {
       host.ActivePointerIdentifier = null;
       host.PointerGestureMode = SurfaceGestureModes.pending;
       clearAimScreenDistance();
-      if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
+      if (!showHostileEncounterInstruction()) {
+        showWalkFacingInstruction(getCurrentAttachedWorld());
+      }
     }
     return true;
   }
@@ -674,6 +694,10 @@ function beginCameraPan(WorldPosition) {
     PanOffsetStart.copy(CameraPanOffset);
   }
   GameCanvas.classList.add('is-scouting');
+  if (host.GamePhase === 'attached') {
+    clearWalkFacingDataset();
+    if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
+  }
 }
 
 function updateCameraPan(WorldPosition) {
@@ -975,11 +999,16 @@ function releaseBurnAim() {
   return requestBreakerBurn();
 }
 
-function beginLaunchAim(WorldPosition) {
+function beginLaunchAim(WorldPosition, PointerEventData = null) {
   flattenRunnerToEquator('pointer');
   host.PointerGestureMode = SurfaceGestureModes.aim;
-  PointerGestureStartWorldPosition.copy(WorldPosition);
-  LastAimPointerWorldPosition.copy(WorldPosition);
+  host.HasCommittedAimCamera = false;
+  GameCanvas.dataset.aimCamera = getAimCameraStage({
+    willCancel: true,
+    hasCommitted: false,
+    prefersReducedMotion: host.PrefersReducedMotion,
+  });
+  clearWalkFacingDataset();
   captureAimInteractionCamera();
   CameraPanOffset.set(0, 0, 0);
   host.AimZoomScale = 1;
@@ -987,8 +1016,15 @@ function beginLaunchAim(WorldPosition) {
   WorldseedSound.beginAim();
   GameCanvas.classList.add('is-aiming');
   AimPanelElement.hidden = false;
-  updateAimPreview(WorldPosition);
-  snapLiveCameraToPlanningView();
+  const AimPointer = PointerEventData
+    ? (getPointerWorldPosition(PointerEventData, host.AimInteractionCamera) ?? WorldPosition)
+    : WorldPosition;
+  PointerGestureStartWorldPosition.copy(AimPointer);
+  LastAimPointerWorldPosition.copy(AimPointer);
+  updateAimPreview(AimPointer);
+  if (host.PrefersReducedMotion) {
+    commitAimPlanningCamera();
+  }
   refreshPlanningZoomControls();
 }
 
@@ -1149,23 +1185,11 @@ function handlePointerMove(PointerEventData) {
   ) {
     const AttachedWorld = getCurrentAttachedWorld();
     if (AttachedWorld) {
-      const GlobeHit = getAttachedGlobeHit(true);
-      const Classification = classifySphereSurfaceGesture({
-        worldCenter: AttachedWorld.position,
-        worldRadius: AttachedWorld.radius,
-        startPosition: {
-          x: host.SeedPhysicsState.position.x,
-          y: host.SeedPhysicsState.position.y,
-          z: host.SeedPhysicsState.position.z,
-        },
-        sphereHit: GlobeHit,
-        planePosition: {
-          x: CurrentPointerWorldPosition.x,
-          y: CurrentPointerWorldPosition.y,
-        },
+      const Classification = classifyPendingShipGrab({
+        screenDistanceFromShip: host.LastAimScreenDistancePixels,
       });
       if (Classification === SurfaceGestureModes.aim) {
-        beginLaunchAim(CurrentPointerWorldPosition);
+        beginLaunchAim(CurrentPointerWorldPosition, PointerEventData);
       }
     }
     PointerEventData.preventDefault();
@@ -1219,6 +1243,7 @@ function releaseAimedLaunch() {
   AimPanelElement.hidden = true;
   AimPanelElement.classList.remove('is-cancel');
   releaseAimInteractionCamera();
+  clearCommittedAimCamera();
 
   if (AimDragVector.length() < MinimumLaunchDragDistance) {
     clearTrajectoryPreview();
@@ -1439,7 +1464,9 @@ function handlePointerUp(PointerEventData) {
     host.ActivePointerIdentifier = null;
     host.PointerGestureMode = SurfaceGestureModes.pending;
     GameCanvas.classList.remove('is-walking');
-    if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
+    if (!showHostileEncounterInstruction()) {
+      showWalkFacingInstruction(getCurrentAttachedWorld());
+    }
     PointerEventData.preventDefault();
     return;
   }
@@ -1448,7 +1475,9 @@ function handlePointerUp(PointerEventData) {
     host.ActivePointerIdentifier = null;
     host.PointerGestureMode = SurfaceGestureModes.pending;
     clearAimScreenDistance();
-    if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
+    if (!showHostileEncounterInstruction()) {
+      showWalkFacingInstruction(getCurrentAttachedWorld());
+    }
     PointerEventData.preventDefault();
     return;
   }
@@ -1504,9 +1533,17 @@ function handlePointerCancel(PointerEventData) {
   AimPanelElement.hidden = true;
   AimPanelElement.classList.remove('is-cancel');
   releaseAimInteractionCamera();
+  clearCommittedAimCamera();
   clearTrajectoryPreview();
   if (WasAiming) WorldseedSound.endAim();
   clearAimScreenDistance();
+  if (
+    !WasAiming
+    && host.GamePhase === 'attached'
+    && !showHostileEncounterInstruction()
+  ) {
+    showWalkFacingInstruction(getCurrentAttachedWorld());
+  }
 }
 
   return {

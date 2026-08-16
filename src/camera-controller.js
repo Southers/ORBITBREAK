@@ -146,11 +146,27 @@ function snapLiveCameraToPlanningView() {
 }
 
 function shouldUseSectorPlanningCamera() {
-  return (host.IsPointerAiming || host.IsKeyboardAiming)
+  return (host.IsKeyboardAiming || (host.IsPointerAiming && host.HasCommittedAimCamera))
     && !host.IsScoutMode
     && host.GamePhase !== 'restoring'
     && host.GamePhase !== 'recovering'
     && host.GamePhase !== 'flying';
+}
+
+/** Snaps to the neighbourhood map once per gesture and keeps it if the pull returns. */
+function commitAimPlanningCamera() {
+  if (host.HasCommittedAimCamera && GameCanvas.dataset.aimCamera === 'planning') {
+    return;
+  }
+  host.HasCommittedAimCamera = true;
+  GameCanvas.dataset.aimCamera = 'planning';
+  snapLiveCameraToPlanningView();
+  refreshPlanningZoomControls();
+}
+
+function clearCommittedAimCamera() {
+  host.HasCommittedAimCamera = false;
+  GameCanvas.dataset.aimCamera = '';
 }
 
 function updateFlightPlanningPresentation() {
@@ -552,6 +568,8 @@ function updateCamera(DeltaTimeSeconds) {
     getPlanningFocusPoints,
     applySectorPlanningCamera,
     snapLiveCameraToPlanningView,
+    commitAimPlanningCamera,
+    clearCommittedAimCamera,
     shouldUseSectorPlanningCamera,
     updateFlightPlanningPresentation,
     refreshPlanningZoomControls,

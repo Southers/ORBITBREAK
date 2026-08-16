@@ -955,6 +955,12 @@ quest markers or pickups.
 Checkpoint 18 — 16 August 2026: Shatterbelt and Verdant Caravan use the same sphere sites
 and culture families. DESIGN honest state matches the living globes.
 
+Checkpoint 19 — 16 August 2026: walk-to-launch handoff. Pulling the ship past a 20px
+screen deadzone starts aim even while the ray still hits the crust. Flattening is
+immediate; the neighbourhood map waits until the pull leaves the cancel disk.
+Walking still names the facing neighbour until ship grab, pan or keyboard aim.
+Physics identity and `breaker-reach-7` are unchanged.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

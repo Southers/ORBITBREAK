@@ -33,12 +33,15 @@ export function createAimPreview(THREE, host) {
 
     if (WillCancel) {
       host.clearTrajectoryPreview();
-      host.applySectorPlanningCamera();
+      if (host.HasCommittedAimCamera) {
+        host.applySectorPlanningCamera();
+      }
       host.AimLabelElement.textContent = 'RELEASE TO CANCEL';
       host.WorldseedSound.updateAim(PowerRatio, false);
       return;
     }
 
+    host.commitAimPlanningCamera();
     const TrajectoryPrediction = host.predictCurrentLaunchTrajectory(host.AimLaunchVelocity);
     const VisiblePredictionPoints = TrajectoryPrediction.points;
     const IsOutcomeVisible = TrajectoryPrediction.collisionKind !== null;
