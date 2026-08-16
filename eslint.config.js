@@ -1,5 +1,31 @@
 import js from '@eslint/js';
 
+// Browser-shell layer: allowed to touch the DOM, window and Three.js.
+// Everything else in src/ stays framework-free so the ranked simulation is portable.
+const BrowserShellFiles = [
+  'src/main.js',
+  'src/audio.js',
+  'src/environment.js',
+  'src/world-geometry.js',
+  'src/living-world-visuals.js',
+  'src/warden-visuals.js',
+  'src/player-visuals.js',
+  'src/hud.js',
+  'src/story-director.js',
+  'src/aim-preview.js',
+  'src/landing-director.js',
+  'src/camera-controller.js',
+  'src/input-controller.js',
+  'src/hostile-surface.js',
+  'src/scanner.js',
+  'src/route-presentation.js',
+  'src/records-ui.js',
+  'src/frame-visuals.js',
+  'src/leaderboard-client.js',
+  'src/preferences.js',
+  'src/performance.js',
+];
+
 const RankedSimulationFiles = [
   'src/physics.js',
   'src/run.js',
@@ -48,7 +74,7 @@ export default [
   },
   {
     files: ['src/**/*.js'],
-    ignores: ['src/main.js', 'src/audio.js', 'src/environment.js'],
+    ignores: BrowserShellFiles,
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -58,11 +84,11 @@ export default [
         'error',
         {
           name: 'document',
-          message: 'DOM access stays in src/main.js.',
+          message: 'DOM access stays in the browser-shell modules.',
         },
         {
           name: 'window',
-          message: 'Window access stays in src/main.js.',
+          message: 'Window access stays in the browser-shell modules.',
         },
       ],
       'no-restricted-imports': [
@@ -71,7 +97,7 @@ export default [
           paths: [
             {
               name: 'three',
-              message: 'Three.js stays in src/main.js.',
+              message: 'Three.js stays in the browser-shell modules.',
             },
           ],
         },
