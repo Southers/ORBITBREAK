@@ -31,14 +31,14 @@ test('First Light satisfies the authored-system content contract', () => {
 
 test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.deepEqual(validateAuthoredSystemDefinition(BreakerReachSystemDefinition), []);
-  assert.equal(BreakerReachSystemDefinition.worlds.length, 6);
+  assert.equal(BreakerReachSystemDefinition.worlds.length, 9);
   assert.deepEqual(
     BreakerReachSystemDefinition.innerClusterWorldIdentifiers,
     ['meadow', 'ember', 'grove'],
   );
   assert.deepEqual(
     BreakerReachSystemDefinition.furtherReachWorldIdentifiers,
-    ['tide', 'frost', 'bastion'],
+    ['tide', 'frost', 'bastion', 'spindle', 'quarry', 'mirage'],
   );
   assert.equal(BreakerReachSystemDefinition.camera.followPlayer, true);
   assert.equal(
@@ -91,10 +91,24 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   const WorldXs = BreakerReachSystemDefinition.worlds.map(
     (WorldDefinition) => WorldDefinition.position.x,
   );
-  assert.ok(Math.max(...WorldXs) - Math.min(...WorldXs) > 35);
+  assert.ok(Math.max(...WorldXs) - Math.min(...WorldXs) > 55);
+  const SpindleDefinition = BreakerReachSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'spindle',
+  );
+  const QuarryDefinition = BreakerReachSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'quarry',
+  );
+  const MirageDefinition = BreakerReachSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'mirage',
+  );
+  assert.equal(SpindleDefinition.visualKey, 'loom');
+  assert.equal(QuarryDefinition.visualKey, 'kiln');
+  assert.equal(MirageDefinition.visualKey, 'shard');
+  assert.equal(BreakerReachSystemDefinition.contentVersion, 'breaker-reach-7');
+  assert.equal(BreakerReachSystemDefinition.launchBudget, 10);
   assert.deepEqual(
     BreakerReachSystemDefinition.routeSuggestions.meadow,
-    ['ember', 'frost'],
+    ['ember', 'frost', 'spindle'],
   );
   const EmberDefinition = BreakerReachSystemDefinition.worlds.find(
     (WorldDefinition) => WorldDefinition.id === 'ember',

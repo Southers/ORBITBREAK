@@ -79,6 +79,8 @@ function rememberPlanningPath(Prediction) {
 }
 
 function getPlanningFocusPoints() {
+  const CurrentWorldIdentifier = host.CurrentWorldIdentifier ?? '';
+  const NearbyWorldIdentifiers = ActiveSystem.routeSuggestions?.[CurrentWorldIdentifier] ?? [];
   const AllowedIdentifiers = new Set(getPlanningFocusWorldIdentifiers({
     innerClusterLive: isLiveInnerCluster(),
     commandRouteAvailable: WorldheartDefinition.routeAvailable === true,
@@ -86,7 +88,8 @@ function getPlanningFocusPoints() {
       host.LastPredictedBodyIdentifier,
       ...PredictedSlingshotWorldIdentifiers,
     ],
-    currentWorldIdentifier: host.CurrentWorldIdentifier ?? '',
+    currentWorldIdentifier: CurrentWorldIdentifier,
+    nearbyWorldIdentifiers: NearbyWorldIdentifiers,
     ...getSectorClusterRules(),
   }));
   const FocusPoints = WorldDefinitions

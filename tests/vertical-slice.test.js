@@ -243,7 +243,7 @@ test("Breaker\'s Reach dark-rim route requires repositioning and a timed Burn", 
   });
 
   assert.equal(BurnRoute.collisionIdentifier, 'frost');
-  assert.equal(BurnRoute.collisionStepIndex, 272);
+  assert.equal(BurnRoute.collisionStepIndex, 271);
   assert.equal(NoBurnRoute.collisionIdentifier, null);
   assert.equal(DefaultSurfaceRoute.collisionIdentifier, null);
 

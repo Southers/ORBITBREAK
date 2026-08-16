@@ -283,6 +283,11 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
     linkedWorldIdentifier: 'tide',
   }), ['firstTide']);
   assert.deepEqual(getTriggeredCampaignStoryBoardIds({
+    linkCreated: true,
+    createdLinkCount: 4,
+    linkedWorldIdentifier: 'spindle',
+  }), ['firstSpindle']);
+  assert.deepEqual(getTriggeredCampaignStoryBoardIds({
     neighbourhoodJustAwake: true,
     wardenJustRevealed: true,
   }), ['neighbourhood', 'wardenArrival']);
@@ -600,15 +605,24 @@ test('default planning focus stays on the neighbourhood until the outer Reach is
     currentWorldIdentifier: 'meadow',
     ...BreakerReachCluster,
   }).sort(), ['ember', 'grove', 'meadow']);
-  assert.ok(getPlanningFocusWorldIdentifiers({
+  assert.deepEqual(getPlanningFocusWorldIdentifiers({
     innerClusterLive: true,
     commandRouteAvailable: false,
+    currentWorldIdentifier: 'grove',
+    nearbyWorldIdentifiers: ['tide', 'bastion'],
     ...BreakerReachCluster,
-  }).includes('tide'));
+  }).sort(), ['bastion', 'grove', 'tide']);
+  assert.equal(getPlanningFocusWorldIdentifiers({
+    innerClusterLive: true,
+    commandRouteAvailable: false,
+    currentWorldIdentifier: 'grove',
+    ...BreakerReachCluster,
+  }).includes('tide'), false);
   assert.ok(getPlanningFocusWorldIdentifiers({
     innerClusterLive: true,
     commandRouteAvailable: true,
     predictedBodyIdentifiers: ['worldheart'],
+    nearbyWorldIdentifiers: ['tide'],
     ...BreakerReachCluster,
   }).includes('worldheart'));
   const NeighbourhoodCamera = getSectorPlanningCamera({
