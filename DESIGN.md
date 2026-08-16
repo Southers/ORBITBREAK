@@ -52,7 +52,7 @@ Surface movement is deliberately one-dimensional. It creates launch-position cho
 
 ## Flight skill
 
-Aiming frames the readable neighbourhood and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. Pinch, wheel or the zoom buttons move from a close world to the whole authored Reach. Fog lifts while planning so the map stays bright. After release the camera follows the ship. A landing recenters on the new world. Story boards look at the speaker's world or the Warden. A committed chain is visible before release, including three- and four-world slingshots. Extra solar systems stay expansion; this run is one dense sector.
+Aiming frames the readable neighbourhood and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. Pinch, wheel or the zoom buttons move from a close world to the whole authored Reach. Fog lifts while planning so the map stays bright. After release the camera follows the ship. A landing recenters on the new world. Story boards look at the speaker's world or the Warden. A committed chain is visible before release, including three- and four-world slingshots. Breaker's Reach, Shatterbelt and Verdant Caravan are the three authored Warden sectors; Long Night and Worldheart stay expansion fixtures.
 
 Skill comes from:
 
@@ -216,7 +216,7 @@ Judging from current evidence, not intention: **Art** and **Theme** are the weak
 
 ### What we are building
 
-One denser Breaker's Reach, not a bigger campaign.
+One denser Breaker's Reach, plus the same prosperity rules on Shatterbelt and Verdant Caravan.
 
 - **Story spacing.** Short intro, then one line per beat, with time to look at the world that just changed.
 - **Prosperity that grows.** Different routes, different ships, buildings, industry, houses, people. Life flows along live links and retreats when the Warden cuts them.
@@ -226,7 +226,7 @@ One denser Breaker's Reach, not a bigger campaign.
 
 ### What we will not do
 
-- Add a second sector, a procedural universe or several shallow chapters.
+- Add a procedural universe or several shallow chapters beyond the three authored Warden sectors.
 - Turn circumference walking into free-roam platforming, dialogue trees, health, inventories or ship stat upgrades.
 - Advance the Warden on wall-clock time, story-card reading or Scout zoom.
 - Delay the Warden until the whole map is already solved; the hunt still needs expand-versus-defend space.
@@ -365,9 +365,9 @@ Roguelike flavour without roguelike chaos: after the Warden arrives, a once-per-
 
 ## Scope
 
-The first complete target is one dense authored sector with approximately six to nine worlds, one Warden and one final confrontation. Existing campaign worlds are a content library and compatibility fixture; only the strongest silhouettes and encounters should survive the redesign.
+The first complete target is three dense authored Warden sectors. Breaker's Reach opens the run. Shatterbelt and Verdant Caravan continue the same loop against further Wardens. Long Night and Worldheart remain a content library and compatibility fixture.
 
-Additional sectors, selectable modules, more Wardens and the super-AI network are future expansion. Infinite procedural space, free-roaming planet surfaces, conventional combat, inventory and permanent numerical upgrades are outside the first complete version.
+Infinite procedural space, free-roaming planet surfaces, conventional combat, inventory and permanent numerical upgrades are outside this version.
 
 ## Success criteria
 

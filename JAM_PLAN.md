@@ -922,8 +922,8 @@ gold ghost names the next closing edge. Command lock stays the exposed finale gi
 arrival arms a once-per-run recapture Cut. Extra Break remains deferred. `breaker-reach-6`
 is unchanged.
 
-Keep `main` playable. Do not add a second sector, free-surface exploration, dialogue trees or ship
-stat upgrades. Do not delay the Warden until Bastion is already solved. Range is the silence
+Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
+stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.
 
 Checkpoint 12 — 15 August 2026: aiming frames the live neighbourhood instead of crushing it into
@@ -931,7 +931,13 @@ the dark outer Reach. Fog lifts, stars brighten, pinch and zoom buttons work whi
 zoom now runs from a close world to the whole authored sector. Extra solar systems stay out of
 scope. Physics and `breaker-reach-6` are unchanged.
 
-Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond one authored sector or cross an external-action approval boundary.
+Checkpoint 13 — 16 August 2026: Shatterbelt and Verdant Caravan are promoted from compatibility
+fixtures into full Warden-loop campaigns. Breaker's Reach continues to Shatterbelt; Shatterbelt
+continues to Verdant Caravan; Caravan stays terminal. Long Night and Worldheart remain query-only.
+Each new sector keeps its authored geometry, Sentinel / Pollen Moon toys, occupation scars, two
+gold circuits, hostile Cut and a moving Command World. No new image assets.
+
+Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond the three authored Warden sectors or cross an external-action approval boundary.
 
 Within 12 hours of the jam deadline, freeze mechanics and content. Continue only with regression fixes, onboarding, balance, performance, accessibility, authentic media and approved playtest deployment. Prepare the external entry, but never post it without the user's explicit confirmation at that moment.
 

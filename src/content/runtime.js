@@ -21,6 +21,20 @@ function clonePosition(Position, CreateVector) {
   return CreateVector(Position.x, Position.y, Position.z);
 }
 
+function cloneStoryPage(Page) {
+  const ClonedPage = {
+    speaker: Page.speaker,
+    kicker: Page.kicker,
+    title: Page.title,
+    body: Page.body,
+    portrait: Page.portrait,
+  };
+  if (typeof Page.focusWorldId === 'string' && Page.focusWorldId.trim() !== '') {
+    ClonedPage.focusWorldId = Page.focusWorldId;
+  }
+  return ClonedPage;
+}
+
 function cloneStoryBoards(StoryBoards) {
   if (!StoryBoards || typeof StoryBoards !== 'object') {
     return {};
@@ -30,13 +44,7 @@ function cloneStoryBoards(StoryBoards) {
     {
       skipLabel: Board.skipLabel,
       continueLabel: Board.continueLabel,
-      pages: (Board.pages ?? []).map((Page) => ({
-        speaker: Page.speaker,
-        kicker: Page.kicker,
-        title: Page.title,
-        body: Page.body,
-        portrait: Page.portrait,
-      })),
+      pages: (Board.pages ?? []).map((Page) => cloneStoryPage(Page)),
     },
   ]));
 }
@@ -108,13 +116,7 @@ export function createAuthoredSystemRuntime(
     openingBody: SystemDefinition.openingBody,
     openingBroadcast: SystemDefinition.openingBroadcast ?? null,
     openingBriefing: Array.isArray(SystemDefinition.openingBriefing)
-      ? SystemDefinition.openingBriefing.map((Page) => ({
-        speaker: Page.speaker,
-        kicker: Page.kicker,
-        title: Page.title,
-        body: Page.body,
-        portrait: Page.portrait,
-      }))
+      ? SystemDefinition.openingBriefing.map((Page) => cloneStoryPage(Page))
       : [],
     wardenArrivalBroadcast: SystemDefinition.wardenArrivalBroadcast ?? null,
     storyBoards: cloneStoryBoards(SystemDefinition.storyBoards),

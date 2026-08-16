@@ -14,7 +14,7 @@ Treat the browser as untrusted:
 
 - Players can change local storage, personal-best JSON, ghosts and HUD copy. That only affects their machine.
 - Ranked online results, when a service is later approved, must ignore claimed scores and re-simulate the input-only replay.
-- `?system=` may load authored compatibility fixtures. Unknown values fall back to Breaker's Reach.
+- `?system=` may load authored campaign chapters or leftover compatibility fixtures (`long-night`, `worldheart`, `first-light`). Unknown values fall back to Breaker's Reach.
 - `?diagnostics=1` and `?leaderboardApi=` are ignored on the public host. Diagnostics require localhost. A query override may point only at loopback HTTP.
 
 DOM updates use `textContent` and `createElement`. Callsigns are constrained to `A–Z`, `0–9`, underscore and hyphen before storage.

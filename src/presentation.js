@@ -196,26 +196,30 @@ export function getProsperityStage({
 
 export function getTradeHullKind(originVisualKey, destinationVisualKey) {
   const Keys = [originVisualKey, destinationVisualKey];
-  if (Keys.includes('ember')) {
+  if (Keys.includes('ember') || Keys.includes('kiln') || Keys.includes('lantern')) {
     return 'barge';
   }
-  if (Keys.includes('grove')) {
+  if (
+    Keys.includes('grove')
+    || Keys.includes('loom')
+    || Keys.includes('bower')
+    || Keys.includes('canopy')
+  ) {
     return 'sail';
   }
-  if (Keys.includes('frost')) {
+  if (Keys.includes('frost') || Keys.includes('crown')) {
     return 'sled';
   }
-  if (Keys.includes('tide')) {
+  if (Keys.includes('tide') || Keys.includes('drift') || Keys.includes('dew')) {
     return 'hull';
   }
-  if (Keys.includes('vault') || Keys.includes('shard')) {
+  if (
+    Keys.includes('vault')
+    || Keys.includes('shard')
+    || Keys.includes('nest')
+    || Keys.includes('bastion')
+  ) {
     return 'spine';
-  }
-  if (Keys.includes('kiln')) {
-    return 'barge';
-  }
-  if (Keys.includes('loom')) {
-    return 'sail';
   }
   return 'boat';
 }
@@ -1261,6 +1265,7 @@ const StoryPortraitWorldIdentifiers = Object.freeze({
 export function getStoryBoardCameraFocus({
   boardId = '',
   portrait = '',
+  focusWorldId = '',
 } = {}) {
   if (typeof boardId !== 'string' || typeof portrait !== 'string') {
     throw new Error('Story camera focus requires board and portrait ids.');
@@ -1273,6 +1278,9 @@ export function getStoryBoardCameraFocus({
   }
   if (boardId === 'commandExposed' || portrait === 'command') {
     return { kind: 'command', scale: 0.78 };
+  }
+  if (typeof focusWorldId === 'string' && focusWorldId.trim() !== '') {
+    return { kind: 'world', worldId: focusWorldId, scale: 0.62 };
   }
   if (portrait === 'runner' || portrait === 'orbitbreaker') {
     return { kind: 'runner', scale: 0.55 };
@@ -1338,6 +1346,12 @@ export function getTriggeredCampaignStoryBoardIds({
   maybeQueue('firstSpindle', linkCreated === true && linkedWorldIdentifier === 'spindle');
   maybeQueue('firstQuarry', linkCreated === true && linkedWorldIdentifier === 'quarry');
   maybeQueue('firstMirage', linkCreated === true && linkedWorldIdentifier === 'mirage');
+  maybeQueue('firstShard', linkCreated === true && linkedWorldIdentifier === 'shard');
+  maybeQueue('firstDrift', linkCreated === true && linkedWorldIdentifier === 'drift');
+  maybeQueue('firstVault', linkCreated === true && linkedWorldIdentifier === 'vault');
+  maybeQueue('firstCrown', linkCreated === true && linkedWorldIdentifier === 'crown');
+  maybeQueue('firstDew', linkCreated === true && linkedWorldIdentifier === 'dew');
+  maybeQueue('firstNest', linkCreated === true && linkedWorldIdentifier === 'nest');
   maybeQueue('neighbourhood', neighbourhoodJustAwake === true);
   maybeQueue('wardenArrival', wardenJustRevealed === true);
   maybeQueue('circuitClosed', circuitJustClosed === true && commandJustExposed !== true);
@@ -1354,6 +1368,8 @@ export function getTriggeredCampaignStoryBoardIds({
 export const StoryBoardsAllowedDuringEncounter = Object.freeze([
   'commandApproach',
   'firstBastion',
+  'firstVault',
+  'firstNest',
 ]);
 
 /**

@@ -288,6 +288,16 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
     linkedWorldIdentifier: 'spindle',
   }), ['firstSpindle']);
   assert.deepEqual(getTriggeredCampaignStoryBoardIds({
+    linkCreated: true,
+    createdLinkCount: 4,
+    linkedWorldIdentifier: 'shard',
+  }), ['firstShard']);
+  assert.deepEqual(getTriggeredCampaignStoryBoardIds({
+    linkCreated: true,
+    createdLinkCount: 5,
+    linkedWorldIdentifier: 'nest',
+  }), ['firstNest']);
+  assert.deepEqual(getTriggeredCampaignStoryBoardIds({
     neighbourhoodJustAwake: true,
     wardenJustRevealed: true,
   }), ['neighbourhood', 'wardenArrival']);
@@ -319,6 +329,16 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
     gamePhase: 'attached',
     hostileEncounterActive: true,
     boardId: 'commandApproach',
+  }), true);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'attached',
+    hostileEncounterActive: true,
+    boardId: 'firstVault',
+  }), true);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'attached',
+    hostileEncounterActive: true,
+    boardId: 'firstNest',
   }), true);
   assert.equal(isCampaignStoryBoardReadyToPresent({
     gamePhase: 'victoryPending',
@@ -798,6 +818,9 @@ test('prosperity densifies from a first link to busy routes and circuits', () =>
   assert.equal(getTradeHullKind('ember', 'meadow'), 'barge');
   assert.equal(getTradeHullKind('grove', 'tide'), 'sail');
   assert.equal(getTradeHullKind('frost', 'bastion'), 'sled');
+  assert.equal(getTradeHullKind('lantern', 'bower'), 'barge');
+  assert.equal(getTradeHullKind('canopy', 'dew'), 'sail');
+  assert.equal(getTradeHullKind('nest', 'relay'), 'spine');
   assert.equal(getLiveLinkShipCount({
     originDegree: 1,
     destinationDegree: 1,
@@ -950,6 +973,11 @@ test('story boards look at the speaker, the Warden, or the neighbourhood', () =>
     boardId: 'firstAnswer',
     portrait: 'ember',
   }), { kind: 'world', worldId: 'ember', scale: 0.62 });
+  assert.deepEqual(getStoryBoardCameraFocus({
+    boardId: 'firstAnswer',
+    portrait: 'ember',
+    focusWorldId: 'kiln',
+  }), { kind: 'world', worldId: 'kiln', scale: 0.62 });
   assert.equal(getStoryBoardCameraFocus({
     boardId: 'wardenArrival',
     portrait: 'warden',

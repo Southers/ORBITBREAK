@@ -1055,7 +1055,7 @@ test('Wandering Garden has complete deterministic road and moving-moon routes', 
   ElapsedTimeSeconds += (DewPrediction.points.length - 1) * FixedStepSeconds;
   const DewDefinition = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'dew');
   const DewPosition = restOnBody(DewDefinition, DewPrediction.points.at(-1));
-  const HeartPrediction = predictShot(DewPosition, 'dew', 13, ElapsedTimeSeconds);
+  const HeartPrediction = predictShot(DewPosition, 'dew', 23, ElapsedTimeSeconds);
   const MoonRouteOutcomes = [
     CanopyPrediction,
     MoonPrediction,

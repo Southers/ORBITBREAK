@@ -39,8 +39,6 @@ export const AuthoredCampaignSystemIdentifiers = [
   BreakerReachSystemDefinition.id,
   BrokenBeltSystemDefinition.id,
   WanderingGardenSystemDefinition.id,
-  LongNightSystemDefinition.id,
-  WorldheartSystemDefinition.id,
 ];
 
 /** Resolves a requested authored system and safely falls back to the campaign entry. */
