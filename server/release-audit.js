@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,6 +15,20 @@ const RepositoryRoot = resolve(ScriptDirectory, '..');
 
 function readRepositoryFile(RelativePath) {
   return readFileSync(resolve(RepositoryRoot, RelativePath), 'utf8');
+}
+
+function listRepositoryFiles(RelativeDirectory, Extensions) {
+  const DirectoryPath = resolve(RepositoryRoot, RelativeDirectory);
+  const Files = [];
+  for (const Entry of readdirSync(DirectoryPath, { withFileTypes: true })) {
+    const RelativePath = `${RelativeDirectory}/${Entry.name}`;
+    if (Entry.isDirectory()) {
+      Files.push(...listRepositoryFiles(RelativePath, Extensions));
+    } else if (Extensions.some((Extension) => Entry.name.endsWith(Extension))) {
+      Files.push(RelativePath);
+    }
+  }
+  return Files;
 }
 
 /** Returns release-integrity failures without changing the repository or external state. */
@@ -63,6 +77,13 @@ export function auditReleaseReadiness() {
     !/<(?:script|link)\b[^>]+(?:src|href)="https?:\/\//i.test(IndexHtml),
     'Runtime scripts and styles must not depend on a remote host.',
   );
+  const RemoteModulePattern = /(?:from\s+['"]https?:\/\/|url\(\s*['"]?https?:\/\/)/i;
+  for (const RelativePath of listRepositoryFiles('src', ['.js', '.css'])) {
+    requireCondition(
+      !RemoteModulePattern.test(readRepositoryFile(RelativePath)),
+      `${RelativePath} must not import or load a remote URL.`,
+    );
+  }
   requireCondition(
     IndexHtml.includes('"three": "./vendor/three.module.min.js?v=0.179.1"'),
     'The import map must retain the pinned vendored Three.js runtime.',
@@ -97,6 +118,10 @@ export function auditReleaseReadiness() {
       && MainSource.includes('updateSlingshotBandVisuals(')
       && ScoringSource.includes('export function getSlingshotBandRadii('),
     'Launch speed must stay inside the gravity-assist range and show scoring wells while aiming.',
+  );
+  requireCondition(
+    ScoringSource.includes('for (let PointIndex = 1; PointIndex < TrajectoryPoints.length; PointIndex += 1)'),
+    'Slingshot prediction must skip the pre-launch rest sample that live scoring never sees.',
   );
   requireCondition(
     PresentationSource.includes('export function getSectorPlanningCamera(')
@@ -281,7 +306,9 @@ export function auditReleaseReadiness() {
       && /\.leaderboard-list__runner\s+small\s*\{[^}]*color:\s*rgba\(214,\s*228,\s*235,\s*0\.68\);[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.leaderboard-list\s+button\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/s.test(StyleSheet)
       && RecordsUiSource.includes("(LeaderboardListElement.querySelector('button') ?? CloseLeaderboardButtonElement)")
-      && RecordsUiSource.includes("CallsignInputElement.focus({ preventScroll: true });"),
+      && RecordsUiSource.includes("CallsignInputElement.focus({ preventScroll: true });")
+      && RecordsUiSource.includes('const LoadSequence = host.LeaderboardLoadSequence;')
+      && RecordsUiSource.includes('const ReplayPayload = GameCanvas.dataset.replayPayload;'),
     'Rankings callsigns, replay actions and submission focus must stay accessible.',
   );
   requireCondition(
@@ -343,6 +370,13 @@ export function auditReleaseReadiness() {
     /function\s+toggleAudioPreference\(\)\s*\{[\s\S]*?getAudioPreferencePresentation\(WorldseedSound\.toggleMute\(\)\)[\s\S]*?showStatusToast\(Presentation\.status,\s*850\);[\s\S]*?\}/s.test(MainSource)
       && (MainSource.match(/toggleAudioPreference\(\);/g) ?? []).length >= 2,
     'Audio button and keyboard shortcut must share one announced preference state.',
+  );
+  requireCondition(
+    MainSource.includes('isEditingTextField(KeyboardEventData.target)')
+      && /if\s*\(\s*KeyboardEventData\.ctrlKey\s*\|\|\s*KeyboardEventData\.metaKey\s*\|\|\s*KeyboardEventData\.altKey\s*\)/.test(MainSource)
+      && MainSource.includes('getVisibleModalFocusables(ActiveModalElement)')
+      && /function setPageActivity\(IsActive\) \{[\s\S]*?SmoothPerformanceSampleCount = 0;[\s\S]*?PerformanceSampleElapsedSeconds = 0;/.test(MainSource),
+    'Hotkeys must yield to typing and modifiers, the focus trap must skip hidden fields, and hiding the tab must reset quality samples.',
   );
   requireCondition(
     /IsReleaseDiagnosticsEnabled\s*=\s*IsLocalDevelopmentHost\s*&&/.test(MainSource),

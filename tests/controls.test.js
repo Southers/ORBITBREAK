@@ -28,6 +28,7 @@ import {
   getPointerClientDistance,
   getAimCameraStage,
   AimCameraStages,
+  isEditingTextField,
   ShipGrabAimDeadzonePixels,
   shouldCancelAimedLaunch,
 } from '../src/controls.js';
@@ -270,4 +271,14 @@ test('a zoomed-out aim still cancels inside a constant screen disk around the sh
     pointerDistanceFromShip: 2,
     screenDistancePixels: -1,
   }), /non-negative screen distance/);
+});
+
+test('game hotkeys yield to typing in callsign and other text fields', () => {
+  assert.equal(isEditingTextField({ tagName: 'INPUT', type: 'text' }), true);
+  assert.equal(isEditingTextField({ tagName: 'TEXTAREA' }), true);
+  assert.equal(isEditingTextField({ tagName: 'SELECT' }), true);
+  assert.equal(isEditingTextField({ tagName: 'DIV', isContentEditable: true }), true);
+  assert.equal(isEditingTextField({ tagName: 'BUTTON' }), false);
+  assert.equal(isEditingTextField({ tagName: 'CANVAS' }), false);
+  assert.equal(isEditingTextField(null), false);
 });
