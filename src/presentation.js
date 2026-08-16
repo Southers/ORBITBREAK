@@ -609,6 +609,51 @@ export function getWorldLandingAimLabel(WorldLabel, IsNewWorldLanding) {
   return IsNewWorldLanding ? `${WorldLabel} TARGET` : 'SAFE LANDING';
 }
 
+/**
+ * The face the Runner stands on is the launch azimuth. Walking exists to look
+ * at a destination, not to tour the planet.
+ */
+export function getLaunchFacingPresentation({
+  originX,
+  originY,
+  longitude,
+  candidates = [],
+} = {}) {
+  if (!Number.isFinite(originX) || !Number.isFinite(originY) || !Number.isFinite(longitude)) {
+    throw new Error('Launch facing requires a finite origin and longitude.');
+  }
+  if (!Array.isArray(candidates) || candidates.length < 1) {
+    return {
+      worldId: null,
+      label: '',
+      alignment: 0,
+      isFacing: false,
+    };
+  }
+  const RadialX = Math.cos(longitude);
+  const RadialY = Math.sin(longitude);
+  let Best = null;
+  for (const Candidate of candidates) {
+    const OffsetX = Candidate.x - originX;
+    const OffsetY = Candidate.y - originY;
+    const Length = Math.hypot(OffsetX, OffsetY) || 1;
+    const Alignment = ((OffsetX / Length) * RadialX) + ((OffsetY / Length) * RadialY);
+    if (!Best || Alignment > Best.alignment) {
+      Best = {
+        worldId: Candidate.id,
+        label: Candidate.label,
+        alignment: Alignment,
+      };
+    }
+  }
+  return {
+    worldId: Best.worldId,
+    label: Best.label,
+    alignment: Best.alignment,
+    isFacing: Best.alignment > 0.35,
+  };
+}
+
 /** Keeps permanent relay links visible while retaining a restrained network pulse. */
 export function getRelayLinkOpacity(ElapsedTimeSeconds, { reducedMotion = false } = {}) {
   if (!Number.isFinite(ElapsedTimeSeconds)) {

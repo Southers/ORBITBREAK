@@ -41,14 +41,15 @@ There is no wall-clock countdown during scouting or surface planning.
 
 The game remains one-pointer/touch accessible.
 
-- Drag the ship, then pull away to aim and build a relay. Drag across the globe to walk in 3D, including over the poles; the camera stays on the visible face. Release on the ship, or press Escape, to cancel without spending the flight.
-- Q/E walk around, R/F walk over the poles. Keyboard and pointer reach the same sphere.
+- Drag the **globe** to walk. Drag the **ship** and pull away to aim and build a relay. The two gestures never share a grab. Release on the ship, or press Escape, to cancel without spending the flight.
+- Q/E walk around, R/F walk over the poles. Walking is slow on purpose: one revolution takes several seconds. Keyboard and pointer reach the same sphere.
+- The face you stand on is the launch azimuth. Walk until this face looks toward the world you want; over the poles is the short path to the far side. Flattening for aim keeps flight in the orbital plane. Do not add surface pickups or extra destinations.
 - Drag empty space to pan. Pinch, −/+, or mouse wheel to zoom out from a landed world to the whole Reach. C snaps the camera back to the Runner.
 - During flight, drag from the ship to **break** your line in any direction, then release. Space still breaks along heading. The preview cannot solve a future player-timed break at launch time.
 - On a caged world, drag from the ship through a clamp to **destroy** it. A longer drag can take more than one. Drag back onto the ship, or press Escape, to cancel. Misses do not spend the flight. No health bars.
 - Keyboard controls must reach the same deterministic actions as pointer controls.
 
-Surface movement is spherical. It creates launch-position choice and a readable tiny-world scale without turning ORBITBREAK into a platformer. Aiming flattens back onto the orbital plane so gravity paths stay 2D and deterministic.
+Surface movement is spherical and weighty. It exists so the Runner can choose which face looks at a destination, and so a clamp on a hostile rim is reachable. It is not a tour, a collectathon or a platformer. Aiming flattens back onto the orbital plane so gravity paths stay 2D and deterministic.
 
 ## Flight skill
 
@@ -191,7 +192,7 @@ The visual arc is the theme:
 
 > separate silent dioramas → first relay → living trade network → visible suppression → collective resistance
 
-Scale is part of the fantasy. Landed views must make the Runner small on a world that has stance: streets, roofs, chimneys, docks and other people. The player character is a courier, not a giant on a marble. Worlds may grow in radius and camera may zoom closer on the surface and further out across the sector, but surface movement stays on the orbital-plane circumference and the physics body stays one identity.
+Scale is part of the fantasy. Landed views must make the Runner small on a world that has stance: streets, roofs, chimneys, docks and other people. The player character is a courier, not a giant on a marble. Worlds may grow in radius and camera may zoom closer on the surface and further out across the sector, but surface movement stays on the world's sphere and the physics body stays one identity.
 
 The Runner must walk when repositioning. Other characters walk their own short patrols. Inhabitants are not three identical bobbing pins; cultures need distinct silhouettes, and busy worlds need a crowd that still reads at mobile size.
 
@@ -320,7 +321,7 @@ Implement in this order. Each checkpoint is one coherent commit, with `npm test`
 
 1. **Tyrant / isolated / living contrast, plus a tiny Runner.** Occupied worlds show mines, fumes, guards, held people and outbound extraction. Haven stays the quiet garden. Shrink Runner/ship visuals, closer landed follow, deeper zoom-in. Physics identity unchanged.
 2. **Opening purpose and spaced beats.** Two-card intro; one-line coaches; no hunt promise before hope.
-3. **Walk and denser crowd.** Runner walk cycle; more culture silhouettes. Still circumference-only.
+3. **Walk and denser crowd.** Runner walk cycle; more culture silhouettes. Sphere great-circles, never platforming.
 4. **First prosperity jump.** New links grow houses/windows and a culture-true ship instead of one cone.
 5. **Busy routes.** Degree 2 and circuits add offset lanes, a second hull and industry. Prove 390×844.
 6. **Hopeful act and range veil.** Inner cluster recedes the outer veil and raises Scout zoom-out. Warden reveals only after one further landing. Update pursuit tests and golden replays.
@@ -332,7 +333,7 @@ Checkpoints 2–7 are in the playable Breaker's Reach build (`breaker-reach-7`).
 Stop conditions:
 
 - If extra props blow the mobile frame or the 190-call budget, instance harder or raise the budget only with measured 390×844 evidence.
-- If walking becomes busywork, keep the cycle but do not add surface destinations.
+- If walking becomes busywork, keep the cycle and the facing coach; do not add surface pickups or extra destinations.
 - If delaying the Warden makes the run aimless, reveal after the first further landing, not after the whole outer Reach.
 
 ### Success for this plan
@@ -372,7 +373,7 @@ Infinite procedural space, free-roaming planet surfaces, conventional combat, in
 ## Success criteria
 
 - A new player understands that connection helps worlds, sees those worlds prosper, then understands why the Warden arrives.
-- Walking changes launch geometry without feeling like busywork.
+- Walking changes launch geometry without feeling like busywork. The coach names which neighbour this face looks toward.
 - Breaker Burn turns flight from waiting into a meaningful timing decision.
 - The Warden's next move is always understandable and creates a defend-versus-expand choice.
 - The first recapture feels sad but fair, reversible and mechanically useful.

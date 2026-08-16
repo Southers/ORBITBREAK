@@ -17,7 +17,10 @@ import {
   flattenSurfacePoseToEquator,
   getSphereSurfacePosition,
   getSurfaceDirection,
+  getGreatCircleAngle,
   getSurfacePoseFromDirection,
+  getSurfaceWalkArcLimit,
+  stepSurfacePoseToward,
   intersectRaySphere,
   clampCameraZoomScale,
   getPinchZoomScale,
@@ -101,8 +104,8 @@ test('surface gestures distinguish rim walking from launch pulling', () => {
 test('pointer and keyboard surface movement stay on one deterministic circumference', () => {
   const CoarseAngle = adjustSurfaceAngle(0, 1);
   const FineAngle = adjustSurfaceAngle(CoarseAngle, -1, { fine: true });
-  assert.equal(Math.round(CoarseAngle * 180 / Math.PI), 4);
-  assert.equal(Math.round(FineAngle * 180 / Math.PI), 3);
+  assert.equal(Math.round(CoarseAngle * 180 / Math.PI), 2);
+  assert.equal(Math.round(FineAngle * 180 / Math.PI), 1);
   assert.deepEqual(getSurfacePosition({ x: 4, y: -2 }, 3, Math.PI / 2), {
     x: 4,
     y: 1,
@@ -115,12 +118,12 @@ test('sphere walking crosses the poles and flattens back to the equator for laun
   const North = adjustSurfacePose(Equator, { north: 1 });
   assert.ok(North.latitude > 0);
   let Pose = Equator;
-  for (let Step = 0; Step < 45; Step += 1) {
+  for (let Step = 0; Step < 90; Step += 1) {
     Pose = adjustSurfacePose(Pose, { north: 1 });
   }
   assert.ok(Math.abs(Pose.latitude) < 0.2);
   assert.ok(Math.abs(Math.abs(Pose.longitude) - Math.PI) < 0.2);
-  for (let Step = 0; Step < 5; Step += 1) {
+  for (let Step = 0; Step < 10; Step += 1) {
     Pose = adjustSurfacePose(Pose, { north: 1 });
   }
   assert.ok(Pose.latitude < 0);
@@ -134,6 +137,18 @@ test('sphere walking crosses the poles and flattens back to the equator for laun
   assert.equal(Flattened.longitude, Pose.longitude);
   const FromDirection = getSurfacePoseFromDirection({ x: 0, y: 0, z: 1 });
   assert.ok(Math.abs(FromDirection.latitude - (Math.PI / 2)) < 1e-9);
+});
+
+test('sphere walking steps toward a far hit instead of snapping across the globe', () => {
+  const Start = createSurfacePose({ longitude: 0, latitude: 0 });
+  const Opposite = createSurfacePose({ longitude: Math.PI, latitude: 0 });
+  const Limited = stepSurfacePoseToward(Start, Opposite, 0.2);
+  assert.ok(getGreatCircleAngle(Start, Limited) < 0.21);
+  assert.ok(getGreatCircleAngle(Limited, Opposite) > 2);
+  const Arrived = stepSurfacePoseToward(Start, createSurfacePose({ longitude: 0.05, latitude: 0 }), 0.2);
+  assert.ok(Math.abs(Arrived.longitude - 0.05) < 1e-9);
+  assert.equal(getSurfaceWalkArcLimit(0), 0);
+  assert.ok(getSurfaceWalkArcLimit(1) <= 0.12);
 });
 
 test('a ray hitting the globe walks and a pull into space aims', () => {

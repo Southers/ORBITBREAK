@@ -129,7 +129,7 @@ export function adjustSurfacePose(Pose, { east = 0, north = 0, fine = false } = 
   if (!Number.isFinite(Pose?.longitude) || !Number.isFinite(Pose?.latitude)) {
     throw new Error('Surface pose must be finite.');
   }
-  const StepRadians = (fine ? 1 : 4) * (Math.PI / 180);
+  const StepRadians = (fine ? 1 : 2) * (Math.PI / 180);
   let Longitude = Pose.longitude;
   let Latitude = Pose.latitude;
   let MeridianSign = Pose.meridianSign < 0 ? -1 : 1;
@@ -155,12 +155,79 @@ export function adjustSurfacePose(Pose, { east = 0, north = 0, fine = false } = 
   });
 }
 
+/** Caps how far one walk sample may travel so the globe has weight. */
+export const SurfaceWalkRadiansPerSecond = 0.7;
+
+export function getSurfaceWalkArcLimit(DeltaTimeSeconds) {
+  if (!Number.isFinite(DeltaTimeSeconds) || DeltaTimeSeconds < 0) {
+    throw new Error('Walk arc limit requires a non-negative finite duration.');
+  }
+  return Math.min(0.12, DeltaTimeSeconds * SurfaceWalkRadiansPerSecond);
+}
+
+export function getGreatCircleAngle(FromPose, ToPose) {
+  const Start = getSurfaceDirection(FromPose);
+  const Target = getSurfaceDirection(ToPose);
+  const Dot = Math.max(-1, Math.min(
+    1,
+    (Start.x * Target.x) + (Start.y * Target.y) + (Start.z * Target.z),
+  ));
+  return Math.acos(Dot);
+}
+
+/** Walks toward a target pose without snapping across the globe. */
+export function stepSurfacePoseToward(FromPose, ToPose, MaxArcRadians) {
+  if (!(MaxArcRadians >= 0) || !Number.isFinite(MaxArcRadians)) {
+    throw new Error('Walk step requires a non-negative finite arc.');
+  }
+  const Angle = getGreatCircleAngle(FromPose, ToPose);
+  if (Angle <= 1e-6 || MaxArcRadians === 0) {
+    return createSurfacePose(FromPose);
+  }
+  if (Angle <= MaxArcRadians) {
+    return createSurfacePose({
+      longitude: ToPose.longitude,
+      latitude: ToPose.latitude,
+      meridianSign: FromPose.meridianSign,
+    });
+  }
+  const Start = getSurfaceDirection(FromPose);
+  const Target = getSurfaceDirection(ToPose);
+  const T = MaxArcRadians / Angle;
+  const Dot = Math.max(-1, Math.min(
+    1,
+    (Start.x * Target.x) + (Start.y * Target.y) + (Start.z * Target.z),
+  ));
+  let Stepped;
+  if (Dot > 0.9995) {
+    Stepped = normalize3({
+      x: Start.x + ((Target.x - Start.x) * T),
+      y: Start.y + ((Target.y - Start.y) * T),
+      z: Start.z + ((Target.z - Start.z) * T),
+    });
+  } else {
+    const Theta = Math.acos(Dot);
+    const SinTheta = Math.sin(Theta) || 1;
+    const StartWeight = Math.sin((1 - T) * Theta) / SinTheta;
+    const TargetWeight = Math.sin(T * Theta) / SinTheta;
+    Stepped = {
+      x: (Start.x * StartWeight) + (Target.x * TargetWeight),
+      y: (Start.y * StartWeight) + (Target.y * TargetWeight),
+      z: (Start.z * StartWeight) + (Target.z * TargetWeight),
+    };
+  }
+  return createSurfacePose({
+    ...getSurfacePoseFromDirection(Stepped),
+    meridianSign: FromPose.meridianSign,
+  });
+}
+
 /** Moves a keyboard-controlled Runner around the orbital-plane circumference. */
 export function adjustSurfaceAngle(AngleRadians, Direction, { fine = false } = {}) {
   if (!Number.isFinite(AngleRadians)) {
     throw new Error('Surface angle must be finite.');
   }
-  const StepRadians = (fine ? 1 : 4) * (Math.PI / 180);
+  const StepRadians = (fine ? 1 : 2) * (Math.PI / 180);
   return normalizeAngle(AngleRadians + (Math.sign(Direction) * StepRadians));
 }
 

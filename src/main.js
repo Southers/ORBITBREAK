@@ -9,7 +9,7 @@ import {
   getSurfacePosition,
   LaunchCancelRadius,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260816-ob93';
+} from './controls.js?v=20260816-ob95';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -34,7 +34,7 @@ import { createHud } from './hud.js?v=20260815-ob90';
 import { createAimPreview } from './aim-preview.js?v=20260816-ob92';
 import { createLandingDirector } from './landing-director.js?v=20260816-ob93';
 import { createCameraController } from './camera-controller.js?v=20260816-ob94';
-import { createInputController } from './input-controller.js?v=20260816-ob93';
+import { createInputController } from './input-controller.js?v=20260816-ob95';
 import { createHostileSurface } from './hostile-surface.js?v=20260816-ob93';
 import { createScanner } from './scanner.js?v=20260815-ob90';
 import { createRoutePresentation } from './route-presentation.js?v=20260815-ob90';
@@ -142,7 +142,7 @@ import {
   getStoryMusicStage,
   getWorldLifeStage,
   getWorldLandingAimLabel,
-} from './presentation.js?v=20260816-ob94';
+} from './presentation.js?v=20260816-ob95';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -303,7 +303,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260816-ob94';
+GameCanvas.dataset.build = '20260816-ob95';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);

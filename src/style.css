@@ -76,8 +76,12 @@ button[aria-disabled='true'] {
   cursor: grabbing;
 }
 
+#GameCanvas.is-walk-ready {
+  cursor: move;
+}
+
 #GameCanvas.is-walking {
-  cursor: ew-resize;
+  cursor: move;
 }
 
 #GameCanvas.is-scouting {

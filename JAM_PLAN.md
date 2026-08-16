@@ -922,10 +922,6 @@ gold ghost names the next closing edge. Command lock stays the exposed finale gi
 arrival arms a once-per-run recapture Destroy. Extra Break remains deferred. `breaker-reach-6`
 is unchanged.
 
-Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
-stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
-receding, not a level-up. Pursuit still advances on resolved flights only.
-
 Checkpoint 12 — 15 August 2026: aiming frames the live neighbourhood instead of crushing it into
 the dark outer Reach. Fog lifts, stars brighten, pinch and zoom buttons work while aiming, and
 zoom now runs from a close world to the whole authored sector. Extra solar systems stay out of
@@ -936,6 +932,16 @@ fixtures into full Warden-loop campaigns. Breaker's Reach continues to Shatterbe
 continues to Verdant Caravan; Caravan stays terminal. Long Night and Worldheart remain query-only.
 Each new sector keeps its authored geometry, Sentinel / Pollen Moon toys, occupation scars, two
 gold circuits, hostile Destroy and a moving Command World. No new image assets.
+
+Checkpoint 14 — 16 August 2026: globe walking is slow, split from launch, and names the
+neighbour this face looks toward. Drag the globe to walk; pull the ship to aim. Pointer
+steps along the great circle at 0.7 rad/s instead of snapping to the finger. Keyboard
+steps are 2°. The coach reports facing or far-side. No surface pickups. Physics identity
+unchanged.
+
+Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
+stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
+receding, not a level-up. Pursuit still advances on resolved flights only.
 
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond the three authored Warden sectors or cross an external-action approval boundary.
 

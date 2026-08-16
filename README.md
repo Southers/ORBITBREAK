@@ -43,7 +43,7 @@ Optional: `npm run test:boot` loads the playable shell in headless Chromium, and
 ## Current development controls
 
 - Drag the ship to aim and release away from it to launch. Drag back onto the ship, or press `Escape`, to cancel without spending the flight.
-- Drag the current world's disk (not the ship) to walk the circumference; `Q`/`E` remain the keyboard walk.
+- Drag the current globe (not the ship) to walk; `Q`/`E` walk around and `R`/`F` walk over the poles. The face you stand on looks toward a neighbour for launch.
 - Drag empty space to pan. Pinch or mouse wheel to zoom. Plus/minus keys and the on-screen zoom buttons still work. `C` snaps the camera back to the Runner.
 - Press `G` or tap Ghost to show or hide the verified local personal-best route while scouting or flying.
 - During flight, drag from the ship to **break** your line in any direction, then release to fire. Tap Break or press `Space` to break along heading.

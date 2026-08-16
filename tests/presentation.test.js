@@ -49,6 +49,7 @@ import {
   getFlightCameraScale,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
+  getLaunchFacingPresentation,
   getLoopObjectivePresentation,
   getHiddenWardenRouteCoach,
   getPursuitRouteCoach,
@@ -692,6 +693,42 @@ test('world landing aim copy names a new destination without calling it imprison
   assert.equal(getWorldLandingAimLabel('Ember', true), 'Ember TARGET');
   assert.equal(getWorldLandingAimLabel('Ember', false), 'SAFE LANDING');
   assert.throws(() => getWorldLandingAimLabel(' ', true), /requires a destination/);
+});
+
+test('the launch face names the neighbour this longitude looks toward', () => {
+  const Facing = getLaunchFacingPresentation({
+    originX: 0,
+    originY: 0,
+    longitude: 0,
+    candidates: [
+      { id: 'ember', label: 'Ember', x: 8, y: 0 },
+      { id: 'grove', label: 'Grove', x: -8, y: 0 },
+    ],
+  });
+  assert.equal(Facing.worldId, 'ember');
+  assert.equal(Facing.isFacing, true);
+  const FarSide = getLaunchFacingPresentation({
+    originX: 0,
+    originY: 0,
+    longitude: Math.PI,
+    candidates: [
+      { id: 'ember', label: 'Ember', x: 8, y: 0 },
+      { id: 'grove', label: 'Grove', x: -8, y: 0 },
+    ],
+  });
+  assert.equal(FarSide.worldId, 'grove');
+  assert.equal(FarSide.isFacing, true);
+  assert.deepEqual(getLaunchFacingPresentation({
+    originX: 0,
+    originY: 0,
+    longitude: 0,
+    candidates: [],
+  }), {
+    worldId: null,
+    label: '',
+    alignment: 0,
+    isFacing: false,
+  });
 });
 
 test('slingshot preview names a chain only after two distinct wells', () => {

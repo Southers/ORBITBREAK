@@ -13,9 +13,11 @@ import {
   getPinchZoomScale,
   getPointerClientDistance,
   getSurfacePoseFromPosition,
+  getSurfaceWalkArcLimit,
   intersectRaySphere,
   projectRayOntoSphere,
   shouldCancelAimedLaunch,
+  stepSurfacePoseToward,
 } from './controls.js';
 import {
   getHostileEncounterAngularDistance,
@@ -25,7 +27,7 @@ import {
   resolveHostileCut,
 } from './encounter.js';
 import { applyBreakerBurn, createOrbitTrapState, createVector, predictTrajectory } from './physics.js';
-import { shouldAssistCommandLock } from './presentation.js';
+import { getLaunchFacingPresentation, shouldAssistCommandLock } from './presentation.js';
 import { recordReplayBurn, recordReplayLaunch } from './replay.js';
 import { releaseRunLaunch } from './run.js';
 
@@ -116,6 +118,7 @@ export function createInputController(THREE, host) {
   const PointerFallbackPlane = new THREE.Plane();
   const PointerFallbackNormal = new THREE.Vector3();
   const PointerFallbackPoint = new THREE.Vector3();
+  let LastSurfaceWalkAtSeconds = 0;
 
 /**
  * Converts pointer coordinates into world space. Planning and flight still hit
@@ -253,15 +256,74 @@ function getAttachedGlobeHit(RequireVisibleFace = false) {
   );
 }
 
+function consumeSurfaceWalkDeltaSeconds() {
+  const Now = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
+  let DeltaSeconds = Now - LastSurfaceWalkAtSeconds;
+  if (!(LastSurfaceWalkAtSeconds > 0) || DeltaSeconds > 0.2) {
+    DeltaSeconds = 1 / 60;
+  }
+  LastSurfaceWalkAtSeconds = Now;
+  return Math.min(0.05, Math.max(0, DeltaSeconds));
+}
+
+function showWalkFacingInstruction(AttachedWorld) {
+  if (!AttachedWorld || showHostileEncounterInstruction()) {
+    return;
+  }
+  const Pose = getRunnerSurfacePose(AttachedWorld);
+  const Facing = getLaunchFacingPresentation({
+    originX: AttachedWorld.position.x,
+    originY: AttachedWorld.position.y,
+    longitude: Pose.longitude,
+    candidates: getCurrentRouteChoices(2).map((WorldDefinition) => ({
+      id: WorldDefinition.id,
+      label: WorldDefinition.label,
+      x: WorldDefinition.position.x,
+      y: WorldDefinition.position.y,
+    })),
+  });
+  GameCanvas.dataset.facingWorld = Facing.worldId ?? '';
+  GameCanvas.dataset.facingAlignment = Facing.alignment.toFixed(2);
+  if (!Facing.label) {
+    showInstruction(
+      `Walking around ${AttachedWorld.label}`,
+      'Drag the globe to choose a launch face. Pull the ship to aim.',
+    );
+    return;
+  }
+  if (Facing.isFacing) {
+    showInstruction(
+      `This face looks toward ${Facing.label}`,
+      'Stay here for that launch. Drag the globe to change face. Pull the ship to aim.',
+    );
+    return;
+  }
+  showInstruction(
+    `Far side of ${Facing.label}`,
+    'Walk until this face looks at it. Over the poles is the short path. Pull the ship to aim.',
+  );
+}
+
 function walkRunnerToGlobeHit(Hit, InputKind = 'pointer') {
   const AttachedWorld = getCurrentAttachedWorld();
   if (!AttachedWorld || !Hit) {
     return false;
   }
-  return setRunnerSurfacePose(
-    getSurfacePoseFromPosition(AttachedWorld.position, Hit),
+  const CurrentPose = getRunnerSurfacePose(AttachedWorld);
+  const TargetPose = getSurfacePoseFromPosition(AttachedWorld.position, Hit);
+  const DidMove = setRunnerSurfacePose(
+    stepSurfacePoseToward(
+      CurrentPose,
+      TargetPose,
+      getSurfaceWalkArcLimit(consumeSurfaceWalkDeltaSeconds()),
+    ),
     InputKind,
   );
+  if (DidMove) {
+    host.RunnerWalkLifeSeconds = 0.34;
+    showWalkFacingInstruction(AttachedWorld);
+  }
+  return DidMove;
 }
 
 function rememberPointerLocation(PointerEventData) {
@@ -465,6 +527,16 @@ function handleKeyboardAimKey(KeyboardEventData) {
   ) {
     KeyboardEventData.preventDefault();
     setScoutMode(false);
+    if (KeyboardEventData.repeat === true) {
+      const StepRadians = (KeyboardEventData.shiftKey ? 1 : 2) * (Math.PI / 180);
+      if (getSurfaceWalkArcLimit(consumeSurfaceWalkDeltaSeconds()) < StepRadians * 0.8) {
+        return true;
+      }
+    } else {
+      LastSurfaceWalkAtSeconds = (
+        typeof performance !== 'undefined' ? performance.now() : Date.now()
+      ) / 1000;
+    }
     const DidMove = moveRunnerOnSurface({
       east: PressedKey === 'q' ? 1 : (PressedKey === 'e' ? -1 : 0),
       north: PressedKey === 'r' ? 1 : (PressedKey === 'f' ? -1 : 0),
@@ -474,10 +546,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
       host.RunnerWalkLifeSeconds = 0.34;
     }
     if (DidMove && !host.ActiveHostileEncounterState) {
-      showInstruction(
-        'Launch point moved',
-        'Q/E around · R/F over the poles · drag the globe · pull away or arrows aim · Enter launches.',
-      );
+      showWalkFacingInstruction(getCurrentAttachedWorld());
     }
     return DidMove;
   }
@@ -927,13 +996,9 @@ function beginSurfaceWalk() {
   host.PointerGestureMode = SurfaceGestureModes.walk;
   host.IsPointerWalking = true;
   GameCanvas.classList.add('is-walking');
+  LastSurfaceWalkAtSeconds = 0;
   const AttachedWorld = getCurrentAttachedWorld();
-  if (!showHostileEncounterInstruction()) {
-    showInstruction(
-      `Walking around ${AttachedWorld.label}`,
-      'The globe turns in 3D. Drag across it, including over the poles. Pull away from the ship to aim and build a relay.',
-    );
-  }
+  showWalkFacingInstruction(AttachedWorld);
 }
 
 /**
@@ -1001,8 +1066,8 @@ function handlePointerDown(PointerEventData) {
     PointerGestureStartWorldPosition.copy(CurrentPointerWorldPosition);
     LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
     showInstruction(
-      'Walk or launch',
-      'Drag across the globe to walk. Pull away to aim and build a relay. Release on the ship to cancel.',
+      'Pull to launch',
+      'Pull away from the ship to aim and build a relay. Drag the globe, not the ship, to walk.',
     );
     PointerEventData.preventDefault();
     return;
@@ -1011,6 +1076,7 @@ function handlePointerDown(PointerEventData) {
   if (isPointerOverAttachedWorld(CurrentPointerWorldPosition)) {
     setScoutMode(false);
     beginSurfaceWalk();
+    walkRunnerToGlobeHit(getAttachedGlobeHit(false));
     PointerEventData.preventDefault();
     return;
   }
@@ -1043,6 +1109,20 @@ function handlePointerMove(PointerEventData) {
       && !host.IsOpeningBriefingActive
       && isPointerOverSeed(PointerEventData),
     );
+    if (
+      host.GamePhase === 'attached'
+      && host.ReplayPlaybackState === null
+      && !host.IsOpeningBriefingActive
+      && !isPointerOverSeed(PointerEventData)
+    ) {
+      const HoverWorldPosition = getPointerWorldPosition(PointerEventData);
+      GameCanvas.classList.toggle(
+        'is-walk-ready',
+        Boolean(HoverWorldPosition && isPointerOverAttachedWorld(HoverWorldPosition)),
+      );
+    } else {
+      GameCanvas.classList.remove('is-walk-ready');
+    }
   }
   if (PointerEventData.pointerId !== host.ActivePointerIdentifier) {
     return;
@@ -1084,10 +1164,7 @@ function handlePointerMove(PointerEventData) {
           y: CurrentPointerWorldPosition.y,
         },
       });
-      if (Classification === SurfaceGestureModes.walk) {
-        beginSurfaceWalk();
-        walkRunnerToGlobeHit(getAttachedGlobeHit(false));
-      } else if (Classification === SurfaceGestureModes.aim) {
+      if (Classification === SurfaceGestureModes.aim) {
         beginLaunchAim(CurrentPointerWorldPosition);
       }
     }
