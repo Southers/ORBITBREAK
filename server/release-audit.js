@@ -37,6 +37,8 @@ export function auditReleaseReadiness() {
   const LandingDirectorSource = readRepositoryFile('src/landing-director.js');
   const InputControllerSource = readRepositoryFile('src/input-controller.js');
   const CameraSource = readRepositoryFile('src/camera-controller.js');
+  const ScannerSource = readRepositoryFile('src/scanner.js');
+  const RoutePresentationSource = readRepositoryFile('src/route-presentation.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -207,9 +209,9 @@ export function auditReleaseReadiness() {
     /\.route-label,\s*\.tactical-label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.tactical-label\s*\{[^}]*font-size:\s*10px;[^}]*white-space:\s*nowrap;/s.test(StyleSheet)
       && /\.route-label\s*\{[^}]*white-space:\s*nowrap;/s.test(StyleSheet)
-      && MainSource.includes('separateRouteLabelsFromTacticalLabels(')
-      && MainSource.includes('separateOverlappingTacticalLabels(')
-      && MainSource.includes('getTacticalLabelHorizontalMargin(')
+      && RoutePresentationSource.includes('separateRouteLabelsFromTacticalLabels(')
+      && RoutePresentationSource.includes('separateOverlappingTacticalLabels(')
+      && RoutePresentationSource.includes('getTacticalLabelHorizontalMargin(')
       && MainSource.includes('TacticalLabelScreenPositions'),
     'Route and tactical labels must remain legible, single-line and collision-aware.',
   );
@@ -218,9 +220,9 @@ export function auditReleaseReadiness() {
       && /\.scanner-panel\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.counter__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.counter__label\s*\{[^}]*font-size:\s*10px;/s.test(StyleSheet)
-      && MainSource.includes('getScannerAccessibleLabel({')
-      && MainSource.includes('getPlayfieldLabelVerticalBounds({')
-      && MainSource.includes("ScannerPanelElement.setAttribute('aria-label', ScannerAccessibleLabel)"),
+      && ScannerSource.includes('getScannerAccessibleLabel({')
+      && RoutePresentationSource.includes('getPlayfieldLabelVerticalBounds({')
+      && ScannerSource.includes("ScannerPanelElement.setAttribute('aria-label', ScannerAccessibleLabel)"),
     'Navigation HUD labels must remain legible and the visual scanner must expose a semantic snapshot.',
   );
   requireCondition(
@@ -263,7 +265,7 @@ export function auditReleaseReadiness() {
     'Compact landscape must preserve a shallow fluid two-column instruction card.',
   );
   requireCondition(
-    MainSource.includes('getPlayfieldLabelVerticalBounds({')
+    RoutePresentationSource.includes('getPlayfieldLabelVerticalBounds({')
       && HudSource.includes('function refreshInstructionPanelBounds()')
       && MainSource.includes('updateRouteLabels(CachedInstructionPanelTop)')
       && PresentationSource.includes('if (wardenVisible && isShortLandscape) return 140;')
@@ -271,10 +273,10 @@ export function auditReleaseReadiness() {
     'Compact landscape labels must remain between the reflowed Warden and instruction HUD.',
   );
   requireCondition(
-    MainSource.includes('minimumGap: IsShortLandscape ? 160 : 76')
-      && MainSource.includes('horizontalClearance: IsShortLandscape ? 180 : 100')
-      && MainSource.includes('verticalClearance: IsShortLandscape ? 22 : 30')
-      && MainSource.includes('WorldheartDefinition.routeAvailable && !IsShortLandscape'),
+    RoutePresentationSource.includes('minimumGap: IsShortLandscape ? 160 : 76')
+      && RoutePresentationSource.includes('horizontalClearance: IsShortLandscape ? 180 : 100')
+      && RoutePresentationSource.includes('verticalClearance: IsShortLandscape ? 22 : 30')
+      && RoutePresentationSource.includes('WorldheartDefinition.routeAvailable && !IsShortLandscape'),
     'Short-landscape Command exposure must separate choices and omit its duplicate tactical chip.',
   );
   requireCondition(
@@ -372,7 +374,7 @@ export function auditReleaseReadiness() {
       ?.openingBody.includes('They are still out there')
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
         ?.openingBody.includes('Carry the first word')
-      && MainSource.includes('getHiddenWardenRouteCoach(')
+      && RoutePresentationSource.includes('getHiddenWardenRouteCoach(')
       && HudSource.includes('getLoopObjectivePresentation(')
       && /id="ObjectiveLabel"[^>]*>NEIGHBOURHOOD</.test(IndexHtml)
       && PresentationSource.includes('export function getRelayRevealLookTarget(')

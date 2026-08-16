@@ -35,6 +35,8 @@ import { createLandingDirector } from './landing-director.js?v=20260815-ob90';
 import { createCameraController } from './camera-controller.js?v=20260815-ob90';
 import { createInputController } from './input-controller.js?v=20260815-ob90';
 import { createHostileSurface } from './hostile-surface.js?v=20260815-ob90';
+import { createScanner } from './scanner.js?v=20260815-ob90';
+import { createRoutePresentation } from './route-presentation.js?v=20260815-ob90';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -95,7 +97,6 @@ import {
   listProtectedRelayWorlds,
   listRelayCircuits,
   listRelayLinks,
-  wouldCloseRelayCircuit,
 } from './network.js?v=20260815-ob87';
 import {
   WardenPursuitEvents,
@@ -109,7 +110,6 @@ import {
 import {
   getExtractionFreighterTravelProgress,
   getCourierDockWorldRole,
-  getHiddenWardenRouteCoach,
   getInhabitantSilhouette,
   getLiberationFlashOpacity,
   getLeaderboardActionLabel,
@@ -118,7 +118,6 @@ import {
   getTriggeredCampaignStoryBoardIds,
   isCampaignStoryBoardReadyToPresent,
   getPersonalBestStatus,
-  getPlayfieldLabelVerticalBounds,
   getProsperityBuildingKind,
   getProsperityBuildingProfile,
   getProsperityPresence,
@@ -137,7 +136,6 @@ import {
   getRunnerAnimationState,
   getRunnerForm,
   getRunnerPose,
-  getScannerAccessibleLabel,
   getSlingshotBandVisualState,
   getSlingshotPreviewPresentation,
   getStillnessPresentation,
@@ -149,11 +147,7 @@ import {
   getWorldLifeAudioMix,
   getStoryMusicStage,
   getWorldLifeStage,
-  getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
-  separateOverlappingRouteLabels,
-  separateOverlappingTacticalLabels,
-  separateRouteLabelsFromTacticalLabels,
 } from './presentation.js?v=20260815-ob88';
 import {
   PhysicsModelVersion,
@@ -539,11 +533,28 @@ let WardenPursuitState = createWardenPursuitState();
 let ActiveHostileEncounterState = null;
 const CompletedHostileEncounterWorldIdentifiers = new Set();
 const WorldseedSound = new WorldseedAudio();
-const ScannerWorldElements = new Map();
-let ScannerHazardElement = null;
-let ScannerCommandElement = null;
-let ScannerProjection = null;
-let LastScannerAccessibleLabel = '';
+const Scanner = createScanner({
+  GameCanvas,
+  ScannerPanelElement,
+  ScannerBodyLayerElement,
+  ScannerRunnerElement,
+  ActiveSystem,
+  WorldDefinitions,
+  WorldheartDefinition,
+  AsteroidDefinition,
+  getWorldDefinition,
+  get SeedPhysicsState() { return SeedPhysicsState; },
+  get PhysicsElapsedTimeSeconds() { return PhysicsElapsedTimeSeconds; },
+  get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
+  get GamePhase() { return GamePhase; },
+  get WardenPursuitState() { return WardenPursuitState; },
+  get RelayNetworkState() { return RelayNetworkState; },
+});
+const {
+  projectScannerPosition,
+  configureScannerInterface,
+  updateScannerInterface,
+} = Scanner;
 configureScannerInterface();
 
 const WorldRuntimeByIdentifier = new Map();
@@ -621,130 +632,6 @@ function configureSystemInterface() {
   ];
 }
 
-function projectScannerPosition(Position) {
-  const NormalizedX = (Position.x - ScannerProjection.minimumX) / ScannerProjection.width;
-  const NormalizedY = (Position.y - ScannerProjection.minimumY) / ScannerProjection.height;
-  return {
-    x: 8 + (NormalizedX * 144),
-    y: 82 - (NormalizedY * 74),
-  };
-}
-
-/** Builds a compact spatial map only for systems that intentionally span several views. */
-function configureScannerInterface() {
-  const UsesExplorationCamera = ActiveSystem.camera?.followPlayer === true;
-  ScannerPanelElement.hidden = !UsesExplorationCamera;
-  GameCanvas.dataset.scannerAvailable = String(UsesExplorationCamera);
-  if (!UsesExplorationCamera) {
-    return;
-  }
-
-  const BoundsPositions = [
-    ...WorldDefinitions.map((WorldDefinition) => WorldDefinition.position),
-    WorldheartDefinition.position,
-  ];
-  if (AsteroidDefinition.orbit) {
-    const Orbit = AsteroidDefinition.orbit;
-    BoundsPositions.push(
-      { x: Orbit.centre.x - Orbit.radius, y: Orbit.centre.y - Orbit.radius },
-      { x: Orbit.centre.x + Orbit.radius, y: Orbit.centre.y + Orbit.radius },
-    );
-  }
-  if (WorldheartDefinition.orbit) {
-    const Orbit = WorldheartDefinition.orbit;
-    BoundsPositions.push(
-      { x: Orbit.centre.x - Orbit.radius, y: Orbit.centre.y - Orbit.radius },
-      { x: Orbit.centre.x + Orbit.radius, y: Orbit.centre.y + Orbit.radius },
-    );
-  }
-  const Margin = 4;
-  const MinimumX = Math.min(...BoundsPositions.map((Position) => Position.x)) - Margin;
-  const MaximumX = Math.max(...BoundsPositions.map((Position) => Position.x)) + Margin;
-  const MinimumY = Math.min(...BoundsPositions.map((Position) => Position.y)) - Margin;
-  const MaximumY = Math.max(...BoundsPositions.map((Position) => Position.y)) + Margin;
-  ScannerProjection = {
-    minimumX: MinimumX,
-    minimumY: MinimumY,
-    width: MaximumX - MinimumX,
-    height: MaximumY - MinimumY,
-  };
-
-  const SvgNamespace = 'http://www.w3.org/2000/svg';
-  ScannerBodyLayerElement.replaceChildren();
-  ScannerWorldElements.clear();
-  for (const WorldDefinition of WorldDefinitions) {
-    const Marker = document.createElementNS(SvgNamespace, 'circle');
-    const MarkerPosition = projectScannerPosition(WorldDefinition.position);
-    Marker.setAttribute('cx', String(MarkerPosition.x));
-    Marker.setAttribute('cy', String(MarkerPosition.y));
-    Marker.setAttribute('r', String(Math.max(2.2, WorldDefinition.radius * 0.85)));
-    Marker.classList.add('scanner-world');
-    Marker.dataset.bodyIdentifier = WorldDefinition.id;
-    ScannerBodyLayerElement.append(Marker);
-    ScannerWorldElements.set(WorldDefinition.id, Marker);
-  }
-
-  const CommandMarker = document.createElementNS(SvgNamespace, 'circle');
-  const CommandPosition = projectScannerPosition(WorldheartDefinition.position);
-  CommandMarker.setAttribute('cx', String(CommandPosition.x));
-  CommandMarker.setAttribute('cy', String(CommandPosition.y));
-  CommandMarker.setAttribute('r', '4');
-  CommandMarker.classList.add('scanner-command');
-  ScannerBodyLayerElement.append(CommandMarker);
-  ScannerCommandElement = CommandMarker;
-
-  ScannerHazardElement = document.createElementNS(SvgNamespace, 'circle');
-  ScannerHazardElement.setAttribute('r', '2');
-  ScannerHazardElement.classList.add('scanner-hazard');
-  ScannerBodyLayerElement.append(ScannerHazardElement);
-}
-
-function updateScannerInterface() {
-  if (!ScannerProjection) {
-    return;
-  }
-  const RunnerPosition = projectScannerPosition(SeedPhysicsState.position);
-  ScannerRunnerElement.setAttribute('cx', String(RunnerPosition.x));
-  ScannerRunnerElement.setAttribute('cy', String(RunnerPosition.y));
-  for (const WorldDefinition of WorldDefinitions) {
-    ScannerWorldElements.get(WorldDefinition.id)?.classList.toggle(
-      'is-restored',
-      WorldDefinition.restored,
-    );
-  }
-  const HazardPosition = projectScannerPosition(calculateBodyPositionAtTime(
-    AsteroidDefinition,
-    PhysicsElapsedTimeSeconds,
-  ));
-  ScannerHazardElement.setAttribute('cx', String(HazardPosition.x));
-  ScannerHazardElement.setAttribute('cy', String(HazardPosition.y));
-  const CommandPosition = projectScannerPosition(WorldheartDefinition.position);
-  ScannerCommandElement?.setAttribute('cx', String(CommandPosition.x));
-  ScannerCommandElement?.setAttribute('cy', String(CommandPosition.y));
-  const CurrentWorld = getWorldDefinition(CurrentWorldIdentifier);
-  const PublishedWardenState = getPublishedWardenState(
-    WardenPursuitState.status,
-    WorldheartDefinition.restored,
-  );
-  const WardenTarget = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
-  const ScannerAccessibleLabel = getScannerAccessibleLabel({
-    runnerLocation: GamePhase === 'flying'
-      ? 'in flight'
-      : `at ${CurrentWorld?.label ?? 'an unknown world'}`,
-    activeWorldCount: countLiveRelayWorlds(RelayNetworkState),
-    worldCount: WorldDefinitions.length,
-    wardenStatus: PublishedWardenState.status,
-    wardenDistance: WardenPursuitState.distance,
-    wardenTargetLabel: WardenTarget?.label ?? '',
-  });
-  if (ScannerAccessibleLabel !== LastScannerAccessibleLabel) {
-    ScannerPanelElement.setAttribute('aria-label', ScannerAccessibleLabel);
-    LastScannerAccessibleLabel = ScannerAccessibleLabel;
-  }
-  GameCanvas.dataset.scannerRunnerX = RunnerPosition.x.toFixed(1);
-  GameCanvas.dataset.scannerRunnerY = RunnerPosition.y.toFixed(1);
-}
-
 const EnvironmentLights = addEnvironment(THREE, Scene, ActiveSystem.environment);
 const KeyLight = EnvironmentLights.keyLight;
 
@@ -804,7 +691,7 @@ const WardenVisuals = createWardenVisuals(THREE, Scene, {
   getWorldDefinition,
   projectScannerPosition,
   ScannerWardenElement,
-  get ScannerProjection() { return ScannerProjection; },
+  get ScannerProjection() { return Scanner.ScannerProjection; },
   get PrefersReducedMotion() { return PrefersReducedMotion; },
   get WardenPursuitState() { return WardenPursuitState; },
   get GameElapsedTimeSeconds() { return GameElapsedTimeSeconds; },
@@ -1479,434 +1366,55 @@ function synchronizeWorldheartPosition() {
   return WorldheartDefinition.position;
 }
 
-/** Returns the collision bodies that are active at the current campaign state. */
-function getActiveTacticalBodyDefinitions() {
-  return TacticalBodyDefinitions.filter((BodyDefinition) => (
-    BodyDefinition.kind === 'hazard'
-    || (BodyDefinition.kind === 'seedstone' && SeedstoneUsesRemaining > 0)
-    || (BodyDefinition.kind === 'worldheart' && WorldheartDefinition.routeAvailable)
-  ));
-}
+const RoutePresentation = createRoutePresentation(THREE, {
+  Camera,
+  WardenPanelElement,
+  StatusToastElement,
+  RouteLabelElements,
+  TacticalLabelElements,
+  TacticalLabelScreenPositions,
+  RouteLabelProjection,
+  TargetBeaconMesh,
+  TargetBeaconMaterial,
+  TargetBeaconTransform,
+  TacticalBodyMesh,
+  TacticalBodyTransform,
+  AsteroidOrbitLine,
+  AsteroidOrbitMaterial,
+  SeedstoneOrbitLine,
+  SeedstoneOrbitMaterial,
+  WorldheartOpenColor,
+  WorldheartLockedColor,
+  SeedstoneDefinition,
+  AsteroidDefinition,
+  WorldheartDefinition,
+  WorldDefinitions,
+  CampaignNodeDefinitions,
+  TacticalBodyDefinitions,
+  ActiveSystem,
+  showInstruction,
+  isLiveInnerCluster,
+  getWorldDefinition,
+  synchronizeSeedstonePosition,
+  synchronizeWorldheartPosition,
+  get GamePhase() { return GamePhase; },
+  get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
+  get SeedstoneUsesRemaining() { return SeedstoneUsesRemaining; },
+  get SeedstoneCrumbleStartedAtSeconds() { return SeedstoneCrumbleStartedAtSeconds; },
+  get PhysicsElapsedTimeSeconds() { return PhysicsElapsedTimeSeconds; },
+  get WardenPursuitState() { return WardenPursuitState; },
+  get RelayNetworkState() { return RelayNetworkState; },
+});
+const {
+  getActiveTacticalBodyDefinitions,
+  getCurrentRouteChoices,
+  showRouteChoiceInstruction,
+  updateTargetBeacons,
+  updateRouteLabels,
+  updateTacticalBodies,
+} = RoutePresentation;
 
-/** Applies authored route emphasis while leaving every physical destination valid. */
-function getCurrentRouteChoices(MaximumChoiceCount = 2) {
-  const ExpansionChoices = getRouteChoices(
-    CampaignNodeDefinitions,
-    CurrentWorldIdentifier,
-    MaximumChoiceCount,
-    ActiveSystem.routeSuggestions[CurrentWorldIdentifier] ?? [],
-  );
-  if (
-    WorldheartDefinition.routeAvailable
-    && !WorldheartDefinition.restored
-    && CurrentWorldIdentifier !== WorldheartDefinition.id
-  ) {
-    return [
-      WorldheartDefinition,
-      ...ExpansionChoices.filter((Choice) => Choice.id !== WorldheartDefinition.id),
-    ].slice(0, MaximumChoiceCount);
-  }
-  if (WardenPursuitState.status === 'hidden') {
-    return ExpansionChoices;
-  }
-  const CircuitChoices = WorldDefinitions
-    .filter((WorldDefinition) => (
-      WorldDefinition.id !== CurrentWorldIdentifier
-      && WorldDefinition.restored
-      && wouldCloseRelayCircuit(
-        RelayNetworkState,
-        CurrentWorldIdentifier,
-        WorldDefinition.id,
-      )
-    ))
-    .sort((FirstWorld, SecondWorld) => {
-      const CurrentWorld = getWorldDefinition(CurrentWorldIdentifier);
-      const FirstDistance = Math.hypot(
-        FirstWorld.position.x - CurrentWorld.position.x,
-        FirstWorld.position.y - CurrentWorld.position.y,
-      );
-      const SecondDistance = Math.hypot(
-        SecondWorld.position.x - CurrentWorld.position.x,
-        SecondWorld.position.y - CurrentWorld.position.y,
-      );
-      return FirstDistance - SecondDistance || FirstWorld.id.localeCompare(SecondWorld.id);
-    });
-  return [...CircuitChoices, ...ExpansionChoices]
-    .filter((Choice, ChoiceIndex, Choices) => (
-      Choices.findIndex((Candidate) => Candidate.id === Choice.id) === ChoiceIndex
-    ))
-    .slice(0, MaximumChoiceCount);
-}
 
-/** Reveals the nearest useful routes while leaving every physical destination valid. */
-function showRouteChoiceInstruction() {
-  if (WardenPursuitState.status === 'hidden') {
-    const RouteChoices = getCurrentRouteChoices(2);
-    const Coach = getHiddenWardenRouteCoach({
-      liveRelayCount: countLiveRelayWorlds(RelayNetworkState),
-      routeLabels: RouteChoices.map((RouteChoice) => RouteChoice.label),
-      openingBody: ActiveSystem.openingBody,
-      rangeUnlockLine: ActiveSystem.rangeUnlockLine,
-      innerClusterLive: isLiveInnerCluster(),
-    });
-    showInstruction(Coach.title, Coach.body);
-    return;
-  }
-  const RouteChoices = getCurrentRouteChoices(2);
-  const CircuitChoice = RouteChoices.find((RouteChoice) => (
-    wouldCloseRelayCircuit(
-      RelayNetworkState,
-      CurrentWorldIdentifier,
-      RouteChoice.id,
-    )
-  ));
-  if (CircuitChoice) {
-    const ExpansionChoice = RouteChoices.find((RouteChoice) => RouteChoice !== CircuitChoice);
-    const AlternateCircuitChoice = ExpansionChoice && wouldCloseRelayCircuit(
-      RelayNetworkState,
-      CurrentWorldIdentifier,
-      ExpansionChoice.id,
-    )
-      ? ExpansionChoice
-      : null;
-    const AuthoredGuidance = ActiveSystem.routeGuidance?.[CurrentWorldIdentifier]?.[
-      CircuitChoice.id
-    ];
-    showInstruction(
-      AlternateCircuitChoice
-        ? `Close via ${CircuitChoice.label} or ${AlternateCircuitChoice.label}`
-        : ExpansionChoice
-        ? `Reinforce ${CircuitChoice.label} or expand to ${ExpansionChoice.label}`
-        : `Reinforce the route to ${CircuitChoice.label}`,
-      AuthoredGuidance
-        ?? 'Close the gold relay loop to protect its worlds and push the Warden back.',
-    );
-    return;
-  }
-  const HasWorldheartChoice = RouteChoices.some(
-    (RouteChoice) => RouteChoice.id === WorldheartDefinition.id,
-  );
-  if (HasWorldheartChoice) {
-    showInstruction(
-      'The COMMAND WORLD route is open',
-      isSystemRestored(WorldDefinitions)
-        ? 'Every world is free. Guide the Runner into the golden command core.'
-        : 'Bank the run now, or liberate the final world first.',
-    );
-    return;
-  }
-  if (RouteChoices.length === 0) {
-    showInstruction(
-      `The ${ActiveSystem.label} network is awake`,
-      'Find the golden Command World route.',
-    );
-    return;
-  }
-
-  if (RouteChoices.length === 1) {
-    showInstruction(
-      RouteChoices[0].label + ' remains',
-      'Use the bright path to find your final landing.',
-    );
-    return;
-  }
-
-  showInstruction(
-    'Choose ' + RouteChoices[0].label + ' or ' + RouteChoices[1].label,
-    'Gold rings suggest routes — every landing becomes your next launch point.',
-  );
-}
-
-/** Updates the two suggested destination rings as a single draw call. */
-function updateTargetBeacons(ElapsedTimeSeconds) {
-  const ShouldShowChoices = GamePhase === 'attached';
-  const RouteChoices = ShouldShowChoices
-    ? getCurrentRouteChoices(2)
-    : [];
-  const PulseScale = 1 + (Math.sin(ElapsedTimeSeconds * 3.4) * 0.025);
-
-  TargetBeaconMesh.count = RouteChoices.length;
-  TargetBeaconMesh.visible = RouteChoices.length > 0;
-  TargetBeaconMaterial.opacity = 0.13 + (Math.sin(ElapsedTimeSeconds * 3.4) * 0.055);
-
-  for (let ChoiceIndex = 0; ChoiceIndex < RouteChoices.length; ChoiceIndex += 1) {
-    const WorldDefinition = RouteChoices[ChoiceIndex];
-    const RingRadius = (WorldDefinition.radius + 0.55) * PulseScale;
-    TargetBeaconTransform.position.set(
-      WorldDefinition.position.x,
-      WorldDefinition.position.y,
-      0.08,
-    );
-    TargetBeaconTransform.rotation.set(0, 0, (
-      (-ElapsedTimeSeconds * 0.35) + (ChoiceIndex * Math.PI * 0.18)
-    ));
-    TargetBeaconTransform.scale.setScalar(RingRadius);
-    TargetBeaconTransform.updateMatrix();
-    TargetBeaconMesh.setMatrixAt(ChoiceIndex, TargetBeaconTransform.matrix);
-  }
-  TargetBeaconMesh.instanceMatrix.needsUpdate = RouteChoices.length > 0;
-}
-
-/** Projects suggested world names into the HUD without spending WebGL draw calls. */
-function updateRouteLabels(InstructionTop) {
-  const RouteChoices = GamePhase === 'attached'
-    ? getCurrentRouteChoices(RouteLabelElements.length)
-    : [];
-  const IsCompactLayout = window.innerWidth <= 640;
-  const IsShortLandscape = window.innerWidth >= window.innerHeight
-    && window.innerHeight <= 520;
-  const HorizontalMargin = IsCompactLayout ? 48 : 58;
-  const LabelVerticalBounds = getPlayfieldLabelVerticalBounds({
-    viewportHeight: window.innerHeight,
-    instructionTop: InstructionTop,
-    isCompact: IsCompactLayout,
-    isShortLandscape: IsShortLandscape,
-    wardenVisible: !WardenPanelElement.hidden,
-    isTactical: false,
-  });
-  const LabelPositions = [];
-
-  for (let LabelIndex = 0; LabelIndex < RouteLabelElements.length; LabelIndex += 1) {
-    const RouteLabelElement = RouteLabelElements[LabelIndex];
-    const WorldDefinition = RouteChoices[LabelIndex];
-    if (!WorldDefinition) {
-      RouteLabelElement.textContent = '';
-      continue;
-    }
-
-    RouteLabelProjection.set(
-      WorldDefinition.position.x,
-      WorldDefinition.position.y + WorldDefinition.radius + 0.72,
-      0,
-    ).project(Camera);
-    const IsOffscreen = Math.abs(RouteLabelProjection.x) > 0.92
-      || Math.abs(RouteLabelProjection.y) > 0.86;
-    let DirectionPrefix = '';
-    if (IsOffscreen) {
-      DirectionPrefix = Math.abs(RouteLabelProjection.x) > Math.abs(RouteLabelProjection.y)
-        ? (RouteLabelProjection.x > 0 ? '→ ' : '← ')
-        : (RouteLabelProjection.y > 0 ? '↑ ' : '↓ ');
-    }
-    RouteLabelElement.textContent = DirectionPrefix + WorldDefinition.label;
-    LabelPositions.push({
-      x: Math.round(
-        THREE.MathUtils.clamp(
-          (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth,
-          HorizontalMargin,
-          window.innerWidth - HorizontalMargin,
-        ),
-      ),
-      y: Math.round(THREE.MathUtils.clamp(
-        (-RouteLabelProjection.y * 0.5 + 0.5) * window.innerHeight,
-        LabelVerticalBounds.minimumY,
-        LabelVerticalBounds.maximumY,
-      )),
-    });
-  }
-
-  const RouteHorizontalMargin = IsShortLandscape ? 80 : HorizontalMargin;
-  const ResolvedLabelPositions = separateOverlappingRouteLabels(LabelPositions, {
-    minimumGap: IsShortLandscape ? 160 : 76,
-    minimumX: RouteHorizontalMargin,
-    maximumX: window.innerWidth - RouteHorizontalMargin,
-  });
-  const ClearedLabelPositions = separateRouteLabelsFromTacticalLabels(
-    ResolvedLabelPositions,
-    TacticalLabelScreenPositions,
-    {
-      horizontalClearance: IsShortLandscape ? 180 : 100,
-      verticalClearance: IsShortLandscape ? 22 : 30,
-      minimumY: LabelVerticalBounds.minimumY,
-      maximumY: LabelVerticalBounds.maximumY,
-    },
-  );
-  for (let LabelIndex = 0; LabelIndex < ClearedLabelPositions.length; LabelIndex += 1) {
-    RouteLabelElements[LabelIndex].style.left = `${ClearedLabelPositions[LabelIndex].x}px`;
-    RouteLabelElements[LabelIndex].style.top = `${ClearedLabelPositions[LabelIndex].y}px`;
-  }
-}
-
-/** Updates deterministic tactical-body transforms and their world-space HUD labels. */
-function updateTacticalBodies(ElapsedTimeSeconds, InstructionTop) {
-  const ShouldShowTacticalLayer = ![
-    'restoring',
-    'victoryPending',
-    'victory',
-  ].includes(GamePhase);
-  const AsteroidPosition = calculateBodyPositionAtTime(
-    AsteroidDefinition,
-    PhysicsElapsedTimeSeconds,
-  );
-  const SeedstonePosition = synchronizeSeedstonePosition();
-  const WorldheartPosition = synchronizeWorldheartPosition();
-  const SeedstoneScale = SeedstoneUsesRemaining > 0
-    ? 1 + (Math.sin(ElapsedTimeSeconds * 4.4) * 0.045)
-    : Math.max(
-      0,
-      1 - ((ElapsedTimeSeconds - (SeedstoneCrumbleStartedAtSeconds ?? 0)) / 0.55),
-    );
-
-  TacticalBodyTransform.position.set(
-    SeedstonePosition.x,
-    SeedstonePosition.y,
-    0.08,
-  );
-  TacticalBodyTransform.rotation.set(
-    ElapsedTimeSeconds * 0.18,
-    ElapsedTimeSeconds * 0.31,
-    ElapsedTimeSeconds * 0.12,
-  );
-  TacticalBodyTransform.scale.setScalar(SeedstoneScale);
-  TacticalBodyTransform.updateMatrix();
-  TacticalBodyMesh.setMatrixAt(0, TacticalBodyTransform.matrix);
-
-  TacticalBodyTransform.position.set(AsteroidPosition.x, AsteroidPosition.y, 0.1);
-  TacticalBodyTransform.rotation.set(
-    ElapsedTimeSeconds * 0.72,
-    ElapsedTimeSeconds * 0.94,
-    ElapsedTimeSeconds * 0.48,
-  );
-  TacticalBodyTransform.scale.setScalar(AsteroidDefinition.radius / SeedstoneDefinition.radius);
-  TacticalBodyTransform.updateMatrix();
-  TacticalBodyMesh.setMatrixAt(1, TacticalBodyTransform.matrix);
-
-  const WorldheartPulseScale = WorldheartDefinition.routeAvailable
-    ? 1 + (Math.sin(ElapsedTimeSeconds * 3.2) * 0.1)
-    : 0.36 + (Math.sin(ElapsedTimeSeconds * 1.4) * 0.018);
-  TacticalBodyTransform.position.set(
-    WorldheartPosition.x,
-    WorldheartPosition.y,
-    0.1,
-  );
-  TacticalBodyTransform.rotation.set(
-    ElapsedTimeSeconds * 0.42,
-    ElapsedTimeSeconds * 0.58,
-    ElapsedTimeSeconds * 0.35,
-  );
-  TacticalBodyTransform.scale.setScalar(
-    (WorldheartDefinition.radius / SeedstoneDefinition.radius) * WorldheartPulseScale,
-  );
-  TacticalBodyTransform.updateMatrix();
-  TacticalBodyMesh.setMatrixAt(2, TacticalBodyTransform.matrix);
-  TacticalBodyMesh.setColorAt(
-    2,
-    isLiveInnerCluster()
-      ? (WorldheartDefinition.routeAvailable ? WorldheartOpenColor : WorldheartLockedColor)
-      : WorldheartLockedColor,
-  );
-  TacticalBodyMesh.instanceMatrix.needsUpdate = true;
-  TacticalBodyMesh.instanceColor.needsUpdate = true;
-  TacticalBodyMesh.visible = ShouldShowTacticalLayer;
-  AsteroidOrbitLine.visible = ShouldShowTacticalLayer;
-  AsteroidOrbitMaterial.opacity = 0.14 + (Math.sin(ElapsedTimeSeconds * 1.8) * 0.035);
-  SeedstoneOrbitLine.visible = ShouldShowTacticalLayer && Boolean(SeedstoneDefinition.orbit);
-  SeedstoneOrbitMaterial.opacity = 0.11 + (Math.sin(ElapsedTimeSeconds * 1.5) * 0.025);
-
-  const IsCompactLayout = window.innerWidth <= 640;
-  const IsShortLandscape = window.innerWidth >= window.innerHeight
-    && window.innerHeight <= 520;
-  const TacticalLabelDefinitions = [
-    SeedstoneUsesRemaining > 0
-      ? {
-        definition: SeedstoneDefinition,
-        position: SeedstonePosition,
-        text: SeedstoneDefinition.orbit
-          ? window.innerWidth <= 520
-            ? `${SeedstoneDefinition.label} · 1 USE`
-            : `${SeedstoneDefinition.label} · MOVING · 1 USE`
-          : `${SeedstoneDefinition.label} · 1 USE`,
-      }
-      : null,
-    {
-      definition: AsteroidDefinition,
-      position: AsteroidPosition,
-      text: `${AsteroidDefinition.label} · MOVING`,
-    },
-    WorldheartDefinition.routeAvailable && !IsShortLandscape
-      ? {
-        definition: WorldheartDefinition,
-        position: WorldheartPosition,
-        text: WorldheartDefinition.orbit
-          ? `${WorldheartDefinition.label} · EXPOSED · MOVING`
-          : `${WorldheartDefinition.label} · EXPOSED`,
-      }
-      : null,
-  ];
-  TacticalLabelScreenPositions.length = 0;
-  const ProjectedTacticalLabelPositions = [];
-  const VisibleTacticalLabelElements = [];
-  for (let LabelIndex = 0; LabelIndex < TacticalLabelElements.length; LabelIndex += 1) {
-    const TacticalLabelElement = TacticalLabelElements[LabelIndex];
-    const TacticalLabelDefinition = TacticalLabelDefinitions[LabelIndex];
-    if (
-      !ShouldShowTacticalLayer
-      || !TacticalLabelDefinition
-      || GamePhase !== 'attached'
-      || StatusToastElement.classList.contains('is-visible')
-    ) {
-      TacticalLabelElement.textContent = '';
-      continue;
-    }
-
-    RouteLabelProjection.set(
-      TacticalLabelDefinition.position.x,
-      TacticalLabelDefinition.position.y + TacticalLabelDefinition.definition.radius + 0.55,
-      0,
-    ).project(Camera);
-    TacticalLabelElement.textContent = TacticalLabelDefinition.text;
-    const ProjectedLabelX = (
-      (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth
-    );
-    const HorizontalLabelMargin = getTacticalLabelHorizontalMargin(
-      TacticalLabelDefinition.text,
-    );
-    const ProjectedLabelLeft = Math.round(
-      THREE.MathUtils.clamp(
-        ProjectedLabelX,
-        HorizontalLabelMargin,
-        window.innerWidth - HorizontalLabelMargin,
-      ),
-    );
-    const ProjectedLabelTop = Math.round(
-      (-RouteLabelProjection.y * 0.5 + 0.5) * window.innerHeight,
-    );
-    ProjectedTacticalLabelPositions.push({
-      x: ProjectedLabelLeft,
-      y: ProjectedLabelTop,
-    });
-    VisibleTacticalLabelElements.push(TacticalLabelElement);
-  }
-  const LabelVerticalBounds = getPlayfieldLabelVerticalBounds({
-    viewportHeight: window.innerHeight,
-    instructionTop: InstructionTop,
-    isCompact: IsCompactLayout,
-    isShortLandscape: IsShortLandscape,
-    wardenVisible: !WardenPanelElement.hidden,
-    isTactical: true,
-  });
-  const ResolvedTacticalLabelPositions = separateOverlappingTacticalLabels(
-    ProjectedTacticalLabelPositions,
-    {
-      horizontalClearance: 160,
-      verticalClearance: 28,
-      minimumY: LabelVerticalBounds.minimumY,
-      maximumY: LabelVerticalBounds.maximumY,
-    },
-  );
-  TacticalLabelScreenPositions.push(...ResolvedTacticalLabelPositions);
-  for (
-    let LabelIndex = 0;
-    LabelIndex < ResolvedTacticalLabelPositions.length;
-    LabelIndex += 1
-  ) {
-    VisibleTacticalLabelElements[LabelIndex].style.left = (
-      `${ResolvedTacticalLabelPositions[LabelIndex].x}px`
-    );
-    VisibleTacticalLabelElements[LabelIndex].style.top = (
-      `${ResolvedTacticalLabelPositions[LabelIndex].y}px`
-    );
-  }
-}
 
 
 
@@ -3066,7 +2574,7 @@ const InputController = createInputController(THREE, {
   set RunnerWalkLifeSeconds(Value) { RunnerWalkLifeSeconds = Value; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
   get AimInteractionCamera() { return AimInteractionCamera; },
-  get ScannerProjection() { return ScannerProjection; },
+  get ScannerProjection() { return Scanner.ScannerProjection; },
   get PhysicsElapsedTimeSeconds() { return PhysicsElapsedTimeSeconds; },
   get WardenPursuitState() { return WardenPursuitState; },
 });
