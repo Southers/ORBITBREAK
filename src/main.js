@@ -42,6 +42,10 @@ import { createRoutePresentation } from './route-presentation.js?v=20260815-ob90
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
 import { createFrameVisuals } from './frame-visuals.js?v=20260816-ob93';
 import { createRestorationVisuals } from './restoration-visuals.js?v=20260816-ob92';
+import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
+import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
+import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=0.179.1';
+import { OutputPass } from '../vendor/postprocessing/OutputPass.js?v=0.179.1';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -388,6 +392,30 @@ Renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const Camera = new THREE.PerspectiveCamera(42, 1, 0.1, 480);
 Camera.position.set(0, 0, 42);
 Camera.lookAt(0, 0, 0);
+
+/**
+ * Post pipeline: bright emissive work (relays, the liberation wave, trajectory
+ * light, town windows, the Warden) blooms so everything the player connects
+ * visibly glows against the dark sector. Devices that fall to the degraded
+ * presentation tier render directly without the composer.
+ */
+const Composer = new EffectComposer(Renderer);
+const ScenePass = new RenderPass(Scene, Camera);
+const BloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5, 0.55, 0.82);
+const CompositeOutputPass = new OutputPass();
+Composer.addPass(ScenePass);
+Composer.addPass(BloomPass);
+Composer.addPass(CompositeOutputPass);
+let IsBloomPipelineEnabled = true;
+
+/** Renders through the bloom composer unless the adaptive tier disabled it. */
+function renderScene() {
+  if (IsBloomPipelineEnabled) {
+    Composer.render();
+  } else {
+    Renderer.render(Scene, Camera);
+  }
+}
 
 const Clock = new THREE.Clock();
 const PointerRaycaster = new THREE.Raycaster();
@@ -2845,6 +2873,7 @@ function resizeRenderer() {
   AdaptivePixelRatioCap = Math.min(AdaptivePixelRatioCap, DevicePixelRatioCap);
   applyAdaptivePixelRatio();
   Renderer.setSize(ViewportWidth, ViewportHeight, false);
+  Composer.setSize(ViewportWidth, ViewportHeight);
   refreshInstructionPanelBounds();
   GameCanvas.dataset.viewport = `${ViewportWidth}x${ViewportHeight}`;
   GameCanvas.dataset.orientation = ViewportWidth >= ViewportHeight ? 'landscape' : 'portrait';
@@ -2868,6 +2897,7 @@ function resizeRenderer() {
 function applyAdaptivePixelRatio() {
   const RenderedPixelRatio = Math.min(window.devicePixelRatio, AdaptivePixelRatioCap);
   Renderer.setPixelRatio(RenderedPixelRatio);
+  Composer.setPixelRatio(RenderedPixelRatio);
   GameCanvas.dataset.pixelRatioCap = AdaptivePixelRatioCap.toFixed(2);
   GameCanvas.dataset.pixelRatio = RenderedPixelRatio.toFixed(2);
 }
@@ -2885,6 +2915,8 @@ function applyAdaptiveQualityState(QualityState) {
     KeyLight.castShadow = ShadowsEnabled;
     Renderer.shadowMap.enabled = ShadowsEnabled;
   }
+  IsBloomPipelineEnabled = PresentationQualityTier !== 'degraded';
+  GameCanvas.dataset.bloomPipeline = String(IsBloomPipelineEnabled);
   GameCanvas.dataset.adaptiveQuality = QualityState.action;
   GameCanvas.dataset.presentationTier = PresentationQualityTier;
   GameCanvas.dataset.smoothPerformanceSamples = String(SmoothPerformanceSampleCount);
@@ -3280,7 +3312,7 @@ function renderFrame() {
     const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
     updateCamera(DeltaTimeSeconds);
     updateControlModeInterface();
-    Renderer.render(Scene, Camera);
+    renderScene();
     return;
   }
 
@@ -3328,7 +3360,7 @@ function renderFrame() {
   updateWorldLifeAudio();
   updatePersonalBestGhostVisibility();
 
-  Renderer.render(Scene, Camera);
+  renderScene();
   updatePerformanceBudget(DeltaTimeSeconds);
 }
 

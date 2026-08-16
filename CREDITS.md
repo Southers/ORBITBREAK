@@ -3,6 +3,7 @@
 ## Runtime libraries
 
 - [Three.js](https://threejs.org/) 0.179.1 — MIT License. The pinned runtime is vendored at `vendor/three.module.min.js` and `vendor/three.core.min.js`; its licence is at `vendor/THREE-LICENSE.txt`.
+- Three.js 0.179.1 example addon modules (same MIT licence and release) are vendored unmodified under `vendor/postprocessing/` (`EffectComposer`, `RenderPass`, `ShaderPass`, `MaskPass`, `Pass`, `UnrealBloomPass`, `OutputPass`) and `vendor/shaders/` (`CopyShader`, `LuminosityHighPassShader`, `OutputShader`) for the bloom post pipeline.
 
 ## Source foundation
 
