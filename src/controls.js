@@ -286,6 +286,7 @@ export function projectRayOntoSphere(Origin, Direction, Center, Radius) {
 
 /**
  * Dragging across the globe walks. Pulling off it into space aims. A tiny twitch stays pending.
+ * Ship grab uses classifyPendingShipGrab instead, so a crust hit cannot steal the launch.
  */
 export function classifySphereSurfaceGesture({
   worldCenter,
@@ -472,6 +473,48 @@ export function getPointerClientDistance(FirstPointer, SecondPointer) {
     SecondPointer.clientX - FirstPointer.clientX,
     SecondPointer.clientY - FirstPointer.clientY,
   );
+}
+
+/** Screen pull that leaves a pending ship grab and starts aim, even over crust. */
+export const ShipGrabAimDeadzonePixels = 20;
+
+/**
+ * Ship grab never walks. A tiny screen twitch stays pending; anything past the
+ * deadzone aims, including while the camera ray still hits the globe.
+ */
+export function classifyPendingShipGrab({
+  screenDistanceFromShip,
+  deadzonePixels = ShipGrabAimDeadzonePixels,
+} = {}) {
+  if (!Number.isFinite(screenDistanceFromShip) || screenDistanceFromShip < 0) {
+    throw new Error('Pending ship grab requires a non-negative screen distance.');
+  }
+  if (!(deadzonePixels > 0) || !Number.isFinite(deadzonePixels)) {
+    throw new Error('Pending ship grab requires a positive deadzone.');
+  }
+  return screenDistanceFromShip < deadzonePixels
+    ? SurfaceGestureModes.pending
+    : SurfaceGestureModes.aim;
+}
+
+export const AimCameraStages = Object.freeze({
+  globe: 'globe',
+  planning: 'planning',
+});
+
+/**
+ * Flatten happens immediately. The neighbourhood map waits until the pull leaves
+ * the cancel disk, unless reduced motion or a prior commit already snapped.
+ */
+export function getAimCameraStage({
+  willCancel,
+  hasCommitted,
+  prefersReducedMotion = false,
+} = {}) {
+  if (prefersReducedMotion || hasCommitted || !willCancel) {
+    return AimCameraStages.planning;
+  }
+  return AimCameraStages.globe;
 }
 
 /** World-space cancel disk used when the planning camera has not jumped yet. */

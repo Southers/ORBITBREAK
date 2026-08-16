@@ -9,7 +9,7 @@ import {
   getSurfacePosition,
   LaunchCancelRadius,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260816-ob95';
+} from './controls.js?v=20260816-ob97';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -31,10 +31,10 @@ import { createWardenVisuals } from './warden-visuals.js?v=20260815-ob90';
 import { createPlayerVisuals } from './player-visuals.js?v=20260815-ob90';
 import { createStoryDirector } from './story-director.js?v=20260816-ob91';
 import { createHud } from './hud.js?v=20260815-ob90';
-import { createAimPreview } from './aim-preview.js?v=20260816-ob92';
+import { createAimPreview } from './aim-preview.js?v=20260816-ob97';
 import { createLandingDirector } from './landing-director.js?v=20260816-ob93';
-import { createCameraController } from './camera-controller.js?v=20260816-ob94';
-import { createInputController } from './input-controller.js?v=20260816-ob95';
+import { createCameraController } from './camera-controller.js?v=20260816-ob97';
+import { createInputController } from './input-controller.js?v=20260816-ob97';
 import { createHostileSurface } from './hostile-surface.js?v=20260816-ob93';
 import { createScanner } from './scanner.js?v=20260815-ob90';
 import { createRoutePresentation } from './route-presentation.js?v=20260815-ob90';
@@ -303,7 +303,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260816-ob96';
+GameCanvas.dataset.build = '20260816-ob97';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -424,6 +424,7 @@ let CurrentWorldIdentifier = StartingWorldIdentifier;
 let LaunchIgnoredWorldIdentifier = null;
 let LaunchIgnoredBodyIdentifier = null;
 let IsPointerAiming = false;
+let HasCommittedAimCamera = false;
 let LastAimScreenDistancePixels = Number.POSITIVE_INFINITY;
 let FlightOrbitTrapState = createOrbitTrapState();
 let PointerGestureMode = SurfaceGestureModes.pending;
@@ -1964,6 +1965,8 @@ const CameraController = createCameraController(THREE, {
   set ScoutZoomScale(Value) { ScoutZoomScale = Value; },
   get GamePhase() { return GamePhase; },
   get IsPointerAiming() { return IsPointerAiming; },
+  get HasCommittedAimCamera() { return HasCommittedAimCamera; },
+  set HasCommittedAimCamera(Value) { HasCommittedAimCamera = Value; },
   get IsKeyboardAiming() { return IsKeyboardAiming; },
   get IsPointerScouting() { return IsPointerScouting; },
   get SeedPhysicsState() { return SeedPhysicsState; },
@@ -2000,7 +2003,8 @@ const {
   rememberPlanningPath,
   getPlanningFocusPoints,
   applySectorPlanningCamera,
-  snapLiveCameraToPlanningView,
+  commitAimPlanningCamera,
+  clearCommittedAimCamera,
   shouldUseSectorPlanningCamera,
   updateFlightPlanningPresentation,
   refreshPlanningZoomControls,
@@ -2223,6 +2227,8 @@ const AimPreview = createAimPreview(THREE, {
   shouldCancelAimedLaunch,
   clearTrajectoryPreview,
   applySectorPlanningCamera,
+  commitAimPlanningCamera,
+  get HasCommittedAimCamera() { return HasCommittedAimCamera; },
   predictCurrentLaunchTrajectory,
   rememberPlanningPath,
   predictSlingshotEvents,
@@ -2319,7 +2325,8 @@ const InputController = createInputController(THREE, {
   captureAimInteractionCamera,
   releaseAimInteractionCamera,
   applySectorPlanningCamera,
-  snapLiveCameraToPlanningView,
+  commitAimPlanningCamera,
+  clearCommittedAimCamera,
   clearTrajectoryPreview,
   updateAimPreview,
   updateKeyboardAimPreview,
@@ -2333,6 +2340,9 @@ const InputController = createInputController(THREE, {
   set GamePhase(Value) { GamePhase = Value; },
   get IsPointerAiming() { return IsPointerAiming; },
   set IsPointerAiming(Value) { IsPointerAiming = Value; },
+  get HasCommittedAimCamera() { return HasCommittedAimCamera; },
+  set HasCommittedAimCamera(Value) { HasCommittedAimCamera = Value; },
+  get PrefersReducedMotion() { return PrefersReducedMotion; },
   get IsPointerWalking() { return IsPointerWalking; },
   set IsPointerWalking(Value) { IsPointerWalking = Value; },
   get IsPointerScouting() { return IsPointerScouting; },
@@ -2950,6 +2960,7 @@ function resetGame() {
   resetLandingDirector();
 
   IsPointerAiming = false;
+  clearCommittedAimCamera();
   IsPointerWalking = false;
   IsPointerScouting = false;
   PointerGestureMode = SurfaceGestureModes.pending;
@@ -3311,6 +3322,7 @@ function setPageActivity(IsActive) {
   } else if (IsPointerAiming || IsKeyboardAiming || IsPointerWalking || IsPointerScouting) {
     const CanceledPointerIdentifier = ActivePointerIdentifier;
     IsPointerAiming = false;
+    clearCommittedAimCamera();
     IsPointerWalking = false;
     IsPointerScouting = false;
     IsKeyboardAiming = false;

@@ -41,9 +41,9 @@ There is no wall-clock countdown during scouting or surface planning.
 
 The game remains one-pointer/touch accessible.
 
-- Drag the **globe** to walk. Drag the **ship** and pull away to aim and build a relay. The two gestures never share a grab. Release on the ship, or press Escape, to cancel without spending the flight.
+- Drag the **globe** to walk. Drag the **ship** and pull away to aim and build a relay. The two gestures never share a grab. A ship pull commits aim even while the finger is still over the crust; the neighbourhood map waits until the pull leaves the cancel disk. Release on the ship, or press Escape, to cancel without spending the flight.
 - Q/E walk around, R/F walk over the poles. Walking is slow on purpose: one revolution takes several seconds. Keyboard and pointer reach the same sphere.
-- The face you stand on is the launch azimuth. Walk until this face looks toward the world you want; over the poles is the short path to the far side. Flattening for aim keeps flight in the orbital plane. Do not add surface pickups or extra destinations.
+- The face you stand on is the launch azimuth. Walk until this face looks toward the world you want; over the poles is the short path to the far side. Flattening for aim keeps flight in the orbital plane. After walking, the coach keeps naming that face until you grab the ship, pan, or start keyboard aim. Do not add surface pickups or extra destinations.
 - Drag empty space to pan. Pinch, −/+, or mouse wheel to zoom out from a landed world to the whole Reach. C snaps the camera back to the Runner.
 - During flight, drag from the ship to **break** your line in any direction, then release. Space still breaks along heading. The preview cannot solve a future player-timed break at launch time.
 - On a caged world, drag from the ship through a clamp to **destroy** it. A longer drag can take more than one. Drag back onto the ship, or press Escape, to cancel. Misses do not spend the flight. No health bars.
@@ -210,6 +210,7 @@ The Reach has the verbs, sphere walking, staged prosperity and instanced life. C
 - Buildings are pooled cottage, furnace, canopy and jetty families. Inhabitants are a walker mesh plus a pack mesh. Trade uses barge, sail and sled hulls instead of one scaled cone.
 - Living clusters emit a limb glow, so the other face advertises a harbour or mine without quest markers. Meadow, Ember and Frost diorama props now occupy the far hemisphere too.
 - Destroy pylons, flight, prediction and replay stay in the orbital plane. Physics identity and `breaker-reach-7` are unchanged.
+- Walk-to-launch (checkpoint 19): ship grab aims from a screen pull even over crust; the map camera waits until the pull leaves cancel. Facing coach survives walk release.
 - Draw-call ceiling remains 190. New life is instanced and pooled.
 
 Judging from current evidence: **Art** and **Theme** now have a still-frame of different roofs and ships on linked worlds, and walking has a visual reason. Remaining gauntlet work is density, readability and mobile polish — not a second game.
@@ -327,7 +328,7 @@ Implement in this order. Each checkpoint is one coherent commit, with `npm test`
 7. **Sound and breathing room.** Distinct dock, crowd, mine and lane layers; hold the camera on the change before handing control back.
 8. **Stance retune if needed.** Larger world radii and well restance only if zoom and shrink were not enough. New `contentVersion`, new goldens, same verbs.
 
-Checkpoints 2–7 are in the playable Breaker's Reach build (`breaker-reach-7`). The authored sector is nine worlds: the original inner garden plus Spindle, Quarry and Mirage on the outer Reach. Checkpoint 8 was skipped: the 0.52 Runner and landed follow already make the courier a visitor, so radii and wells were not restanced. Checkpoints 15–18 put life on the sphere with culture-true pooled silhouettes and far-face glow.
+Checkpoints 2–7 are in the playable Breaker's Reach build (`breaker-reach-7`). The authored sector is nine worlds: the original inner garden plus Spindle, Quarry and Mirage on the outer Reach. Checkpoint 8 was skipped: the 0.52 Runner and landed follow already make the courier a visitor, so radii and wells were not restanced. Checkpoints 15–18 put life on the sphere with culture-true pooled silhouettes and far-face glow. Checkpoint 19 keeps facing after a walk and lets a ship pull start aim without waiting for the ray to miss the globe.
 
 Stop conditions:
 
