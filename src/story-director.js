@@ -6,6 +6,7 @@
 import {
   getStoryBoardPresentation,
   isCampaignStoryBoardReadyToPresent,
+  isCriticalStoryBoard,
   getStoryBoardCameraFocus,
 } from './presentation.js';
 import { getRouteChoices } from './campaign.js';
@@ -140,7 +141,27 @@ export function createStoryDirector(host) {
     return true;
   }
 
-  function presentNextQueuedStoryBoard() {
+  function returnFocusToPlay() {
+    if (host.GamePhase === 'attached' || host.GamePhase === 'restoring') {
+      if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
+      GameCanvas.focus({ preventScroll: true });
+    }
+  }
+
+  function presentNextQueuedStoryBoard({ allowFlavourBoard = true } = {}) {
+    if (host.PendingRunResetAfterStoryBoard || host.PendingVictoryAfterStoryBoard) {
+      // A resolved run outcome supersedes any flavour beats still waiting.
+      host.StoryBoardQueue = host.StoryBoardQueue.filter(
+        (QueueEntry) => isCriticalStoryBoard(QueueEntry.id),
+      );
+    }
+    const HeadEntry = host.StoryBoardQueue[0];
+    if (HeadEntry && allowFlavourBoard === false && !isCriticalStoryBoard(HeadEntry.id)) {
+      // Spaced delivery: hold the flavour beat until the next landing flush.
+      hideStoryBoardOverlay();
+      returnFocusToPlay();
+      return;
+    }
     const NextBoard = host.StoryBoardQueue.shift();
     if (!NextBoard) {
       const ShouldReset = host.PendingRunResetAfterStoryBoard;
@@ -158,10 +179,7 @@ export function createStoryDirector(host) {
         WorldseedSound.victory();
         return;
       }
-      if (host.GamePhase === 'attached' || host.GamePhase === 'restoring') {
-        if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
-        GameCanvas.focus({ preventScroll: true });
-      }
+      returnFocusToPlay();
       return;
     }
     beginStoryBoard(NextBoard.id, NextBoard.tokens);
@@ -184,6 +202,10 @@ export function createStoryDirector(host) {
       QueuedCount += 1;
     }
     if (QueuedCount > 0) {
+      // Rule beats present before any flavour beats still waiting their turn.
+      host.StoryBoardQueue.sort((FirstEntry, SecondEntry) => (
+        Number(isCriticalStoryBoard(SecondEntry.id)) - Number(isCriticalStoryBoard(FirstEntry.id))
+      ));
       flushQueuedStoryBoardsIfReady();
     }
     return QueuedCount > 0;
@@ -263,6 +285,24 @@ export function createStoryDirector(host) {
     if (host.ActiveStoryBoardId === 'runLost') {
       host.PendingRunResetAfterStoryBoard = true;
     }
+    presentNextQueuedStoryBoard({ allowFlavourBoard: false });
+  }
+
+  /** Skip dismisses the whole queued conversation, not just the current board. */
+  function skipStoryBoards() {
+    if (!host.IsOpeningBriefingActive) {
+      return;
+    }
+    if (host.ActiveStoryBoardId === 'opening') {
+      finishOpeningBriefing();
+      return;
+    }
+    WorldseedSound.ensureStarted();
+    WorldseedSound.stopTransients();
+    if (host.ActiveStoryBoardId === 'runLost') {
+      host.PendingRunResetAfterStoryBoard = true;
+    }
+    host.StoryBoardQueue = [];
     presentNextQueuedStoryBoard();
   }
 
@@ -278,5 +318,6 @@ export function createStoryDirector(host) {
     beginOpeningBriefing,
     advanceOpeningBriefing,
     finishOpeningBriefing,
+    skipStoryBoards,
   };
 }

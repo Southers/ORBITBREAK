@@ -1622,7 +1622,7 @@ const {
   flushQueuedStoryBoardsIfReady,
   beginOpeningBriefing,
   advanceOpeningBriefing,
-  finishOpeningBriefing,
+  skipStoryBoards,
 } = StoryDirector;
 
 
@@ -3430,7 +3430,7 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     const PressedBriefingKey = KeyboardEventData.key.toLowerCase();
     if (PressedBriefingKey === 'escape') {
       KeyboardEventData.preventDefault();
-      finishOpeningBriefing();
+      skipStoryBoards();
       return;
     }
     if (PressedBriefingKey === 'enter' || PressedBriefingKey === ' ') {
@@ -3570,7 +3570,7 @@ BriefingContinueButtonElement.addEventListener('click', (PointerEventData) => {
 });
 BriefingSkipButtonElement.addEventListener('click', (PointerEventData) => {
   PointerEventData.stopPropagation();
-  finishOpeningBriefing();
+  skipStoryBoards();
 });
 WatchReplayButtonElement.addEventListener('click', watchCompletedReplay);
 LeaderboardButtonElement.addEventListener('click', openLeaderboardPanel);

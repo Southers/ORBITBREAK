@@ -1332,6 +1332,26 @@ export const StoryBoardsAllowedDuringEncounter = Object.freeze([
   'firstBastion',
 ]);
 
+/**
+ * Beats that change the run's rules. They jump ahead of flavour beats and may
+ * present back-to-back; flavour beats are spaced to at most one per landing.
+ */
+export const CriticalStoryBoardIds = Object.freeze([
+  'wardenArrival',
+  'circuitClosed',
+  'suppression',
+  'recapture',
+  'commandExposed',
+  'commandApproach',
+  'reachAnswers',
+  'runLost',
+]);
+
+/** True when a story board must present immediately rather than wait for a later landing. */
+export function isCriticalStoryBoard(BoardId) {
+  return CriticalStoryBoardIds.includes(BoardId);
+}
+
 /** Boards wait for the landing beat, then pause play. They never cover a live liberation. */
 export function isCampaignStoryBoardReadyToPresent({
   briefingActive = false,

@@ -58,6 +58,7 @@ import {
   formatStoryBoardCopy,
   getTriggeredCampaignStoryBoardIds,
   isCampaignStoryBoardReadyToPresent,
+  isCriticalStoryBoard,
   shouldAssistCommandLock,
   shouldHoldCommittedPrediction,
   separateOverlappingTacticalLabels,
@@ -317,6 +318,34 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
   assert.equal(isCampaignStoryBoardReadyToPresent({
     gamePhase: 'victoryPending',
   }), true);
+});
+
+test('critical rule beats jump the queue while flavour beats space out one per landing', () => {
+  for (const CriticalBoardId of [
+    'wardenArrival',
+    'circuitClosed',
+    'suppression',
+    'recapture',
+    'commandExposed',
+    'commandApproach',
+    'reachAnswers',
+    'runLost',
+  ]) {
+    assert.equal(isCriticalStoryBoard(CriticalBoardId), true);
+  }
+  for (const FlavourBoardId of [
+    'firstAnswer',
+    'secondAnswer',
+    'rangeUnlock',
+    'firstTide',
+    'firstFrost',
+    'firstBastion',
+    'neighbourhood',
+    'opening',
+    '',
+  ]) {
+    assert.equal(isCriticalStoryBoard(FlavourBoardId), false);
+  }
 });
 
 test('run-local unlocks hold prediction, gate Command lock, and wait for the first link', () => {

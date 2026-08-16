@@ -162,6 +162,8 @@ Story is delivered through authored story boards at the campaign's turning point
 
 The opening is a four-page board before any launch: the Warden's edict, the Runner stealing the Orbitbreaker, Haven as the last free garden, and the charge to wake the neighbourhood. After that, the same skippable board returns at first answer, second voice, range unlock, neighbourhood, Warden arrival, first circuit, suppression, recapture, Command exposure and a lost run. A landing always plays its liberation and relay camera first. The board then pauses the game. Dialogue voices stop when the player continues or skips, and the game bed returns. Reading never advances pursuit. Replay playback skips every board.
 
+Story is spaced so it never stacks: one flavour board at most per landing, with any others held for later landings. Rule-changing beats — Warden arrival, circuit closed, suppression, recapture, Command exposure, the Reach answering and a lost run — jump ahead of waiting flavour beats and may present back-to-back because they change what the player must do next. Skip and Escape dismiss the whole queued conversation, not one card of it.
+
 Coach copy between boards stays one sentence. Controls appear when the verb is available. External voice or image APIs are expansion once keys exist; in-engine voices and authored portraits ship with the static Pages build.
 
 Anchor beats:
