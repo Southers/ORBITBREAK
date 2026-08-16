@@ -453,6 +453,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   let VisibleProsperityBuildingCount = -1;
   const DockedWorldIdentifiers = new Set();
   const DockGatherAngleByWorldId = new Map();
+  let LastPublishedDockedWorlds = null;
   GameCanvas.dataset.prosperityBuildingCount = String(OccupationScarInstances.length);
 
   function getTradeCourierDwellRatio() {
@@ -528,7 +529,11 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         DockGatherAngleByWorldId.set(DockWorld.id, GatherAngle);
       }
     }
-    GameCanvas.dataset.dockedWorlds = [...DockedWorldIdentifiers].sort().join(',');
+    const DockedWorldsValue = [...DockedWorldIdentifiers].sort().join(',');
+    if (DockedWorldsValue !== LastPublishedDockedWorlds) {
+      LastPublishedDockedWorlds = DockedWorldsValue;
+      GameCanvas.dataset.dockedWorlds = DockedWorldsValue;
+    }
   }
 
   function updateProsperityBuildingVisuals(ElapsedTimeSeconds) {

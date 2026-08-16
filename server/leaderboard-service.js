@@ -5,16 +5,23 @@ const BlockedCallsignFragments = [
   'FUCK', 'SHIT', 'CUNT', 'NAZI', 'RAPE', 'NIGG',
 ];
 
+/** Marks an error message as safe to echo to the requesting client. */
+function clientError(Message) {
+  const CreatedError = new Error(Message);
+  CreatedError.clientSafe = true;
+  return CreatedError;
+}
+
 export function normalizeCallsign(Value) {
   if (typeof Value !== 'string') {
-    throw new Error('Callsign must be text.');
+    throw clientError('Callsign must be text.');
   }
   const Callsign = Value.trim().toUpperCase();
   if (!/^[A-Z0-9][A-Z0-9_-]{2,11}$/.test(Callsign)) {
-    throw new Error('Callsign must be 3–12 letters, numbers, underscores or hyphens.');
+    throw clientError('Callsign must be 3–12 letters, numbers, underscores or hyphens.');
   }
   if (BlockedCallsignFragments.some((Fragment) => Callsign.includes(Fragment))) {
-    throw new Error('Callsign is not available.');
+    throw clientError('Callsign is not available.');
   }
   return Callsign;
 }
@@ -119,7 +126,7 @@ export function createLeaderboardService({
 
     async list({ systemIdentifier, contentVersion, limit = 20 }) {
       if (typeof systemIdentifier !== 'string' || typeof contentVersion !== 'string') {
-        throw new Error('System and content version are required.');
+        throw clientError('System and content version are required.');
       }
       const SafeLimit = Math.max(1, Math.min(
         MaximumLeaderboardLimit,
@@ -148,6 +155,7 @@ function jsonResponse(Body, Status, CorsHeaders) {
     status: Status,
     headers: {
       'content-type': 'application/json; charset=utf-8',
+      'x-content-type-options': 'nosniff',
       'cache-control': 'no-store',
       ...CorsHeaders,
     },
@@ -169,8 +177,13 @@ export function createLeaderboardRequestHandler({ service, allowedOrigin }) {
     const Url = new URL(RequestData.url);
     try {
       if (RequestData.method === 'POST' && Url.pathname === '/api/leaderboard') {
-        const Body = await RequestData.json();
-        const Submission = await service.submit(Body);
+        let Body;
+        try {
+          Body = await RequestData.json();
+        } catch {
+          return jsonResponse({ error: 'Request body must be valid JSON.' }, 400, CorsHeaders);
+        }
+        const Submission = await service.submit(Body ?? {});
         return jsonResponse(Submission, Submission.status, CorsHeaders);
       }
       if (RequestData.method === 'GET' && Url.pathname === '/api/leaderboard') {
@@ -191,9 +204,11 @@ export function createLeaderboardRequestHandler({ service, allowedOrigin }) {
       }
       return jsonResponse({ error: 'Not found.' }, 404, CorsHeaders);
     } catch (CaughtError) {
-      return jsonResponse({
-        error: CaughtError instanceof Error ? CaughtError.message : 'Request failed.',
-      }, 400, CorsHeaders);
+      if (CaughtError instanceof Error && CaughtError.clientSafe === true) {
+        return jsonResponse({ error: CaughtError.message }, 400, CorsHeaders);
+      }
+      // Unexpected failures (for example store errors) must not leak internals.
+      return jsonResponse({ error: 'Request failed.' }, 500, CorsHeaders);
     }
   };
 }

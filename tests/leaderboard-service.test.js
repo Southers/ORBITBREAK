@@ -95,3 +95,55 @@ test('HTTP contract supports submit, ranked list, replay fetch and CORS', async 
     method: 'OPTIONS',
   }))).status, 204);
 });
+
+test('HTTP boundary echoes only client-safe errors and hides internal failures', async () => {
+  const Handler = createLeaderboardRequestHandler({
+    service: {
+      async submit() {
+        throw new Error('D1_ERROR: no such column: secret_internal_detail');
+      },
+      async list({ systemIdentifier, contentVersion }) {
+        return createService().list({ systemIdentifier, contentVersion });
+      },
+    },
+    allowedOrigin: 'https://southers.github.io',
+  });
+
+  const MalformedResponse = await Handler(new Request('https://scores.example/api/leaderboard', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: 'not json',
+  }));
+  assert.equal(MalformedResponse.status, 400);
+  assert.equal((await MalformedResponse.json()).error, 'Request body must be valid JSON.');
+
+  const InternalFailureResponse = await Handler(new Request('https://scores.example/api/leaderboard', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ callsign: 'ACE', replay: '{}' }),
+  }));
+  assert.equal(InternalFailureResponse.status, 500);
+  assert.equal((await InternalFailureResponse.json()).error, 'Request failed.');
+
+  const ValidationHandler = createLeaderboardRequestHandler({
+    service: createService(),
+    allowedOrigin: 'https://southers.github.io',
+  });
+  const BadCallsignResponse = await ValidationHandler(new Request('https://scores.example/api/leaderboard', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ callsign: 'x', replay: VerifiedReplay }),
+  }));
+  assert.equal(BadCallsignResponse.status, 400);
+  assert.match((await BadCallsignResponse.json()).error, /3–12/);
+
+  const MissingQueryResponse = await ValidationHandler(new Request(
+    'https://scores.example/api/leaderboard',
+  ));
+  assert.equal(MissingQueryResponse.status, 400);
+  assert.equal(
+    (await MissingQueryResponse.json()).error,
+    'System and content version are required.',
+  );
+  assert.equal(MissingQueryResponse.headers.get('x-content-type-options'), 'nosniff');
+});

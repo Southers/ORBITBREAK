@@ -39,6 +39,7 @@ function jsonError(Message, Status, AllowedOrigin) {
     status: Status,
     headers: {
       'content-type': 'application/json; charset=utf-8',
+      'x-content-type-options': 'nosniff',
       'access-control-allow-origin': AllowedOrigin,
       vary: 'origin',
     },
