@@ -7,6 +7,7 @@ import { getScoutZoomPresentation } from './controls.js';
 import { countLiveRelayWorlds, listRelayCircuits } from './network.js';
 import {
   getLandedCameraScale,
+  getLandedSurfaceCameraPose,
   getFlightCameraScale,
   getPlanningAtmosphere,
   getPlanningFocusWorldIdentifiers,
@@ -358,6 +359,35 @@ function updateCamera(DeltaTimeSeconds) {
     DesiredCameraLookTarget.set(host.RelayRevealLookTarget.x, host.RelayRevealLookTarget.y, 0);
   } else if (UsesPlanningCamera) {
     DesiredCameraLookTarget.copy(PlanningCameraLookTarget).add(CameraPanOffset);
+  } else if (
+    UsesExplorationCamera
+    && (host.GamePhase === 'attached' || host.GamePhase === 'restoring')
+    && !host.PrefersReducedMotion
+  ) {
+    const LandedWorld = getWorldDefinition(host.CurrentWorldIdentifier);
+    if (LandedWorld) {
+      const LandedLookPose = getLandedSurfaceCameraPose({
+        worldX: LandedWorld.position.x,
+        worldY: LandedWorld.position.y,
+        worldRadius: LandedWorld.radius,
+        runnerX: host.SeedPhysicsState.position.x,
+        runnerY: host.SeedPhysicsState.position.y,
+        cameraScale: host.CameraDistanceScale,
+        baseCameraDistance: host.BaseCameraDistance,
+        reducedMotion: false,
+      });
+      DesiredCameraLookTarget.set(
+        LandedLookPose.lookAtX + CameraPanOffset.x,
+        LandedLookPose.lookAtY + CameraPanOffset.y,
+        0,
+      );
+    } else {
+      DesiredCameraLookTarget.set(
+        host.SeedPhysicsState.position.x + CameraPanOffset.x,
+        host.SeedPhysicsState.position.y + CameraPanOffset.y,
+        0,
+      );
+    }
   } else if (UsesExplorationCamera) {
     DesiredCameraLookTarget.set(
       host.SeedPhysicsState.position.x + CameraPanOffset.x,
@@ -424,9 +454,42 @@ function updateCamera(DeltaTimeSeconds) {
   } else {
     host.CameraImpactLifeSeconds = 0;
   }
-  Camera.position.x = (UsesExplorationCamera ? CameraLookTarget.x : 0) + CameraShakeX;
-  Camera.position.y = (UsesExplorationCamera ? CameraLookTarget.y : 0) + CameraShakeY;
-  Camera.position.z = host.BaseCameraDistance * host.CameraDistanceScale;
+  const UsesLandedFacingCamera = UsesExplorationCamera
+    && !UsesPlanningCamera
+    && !host.IsScoutMode
+    && !StoryLookPoint
+    && !host.RelayRevealLookTarget
+    && (host.GamePhase === 'attached' || host.GamePhase === 'restoring');
+  const LandedWorld = UsesLandedFacingCamera
+    ? getWorldDefinition(host.CurrentWorldIdentifier)
+    : null;
+  const LandedCameraPose = LandedWorld
+    ? getLandedSurfaceCameraPose({
+      worldX: LandedWorld.position.x,
+      worldY: LandedWorld.position.y,
+      worldRadius: LandedWorld.radius,
+      runnerX: host.SeedPhysicsState.position.x,
+      runnerY: host.SeedPhysicsState.position.y,
+      cameraScale: host.CameraDistanceScale,
+      baseCameraDistance: host.BaseCameraDistance,
+      reducedMotion: host.PrefersReducedMotion,
+    })
+    : null;
+  if (LandedCameraPose && !host.PrefersReducedMotion) {
+    Camera.position.x = CameraLookTarget.x
+      + (LandedCameraPose.cameraX - LandedCameraPose.lookAtX)
+      + CameraShakeX;
+    Camera.position.y = CameraLookTarget.y
+      + (LandedCameraPose.cameraY - LandedCameraPose.lookAtY)
+      + CameraShakeY;
+    Camera.position.z = LandedCameraPose.cameraZ;
+    GameCanvas.dataset.landedFacingCamera = 'true';
+  } else {
+    Camera.position.x = (UsesExplorationCamera ? CameraLookTarget.x : 0) + CameraShakeX;
+    Camera.position.y = (UsesExplorationCamera ? CameraLookTarget.y : 0) + CameraShakeY;
+    Camera.position.z = host.BaseCameraDistance * host.CameraDistanceScale;
+    GameCanvas.dataset.landedFacingCamera = 'false';
+  }
   Camera.lookAt(CameraLookTarget);
   updateScannerInterface();
 }

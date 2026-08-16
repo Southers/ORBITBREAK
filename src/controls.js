@@ -217,13 +217,21 @@ export function getPointerClientDistance(FirstPointer, SecondPointer) {
   );
 }
 
+/** World-space cancel disk used when the planning camera has not jumped yet. */
+export const LaunchCancelRadius = 0.85;
+/** Screen-space cancel disk so a zoomed-out aim can still be dropped on the visible ship. */
+export const LaunchCancelScreenRadiusPixels = 52;
+
 /**
  * A committed pull still launches. Dragging back onto the ship, or never pulling far
- * enough, cancels without spending the flight.
+ * enough, cancels without spending the flight. After aiming zooms out, world units shrink
+ * on screen, so a constant pixel radius around the visible ship is also a cancel.
  */
 export function shouldCancelAimedLaunch({
   pointerDistanceFromShip,
-  cancelRadius = 0.85,
+  cancelRadius = LaunchCancelRadius,
+  screenDistancePixels = Number.POSITIVE_INFINITY,
+  screenCancelRadiusPixels = LaunchCancelScreenRadiusPixels,
 } = {}) {
   if (!Number.isFinite(pointerDistanceFromShip) || pointerDistanceFromShip < 0) {
     throw new Error('Launch cancel requires a non-negative ship distance.');
@@ -231,5 +239,13 @@ export function shouldCancelAimedLaunch({
   if (!(cancelRadius > 0) || !Number.isFinite(cancelRadius)) {
     throw new Error('Launch cancel requires a positive cancel radius.');
   }
-  return pointerDistanceFromShip <= cancelRadius;
+  if (Number.isFinite(screenDistancePixels) && screenDistancePixels < 0) {
+    throw new Error('Launch cancel requires a non-negative screen distance.');
+  }
+  if (!(screenCancelRadiusPixels > 0) || !Number.isFinite(screenCancelRadiusPixels)) {
+    throw new Error('Launch cancel requires a positive screen cancel radius.');
+  }
+  const ScreenCancel = Number.isFinite(screenDistancePixels)
+    && screenDistancePixels <= screenCancelRadiusPixels;
+  return pointerDistanceFromShip <= cancelRadius || ScreenCancel;
 }

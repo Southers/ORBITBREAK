@@ -13,10 +13,14 @@ import {
 import {
   BreakerBurnImpulse,
   MaximumLaunchSpeed,
+  OrbitTrapMinSteps,
+  OrbitTrapRevolutions,
   applyBreakerBurn,
+  advanceOrbitTrap,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
   calculateGravityAcceleration,
+  createOrbitTrapState,
   createVector,
   findCollidingBody,
   findCollidingWorld,
@@ -1606,4 +1610,42 @@ test('Worldheart mastery route recombines the moving moon, hidden chain and core
     .map((Identifier) => world(Identifier).liberationValue)
     .reduce((Total, Value) => Total + Value, 0);
   assert.equal(MasteryLiberationScore + 4700 + 1700 + (3 * 1000), 14600);
+});
+
+test('orbit trap counts wrapped travel and ignores a short graze', () => {
+  const World = {
+    id: 'well',
+    radius: 1.6,
+    position: { x: 0, y: 0, z: 0 },
+  };
+  const TrapState = createOrbitTrapState();
+  const Radius = 3.2;
+  const StepRadians = 4 * (Math.PI / 180);
+  let Trapped = false;
+  for (let StepIndex = 0; StepIndex < 200; StepIndex += 1) {
+    const Angle = StepIndex * StepRadians;
+    Trapped = advanceOrbitTrap(TrapState, {
+      x: Math.cos(Angle) * Radius,
+      y: Math.sin(Angle) * Radius,
+      z: 0,
+    }, [World]);
+    if (Trapped) {
+      assert.ok(StepIndex + 1 >= OrbitTrapMinSteps);
+      assert.ok(TrapState.accumulatedAngle >= OrbitTrapRevolutions * Math.PI * 2);
+      break;
+    }
+  }
+  assert.equal(Trapped, true);
+
+  const GrazeState = createOrbitTrapState();
+  for (let StepIndex = 0; StepIndex < 40; StepIndex += 1) {
+    const Angle = StepIndex * StepRadians;
+    assert.equal(advanceOrbitTrap(GrazeState, {
+      x: Math.cos(Angle) * Radius,
+      y: Math.sin(Angle) * Radius,
+      z: 0,
+    }, [World]), false);
+  }
+  assert.equal(advanceOrbitTrap(GrazeState, { x: 20, y: 0, z: 0 }, [World]), false);
+  assert.equal(GrazeState.worldIdentifier, null);
 });

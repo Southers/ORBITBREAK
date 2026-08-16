@@ -6,6 +6,7 @@
 import {
   SurfaceGestureModes,
   adjustKeyboardAimState,
+  classifySurfaceGesture,
   createKeyboardAimState,
   findNearestKeyboardAimAngle,
   getKeyboardAimDragVector,
@@ -20,11 +21,7 @@ import {
   getRemainingClamps,
   resolveHostileCut,
 } from './encounter.js';
-import {
-  applyBreakerBurn,
-  createVector,
-  predictTrajectory,
-} from './physics.js';
+import { applyBreakerBurn, createOrbitTrapState, createVector, predictTrajectory } from './physics.js';
 import { shouldAssistCommandLock } from './presentation.js';
 import { recordReplayBurn, recordReplayLaunch } from './replay.js';
 import { releaseRunLaunch } from './run.js';
@@ -153,13 +150,26 @@ function isPointerOverSeed(PointerEventData) {
     return true;
   }
   // A constant screen-space target keeps the ship acquirable at any zoom level.
+  return getScreenDistanceToSeed(PointerEventData) <= SeedScreenGrabRadiusPixels;
+}
+
+function getScreenDistanceToSeed(PointerEventData) {
+  const CanvasBounds = GameCanvas.getBoundingClientRect();
   SeedScreenProjection.copy(SeedGroup.position).project(Camera);
   const SeedScreenX = CanvasBounds.left + (((SeedScreenProjection.x + 1) / 2) * CanvasBounds.width);
   const SeedScreenY = CanvasBounds.top + (((1 - SeedScreenProjection.y) / 2) * CanvasBounds.height);
   return Math.hypot(
     PointerEventData.clientX - SeedScreenX,
     PointerEventData.clientY - SeedScreenY,
-  ) <= SeedScreenGrabRadiusPixels;
+  );
+}
+
+function rememberAimScreenDistance(PointerEventData) {
+  host.LastAimScreenDistancePixels = getScreenDistanceToSeed(PointerEventData);
+}
+
+function clearAimScreenDistance() {
+  host.LastAimScreenDistancePixels = Number.POSITIVE_INFINITY;
 }
 
 function isPointerOverAttachedWorld(WorldPosition) {
@@ -345,6 +355,7 @@ function cancelAimedLaunch({ announce = true } = {}) {
   if (WasAiming && announce) showStatusToast('LAUNCH CANCELED', 700);
   if (WasAiming) showRouteChoiceInstruction();
   refreshPlanningZoomControls();
+  clearAimScreenDistance();
 }
 
 /** Cancels keyboard aiming without spending a launch. */
@@ -383,7 +394,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
     if (DidMove && !host.ActiveHostileEncounterState) {
       showInstruction(
         'Launch point moved',
-        'Q/E walk · Shift makes fine steps · arrows aim · Enter launches.',
+        'Q/E walk · the world turns with you · Shift makes fine steps · pull away or arrows aim · Enter launches.',
       );
     }
     return DidMove;
@@ -397,15 +408,28 @@ function handleKeyboardAimKey(KeyboardEventData) {
     : (PressedKey === 'arrowdown' || PressedKey === 's' ? -1 : 0);
 
   if (PressedKey === 'escape' && (
-    host.IsKeyboardAiming || host.IsPointerAiming || host.IsBurnAiming || host.IsCutAiming
+    host.IsKeyboardAiming
+    || host.IsPointerAiming
+    || host.IsBurnAiming
+    || host.IsCutAiming
+    || (
+      host.PointerGestureMode === SurfaceGestureModes.pending
+      && host.ActivePointerIdentifier !== null
+      && host.GamePhase === 'attached'
+    )
   )) {
     KeyboardEventData.preventDefault();
     if (host.IsCutAiming) {
       cancelCutAim();
     } else if (host.IsBurnAiming) {
       cancelBurnAim();
-    } else {
+    } else if (host.IsPointerAiming || host.IsKeyboardAiming) {
       cancelAimedLaunch();
+    } else {
+      host.ActivePointerIdentifier = null;
+      host.PointerGestureMode = SurfaceGestureModes.pending;
+      clearAimScreenDistance();
+      if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
     }
     return true;
   }
@@ -539,7 +563,7 @@ function beginCutAim(WorldPosition) {
   host.CutAimPointer = { x: WorldPosition.x, y: WorldPosition.y };
   GameCanvas.classList.add('is-aiming');
   AimPanelElement.hidden = false;
-  AimLabelElement.textContent = 'CUT';
+  AimLabelElement.textContent = 'DESTROY';
   updateCutAimPreview(WorldPosition);
   return true;
 }
@@ -551,7 +575,7 @@ function updateCutAimPreview(WorldPosition) {
   const WillCancel = Boolean(Preview?.willCancel);
   const HitCount = Preview && !WillCancel ? Preview.hits.length : 0;
   AimPanelElement.classList.toggle('is-cancel', WillCancel);
-  AimLabelElement.textContent = WillCancel ? 'RELEASE TO CANCEL' : 'CUT';
+  AimLabelElement.textContent = WillCancel ? 'RELEASE TO CANCEL' : 'DESTROY';
   const PowerRatio = THREE.MathUtils.clamp(
     (Preview?.distance ?? 0) / host.ActiveHostileEncounterState.maxCutLength,
     0,
@@ -575,7 +599,7 @@ function cancelCutAim({ announce = true } = {}) {
   AimPanelElement.hidden = true;
   AimPanelElement.classList.remove('is-cancel');
   hideCutGuide();
-  if (WasAiming && announce) showStatusToast('CUT CANCELED', 650);
+  if (WasAiming && announce) showStatusToast('DESTROY CANCELED', 650);
   if (host.ActiveHostileEncounterState) {
     publishHostileEncounterState();
     updateBreakerBurnInterface();
@@ -630,7 +654,7 @@ function applyHostileCut(Origin, End) {
     showStatusToast('THE RIM IS CLEAR', 1350);
     showInstruction(
       `${AttachedWorld.label} can fly.`,
-      'Grab the ship and launch. Drag empty space to look around.',
+      'Pull away from the ship to aim and build a relay. Trace the rim to walk. Drag empty space to look around.',
     );
     flushQueuedStoryBoardsIfReady();
     return true;
@@ -647,7 +671,7 @@ function applyHostileCut(Origin, End) {
   showInstruction(
     `${RemainingCount} left on ${AttachedWorld.label}.`,
     RemainingCount === 1
-      ? 'One tooth remains. Drag through it.'
+      ? 'One bar remains. Drag through it.'
       : 'A longer drag can take more than one.',
   );
   return true;
@@ -680,7 +704,7 @@ function fireNearestHostileCut() {
   let Preview = getCurrentCutPreview();
   if (!Preview || Preview.hits.length < 1) {
     // Out of reach: each tap walks the rim toward the nearest clamp so the
-    // one-pointer CUT button can never feel like a soft-lock.
+    // one-pointer DESTROY button can never feel like a soft-lock.
     const RunnerAngle = getRunnerSurfaceAngle(AttachedWorld);
     const MoveDirection = getHostileEncounterMoveDirection(
       host.ActiveHostileEncounterState,
@@ -697,7 +721,7 @@ function fireNearestHostileCut() {
     }
     if (!Preview || Preview.hits.length < 1) {
       showStatusToast(
-        MoveDirection !== 0 ? 'WALKING TO THE CLAMP · CUT AGAIN' : 'TOO FAR',
+        MoveDirection !== 0 ? 'WALKING TO THE CLAMP · DESTROY AGAIN' : 'TOO FAR',
         950,
       );
       showHostileEncounterInstruction();
@@ -728,6 +752,7 @@ function updateBurnAimPreview(WorldPosition) {
   const WillCancel = shouldCancelAimedLaunch({
     pointerDistanceFromShip: Distance,
     cancelRadius: LaunchCancelRadius,
+    screenDistancePixels: host.LastAimScreenDistancePixels,
   });
   AimPanelElement.classList.toggle('is-cancel', WillCancel);
   AimLabelElement.textContent = WillCancel ? 'RELEASE TO CANCEL' : 'BREAK';
@@ -775,6 +800,7 @@ function releaseBurnAim() {
   const WillCancel = shouldCancelAimedLaunch({
     pointerDistanceFromShip: Distance,
     cancelRadius: LaunchCancelRadius,
+    screenDistancePixels: host.LastAimScreenDistancePixels,
   });
   host.IsBurnAiming = false;
   host.ActivePointerIdentifier = null;
@@ -789,6 +815,35 @@ function releaseBurnAim() {
   }
   host.BurnAimDirection = Direction;
   return requestBreakerBurn();
+}
+
+function beginLaunchAim(WorldPosition) {
+  host.PointerGestureMode = SurfaceGestureModes.aim;
+  PointerGestureStartWorldPosition.copy(WorldPosition);
+  LastAimPointerWorldPosition.copy(WorldPosition);
+  captureAimInteractionCamera();
+  CameraPanOffset.set(0, 0, 0);
+  host.AimZoomScale = 1;
+  host.IsPointerAiming = true;
+  WorldseedSound.beginAim();
+  GameCanvas.classList.add('is-aiming');
+  AimPanelElement.hidden = false;
+  updateAimPreview(WorldPosition);
+  snapLiveCameraToPlanningView();
+  refreshPlanningZoomControls();
+}
+
+function beginSurfaceWalk() {
+  host.PointerGestureMode = SurfaceGestureModes.walk;
+  host.IsPointerWalking = true;
+  GameCanvas.classList.add('is-walking');
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!showHostileEncounterInstruction()) {
+    showInstruction(
+      `Walking around ${AttachedWorld.label}`,
+      'The world turns with you. Trace the rim to choose a launch point. Pull away from the ship to aim and build a relay.',
+    );
+  }
 }
 
 /**
@@ -818,6 +873,7 @@ function handlePointerDown(PointerEventData) {
     return;
   }
 
+  rememberAimScreenDistance(PointerEventData);
   GameCanvas.focus({ preventScroll: true });
   host.ActivePointerIdentifier = PointerEventData.pointerId;
   GameCanvas.setPointerCapture(PointerEventData.pointerId);
@@ -851,35 +907,20 @@ function handlePointerDown(PointerEventData) {
 
   if (isPointerOverSeed(PointerEventData) && !host.ActiveHostileEncounterState) {
     setScoutMode(false);
-    host.PointerGestureMode = SurfaceGestureModes.aim;
+    host.PointerGestureMode = SurfaceGestureModes.pending;
     PointerGestureStartWorldPosition.copy(CurrentPointerWorldPosition);
     LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
-    captureAimInteractionCamera();
-    CameraPanOffset.set(0, 0, 0);
-    host.AimZoomScale = 1;
-    host.IsPointerAiming = true;
-    WorldseedSound.beginAim();
-    GameCanvas.classList.add('is-aiming');
-    AimPanelElement.hidden = false;
-    updateAimPreview(CurrentPointerWorldPosition);
-    snapLiveCameraToPlanningView();
-    refreshPlanningZoomControls();
+    showInstruction(
+      'Walk or launch',
+      'Trace the rim to walk. Pull away to aim and build a relay. Release on the ship to cancel.',
+    );
     PointerEventData.preventDefault();
     return;
   }
 
   if (isPointerOverAttachedWorld(CurrentPointerWorldPosition)) {
     setScoutMode(false);
-    host.PointerGestureMode = SurfaceGestureModes.walk;
-    host.IsPointerWalking = true;
-    GameCanvas.classList.add('is-walking');
-    const AttachedWorld = getCurrentAttachedWorld();
-    if (!showHostileEncounterInstruction()) {
-      showInstruction(
-        `Walking around ${AttachedWorld.label}`,
-        'Trace the rim to choose a launch point. Grab the ship to aim. Drag empty space to pan. Pinch or wheel to zoom.',
-      );
-    }
+    beginSurfaceWalk();
     PointerEventData.preventDefault();
     return;
   }
@@ -922,6 +963,44 @@ function handlePointerMove(PointerEventData) {
     (host.IsPointerAiming && host.AimInteractionCamera) ? host.AimInteractionCamera : Camera,
   );
   if (!CurrentPointerWorldPosition) {
+    return;
+  }
+
+  rememberAimScreenDistance(PointerEventData);
+
+  if (
+    host.PointerGestureMode === SurfaceGestureModes.pending
+    && host.GamePhase === 'attached'
+    && !host.IsPointerAiming
+    && !host.IsPointerWalking
+    && !host.IsCutAiming
+    && !host.IsBurnAiming
+    && !host.IsPointerScouting
+  ) {
+    const AttachedWorld = getCurrentAttachedWorld();
+    if (AttachedWorld) {
+      const Classification = classifySurfaceGesture({
+        startPosition: {
+          x: PointerGestureStartWorldPosition.x,
+          y: PointerGestureStartWorldPosition.y,
+        },
+        currentPosition: {
+          x: CurrentPointerWorldPosition.x,
+          y: CurrentPointerWorldPosition.y,
+        },
+        bodyPosition: AttachedWorld.position,
+      });
+      if (Classification === SurfaceGestureModes.walk) {
+        beginSurfaceWalk();
+        setRunnerSurfaceAngle(Math.atan2(
+          CurrentPointerWorldPosition.y - AttachedWorld.position.y,
+          CurrentPointerWorldPosition.x - AttachedWorld.position.x,
+        ));
+      } else if (Classification === SurfaceGestureModes.aim) {
+        beginLaunchAim(CurrentPointerWorldPosition);
+      }
+    }
+    PointerEventData.preventDefault();
     return;
   }
 
@@ -1023,6 +1102,7 @@ function releaseAimedLaunch() {
   }
   host.GamePhase = 'flying';
   host.FlightElapsedSeconds = 0;
+  host.FlightOrbitTrapState = createOrbitTrapState();
   host.IsBreakerBurnAvailable = true;
   host.IsBreakerBurnPending = false;
   updateBreakerBurnInterface();
@@ -1065,7 +1145,7 @@ function updateBreakerBurnInterface() {
     IsHostileCut ? RemainingCount < 1 : !host.IsBreakerBurnAvailable,
   );
   BurnButtonElement.disabled = IsHostileCut ? RemainingCount < 1 : !host.IsBreakerBurnAvailable;
-  BurnButtonElement.querySelector('span').textContent = IsHostileCut ? 'CUT' : 'BREAK';
+  BurnButtonElement.querySelector('span').textContent = IsHostileCut ? 'DESTROY' : 'BREAK';
   BurnButtonElement.querySelector('strong').textContent = IsHostileCut
     ? (PreviewHitCount > 0 ? `${PreviewHitCount} HIT` : `${RemainingCount} LEFT`)
     : host.IsBreakerBurnAvailable
@@ -1074,7 +1154,7 @@ function updateBreakerBurnInterface() {
   BurnButtonElement.setAttribute(
     'aria-label',
     IsHostileCut
-      ? `Cut ${RemainingCount} clamp${RemainingCount === 1 ? '' : 's'} remaining`
+      ? `Destroy ${RemainingCount} clamp${RemainingCount === 1 ? '' : 's'} remaining`
       : `Break ${host.IsBreakerBurnAvailable ? 'ready' : 'spent'}`,
   );
   GameCanvas.dataset.breakerBurn = host.GamePhase !== 'flying'
@@ -1204,6 +1284,8 @@ function handlePointerUp(PointerEventData) {
   if (!host.IsPointerAiming) {
     host.ActivePointerIdentifier = null;
     host.PointerGestureMode = SurfaceGestureModes.pending;
+    clearAimScreenDistance();
+    if (!showHostileEncounterInstruction()) showRouteChoiceInstruction();
     PointerEventData.preventDefault();
     return;
   }
@@ -1220,6 +1302,7 @@ function handlePointerUp(PointerEventData) {
   if (shouldCancelAimedLaunch({
     pointerDistanceFromShip: AimDragVector.length(),
     cancelRadius: LaunchCancelRadius,
+    screenDistancePixels: host.LastAimScreenDistancePixels,
   })) {
     cancelAimedLaunch();
     PointerEventData.preventDefault();
@@ -1260,6 +1343,7 @@ function handlePointerCancel(PointerEventData) {
   releaseAimInteractionCamera();
   clearTrajectoryPreview();
   if (WasAiming) WorldseedSound.endAim();
+  clearAimScreenDistance();
 }
 
   return {

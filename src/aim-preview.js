@@ -24,6 +24,7 @@ export function createAimPreview(THREE, host) {
     const WillCancel = host.shouldCancelAimedLaunch({
       pointerDistanceFromShip: host.AimDragVector.length(),
       cancelRadius: host.LaunchCancelRadius,
+      screenDistancePixels: host.LastAimScreenDistancePixels,
     });
     host.AimPanelElement.classList.toggle('is-cancel', WillCancel);
     host.AimPowerFillElement.style.width = WillCancel ? '0%' : `${Math.round(PowerRatio * 100)}%`;

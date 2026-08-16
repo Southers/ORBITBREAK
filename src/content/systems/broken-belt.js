@@ -148,14 +148,14 @@ export const BrokenBeltSystemDefinition = {
     },
     firstVault: {
       skipLabel: 'Keep flying',
-      continueLabel: 'Cut if you must',
+      continueLabel: 'Destroy if you must',
       pages: [
         {
           speaker: 'VAULT',
           kicker: 'NAMES OPEN',
           portrait: 'bastion',
           title: 'The sealed roll call stands down.',
-          body: 'Courier spines remember the legal roads. Walk the rim. Cut what still cages the launch.',
+          body: 'Courier spines remember the legal roads. Walk the rim. Destroy what still cages the launch.',
           focusWorldId: 'vault',
         },
       ],
@@ -251,12 +251,12 @@ export const BrokenBeltSystemDefinition = {
           kicker: 'YOUR CHARGE',
           portrait: 'orbitbreaker',
           title: 'A convoy cannot be imprisoned.',
-          body: 'Track it. Land. Walk the rim. Cut the lattice. The belt will answer together.',
+          body: 'Track it. Land. Walk the rim. Destroy the cage. The belt will answer together.',
         },
       ],
     },
     commandApproach: {
-      skipLabel: 'Cut the lattice',
+      skipLabel: 'Destroy the cage',
       continueLabel: 'Walk the rim',
       pages: [
         {
@@ -264,7 +264,7 @@ export const BrokenBeltSystemDefinition = {
           kicker: 'CORE LATTICE',
           portrait: 'command',
           title: 'You are on the crown.',
-          body: 'Grab the ship. Drag through the teeth. One cut is enough. Do not make this a second war.',
+          body: 'Grab the ship. Drag through the bars. One swipe is enough. Do not make this a second war.',
         },
       ],
     },

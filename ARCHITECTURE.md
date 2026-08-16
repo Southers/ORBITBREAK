@@ -53,7 +53,7 @@ enforces this (see “Enforced boundaries”).
 - `flight-resolver.js` — the shared per-step flight resolver used by the live loop,
   the replay validator and the golden-fixture tests.
 - `controls.js`, `encounter.js` — deterministic input shaping (drag→velocity, keyboard
-  aim, surface walking) and the hostile-clamp Cut model.
+  aim, surface walking) and the hostile-clamp Destroy model.
 - `run.js`, `scoring.js`, `network.js`, `warden.js`, `campaign.js`, `sector.js`,
   `restoration.js` — run budget, slingshot/liberation/circuit scoring, relay graph,
   Warden pursuit state machine, route/emblem rules, cluster rules, restoration wave
@@ -81,10 +81,10 @@ below. The current controllers and their single responsibilities:
 | `hud.js` | Counters, instruction panel, toasts, dataset diagnostic contract |
 | `story-director.js` | Opening briefing, queued story boards, reveal-hold ordering |
 | `aim-preview.js` | Fixed-step aim preview and slingshot band visuals |
-| `input-controller.js` | Pointer/keyboard/pinch gestures, Cut and Breaker Burn intents |
+| `input-controller.js` | Pointer/keyboard/pinch gestures, Destroy and Breaker Burn intents |
 | `camera-controller.js` | Sector planning camera, Scout zoom, live follow |
 | `landing-director.js` | Landing/liberation presentation, attach VFX, finale pulse |
-| `hostile-surface.js` | Cut preview/guide, clamp pylons, encounter lifecycle, surface walking |
+| `hostile-surface.js` | Destroy preview/guide, clamp pylons, encounter lifecycle, surface walking |
 | `scanner.js` | Compact spatial scanner SVG and its accessible snapshot |
 | `route-presentation.js` | Route choices, target beacons, route/tactical HUD labels |
 | `records-ui.js` | Personal best, route ghost, victory summary, leaderboard panel, replay watching |

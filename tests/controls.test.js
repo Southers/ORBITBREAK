@@ -135,3 +135,18 @@ test('returning the pull onto the ship cancels launch', () => {
   assert.equal(shouldCancelAimedLaunch({ pointerDistanceFromShip: 0.86 }), false);
   assert.throws(() => shouldCancelAimedLaunch({ pointerDistanceFromShip: -1 }), /non-negative/);
 });
+
+test('a zoomed-out aim still cancels inside a constant screen disk around the ship', () => {
+  assert.equal(shouldCancelAimedLaunch({
+    pointerDistanceFromShip: 2,
+    screenDistancePixels: 40,
+  }), true);
+  assert.equal(shouldCancelAimedLaunch({
+    pointerDistanceFromShip: 2,
+    screenDistancePixels: 53,
+  }), false);
+  assert.throws(() => shouldCancelAimedLaunch({
+    pointerDistanceFromShip: 2,
+    screenDistancePixels: -1,
+  }), /non-negative screen distance/);
+});

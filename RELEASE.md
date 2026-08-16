@@ -17,7 +17,7 @@ The Stillness has locked living worlds inside silent orbital cages. You are the 
 
 Walk around miniature worlds to choose a launch point, pull back and release—or aim entirely by keyboard—then break your line once in flight. Safe landings awaken distinct little societies, bank your score and become new launch points. Close planetary passes earn Assist, Deep and Razor bonuses; threading distinct worlds in one flight multiplies the chain. Miss the landing or strike a moving hazard and every unbanked point from that shot is gone.
 
-Every successful route leaves a relay behind. Close two unique circuits before the pursuing Warden reaches an unprotected world: the first network pushes it back and the second tears open its iron crown. Intercept the moving Command World, circle to its exposed lattice and cut the teeth. Runs are short, deterministic and built for immediate replay. The safe route completes the system; deliberate surface position, timing and deeper gravity lines build the strongest score.
+Every successful route leaves a relay behind. Close two unique circuits before the pursuing Warden reaches an unprotected world: the first network pushes it back and the second tears open its iron crown. Intercept the moving Command World, circle to its exposed lattice and destroy the bars. Runs are short, deterministic and built for immediate replay. The safe route completes the system; deliberate surface position, timing and deeper gravity lines build the strongest score.
 
 **Feature bullets:**
 
@@ -84,11 +84,11 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260816-ob90` passes deterministic tests, syntax checks, the three-sector release audit and the 200-run validator benchmark.
+- Build `20260816-ob92` passes deterministic tests, syntax checks, the three-sector release audit and the 200-run validator benchmark.
 - Breaker's Reach is a nine-world sector: Haven, Ember and Grove stay the inner neighbourhood, then Spindle, Quarry, Mirage, Frost, Tide and Bastion wait behind the veil. Aiming frames the current world's neighbours so the bigger map stays readable; Scout zoom-out reaches 3.85. Golden complete replay still derives score 10900 on content `breaker-reach-7`.
 - Story boards are spaced to one flavour beat per landing; rule beats jump the queue and Skip/Escape dismiss the whole queued conversation. Landings celebrate banked points with a floating score burst and a HUD bank pulse, the ship is grabbable within a constant 44px screen target at any zoom, and the pursuit coach names the world the Warden will silence.
 - Aiming frames the live neighbourhood on a brighter, less fogged map. Pinch and zoom buttons work during aim, and zoom now reaches from a close world to the whole authored sector. Long Night and Worldheart stay query-only fixtures.
-- After the first live link the committed chain holds 1.7s and Ember teaches leftover Cut. After the first unique loop a gold ghost names the next closing edge. Command lock remains the exposed finale gift. Warden arrival arms a once-per-run recapture Cut. Extra Break is still deferred so ranked flights keep one recorded burn.
+- After the first live link the committed chain holds 1.7s and Ember teaches leftover Destroy. After the first unique loop a gold ghost names the next closing edge. Command lock remains the exposed finale gift. Warden arrival arms a once-per-run recapture Destroy. Extra Break is still deferred so ranked flights keep one recorded burn.
 - Living worlds now mix houses, workshops and docks on the same scar kit, with window/street instances and crowds that densify to twelve people on a circuit. Trade hulls dwell at the dock, light the pier and gather nearby walkers. Reduced motion skips the pause.
 - Campaign story boards wait for the wrapping liberation and relay look, then freeze the sim. Continue and Skip disconnect dialogue voices and restore the game bed. Aiming snaps to the sector frame and no longer inherits landed pan/zoom, so fog cannot swallow the predicted path.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.

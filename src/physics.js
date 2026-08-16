@@ -70,6 +70,71 @@ export function applyBreakerBurn(PhysicsState, Impulse = BreakerBurnImpulse, Dir
 /** Fast enough for adjacent hops, slow enough that a hard pull still has to ride gravity. */
 export const MaximumLaunchSpeed = 12.5;
 
+/** Tight wells that never intersect still recover after this many revolutions. */
+export const OrbitTrapOuterRadiusFactor = 2.8;
+export const OrbitTrapRevolutions = 1.35;
+export const OrbitTrapMinSteps = 96;
+
+/** Creates persistent orbit-trap accumulators shared by live flight, prediction and replay. */
+export function createOrbitTrapState() {
+  return {
+    worldIdentifier: null,
+    lastAngle: 0,
+    accumulatedAngle: 0,
+    steps: 0,
+  };
+}
+
+/**
+ * Counts wrapped travel around the nearest well. A graze that never collides still
+ * recovers once the Runner has looped instead of flying forever.
+ */
+export function advanceOrbitTrap(TrapState, Position, WorldDefinitions) {
+  let NearestWorld = null;
+  let NearestDistance = Infinity;
+  for (const WorldDefinition of WorldDefinitions) {
+    const Distance = Math.hypot(
+      Position.x - WorldDefinition.position.x,
+      Position.y - WorldDefinition.position.y,
+    );
+    const OuterRadius = WorldDefinition.radius * OrbitTrapOuterRadiusFactor;
+    if (Distance <= OuterRadius && Distance < NearestDistance) {
+      NearestWorld = WorldDefinition;
+      NearestDistance = Distance;
+    }
+  }
+  if (!NearestWorld) {
+    TrapState.worldIdentifier = null;
+    TrapState.lastAngle = 0;
+    TrapState.accumulatedAngle = 0;
+    TrapState.steps = 0;
+    return false;
+  }
+  const Angle = Math.atan2(
+    Position.y - NearestWorld.position.y,
+    Position.x - NearestWorld.position.x,
+  );
+  if (TrapState.worldIdentifier !== NearestWorld.id) {
+    TrapState.worldIdentifier = NearestWorld.id;
+    TrapState.lastAngle = Angle;
+    TrapState.accumulatedAngle = 0;
+    TrapState.steps = 0;
+    return false;
+  }
+  let Delta = Angle - TrapState.lastAngle;
+  if (Delta > Math.PI) {
+    Delta -= Math.PI * 2;
+  }
+  if (Delta < -Math.PI) {
+    Delta += Math.PI * 2;
+  }
+  TrapState.lastAngle = Angle;
+  TrapState.accumulatedAngle += Math.abs(Delta);
+  TrapState.steps += 1;
+  return TrapState.steps >= OrbitTrapMinSteps
+    && TrapState.accumulatedAngle >= OrbitTrapRevolutions * Math.PI * 2;
+}
+
 /**
  * Calculates the squared distance between two positions.
  *
@@ -292,6 +357,7 @@ export function predictTrajectory(
   );
   const CollisionBodyDefinitions = PredictionSettings.collisionBodyDefinitions ?? [];
   const StartingSimulationTimeSeconds = PredictionSettings.startTimeSeconds ?? 0;
+  const OrbitTrapState = createOrbitTrapState();
 
   for (let PredictionStepIndex = 0; PredictionStepIndex < PredictionSettings.maximumSteps; PredictionStepIndex += 1) {
     PredictedState = simulatePhysicsStep(
@@ -344,6 +410,10 @@ export function predictTrajectory(
       CollisionWorldIdentifier = CollisionWorldDefinition.id;
       CollisionKind = 'world';
       CollisionTimeSeconds = PredictionTimeSeconds;
+      break;
+    }
+
+    if (advanceOrbitTrap(OrbitTrapState, PredictedState.position, WorldDefinitions)) {
       break;
     }
 

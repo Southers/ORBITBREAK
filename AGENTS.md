@@ -44,7 +44,7 @@ Replace it in small playable checkpoints. Preserve working physics, tests and us
 - Constrain surface movement to the current world's orbital-plane circumference; do not build a free-roaming platform game.
 - Make the Runner → launch craft → flight ship → Runner transformation readable without changing the physics identity.
 - Telegraph the Warden's next move and every hostile obstacle before it can punish the player.
-- Keep surface hostility brief and contextual: pylons, barriers or drones disabled with one Cut, never health bars or a second combat game.
+- Keep surface hostility brief and contextual: pylons, barriers or drones disabled with one Destroy, never health bars or a second combat game.
 - Prefer three dense authored Warden sectors over an infinite procedural universe or several shallow chapters.
 - Preserve the planet-wrapping liberation effect as the signature reward.
 - Add every external asset and licence to `CREDITS.md` before committing it.

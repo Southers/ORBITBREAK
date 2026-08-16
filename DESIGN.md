@@ -41,18 +41,18 @@ There is no wall-clock countdown during scouting or surface planning.
 
 The game remains one-pointer/touch accessible.
 
-- Drag the ship to aim. Release away from it to launch. Drag back onto the ship, or press Escape, to cancel without spending the flight.
-- Drag the current world's disk (not the ship) to walk the orbital-plane circumference. Q/E remain the keyboard walk.
+- Drag the ship, then pull away to aim and build a relay. Trace the rim to walk; the world turns so the Runner stays on the visible face. Release on the ship, or press Escape, to cancel without spending the flight.
+- Drag the current world's disk (not a committed pull) to walk the orbital-plane circumference. Q/E remain the keyboard walk.
 - Drag empty space to pan. Pinch or mouse wheel to zoom. C snaps the camera back to the Runner.
 - During flight, drag from the ship to **break** your line in any direction, then release. Space still breaks along heading. The preview cannot solve a future player-timed break at launch time.
-- On a caged world, drag from the ship through a clamp to **cut** it. A longer drag can take more than one. Drag back onto the ship, or press Escape, to cancel. Misses do not spend the flight. No health bars.
+- On a caged world, drag from the ship through a clamp to **destroy** it. A longer drag can take more than one. Drag back onto the ship, or press Escape, to cancel. Misses do not spend the flight. No health bars.
 - Keyboard controls must reach the same deterministic actions as pointer controls.
 
 Surface movement is deliberately one-dimensional. It creates launch-position choice, scale and character without turning ORBITBREAK into a platformer.
 
 ## Flight skill
 
-Aiming frames the readable neighbourhood and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. Pinch, wheel or the zoom buttons move from a close world to the whole authored Reach. Fog lifts while planning so the map stays bright. After release the camera follows the ship. A landing recenters on the new world. Story boards look at the speaker's world or the Warden. A committed chain is visible before release, including three- and four-world slingshots. Breaker's Reach, Shatterbelt and Verdant Caravan are the three authored Warden sectors; Long Night and Worldheart stay expansion fixtures.
+Aiming frames the readable neighbourhood and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. Pinch, wheel or the zoom buttons move from a close world to the whole authored Reach. Fog lifts while planning so the map stays bright. After release the camera follows the ship. A landing recenters on the new world and orbits with the Runner so walking rolls the globe; reduced motion keeps the top-down follow. Story boards look at the speaker's world or the Warden. A committed chain is visible before release, including three- and four-world slingshots. Breaker's Reach, Shatterbelt and Verdant Caravan are the three authored Warden sectors; Long Night and Worldheart stay expansion fixtures.
 
 Skill comes from:
 
@@ -134,7 +134,7 @@ Worlds have authored dispositions rather than random encounters:
 - **Hostile:** the cage still has teeth. Clamps around the rim block launch until they are cut.
 - **Command:** the Warden's mobile final world.
 
-Hostile surface moments last seconds and use the same ship-grab as launch. Clamps are spread around the rim. Drag a short cut through them; walking gets you a better line. A chord can take two. There is no Pulse button that wins the encounter, no health pools, no loot, and no second combat ruleset. The point is to make the landing active, not to compete with orbital flight.
+Hostile surface moments last seconds and use the same ship-grab as launch. Clamps are spread around the rim. Drag through them to destroy the cage; walking gets you a better line. A chord can take two. There is no Pulse button that wins the encounter, no health pools, no loot, and no second combat ruleset. The point is to make the landing active, not to compete with orbital flight.
 
 ## Final encounter
 
@@ -284,7 +284,7 @@ Ember grows furnaces and barges. Grove grows canopies and leaf-sails. Tide grows
 - Opening uses a four-page board. Later beats reuse that board: first answer, second voice, range, neighbourhood, Warden arrival, circuit, suppression, recapture, Command, lost run.
 - The player dismisses with Continue/Skip. Keyboard Enter/Space continue; Escape skips the current beat.
 - Liberation still plays the wrapping wave under the board. Do not immediately replace it with hunt coaching.
-- Coach copy between boards stays one sentence. Controls appear when the verb is available (Break in flight, Cut after the first live link, Scout when the veil recedes).
+- Coach copy between boards stays one sentence. Controls appear when the verb is available (Break in flight, Destroy after the first live link, Scout when the veil recedes).
 - Mobile must keep 44px controls, no overflow, and boards that do not cover the Continue/Skip row.
 
 ### Three visual states, equally authored
@@ -356,12 +356,12 @@ Proposed ladder, earliest first:
 
 1. **Break** — already the first flight verb. Directed drag is the tutorial unlock; heading Space remains the accessible fallback.
 2. **Longer prediction** — after the first live link the committed chain stays on the map 1.7s; reduced motion skips the hold.
-3. **Cut** — Ember keeps one leftover tooth after the first live link. Same drag, earlier in the run. Bastion and Command keep the full cage.
+3. **Destroy** — Ember keeps one leftover bar after the first live link. Same drag, earlier in the run. Bastion and Command keep the full cage.
 4. **Second Break** — only after the neighbourhood is talking, still one at a time, still recorded. Never a spray. Ranked schema bump still required.
 5. **Circuit beacon** — after the first loop, a visible gold ghost of the next closing edge. Information, not an auto-aim.
 6. **Command lock** — after both shields crack, keyboard/pointer lead on the moving crown. Finale gift only.
 
-Roguelike flavour without roguelike chaos: after the Warden arrives, a once-per-run recapture Cut on a silenced world that has no authored cage. Extra Break stays deferred so ranked flights keep one recorded burn. The map, wells and ranked physics stay authored. Score still cannot reward waiting. No HP, no loot, no ship stats that persist between runs.
+Roguelike flavour without roguelike chaos: after the Warden arrives, a once-per-run recapture Destroy on a silenced world that has no authored cage. Extra Break stays deferred so ranked flights keep one recorded burn. The map, wells and ranked physics stay authored. Score still cannot reward waiting. No HP, no loot, no ship stats that persist between runs.
 
 ## Scope
 

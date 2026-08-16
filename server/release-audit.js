@@ -306,7 +306,7 @@ export function auditReleaseReadiness() {
     /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.aim-panel\s*,\s*\.burn-button\.is-pulse\s*\{[^}]*bottom:\s*max\(156px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*150px\)\);/s.test(StyleSheet)
       && /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*340px\)\s*\{[\s\S]*?\.aim-panel\s*,\s*\.burn-button\.is-pulse\s*\{[^}]*bottom:\s*max\(206px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*200px\)\);/s.test(StyleSheet)
       && InputControllerSource.includes("BurnButtonElement.classList.toggle('is-pulse', IsHostileCut)"),
-    'Portrait aim and Cut controls must clear the coach at ordinary and wrapped-footer widths.',
+    'Portrait aim and Destroy controls must clear the coach at ordinary and wrapped-footer widths.',
   );
   requireCondition(
     /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*380px\)\s*\{[\s\S]*?\.victory-panel\s*\{[^}]*max-height:\s*calc\(100vh\s*-\s*24px\);[^}]*overflow-x:\s*hidden;[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior:\s*contain;/s.test(StyleSheet)
@@ -504,11 +504,11 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     ReleaseBrief.includes('break your line')
-      && ReleaseBrief.includes('cut the teeth')
+      && ReleaseBrief.includes('destroy the bars')
       && ReleaseBrief.includes('surface walking')
       && ReleaseBrief.includes('zero-bonus-fuel continuation')
       && !ReleaseBrief.includes('eight-launch failure'),
-    'RELEASE.md must describe the current surface, Break, Cut and bonus-fuel rules.',
+    'RELEASE.md must describe the current surface, Break, Destroy and bonus-fuel rules.',
   );
   requireCondition(
     ReleaseBrief.includes('Three dense Warden sectors')

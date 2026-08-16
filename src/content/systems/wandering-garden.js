@@ -148,14 +148,14 @@ export const WanderingGardenSystemDefinition = {
     },
     firstNest: {
       skipLabel: 'Keep flying',
-      continueLabel: 'Cut if you must',
+      continueLabel: 'Destroy if you must',
       pages: [
         {
           speaker: 'NEST',
           kicker: 'SHELTER OPENS',
           portrait: 'frost',
           title: 'The travelling nest stands down.',
-          body: 'It saved a place for every uprooted world. Walk the rim. Cut what still cages the launch.',
+          body: 'It saved a place for every uprooted world. Walk the rim. Destroy what still cages the launch.',
           focusWorldId: 'nest',
         },
       ],
@@ -251,12 +251,12 @@ export const WanderingGardenSystemDefinition = {
           kicker: 'YOUR CHARGE',
           portrait: 'orbitbreaker',
           title: 'A garden cannot be imprisoned.',
-          body: 'Track it. Land. Walk the rim. Cut the lattice. The caravan will answer together.',
+          body: 'Track it. Land. Walk the rim. Destroy the cage. The caravan will answer together.',
         },
       ],
     },
     commandApproach: {
-      skipLabel: 'Cut the lattice',
+      skipLabel: 'Destroy the cage',
       continueLabel: 'Walk the rim',
       pages: [
         {
@@ -264,7 +264,7 @@ export const WanderingGardenSystemDefinition = {
           kicker: 'CORE LATTICE',
           portrait: 'command',
           title: 'You are on the crown.',
-          body: 'Grab the ship. Drag through the teeth. One cut is enough. Do not make this a second war.',
+          body: 'Grab the ship. Drag through the bars. One swipe is enough. Do not make this a second war.',
         },
       ],
     },

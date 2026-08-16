@@ -195,7 +195,7 @@ export function createRestorationVisuals(THREE, host) {
                 && host.PendingRecaptureCutWorldIdentifier === WorldDefinition.id) {
                 host.RecaptureCutGiftAvailable = false;
                 host.PendingRecaptureCutWorldIdentifier = null;
-                showStatusToast('RECAPTURE CUT', 1350);
+                showStatusToast('RECAPTURE', 1350);
               }
               if (!DidBeginHostileEncounter && !ShouldPreserveWardenReveal) {
                 showRouteChoiceInstruction();

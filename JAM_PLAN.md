@@ -917,9 +917,9 @@ the rim before Cut. After the collective response the Reach answers, then the sc
 Replay still skips boards. Cut remains the finale verb.
 
 Checkpoint 11 — 15 August 2026: run-local ladder without a ranked schema bump. After the first
-live link the committed chain holds 1.7s and Ember teaches leftover Cut. After the first loop a
+live link the committed chain holds 1.7s and Ember teaches leftover Destroy. After the first loop a
 gold ghost names the next closing edge. Command lock stays the exposed finale gift. Warden
-arrival arms a once-per-run recapture Cut. Extra Break remains deferred. `breaker-reach-6`
+arrival arms a once-per-run recapture Destroy. Extra Break remains deferred. `breaker-reach-6`
 is unchanged.
 
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
@@ -935,7 +935,7 @@ Checkpoint 13 — 16 August 2026: Shatterbelt and Verdant Caravan are promoted f
 fixtures into full Warden-loop campaigns. Breaker's Reach continues to Shatterbelt; Shatterbelt
 continues to Verdant Caravan; Caravan stays terminal. Long Night and Worldheart remain query-only.
 Each new sector keeps its authored geometry, Sentinel / Pollen Moon toys, occupation scars, two
-gold circuits, hostile Cut and a moving Command World. No new image assets.
+gold circuits, hostile Destroy and a moving Command World. No new image assets.
 
 Numbered milestones establish the complete game; the gauntlet raises its competitive quality. It may revisit earlier systems for depth, clarity, balance or presentation, but it may not violate `DESIGN.md`, expand beyond the three authored Warden sectors or cross an external-action approval boundary.
 

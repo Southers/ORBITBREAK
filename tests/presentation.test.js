@@ -45,6 +45,7 @@ import {
   getTyrantOccupationStrength,
   getExtractionFreighterTravelProgress,
   getLandedCameraScale,
+  getLandedSurfaceCameraPose,
   getFlightCameraScale,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
@@ -920,6 +921,39 @@ test('landed camera frames one world tightly enough for surface art to read', ()
   assert.ok(EmberScale < 1);
   const TinyScale = getLandedCameraScale({ worldRadius: 2.15, viewportWorldHeight: 24 });
   assert.equal(TinyScale, 0.42);
+});
+
+test('landed facing camera keeps the Runner on the near face and reduced motion stays overhead', () => {
+  const World = { x: 4, y: -2, radius: 3.2 };
+  const Runner = {
+    x: World.x + World.radius,
+    y: World.y,
+  };
+  const Facing = getLandedSurfaceCameraPose({
+    worldX: World.x,
+    worldY: World.y,
+    worldRadius: World.radius,
+    runnerX: Runner.x,
+    runnerY: Runner.y,
+    cameraScale: 0.5,
+    baseCameraDistance: 42,
+  });
+  assert.ok(Facing.cameraX > Runner.x);
+  assert.ok(Facing.lookAtX < Runner.x);
+  assert.ok(Facing.cameraZ < 42 * 0.5);
+  const Overhead = getLandedSurfaceCameraPose({
+    worldX: World.x,
+    worldY: World.y,
+    worldRadius: World.radius,
+    runnerX: Runner.x,
+    runnerY: Runner.y,
+    cameraScale: 0.5,
+    baseCameraDistance: 42,
+    reducedMotion: true,
+  });
+  assert.equal(Overhead.cameraX, Runner.x);
+  assert.equal(Overhead.cameraY, Runner.y);
+  assert.equal(Overhead.lookAtX, Runner.x);
 });
 
 test('flight camera follows wider than a landing but tighter than the planning map', () => {

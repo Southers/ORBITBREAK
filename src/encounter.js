@@ -6,7 +6,7 @@ export const DefaultCutHitRadius = 0.48;
 export const DefaultMaxCutLength = 2.85;
 export const ClampSurfaceLift = 0.3;
 
-/** One leftover tooth: teach Cut after the first link, or recapture after the hunt starts. */
+/** One leftover bar: teach Destroy after the first link, or recapture after the hunt starts. */
 export function getLeftoverHostileEncounter() {
   return {
     clampOffsetsRadians: LeftoverClampOffsetsRadians,

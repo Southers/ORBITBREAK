@@ -1,5 +1,5 @@
 import { createAuthoredSystemRuntime, getAuthoredSystemDefinition } from './content.js';
-import { calculateBodyPositionAtTime, createVector } from './physics.js';
+import { calculateBodyPositionAtTime, createOrbitTrapState, createVector } from './physics.js';
 import {
   PhysicsModelVersion,
   ReplaySchemaVersion,
@@ -150,6 +150,7 @@ export function validateReplay(Replay) {
       ? null
       : CurrentNodeIdentifier;
     const FlightCollectedStardust = new Set();
+    const OrbitTrapState = createOrbitTrapState();
     let FlightSettled = false;
     let BurnApplied = false;
     let CircuitClosedThisFlight = false;
@@ -186,6 +187,7 @@ export function validateReplay(Replay) {
         flightOriginWorldIdentifier: FlightOriginWorldIdentifier,
         flightCollectedStardust: FlightCollectedStardust,
         outOfBoundsDistance: OutOfBoundsDistance,
+        orbitTrapState: OrbitTrapState,
       });
       PhysicsState = StepResult.physicsState;
       IgnoredWorldIdentifier = StepResult.ignoredWorldIdentifier;
@@ -256,7 +258,7 @@ export function validateReplay(Replay) {
         );
         RunState = WorldLanding.runState;
         FlightSettled = true;
-      } else if (StepResult.outOfBounds) {
+      } else if (StepResult.outOfBounds || StepResult.orbitTrapped) {
         const Failed = settleFailedFlight({
           runState: RunState,
           scoreState: ScoreState,

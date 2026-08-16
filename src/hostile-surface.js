@@ -90,6 +90,7 @@ export function createHostileSurface(THREE, host) {
         willCancel: shouldCancelAimedLaunch({
           pointerDistanceFromShip: Distance,
           cancelRadius: LaunchCancelRadius,
+          screenDistancePixels: host.LastAimScreenDistancePixels,
         }),
         hits: getCutHits(host.ActiveHostileEncounterState, Origin, End, AttachedWorld),
       };
@@ -192,19 +193,19 @@ export function createHostileSurface(THREE, host) {
       showInstruction(
         CommandApproachTitle,
         RemainingCount === 3
-          ? 'Grab the ship and drag through a gold tooth. Drag back onto it to cancel.'
+          ? 'Grab the ship and drag through a gold bar. Drag back onto it to cancel.'
           : `${RemainingCount} left. A longer drag can take more than one.`,
       );
     } else if (RemainingCount === host.ActiveHostileEncounterState.clamps.length
       && RemainingCount === 1) {
       showInstruction(
-        `${AttachedWorld.label} has one leftover tooth.`,
-        'Grab the ship and drag through it. This is Cut.',
+        `${AttachedWorld.label} has one leftover bar.`,
+        'Grab the ship and drag through it. Destroy the cage.',
       );
     } else if (RemainingCount === 3) {
       showInstruction(
-        `${AttachedWorld.label} still has teeth.`,
-        'Grab the ship and drag through a clamp. Walk with Q/E if the cut cannot reach.',
+        `${AttachedWorld.label} still has bars.`,
+        'Grab the ship and drag through a clamp. Walk with Q/E if destroy cannot reach.',
       );
     } else {
       showInstruction(

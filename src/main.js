@@ -6,8 +6,9 @@ import {
   createKeyboardAimState,
   getKeyboardAimDragVector,
   getSurfacePosition,
+  LaunchCancelRadius,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260815-ob84';
+} from './controls.js?v=20260816-ob92';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -29,16 +30,16 @@ import { createWardenVisuals } from './warden-visuals.js?v=20260815-ob90';
 import { createPlayerVisuals } from './player-visuals.js?v=20260815-ob90';
 import { createStoryDirector } from './story-director.js?v=20260816-ob91';
 import { createHud } from './hud.js?v=20260815-ob90';
-import { createAimPreview } from './aim-preview.js?v=20260815-ob90';
+import { createAimPreview } from './aim-preview.js?v=20260816-ob92';
 import { createLandingDirector } from './landing-director.js?v=20260815-ob90';
-import { createCameraController } from './camera-controller.js?v=20260815-ob90';
-import { createInputController } from './input-controller.js?v=20260815-ob90';
-import { createHostileSurface } from './hostile-surface.js?v=20260815-ob90';
+import { createCameraController } from './camera-controller.js?v=20260816-ob92';
+import { createInputController } from './input-controller.js?v=20260816-ob92';
+import { createHostileSurface } from './hostile-surface.js?v=20260816-ob92';
 import { createScanner } from './scanner.js?v=20260815-ob90';
 import { createRoutePresentation } from './route-presentation.js?v=20260815-ob90';
 import { createRecordsUi } from './records-ui.js?v=20260815-ob90';
 import { createFrameVisuals } from './frame-visuals.js?v=20260815-ob90';
-import { createRestorationVisuals } from './restoration-visuals.js?v=20260815-ob90';
+import { createRestorationVisuals } from './restoration-visuals.js?v=20260816-ob92';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -61,12 +62,13 @@ import {
   applyBreakerBurn,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
+  createOrbitTrapState,
   createVector,
   findCollidingBody,
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260815-ob83';
+} from './physics.js?v=20260816-ob92';
 import {
   FixedPhysicsStepHertz,
   FixedPhysicsStepSeconds,
@@ -84,7 +86,7 @@ import {
   collectFlightStardust,
   resolveWardenAfterNonCommandFlight,
   rollbackFlightStardust as rollbackSharedFlightStardust,
-} from './flight-resolver.js?v=20260815-ob89';
+} from './flight-resolver.js?v=20260816-ob92';
 import { createLeaderboardClient, resolveLeaderboardBaseUrl } from './leaderboard-client.js?v=20260816-ob91';
 import {
   connectRelayWorlds,
@@ -300,7 +302,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260816-ob90';
+GameCanvas.dataset.build = '20260816-ob92';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -313,7 +315,6 @@ const MaximumDragDistance = 6.25;
 const LaunchVelocityPerDragUnit = MaximumLaunchSpeed / MaximumDragDistance;
 GameCanvas.dataset.maxLaunchSpeed = String(MaximumLaunchSpeed);
 const MinimumLaunchDragDistance = 0.22;
-const LaunchCancelRadius = 0.85;
 const MaximumTrajectoryPredictionSteps = 720;
 const TrajectoryPreviewSampleStride = 5;
 GameCanvas.dataset.rankedPredictionSteps = String(MaximumTrajectoryPredictionSteps);
@@ -422,6 +423,8 @@ let CurrentWorldIdentifier = StartingWorldIdentifier;
 let LaunchIgnoredWorldIdentifier = null;
 let LaunchIgnoredBodyIdentifier = null;
 let IsPointerAiming = false;
+let LastAimScreenDistancePixels = Number.POSITIVE_INFINITY;
+let FlightOrbitTrapState = createOrbitTrapState();
 let PointerGestureMode = SurfaceGestureModes.pending;
 let IsPointerWalking = false;
 let IsPointerScouting = false;
@@ -1524,6 +1527,7 @@ const HostileSurface = createHostileSurface(THREE, {
   SeedGroup,
   SeedRadius,
   LaunchCancelRadius,
+  get LastAimScreenDistancePixels() { return LastAimScreenDistancePixels; },
   ActiveSystem,
   WorldheartDefinition,
   CutGuideLine,
@@ -2182,6 +2186,7 @@ const AimPreview = createAimPreview(THREE, {
   WorldDefinitions,
   SeedRadius,
   get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
+  get LastAimScreenDistancePixels() { return LastAimScreenDistancePixels; },
   PredictedStardustIdentifiers,
   StardustDefinitions,
   StardustCollectionRadius,
@@ -2250,6 +2255,10 @@ const InputController = createInputController(THREE, {
   LaunchVelocityPerDragUnit,
   MinimumLaunchDragDistance,
   LaunchCancelRadius,
+  get LastAimScreenDistancePixels() { return LastAimScreenDistancePixels; },
+  set LastAimScreenDistancePixels(Value) { LastAimScreenDistancePixels = Value; },
+  get FlightOrbitTrapState() { return FlightOrbitTrapState; },
+  set FlightOrbitTrapState(Value) { FlightOrbitTrapState = Value; },
   FixedPhysicsStepHertz,
   FixedPhysicsStepSeconds,
   MaximumTrajectoryPredictionSteps,
@@ -2421,6 +2430,7 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
   rollbackFlightStardust();
   resetFlightFeedback();
   SeedPhysicsState.velocity = createVector();
+  FlightOrbitTrapState = createOrbitTrapState();
   IsBreakerBurnAvailable = false;
   IsBreakerBurnPending = false;
   updateBreakerBurnInterface();
@@ -2523,6 +2533,7 @@ function beginReplayLaunch(Launch) {
   }
   GamePhase = 'flying';
   FlightElapsedSeconds = 0;
+  FlightOrbitTrapState = createOrbitTrapState();
   applySectorPlanningCamera();
   IsBreakerBurnAvailable = true;
   IsBreakerBurnPending = false;
@@ -2632,6 +2643,7 @@ function simulateSeedFixedStep() {
     flightOriginWorldIdentifier: FlightOriginWorldIdentifier,
     flightCollectedStardust: FlightCollectedStardustIdentifiers,
     outOfBoundsDistance: OutOfBoundsDistance,
+    orbitTrapState: FlightOrbitTrapState,
   });
   SeedPhysicsState = StepResult.physicsState;
   LaunchIgnoredWorldIdentifier = StepResult.ignoredWorldIdentifier;
@@ -2689,8 +2701,8 @@ function simulateSeedFixedStep() {
     return;
   }
 
-  if (StepResult.outOfBounds) {
-    recoverSeedFromVoid();
+  if (StepResult.outOfBounds || StepResult.orbitTrapped) {
+    recoverSeedFromVoid(StepResult.orbitTrapped ? 'CAUGHT IN ORBIT' : undefined);
   }
 }
 

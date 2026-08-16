@@ -433,6 +433,62 @@ export function getExtractionFreighterTravelProgress(
   return { travelProgress: TravelProgress, opacity: Opacity, isReturning: false };
 }
 
+/**
+ * Orbits the camera with the Runner so walking rolls the globe. Reduced motion keeps
+ * the current top-down follow. Physics stay on the orbital-plane circumference.
+ */
+export function getLandedSurfaceCameraPose({
+  worldX,
+  worldY,
+  worldRadius,
+  runnerX,
+  runnerY,
+  cameraScale,
+  baseCameraDistance,
+  reducedMotion = false,
+} = {}) {
+  if (!Number.isFinite(worldX) || !Number.isFinite(worldY)) {
+    throw new Error('Landed camera pose requires a finite world centre.');
+  }
+  if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
+    throw new Error('Landed camera pose requires a positive world radius.');
+  }
+  if (!Number.isFinite(runnerX) || !Number.isFinite(runnerY)) {
+    throw new Error('Landed camera pose requires a finite runner position.');
+  }
+  if (!Number.isFinite(cameraScale) || cameraScale <= 0) {
+    throw new Error('Landed camera pose requires a positive camera scale.');
+  }
+  if (!Number.isFinite(baseCameraDistance) || baseCameraDistance <= 0) {
+    throw new Error('Landed camera pose requires a positive base camera distance.');
+  }
+  if (reducedMotion) {
+    return {
+      cameraX: runnerX,
+      cameraY: runnerY,
+      cameraZ: baseCameraDistance * cameraScale,
+      lookAtX: runnerX,
+      lookAtY: runnerY,
+      lookAtZ: 0,
+    };
+  }
+  const OffsetX = runnerX - worldX;
+  const OffsetY = runnerY - worldY;
+  const OffsetDistance = Math.hypot(OffsetX, OffsetY) || 1;
+  const DirectionX = OffsetX / OffsetDistance;
+  const DirectionY = OffsetY / OffsetDistance;
+  const RadialPull = worldRadius * 2.35;
+  const CameraZ = Math.max(worldRadius * 2.8, baseCameraDistance * cameraScale * 0.42);
+  return {
+    cameraX: worldX + (DirectionX * RadialPull),
+    cameraY: worldY + (DirectionY * RadialPull),
+    cameraZ: CameraZ,
+    lookAtX: worldX + (DirectionX * worldRadius * 0.22),
+    lookAtY: worldY + (DirectionY * worldRadius * 0.22),
+    lookAtZ: 0,
+  };
+}
+
 /** Frames one landed world so mines, people and houses read, then aiming zooms back out. */
 export function getLandedCameraScale({
   worldRadius,

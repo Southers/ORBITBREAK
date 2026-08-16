@@ -10,10 +10,12 @@ import {
   applyBreakerBurn,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
+  createOrbitTrapState,
   createVector,
   findCollidingBody,
   findCollidingWorld,
   simulatePhysicsStep,
+  advanceOrbitTrap,
 } from './physics.js';
 import {
   addCircuitBonus,
@@ -159,6 +161,7 @@ export function advanceSimulatedFlightStep({
   flightOriginWorldIdentifier = null,
   flightCollectedStardust,
   outOfBoundsDistance,
+  orbitTrapState = null,
 }) {
   const NextPhysicsState = simulatePhysicsStep(physicsState, worlds, fixedStepSeconds);
   collectFlightStardust(stardust, NextPhysicsState.position, flightCollectedStardust);
@@ -208,6 +211,8 @@ export function advanceSimulatedFlightStep({
     (NextPhysicsState.position.x ** 2) + (NextPhysicsState.position.y ** 2)
     > (outOfBoundsDistance ** 2)
   );
+  const TrapState = orbitTrapState ?? createOrbitTrapState();
+  const OrbitTrapped = advanceOrbitTrap(TrapState, NextPhysicsState.position, worlds);
 
   return {
     physicsState: NextPhysicsState,
@@ -217,6 +222,7 @@ export function advanceSimulatedFlightStep({
     collisionWorld: CollisionWorld,
     collisionBody: CollisionBody,
     outOfBounds: OutOfBounds,
+    orbitTrapped: OrbitTrapped,
   };
 }
 
