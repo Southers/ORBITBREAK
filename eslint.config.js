@@ -21,6 +21,7 @@ const BrowserShellFiles = [
   'src/route-presentation.js',
   'src/records-ui.js',
   'src/frame-visuals.js',
+  'src/restoration-visuals.js',
   'src/leaderboard-client.js',
   'src/preferences.js',
   'src/performance.js',

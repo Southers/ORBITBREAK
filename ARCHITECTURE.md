@@ -19,6 +19,7 @@ below it, never above.
 │   (DOM/window/Three)   landing-director, camera-controller,          │
 │                        input-controller, hostile-surface, scanner,   │
 │                        route-presentation, records-ui, frame-visuals,│
+│                        restoration-visuals,                          │
 │                        environment, world-geometry,                  │
 │                        living-world-visuals, warden-visuals,         │
 │                        player-visuals, audio, leaderboard-client,    │
@@ -88,6 +89,7 @@ below. The current controllers and their single responsibilities:
 | `route-presentation.js` | Route choices, target beacons, route/tactical HUD labels |
 | `records-ui.js` | Personal best, route ghost, victory summary, leaderboard panel, replay watching |
 | `frame-visuals.js` | Per-frame stardust, biome motion, trail, Runner/ship pose |
+| `restoration-visuals.js` | Liberation wave, staged growth, range veil, restoration-complete moment |
 | `environment.js`, `world-geometry.js`, `living-world-visuals.js`, `warden-visuals.js`, `player-visuals.js` | Scene factories for lighting, worlds, inhabitants/trade, Warden, Runner |
 
 ### Orchestration (`src/main.js`)
