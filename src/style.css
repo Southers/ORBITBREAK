@@ -1282,7 +1282,7 @@ button[aria-disabled='true'] {
   position: absolute;
   z-index: 4;
   left: 50%;
-  bottom: 44px;
+  bottom: max(14px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
   display: flex;
   align-items: baseline;

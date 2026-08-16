@@ -655,6 +655,7 @@ function configureSystemInterface() {
 
 const EnvironmentLights = addEnvironment(THREE, Scene, ActiveSystem.environment);
 const KeyLight = EnvironmentLights.keyLight;
+const updateEnvironmentBackdrop = EnvironmentLights.updateBackdrop;
 
 const WorldVisuals = createWorldVisuals(THREE, Scene, {
   worldDefinitions: WorldDefinitions,
@@ -3312,6 +3313,7 @@ function renderFrame() {
     const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
     updateCamera(DeltaTimeSeconds);
     updateControlModeInterface();
+    updateEnvironmentBackdrop(DeltaTimeSeconds);
     renderScene();
     return;
   }
@@ -3359,6 +3361,7 @@ function renderFrame() {
   updateFlightAudio();
   updateWorldLifeAudio();
   updatePersonalBestGhostVisibility();
+  updateEnvironmentBackdrop(DeltaTimeSeconds);
 
   renderScene();
   updatePerformanceBudget(DeltaTimeSeconds);
