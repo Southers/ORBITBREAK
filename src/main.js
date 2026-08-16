@@ -223,6 +223,7 @@ const SecondRelayAnswerLine = '“We thought we were alone.”';
 
 const GameCanvas = document.querySelector('#GameCanvas');
 const LiberationFlashElement = document.querySelector('#LiberationFlash');
+const ScoreBurstElement = document.querySelector('#ScoreBurst');
 const CounterElement = document.querySelector('.counter');
 const LaunchCounterElement = document.querySelector('#LaunchCounter');
 const WorldCounterElement = document.querySelector('#WorldCounter');
@@ -299,7 +300,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260815-ob88';
+GameCanvas.dataset.build = '20260816-ob89';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -812,6 +813,9 @@ const Hud = createHud({
   ObjectivePanelElement,
   ObjectivePipsElement,
   ObjectivePipElements,
+  ScoreBurstElement,
+  Camera,
+  ScoreBurstProjection: new THREE.Vector3(),
   GameCanvas,
   WorldDefinitions,
   RestorableWorldCount,
@@ -819,6 +823,7 @@ const Hud = createHud({
   WorldheartDefinition,
   setTimeout: window.setTimeout.bind(window),
   clearTimeout: window.clearTimeout.bind(window),
+  get PrefersReducedMotion() { return PrefersReducedMotion; },
   get CachedInstructionPanelTop() { return CachedInstructionPanelTop; },
   set CachedInstructionPanelTop(Value) { CachedInstructionPanelTop = Value; },
   get StatusToastTimeoutIdentifier() { return StatusToastTimeoutIdentifier; },
@@ -837,6 +842,7 @@ const {
   updateWorldCounter,
   updateLaunchCounter,
   updateScoreInterface,
+  showScoreBurst,
   showStatusToast,
   showInstruction,
   hideInstruction,
@@ -1748,6 +1754,7 @@ const LandingDirector = createLandingDirector(THREE, {
   updateCommandWorldAvailability,
   updateWorldheartObjective,
   showStatusToast,
+  showScoreBurst,
   updateScannerInterface,
   SeedGroup,
   ImpactPulseMesh,

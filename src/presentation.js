@@ -1104,6 +1104,7 @@ export function getPursuitRouteCoach({
   circuitExposeCount = 2,
   remainingBonusFuel = 0,
   wardenDistance = 0,
+  wardenTargetLabel = '',
   authoredGuidance = '',
 } = {}) {
   if (!Array.isArray(circuitLabels)) {
@@ -1115,8 +1116,11 @@ export function getPursuitRouteCoach({
   const FuelNote = remainingBonusFuel === 0
     ? ' Bonus fuel is spent — you can still launch.'
     : '';
+  const TargetNote = typeof wardenTargetLabel === 'string' && wardenTargetLabel !== ''
+    ? ` before it silences ${wardenTargetLabel}`
+    : '';
   const StepNote = Number.isInteger(wardenDistance) && wardenDistance > 0
-    ? ` Each launch is one Warden step (${wardenDistance} left).`
+    ? ` Each launch is one Warden step (${wardenDistance} left${TargetNote}).`
     : ' Each launch is one Warden step.';
   const FirstCircuit = typeof circuitLabels[0] === 'string' ? circuitLabels[0] : '';
   const SecondCircuit = typeof circuitLabels[1] === 'string' ? circuitLabels[1] : '';

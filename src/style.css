@@ -65,6 +65,10 @@ button[aria-disabled='true'] {
   width: 100%;
   height: 100%;
   display: block;
+  cursor: default;
+}
+
+#GameCanvas.is-grab-ready {
   cursor: grab;
 }
 
@@ -93,6 +97,52 @@ button[aria-disabled='true'] {
   );
   mix-blend-mode: screen;
   pointer-events: none;
+}
+
+.score-burst {
+  position: absolute;
+  z-index: 3;
+  left: var(--burst-x, 50%);
+  top: var(--burst-y, 50%);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  font-size: clamp(17px, 2.6vw, 26px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #ffe9a8;
+  text-shadow: 0 0 14px rgba(255, 214, 120, 0.9), 0 2px 6px rgba(0, 0, 0, 0.65);
+}
+
+.score-burst.is-circuit {
+  color: #ffd678;
+  text-shadow: 0 0 22px rgba(255, 214, 120, 1), 0 2px 6px rgba(0, 0, 0, 0.65);
+}
+
+.score-burst.is-live {
+  animation: score-burst-rise 1.35s ease-out forwards;
+}
+
+@keyframes score-burst-rise {
+  0% { opacity: 0; transform: translate(-50%, -34%) scale(0.72); }
+  16% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
+  32% { transform: translate(-50%, -58%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -128%) scale(0.94); }
+}
+
+.counter__mastery.is-banking #ScoreCounter {
+  animation: score-bank-pulse 0.62s ease-out;
+}
+
+@keyframes score-bank-pulse {
+  0% { transform: scale(1); color: inherit; }
+  28% { transform: scale(1.32); color: #ffe9a8; }
+  100% { transform: scale(1); color: inherit; }
+}
+
+#ScoreCounter {
+  display: inline-block;
+  transform-origin: center left;
 }
 
 .opening-briefing {

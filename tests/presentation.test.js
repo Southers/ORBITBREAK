@@ -908,6 +908,12 @@ test('pursuit coach treats a launch as the turn and a return flight as the loop'
     remainingBonusFuel: 0,
     wardenDistance: 3,
   }).body, /Bonus fuel is spent/);
+  assert.match(getPursuitRouteCoach({
+    circuitLabels: ['TIDE'],
+    wardenDistance: 2,
+    remainingBonusFuel: 2,
+    wardenTargetLabel: 'FROST',
+  }).body, /2 left before it silences FROST/);
   assert.equal(getPursuitRouteCoach({
     commandAvailable: true,
     allWorldsRestored: true,

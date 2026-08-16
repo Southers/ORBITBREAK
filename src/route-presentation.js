@@ -151,6 +151,9 @@ export function createRoutePresentation(THREE, host) {
       uniqueCircuitCount: host.RelayNetworkState.circuits.size,
       remainingBonusFuel: host.RunState?.remainingLaunches ?? 0,
       wardenDistance: host.WardenPursuitState.distance,
+      wardenTargetLabel: getWorldDefinition(
+        host.WardenPursuitState.targetWorldIdentifier ?? '',
+      )?.label ?? '',
       authoredGuidance: AuthoredGuidance ?? '',
     });
     showInstruction(Coach.title, Coach.body);

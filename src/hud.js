@@ -25,6 +25,9 @@ export function createHud(host) {
     ObjectiveStateElement,
     ObjectivePanelElement,
     ObjectivePipsElement,
+    ScoreBurstElement,
+    Camera,
+    ScoreBurstProjection,
     GameCanvas,
     WorldDefinitions,
     RestorableWorldCount,
@@ -32,6 +35,7 @@ export function createHud(host) {
     WorldheartDefinition,
   } = host;
   const ObjectivePipElements = host.ObjectivePipElements;
+  let LastCelebratedBankedScore = 0;
 
 
   function refreshInstructionPanelBounds() {
@@ -88,9 +92,45 @@ export function createHud(host) {
     GameCanvas.dataset.launchesUsed = String(host.RunState.launchesUsed);
     GameCanvas.dataset.runStatus = host.RunState.status;
   }
+  /**
+   * Celebrates points at the world-space position where they were earned.
+   *
+   * @param {{x:number,y:number,z?:number}} WorldPosition - Landing or event position.
+   * @param {string} Text - Short score line, e.g. "+2,400".
+   * @param {string} [Tone] - 'bank' or 'circuit'.
+   */
+  function showScoreBurst(WorldPosition, Text, Tone = 'bank') {
+    if (host.PrefersReducedMotion) {
+      return;
+    }
+    ScoreBurstProjection.set(
+      WorldPosition.x,
+      WorldPosition.y,
+      WorldPosition.z ?? 0,
+    ).project(Camera);
+    const ClampedX = Math.min(92, Math.max(8, (ScoreBurstProjection.x * 0.5 + 0.5) * 100));
+    const ClampedY = Math.min(88, Math.max(10, (-ScoreBurstProjection.y * 0.5 + 0.5) * 100));
+    ScoreBurstElement.style.setProperty('--burst-x', `${ClampedX}%`);
+    ScoreBurstElement.style.setProperty('--burst-y', `${ClampedY}%`);
+    ScoreBurstElement.textContent = Text;
+    ScoreBurstElement.classList.toggle('is-circuit', Tone === 'circuit');
+    ScoreBurstElement.hidden = false;
+    ScoreBurstElement.classList.remove('is-live');
+    void ScoreBurstElement.offsetWidth;
+    ScoreBurstElement.classList.add('is-live');
+  }
   /** Keeps banked points and the current at-risk chain visible throughout a run. */
   function updateScoreInterface() {
     ScoreCounterElement.textContent = host.ScoreState.bankedScore.toLocaleString('en-GB');
+    if (host.ScoreState.bankedScore > LastCelebratedBankedScore && !host.PrefersReducedMotion) {
+      const MasteryElement = ScoreCounterElement.closest('.counter__mastery');
+      if (MasteryElement) {
+        MasteryElement.classList.remove('is-banking');
+        void MasteryElement.offsetWidth;
+        MasteryElement.classList.add('is-banking');
+      }
+    }
+    LastCelebratedBankedScore = host.ScoreState.bankedScore;
     FlightScoreValueElement.textContent = `+${host.ScoreState.flightScore.toLocaleString('en-GB')}`;
     ChainValueElement.textContent = `CHAIN ×${Math.max(1, Math.min(host.ScoreState.chainCount, 4))}`;
     FlightScoreElement.hidden = host.ScoreState.flightScore === 0;
@@ -147,6 +187,9 @@ export function createHud(host) {
       host.StatusToastTimeoutIdentifier = null;
     }
     StatusToastElement.classList.remove('is-visible');
+    ScoreBurstElement.classList.remove('is-live');
+    ScoreBurstElement.hidden = true;
+    LastCelebratedBankedScore = 0;
   }
 
   return {
@@ -156,6 +199,7 @@ export function createHud(host) {
     updateWorldCounter,
     updateLaunchCounter,
     updateScoreInterface,
+    showScoreBurst,
     showStatusToast,
     showInstruction,
     hideInstruction,

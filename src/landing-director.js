@@ -32,6 +32,7 @@ export function createLandingDirector(THREE, host) {
     updateCommandWorldAvailability,
     updateWorldheartObjective,
     showStatusToast,
+    showScoreBurst,
     updateScannerInterface,
     SeedGroup,
     ImpactPulseMesh,
@@ -225,6 +226,13 @@ export function createLandingDirector(THREE, host) {
       GameCanvas.dataset.lastCircuitBonus = String(CircuitBonus);
       host.updateScoreInterface();
     }
+    if (TotalBankedPoints > 0) {
+      showScoreBurst(
+        ImpactPosition,
+        `+${TotalBankedPoints.toLocaleString('en-GB')}`,
+        CircuitBonus > 0 ? 'circuit' : 'bank',
+      );
+    }
     if (RelayConnection?.created || RelayConnection?.destinationReactivated) {
       host.synchronizeRelayNetworkVisuals();
       CourierStartTimesByLinkId.set(RelayConnection.link.id, host.GameElapsedTimeSeconds);
@@ -365,6 +373,9 @@ export function createLandingDirector(THREE, host) {
     centerLandedCamera({ snap: true });
     GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
     const BankResult = host.bankCurrentFlight();
+    if (BankResult.bankedPoints > 0) {
+      showScoreBurst(ImpactPosition, `+${BankResult.bankedPoints.toLocaleString('en-GB')}`);
+    }
     host.commitFlightStardust();
     host.resetFlightFeedback();
     showStatusToast(BankResult.bankedPoints > 0

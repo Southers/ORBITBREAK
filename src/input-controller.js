@@ -134,6 +134,9 @@ function getPointerWorldPosition(PointerEventData, UnprojectCamera = Camera) {
  * @param {PointerEvent} PointerEventData - Browser pointer event.
  * @returns {boolean} Whether the user acquired the seed.
  */
+const SeedScreenProjection = new THREE.Vector3();
+const SeedScreenGrabRadiusPixels = 44;
+
 function isPointerOverSeed(PointerEventData) {
   const CanvasBounds = GameCanvas.getBoundingClientRect();
   PointerNormalizedDeviceCoordinates.x = (
@@ -144,7 +147,17 @@ function isPointerOverSeed(PointerEventData) {
   ) + 1;
   PointerRaycaster.setFromCamera(PointerNormalizedDeviceCoordinates, Camera);
 
-  return PointerRaycaster.intersectObject(SeedPointerHitMesh, false).length > 0;
+  if (PointerRaycaster.intersectObject(SeedPointerHitMesh, false).length > 0) {
+    return true;
+  }
+  // A constant screen-space target keeps the ship acquirable at any zoom level.
+  SeedScreenProjection.copy(SeedGroup.position).project(Camera);
+  const SeedScreenX = CanvasBounds.left + (((SeedScreenProjection.x + 1) / 2) * CanvasBounds.width);
+  const SeedScreenY = CanvasBounds.top + (((1 - SeedScreenProjection.y) / 2) * CanvasBounds.height);
+  return Math.hypot(
+    PointerEventData.clientX - SeedScreenX,
+    PointerEventData.clientY - SeedScreenY,
+  ) <= SeedScreenGrabRadiusPixels;
 }
 
 function isPointerOverAttachedWorld(WorldPosition) {
@@ -863,6 +876,19 @@ function handlePointerMove(PointerEventData) {
     updatePinchZoom();
     PointerEventData.preventDefault();
     return;
+  }
+  if (host.ActivePointerIdentifier === null && PointerEventData.pointerType === 'mouse') {
+    const CanGrabSeed = (
+      host.GamePhase === 'attached'
+      || (host.GamePhase === 'flying' && host.IsBreakerBurnAvailable && !host.IsBreakerBurnPending)
+    );
+    GameCanvas.classList.toggle(
+      'is-grab-ready',
+      CanGrabSeed
+      && host.ReplayPlaybackState === null
+      && !host.IsOpeningBriefingActive
+      && isPointerOverSeed(PointerEventData),
+    );
   }
   if (PointerEventData.pointerId !== host.ActivePointerIdentifier) {
     return;
