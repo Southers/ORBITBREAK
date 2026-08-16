@@ -939,6 +939,22 @@ steps along the great circle at 0.7 rad/s instead of snapping to the finger. Key
 steps are 2°. The coach reports facing or far-side. No surface pickups. Physics identity
 unchanged.
 
+Checkpoint 15 — 16 August 2026: occupation scars, prosperity and inhabitants sit on
+authored sphere sites. Haven, Ember and Grove have a near-side cluster, a far-side town
+and a polar site. Scar angles still fall back to derived latitudes. Destroy clamps stay
+on the equator. Physics identity unchanged.
+
+Checkpoint 16 — 16 August 2026: pooled cottage, furnace, canopy and jetty buildings;
+walker and pack inhabitant meshes; barge, sail and sled hulls. Still instanced. Draw-call
+ceiling remains 190.
+
+Checkpoint 17 — 16 August 2026: living clusters emit a limb glow so the far face advertises
+a harbour or mine. Meadow, Ember and Frost diorama props occupy the far hemisphere. No
+quest markers or pickups.
+
+Checkpoint 18 — 16 August 2026: Shatterbelt and Verdant Caravan use the same sphere sites
+and culture families. DESIGN honest state matches the living globes.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

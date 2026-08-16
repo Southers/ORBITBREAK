@@ -384,7 +384,12 @@ export const BrokenBeltSystemDefinition = {
       slingshotValue: 300, liberationValue: 1000,
       aliveColor: 0x658f84, atmosphereColor: 0xa7e1c7, accentColor: 0xf4dc8f,
       initiallyRestored: true, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
-      occupationScarAngles: [-2.62, -2.42, -2.22],
+      occupationScarAngles: [0.07, 3.14, 1.2],
+      occupationSites: [
+        { longitude: 0.07, latitude: 0.16 },
+        { longitude: 3.14, latitude: -0.42 },
+        { longitude: 1.2, latitude: 0.92 },
+      ],
       memory: 'The last free relay had kept calling into the dark.',
       restoration: {
         durationSeconds: 2.2, waveWidth: 0.045, growthTrailWidth: 0.18,
@@ -398,7 +403,13 @@ export const BrokenBeltSystemDefinition = {
       slingshotValue: 450, liberationValue: 1000,
       aliveColor: 0xb76545, atmosphereColor: 0xffad72, accentColor: 0xffcf76,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
-      occupationScarAngles: [2.28, 2.5, 2.72, 2.94],
+      occupationScarAngles: [2.8, 0.9, -1.85, 1.5],
+      occupationSites: [
+        { longitude: 2.8, latitude: 0.14 },
+        { longitude: 0.9, latitude: 0.22 },
+        { longitude: -1.85, latitude: -0.48 },
+        { longitude: 1.5, latitude: 0.94 },
+      ],
       hostileEncounter: {
         clampOffsetsRadians: [0.55],
         cutHitRadius: 0.48,
@@ -417,7 +428,12 @@ export const BrokenBeltSystemDefinition = {
       slingshotValue: 500, liberationValue: 1300,
       aliveColor: 0x789a7c, atmosphereColor: 0xb9e2c5, accentColor: 0xcfe89a,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
-      occupationScarAngles: [-0.58, -0.29, 0],
+      occupationScarAngles: [-2.2, 0.62, -0.9],
+      occupationSites: [
+        { longitude: -2.2, latitude: 0.18 },
+        { longitude: 0.62, latitude: -0.44 },
+        { longitude: -0.9, latitude: 0.88 },
+      ],
       memory: 'The convoy bridges remember routes the wardens erased.',
       restoration: {
         durationSeconds: 1.9, waveWidth: 0.055, growthTrailWidth: 0.2,
@@ -432,6 +448,11 @@ export const BrokenBeltSystemDefinition = {
       aliveColor: 0x7085a8, atmosphereColor: 0xb9cdf9, accentColor: 0xd8e5ff,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
       occupationScarAngles: [-2.08, -1.9, -1.72],
+      occupationSites: [
+        { longitude: -2.08, latitude: 0.18 },
+        { longitude: -1.9, latitude: -0.42 },
+        { longitude: -1.72, latitude: 0.88 },
+      ],
       memory: 'Every broken face reflects a different way through the blockade.',
       restoration: {
         durationSeconds: 2.55, waveWidth: 0.042, growthTrailWidth: 0.2,
@@ -446,6 +467,12 @@ export const BrokenBeltSystemDefinition = {
       aliveColor: 0x3e7895, atmosphereColor: 0x8fdbe6, accentColor: 0xb1f0e0,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
       occupationScarAngles: [1.18, 1.37, 1.56, 1.75],
+      occupationSites: [
+        { longitude: 1.18, latitude: 0.18 },
+        { longitude: 1.37, latitude: -0.42 },
+        { longitude: 1.56, latitude: 0.88 },
+        { longitude: 1.75, latitude: -0.28 },
+      ],
       memory: 'The drifting miners light a path for the worlds behind them.',
       restoration: {
         durationSeconds: 1.95, waveWidth: 0.052, growthTrailWidth: 0.2,
@@ -460,6 +487,11 @@ export const BrokenBeltSystemDefinition = {
       aliveColor: 0x7c6c91, atmosphereColor: 0xcbb8e1, accentColor: 0xf2d59c,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
       occupationScarAngles: [0.08, 0.28, 0.48],
+      occupationSites: [
+        { longitude: 0.08, latitude: 0.18 },
+        { longitude: 0.28, latitude: -0.42 },
+        { longitude: 0.48, latitude: 0.88 },
+      ],
       disposition: 'hostile',
       hostileEncounter: {
         clampOffsetsRadians: [0.4, 0.85, 1.3],

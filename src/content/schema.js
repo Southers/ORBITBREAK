@@ -361,6 +361,21 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     ) {
       Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} has invalid occupation scar angles.`);
     }
+    if (
+      WorldDefinition.occupationSites !== undefined
+      && (
+        !Array.isArray(WorldDefinition.occupationSites)
+        || WorldDefinition.occupationSites.length < 2
+        || WorldDefinition.occupationSites.length > 6
+        || WorldDefinition.occupationSites.some((Site) => (
+          !Number.isFinite(Site?.longitude)
+          || !Number.isFinite(Site?.latitude)
+          || Math.abs(Site.latitude) > (Math.PI / 2)
+        ))
+      )
+    ) {
+      Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} has invalid occupation sites.`);
+    }
     if (!isColorValue(WorldDefinition.aliveColor)) {
       Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} requires an aliveColor integer.`);
     }

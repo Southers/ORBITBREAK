@@ -70,6 +70,12 @@ export function createAuthoredSystemRuntime(
     occupationScarAngles: WorldDefinition.occupationScarAngles
       ? [...WorldDefinition.occupationScarAngles]
       : undefined,
+    occupationSites: WorldDefinition.occupationSites
+      ? WorldDefinition.occupationSites.map((Site) => ({
+        longitude: Site.longitude,
+        latitude: Site.latitude,
+      }))
+      : undefined,
     hostileEncounter: WorldDefinition.hostileEncounter
       ? {
         ...WorldDefinition.hostileEncounter,

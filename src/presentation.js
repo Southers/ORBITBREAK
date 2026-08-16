@@ -239,6 +239,17 @@ export function getLiveLinkShipCount({
   return inLiveCircuit || originDegree >= 2 || destinationDegree >= 2 ? 2 : 1;
 }
 
+/** Three pooled hulls: barges, sails and a shared low courier. */
+export function getTradeHullFamily(kind) {
+  if (kind === 'sail') {
+    return 'sail';
+  }
+  if (kind === 'barge') {
+    return 'barge';
+  }
+  return 'sled';
+}
+
 export function getTradeHullScale(kind) {
   const Scales = {
     barge: { x: 1.7, y: 0.42, z: 0.82 },
@@ -303,6 +314,161 @@ export function getProsperityBuildingProfile(kind) {
   return Profiles[kind] ?? null;
 }
 
+const DerivedOccupationLatitudes = [0.35, -0.35, 0.7, -0.7, 0.18, -0.55];
+const ProsperityBuildingFamilies = {
+  meadow: 'cottage',
+  bower: 'cottage',
+  relay: 'cottage',
+  ember: 'furnace',
+  kiln: 'furnace',
+  lantern: 'furnace',
+  vault: 'furnace',
+  shard: 'furnace',
+  crown: 'furnace',
+  grove: 'canopy',
+  loom: 'canopy',
+  canopy: 'canopy',
+  tide: 'jetty',
+  drift: 'jetty',
+  dew: 'jetty',
+  frost: 'jetty',
+  nest: 'jetty',
+};
+
+/** Spreads fallback scars off the equator so unauthored globes are not empty rings. */
+export function getDerivedOccupationLatitude(patternIndex = 0) {
+  if (!Number.isInteger(patternIndex) || patternIndex < 0) {
+    throw new Error('Derived occupation latitude requires a non-negative pattern index.');
+  }
+  return DerivedOccupationLatitudes[patternIndex % DerivedOccupationLatitudes.length];
+}
+
+export function resolveOccupationSite(siteOrAngle, patternIndex = 0, { deriveLatitude = false } = {}) {
+  if (Number.isFinite(siteOrAngle)) {
+    return {
+      longitude: siteOrAngle,
+      latitude: deriveLatitude ? getDerivedOccupationLatitude(patternIndex) : 0,
+    };
+  }
+  if (
+    siteOrAngle
+    && Number.isFinite(siteOrAngle.longitude)
+    && Number.isFinite(siteOrAngle.latitude)
+  ) {
+    return {
+      longitude: siteOrAngle.longitude,
+      latitude: Math.max(-Math.PI / 2, Math.min(Math.PI / 2, siteOrAngle.latitude)),
+    };
+  }
+  throw new Error('Occupation site requires a finite angle or longitude and latitude.');
+}
+
+/** Authored sphere sites win; scar angles fall back, optionally leaving the equator. */
+export function listOccupationSites(worldDefinition = {}, { deriveLatitude = true } = {}) {
+  const AuthoredSites = worldDefinition.occupationSites;
+  if (Array.isArray(AuthoredSites) && AuthoredSites.length > 0) {
+    return AuthoredSites.map((Site, PatternIndex) => (
+      resolveOccupationSite(Site, PatternIndex, { deriveLatitude: false })
+    ));
+  }
+  const ScarAngles = worldDefinition.occupationScarAngles ?? [];
+  return ScarAngles.map((Angle, PatternIndex) => (
+    resolveOccupationSite(Angle, PatternIndex, { deriveLatitude })
+  ));
+}
+
+/** Cottage, furnace, canopy or jetty — pooled families, not per-world meshes. */
+export function getProsperityBuildingFamily(visualKey) {
+  if (typeof visualKey !== 'string' || visualKey.length === 0) {
+    throw new Error('Prosperity building family requires a visual key.');
+  }
+  return ProsperityBuildingFamilies[visualKey] ?? 'cottage';
+}
+
+/**
+ * Places life on the crust with up along the surface normal. Presentation only:
+ * Destroy clamps and flight stay in the orbital plane.
+ */
+export function getSphereLifePlacement({
+  worldX,
+  worldY,
+  worldZ = 0,
+  worldRadius,
+  longitude,
+  latitude,
+  radialOffset = 0,
+} = {}) {
+  if (!Number.isFinite(worldX) || !Number.isFinite(worldY) || !Number.isFinite(worldZ)) {
+    throw new Error('Sphere life placement requires a finite world centre.');
+  }
+  if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
+    throw new Error('Sphere life placement requires a positive world radius.');
+  }
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+    throw new Error('Sphere life placement requires a finite longitude and latitude.');
+  }
+  if (!Number.isFinite(radialOffset)) {
+    throw new Error('Sphere life placement requires a finite radial offset.');
+  }
+  const CosLatitude = Math.cos(latitude);
+  const DirectionX = CosLatitude * Math.cos(longitude);
+  const DirectionY = CosLatitude * Math.sin(longitude);
+  const DirectionZ = Math.sin(latitude);
+  const Distance = worldRadius + radialOffset;
+  return {
+    x: worldX + (DirectionX * Distance),
+    y: worldY + (DirectionY * Distance),
+    z: worldZ + (DirectionZ * Distance),
+    directionX: DirectionX,
+    directionY: DirectionY,
+    directionZ: DirectionZ,
+    longitude,
+    latitude,
+  };
+}
+
+/** Short patrols around a home site, huddling at the mine and gathering at a dock. */
+export function getInhabitantSurfaceSite({
+  homeSite,
+  slotIndex = 0,
+  isGuard = false,
+  freedom = 1,
+  walkingOffset = 0,
+  gatherSite = null,
+  gatherBlend = 0,
+} = {}) {
+  if (!Number.isFinite(homeSite?.longitude) || !Number.isFinite(homeSite?.latitude)) {
+    throw new Error('Inhabitant surface site requires a finite home site.');
+  }
+  if (!Number.isInteger(slotIndex) || slotIndex < 0) {
+    throw new Error('Inhabitant surface site requires a non-negative slot index.');
+  }
+  if (!Number.isFinite(freedom) || !Number.isFinite(walkingOffset) || !Number.isFinite(gatherBlend)) {
+    throw new Error('Inhabitant surface site requires finite motion values.');
+  }
+  const HeldLongitude = homeSite.longitude + (isGuard ? 0.1 : -0.14);
+  const HeldLatitude = homeSite.latitude + (isGuard ? 0.04 : -0.03);
+  const PatrolLongitude = homeSite.longitude + walkingOffset;
+  const PatrolLatitude = homeSite.latitude
+    + (Math.sin((slotIndex * 0.9) + (walkingOffset * 3)) * 0.12);
+  let FreeLongitude = PatrolLongitude;
+  let FreeLatitude = PatrolLatitude;
+  if (gatherSite && gatherBlend > 0) {
+    if (!Number.isFinite(gatherSite.longitude) || !Number.isFinite(gatherSite.latitude)) {
+      throw new Error('Inhabitant gather site requires finite longitude and latitude.');
+    }
+    FreeLongitude += (gatherSite.longitude - PatrolLongitude) * gatherBlend;
+    FreeLatitude += (gatherSite.latitude - PatrolLatitude) * gatherBlend;
+  }
+  return {
+    longitude: HeldLongitude + ((FreeLongitude - HeldLongitude) * freedom),
+    latitude: Math.max(
+      -Math.PI / 2,
+      Math.min(Math.PI / 2, HeldLatitude + ((FreeLatitude - HeldLatitude) * freedom)),
+    ),
+  };
+}
+
 /** Isolated stays a quiet trio; living crowds densify with degree without extra draws. */
 export function getLivingInhabitantSlotCount(stage) {
   if (stage === 'isolated') {
@@ -337,7 +503,7 @@ export function shouldShowInhabitantSlot({
   return slotIndex < getLivingInhabitantSlotCount(prosperityStage);
 }
 
-/** Worker, child-scale and pack silhouettes share one inhabitant draw. */
+/** Worker and child share the walker mesh; pack uses a second silhouette. */
 export function getInhabitantSilhouette(slotIndex) {
   if (!Number.isInteger(slotIndex) || slotIndex < 0) {
     throw new Error('Inhabitant silhouette requires a non-negative slot index.');

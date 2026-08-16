@@ -135,7 +135,8 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
   assert.ok(CommandDefinition.hostileEncounter.clampOffsetsRadians.length >= 3);
   assert.ok(BreakerReachSystemDefinition.worlds.every(
-    (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2,
+    (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2
+      && WorldDefinition.occupationSites.length >= 2,
   ));
   const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition);
   assert.notEqual(
@@ -266,6 +267,23 @@ test('occupation scar authoring stays finite and bounded', () => {
   ));
 });
 
+test('occupation sites stay on the sphere and clone into runtime', () => {
+  const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
+  InvalidSystemDefinition.worlds[0].occupationSites = [{ longitude: 0, latitude: 2 }];
+  assert.ok(validateAuthoredSystemDefinition(InvalidSystemDefinition).includes(
+    'World meadow has invalid occupation sites.',
+  ));
+  const HavenDefinition = BreakerReachSystemDefinition.worlds[0];
+  assert.ok(HavenDefinition.occupationSites.some((Site) => Math.abs(Site.latitude) > 0.3));
+  const EmberDefinition = BreakerReachSystemDefinition.worlds[1];
+  assert.ok(EmberDefinition.occupationSites.some((Site) => Math.abs(Site.latitude) > 0.8));
+  const GroveDefinition = BreakerReachSystemDefinition.worlds[2];
+  assert.ok(GroveDefinition.occupationSites.some((Site) => Site.latitude < -0.3));
+  const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition);
+  assert.notEqual(Runtime.worlds[0].occupationSites, HavenDefinition.occupationSites);
+  assert.equal(Runtime.worlds[0].occupationSites[0].longitude, HavenDefinition.occupationSites[0].longitude);
+});
+
 test('tactical surface encounters fail closed without authored clamps', () => {
   const InvalidSystemDefinition = structuredClone(BreakerReachSystemDefinition);
   const CommandDefinition = InvalidSystemDefinition.tacticalBodies.find(
@@ -292,7 +310,9 @@ test('Broken Belt satisfies the authored-system content contract', () => {
   assert.ok(BrokenBeltSystemDefinition.openingBriefing.length >= 4);
   assert.ok(BrokenBeltSystemDefinition.storyBoards.wardenArrival);
   assert.ok(BrokenBeltSystemDefinition.worlds.every(
-    (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2,
+    (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2
+      && WorldDefinition.occupationSites.length >= 2
+      && WorldDefinition.occupationSites.some((Site) => Math.abs(Site.latitude) > 0.3),
   ));
   const WorldXs = BrokenBeltSystemDefinition.worlds.map(
     (WorldDefinition) => WorldDefinition.position.x,
@@ -336,7 +356,9 @@ test('Wandering Garden satisfies the moving-system content contract', () => {
   assert.ok(WanderingGardenSystemDefinition.openingBriefing.length >= 4);
   assert.ok(WanderingGardenSystemDefinition.storyBoards.commandExposed);
   assert.ok(WanderingGardenSystemDefinition.worlds.every(
-    (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2,
+    (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2
+      && WorldDefinition.occupationSites.length >= 2
+      && WorldDefinition.occupationSites.some((Site) => Math.abs(Site.latitude) > 0.3),
   ));
   const WorldXs = WanderingGardenSystemDefinition.worlds.map(
     (WorldDefinition) => WorldDefinition.position.x,

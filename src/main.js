@@ -25,8 +25,8 @@ import {
   getViewportPixelRatioCap,
 } from './performance.js?v=20260814-ob13';
 import { addEnvironment } from './environment.js?v=20260815-ob89';
-import { createWorldVisuals } from './world-geometry.js?v=20260815-ob90';
-import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260816-ob91';
+import { createWorldVisuals } from './world-geometry.js?v=20260816-ob96';
+import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260816-ob96';
 import { createWardenVisuals } from './warden-visuals.js?v=20260815-ob90';
 import { createPlayerVisuals } from './player-visuals.js?v=20260815-ob90';
 import { createStoryDirector } from './story-director.js?v=20260816-ob91';
@@ -142,7 +142,7 @@ import {
   getStoryMusicStage,
   getWorldLifeStage,
   getWorldLandingAimLabel,
-} from './presentation.js?v=20260816-ob95';
+} from './presentation.js?v=20260816-ob96';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -303,7 +303,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260816-ob95';
+GameCanvas.dataset.build = '20260816-ob96';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
