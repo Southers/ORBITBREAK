@@ -24,10 +24,10 @@ import {
 } from './performance.js?v=20260814-ob13';
 import { addEnvironment } from './environment.js?v=20260815-ob89';
 import { createWorldVisuals } from './world-geometry.js?v=20260815-ob90';
-import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260815-ob90';
+import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260816-ob91';
 import { createWardenVisuals } from './warden-visuals.js?v=20260815-ob90';
 import { createPlayerVisuals } from './player-visuals.js?v=20260815-ob90';
-import { createStoryDirector } from './story-director.js?v=20260815-ob90';
+import { createStoryDirector } from './story-director.js?v=20260816-ob91';
 import { createHud } from './hud.js?v=20260815-ob90';
 import { createAimPreview } from './aim-preview.js?v=20260815-ob90';
 import { createLandingDirector } from './landing-director.js?v=20260815-ob90';
@@ -45,7 +45,7 @@ import {
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260815-ob88';
+} from './content.js?v=20260816-ob91';
 
 import {
   getLandingAccolade,
@@ -139,7 +139,7 @@ import {
   getStoryMusicStage,
   getWorldLifeStage,
   getWorldLandingAimLabel,
-} from './presentation.js?v=20260815-ob88';
+} from './presentation.js?v=20260816-ob91';
 import {
   PhysicsModelVersion,
   createReplayRecorder,

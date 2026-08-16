@@ -12,7 +12,7 @@ Every major feature should strengthen at least one of three promises: expressive
 
 ## Current foundation
 
-The public build is a polished deterministic score-attack prototype with five authored systems, slingshot scoring, replay validation and mobile controls. It is the technical and content foundation, not the locked final design.
+The public build is three authored Warden sectors—Breaker's Reach, Shatterbelt and Verdant Caravan—on the deterministic score-attack foundation, with leftover systems kept as query-only fixtures.
 
 Replace it in small playable checkpoints. Preserve working physics, tests and useful authored content while changing story, progression, camera and moment-to-moment play.
 
@@ -45,7 +45,7 @@ Replace it in small playable checkpoints. Preserve working physics, tests and us
 - Make the Runner → launch craft → flight ship → Runner transformation readable without changing the physics identity.
 - Telegraph the Warden's next move and every hostile obstacle before it can punish the player.
 - Keep surface hostility brief and contextual: pylons, barriers or drones disabled with one Cut, never health bars or a second combat game.
-- Prefer one dense authored sector over an infinite procedural universe or several shallow chapters.
+- Prefer three dense authored Warden sectors over an infinite procedural universe or several shallow chapters.
 - Preserve the planet-wrapping liberation effect as the signature reward.
 - Add every external asset and licence to `CREDITS.md` before committing it.
 - Do not commit secrets, dependency folders, build output or disposable captures.
@@ -93,6 +93,6 @@ During the final 12 hours before the jam deadline, add no new mechanics. Restric
 
 ## Scope guardrails
 
-Do not add free-surface exploration, health systems, weapon inventories, crafting, random infinite worlds, multiplayer, dialogue trees, permanent stat upgrades or multiple bosses before the one-sector Warden run is fun from beginning to end.
+Do not add free-surface exploration, health systems, weapon inventories, crafting, random infinite worlds, multiplayer, dialogue trees, permanent stat upgrades or extra boss rulesets beyond the three authored Command Worlds.
 
-Additional sectors, modules, global ghosts and the larger super-AI are expansion hooks, not requirements for the first complete version.
+Additional sectors such as Long Night and Worldheart, modules, global ghosts and the larger super-AI remain expansion hooks, not requirements for this three-sector version.

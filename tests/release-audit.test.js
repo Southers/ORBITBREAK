@@ -8,6 +8,6 @@ test('release audit proves campaign, metadata, credits and local asset integrity
 
   assert.deepEqual(Audit.failures, []);
   assert.equal(Audit.build, '20260816-ob90');
-  assert.equal(Audit.campaignSystems, 5);
+  assert.equal(Audit.campaignSystems, 3);
   assert.ok(Audit.checkedLocalAssets >= 4);
 });

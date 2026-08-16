@@ -355,7 +355,7 @@ export const BreakerReachSystemDefinition = {
       bloom: { title: 'SOLIDARITY', subtitle: 'ALL WORLDS' },
       arc: { title: 'WAYFINDER', subtitle: '3 STARDUST' },
     },
-    continueToNextSystem: false,
+    continueToNextSystem: true,
   },
   constellation: {
     nodes: [

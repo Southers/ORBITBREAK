@@ -21,7 +21,7 @@ Every successful route leaves a relay behind. Close two unique circuits before t
 
 **Feature bullets:**
 
-- One dense nine-world sector with distinct route choices and a complete Warden arc.
+- Three dense Warden sectors: nine-world Breaker's Reach, then Shatterbelt and Verdant Caravan.
 - Deterministic 120 Hz gravity shared by live flight and trajectory prediction.
 - Tiny cultures that visibly awaken, trade, resist suppression and answer the final Pulse.
 - Resilient relay circuits, a pursuing Warden and a moving Command World finale.
@@ -70,7 +70,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Manual release checklist
 
-- Complete the safe and mastery Breaker's Reach routes; smoke-test archived authored systems as compatibility fixtures.
+- Complete the safe and mastery routes on Breaker's Reach, Shatterbelt and Verdant Caravan; smoke-test Long Night, Worldheart and First Light as compatibility fixtures.
 - Verify pointer, touch and keyboard aim; surface walking; Scout zoom; Burn; landing; hazard/void recovery; zero-bonus-fuel continuation; Warden catch; Reset; audio, ghost and replay.
 - Verify desktop, 390×844 portrait and 844×390 landscape without overflow.
 - Verify System, Reduced and Full motion modes, including local persistence and unchanged ranked state.
@@ -84,10 +84,10 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260816-ob90` passes deterministic tests, syntax checks, the five-system release audit and the 200-run validator benchmark.
+- Build `20260816-ob90` passes deterministic tests, syntax checks, the three-sector release audit and the 200-run validator benchmark.
 - Breaker's Reach is a nine-world sector: Haven, Ember and Grove stay the inner neighbourhood, then Spindle, Quarry, Mirage, Frost, Tide and Bastion wait behind the veil. Aiming frames the current world's neighbours so the bigger map stays readable; Scout zoom-out reaches 3.85. Golden complete replay still derives score 10900 on content `breaker-reach-7`.
 - Story boards are spaced to one flavour beat per landing; rule beats jump the queue and Skip/Escape dismiss the whole queued conversation. Landings celebrate banked points with a floating score burst and a HUD bank pulse, the ship is grabbable within a constant 44px screen target at any zoom, and the pursuit coach names the world the Warden will silence.
-- Aiming frames the live neighbourhood on a brighter, less fogged map. Pinch and zoom buttons work during aim, and zoom now reaches from a close world to the whole authored Reach. Extra solar systems stay out of scope.
+- Aiming frames the live neighbourhood on a brighter, less fogged map. Pinch and zoom buttons work during aim, and zoom now reaches from a close world to the whole authored sector. Long Night and Worldheart stay query-only fixtures.
 - After the first live link the committed chain holds 1.7s and Ember teaches leftover Cut. After the first unique loop a gold ghost names the next closing edge. Command lock remains the exposed finale gift. Warden arrival arms a once-per-run recapture Cut. Extra Break is still deferred so ranked flights keep one recorded burn.
 - Living worlds now mix houses, workshops and docks on the same scar kit, with window/street instances and crowds that densify to twelve people on a circuit. Trade hulls dwell at the dock, light the pier and gather nearby walkers. Reduced motion skips the pause.
 - Campaign story boards wait for the wrapping liberation and relay look, then freeze the sim. Continue and Skip disconnect dialogue voices and restore the game bed. Aiming snaps to the sector frame and no longer inherits landed pan/zoom, so fog cannot swallow the predicted path.
@@ -97,7 +97,7 @@ Suggested 40-second trailer beat sheet:
 - Explicit reduced motion preserves the deterministic Haven-to-Ember launch and landing.
 - Local-only diagnostics prove background aim cancellation/resume, WebGL loss/restoration and adaptive-quality degradation/recovery.
 - Breaker's Reach results use authored Command, Solidarity and Wayfinder emblems and report bonus fuel without presenting zero as a failure condition.
-- The selected sector ends with replay and ranking actions; four archived authored systems remain direct-query compatibility fixtures and pass startup smoke checks.
+- A verified Breaker's Reach result continues to Shatterbelt, then Verdant Caravan; Caravan stays terminal with replay and ranking actions. Long Night, Worldheart and First Light remain direct-query compatibility fixtures.
 - Keyboard aim uses the shared fixed-step predictor to suggest a bounded lead on the exposed moving Command World, with direct-aim fallback and unchanged ranked inputs.
 - Every fresh run opens with the Warden's `TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE` broadcast over the route coach; desktop and 390×844 portrait then delivered Ember's first answer without overflow or blocked controls.
 - The third relay now answers with the Warden's defining `CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE` broadcast while the complete second answer, target and four-flight forecast remain readable beneath it.

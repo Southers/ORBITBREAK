@@ -113,6 +113,7 @@ export function createStoryDirector(host) {
     host.StoryLookFocus = getStoryBoardCameraFocus({
       boardId: host.ActiveStoryBoardId === 'opening' ? 'opening' : host.ActiveStoryBoardId,
       portrait: Board.pages[PageIndex]?.portrait ?? '',
+      focusWorldId: Board.pages[PageIndex]?.focusWorldId ?? '',
     });
     WorldseedSound.setStoryPaused(true);
     if (playVoice) {

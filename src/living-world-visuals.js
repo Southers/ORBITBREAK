@@ -149,6 +149,14 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     loom: { height: 0.86, width: 1.12, depth: 0.7 },
     kiln: { height: 1.36, width: 0.74, depth: 0.88 },
     shard: { height: 1.28, width: 0.7, depth: 0.94 },
+    relay: { height: 0.9, width: 0.82, depth: 0.82 },
+    drift: { height: 0.92, width: 1.3, depth: 0.68 },
+    bower: { height: 0.9, width: 0.82, depth: 0.82 },
+    lantern: { height: 1.36, width: 0.74, depth: 0.88 },
+    canopy: { height: 0.78, width: 1.18, depth: 0.72 },
+    crown: { height: 1.48, width: 0.78, depth: 0.92 },
+    dew: { height: 0.92, width: 1.3, depth: 0.68 },
+    nest: { height: 1.22, width: 0.72, depth: 0.88 },
   };
   const OccupationFumeColors = {
     meadow: new THREE.Color(0x8a6a40),
@@ -160,6 +168,14 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     loom: new THREE.Color(0x5a6a40),
     kiln: new THREE.Color(0xff5a24),
     shard: new THREE.Color(0x8a9ab8),
+    relay: new THREE.Color(0x8a6a40),
+    drift: new THREE.Color(0x4a5a48),
+    bower: new THREE.Color(0x6a5a38),
+    lantern: new THREE.Color(0xff5a24),
+    canopy: new THREE.Color(0x6a5a38),
+    crown: new THREE.Color(0x6a2030),
+    dew: new THREE.Color(0x4a5a48),
+    nest: new THREE.Color(0x6a5a38),
   };
   const OccupationScarInstances = WorldDefinitions.flatMap((WorldDefinition) => (
     (WorldDefinition.occupationScarAngles ?? []).map((Angle, PatternIndex) => ({
@@ -702,6 +718,14 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     loom: { speed: 0.38, stride: 0.12 },
     kiln: { speed: 0.64, stride: 0.08 },
     shard: { speed: 0.28, stride: 0.07 },
+    relay: { speed: 0.42, stride: 0.11 },
+    drift: { speed: 0.88, stride: 0.095 },
+    bower: { speed: 0.42, stride: 0.11 },
+    lantern: { speed: 0.72, stride: 0.075 },
+    canopy: { speed: 0.34, stride: 0.14 },
+    crown: { speed: 0.24, stride: 0.055 },
+    dew: { speed: 0.88, stride: 0.095 },
+    nest: { speed: 0.3, stride: 0.065 },
   };
   const InhabitantGuardColor = new THREE.Color(0x6a1c22);
   const InhabitantPrisonerColor = new THREE.Color(0x6e5a52);

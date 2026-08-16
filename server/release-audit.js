@@ -393,8 +393,10 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
-      ?.completion.continueToNextSystem === false,
-    'The selected one-sector candidate must end without a legacy campaign continuation.',
+      ?.completion.continueToNextSystem === true
+      && AuthoredSystemDefinitions['broken-belt']?.completion.continueToNextSystem === true
+      && AuthoredSystemDefinitions['wandering-garden']?.completion.continueToNextSystem === false,
+    'Reach continues to Shatterbelt; Verdant Caravan remains the terminal campaign chapter.',
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
@@ -448,8 +450,10 @@ export function auditReleaseReadiness() {
     'The selected one-sector candidate must preserve the second answer through Warden arrival.',
   );
   requireCondition(
-    AuthoredCampaignSystemIdentifiers.length === 5,
-    'The release campaign must contain exactly five authored systems.',
+    AuthoredCampaignSystemIdentifiers.length === 3
+      && AuthoredCampaignSystemIdentifiers[1] === 'broken-belt'
+      && AuthoredCampaignSystemIdentifiers[2] === 'wandering-garden',
+    'The release campaign must contain exactly three authored Warden sectors.',
   );
   for (const SystemIdentifier of AuthoredCampaignSystemIdentifiers) {
     const SystemDefinition = AuthoredSystemDefinitions[SystemIdentifier];
@@ -459,12 +463,25 @@ export function auditReleaseReadiness() {
       !String(SystemDefinition.contentVersion).startsWith('migration-'),
       `Campaign system ${SystemIdentifier} still uses a migration content version.`,
     );
+    requireCondition(
+      SystemDefinition.commandWorldRequiresShieldBreaks === true
+        && Boolean(SystemDefinition.storyBoards?.wardenArrival)
+        && Boolean(SystemDefinition.openingBriefing?.length),
+      `Campaign system ${SystemIdentifier} must own the Warden-loop story contract.`,
+    );
     for (const ValidationError of validateAuthoredSystemDefinition(SystemDefinition)) {
       Failures.push(`${SystemIdentifier}: ${ValidationError}`);
     }
   }
 
-  requireCondition(Credits.includes('Three.js'), 'CREDITS.md must credit Three.js.');
+  requireCondition(
+    Boolean(AuthoredSystemDefinitions['long-night'])
+      && Boolean(AuthoredSystemDefinitions.worldheart)
+      && Boolean(AuthoredSystemDefinitions['first-light'])
+      && !AuthoredCampaignSystemIdentifiers.includes('long-night')
+      && !AuthoredCampaignSystemIdentifiers.includes('worldheart'),
+    'Long Night, Worldheart and First Light remain query-only compatibility fixtures.',
+  );
   requireCondition(Credits.includes('WORLDSEED'), 'CREDITS.md must record WORLDSEED provenance.');
   requireCondition(
     Credits.includes('Opening briefing portraits')
@@ -494,8 +511,9 @@ export function auditReleaseReadiness() {
     'RELEASE.md must describe the current surface, Break, Cut and bonus-fuel rules.',
   );
   requireCondition(
-    ReleaseBrief.includes('One dense nine-world sector'),
-    'RELEASE.md must present the selected one-sector candidate rather than the compatibility library.',
+    ReleaseBrief.includes('Three dense Warden sectors')
+      && ReleaseBrief.includes("nine-world Breaker's Reach"),
+    'RELEASE.md must present the three authored Warden sectors rather than the leftover library.',
   );
 
   return {

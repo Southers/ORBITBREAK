@@ -1,10 +1,311 @@
-/** ORBITBREAK's second arena: a wide mining belt built around one moving hazard window. */
+/** Shatterbelt: mining-belt Warden campaign around one moving Sentinel window. */
 export const BrokenBeltSystemDefinition = {
   id: 'broken-belt',
-  contentVersion: 'broken-belt-1',
+  contentVersion: 'broken-belt-2',
   label: 'SHATTERBELT',
-  launchBudget: 8,
-  openingBody: 'The Stillness mines this broken belt. Take the lower convoy, or time the Sentinel and bend around Shard.',
+  launchBudget: 10,
+  circuitBonusValue: 1250,
+  wardenVictoryValuePerStep: 1000,
+  openingBroadcast: 'WARDEN BROADCAST · THE HAUL CONTINUES · STAY IN YOUR PIT',
+  wardenArrivalBroadcast: 'WARDEN BROADCAST · THE CONVOY IS A FAULT · I WILL RECLAIM THE ORE',
+  openingBody: 'The mining command still extracts. Carry the second word.',
+  openingBriefing: [
+    {
+      speaker: 'THE WARDEN',
+      kicker: 'MINING EDICT',
+      portrait: 'warden',
+      title: 'The haul continues.',
+      body: 'Stay in your pit. Ore moves only on my roads. A free convoy is a fault I will close.',
+    },
+    {
+      speaker: 'THE RUNNER',
+      kicker: 'THE SIGNAL JUMPED',
+      portrait: 'runner',
+      title: 'The first command is down.',
+      body: 'Breaker\'s Reach is talking. This Warden still mines the belt. The Orbitbreaker can cross its cages too.',
+    },
+    {
+      speaker: 'RELAY',
+      kicker: 'SHATTERBELT',
+      portrait: 'haven',
+      title: 'The last free relay kept calling.',
+      body: 'Kiln, Loom and the convoy sit dark and hauled. Carry the second word before the mining command notices.',
+      focusWorldId: 'relay',
+    },
+    {
+      speaker: 'THE RUN',
+      kicker: 'YOUR CHARGE',
+      portrait: 'orbitbreaker',
+      title: 'Wake the convoy.',
+      body: 'Land. Link. Time the Sentinel. When the belt starts talking, this Warden will hunt. Close the loops. Break mining Command.',
+    },
+  ],
+  storyBoards: {
+    firstAnswer: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Carry the word',
+      pages: [
+        {
+          speaker: 'KILN',
+          kicker: 'FIRST ANSWER',
+          portrait: 'ember',
+          title: 'Is someone there?',
+          body: 'The furnaces turn their heat away from the foundries. A barge lights its first legal hold. The relay is no longer calling into silence.',
+          focusWorldId: 'kiln',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'THE WORD CARRIES',
+          portrait: 'runner',
+          title: 'They heard us.',
+          body: 'One more neighbour and this haul is a convoy. Walk, aim, land. Watch them wake.',
+        },
+      ],
+    },
+    secondAnswer: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Wake the third',
+      pages: [
+        {
+          speaker: 'LOOM',
+          kicker: 'SECOND VOICE',
+          portrait: 'grove',
+          title: 'We thought we were alone.',
+          body: 'The convoy bridges remember routes the Wardens erased. Two worlds are talking. The haul is trying to remember how to share.',
+          focusWorldId: 'loom',
+        },
+        {
+          speaker: 'RELAY',
+          kicker: 'THE RELAY ANSWERS',
+          portrait: 'haven',
+          title: 'Keep going.',
+          body: 'When three stations talk, the pits look smaller. The Warden called this empty. It is not.',
+          focusWorldId: 'relay',
+        },
+      ],
+    },
+    rangeUnlock: {
+      skipLabel: 'Scout further',
+      continueLabel: 'Look further',
+      pages: [
+        {
+          speaker: 'THE RUN',
+          kicker: 'THE SILENCE RECEEDS',
+          portrait: 'orbitbreaker',
+          title: 'The dark is not as wide as they said.',
+          body: 'Shard, Drift and Vault were always there. The veil was a story. Scout the wider belt. Time the Sentinel.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'RANGE',
+          portrait: 'runner',
+          title: 'It was a lie.',
+          body: 'Go further. Link a visible convoy. It will look easy. That is when the hunt starts.',
+        },
+      ],
+    },
+    neighbourhood: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Hold this feeling',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'A CONVOY',
+          portrait: 'haven',
+          title: 'A whole neighbourhood is talking.',
+          body: 'Furnaces are lit. Hulls are moving. For a moment the belt looks like it can stay this way.',
+          focusWorldId: 'relay',
+        },
+      ],
+    },
+    firstShard: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Read the faces',
+      pages: [
+        {
+          speaker: 'SHARD',
+          kicker: 'BROKEN GLASS',
+          portrait: 'frost',
+          title: 'Every face reflects a way through.',
+          body: 'The Sentinel still orbits. Time the window. We were never a still quarry.',
+          focusWorldId: 'shard',
+        },
+      ],
+    },
+    firstDrift: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Follow the miners',
+      pages: [
+        {
+          speaker: 'DRIFT',
+          kicker: 'OPEN WATER',
+          portrait: 'tide',
+          title: 'The drifting miners light a path.',
+          body: 'The haul turns around. We will carry word the way the belt always did.',
+          focusWorldId: 'drift',
+        },
+      ],
+    },
+    firstVault: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Cut if you must',
+      pages: [
+        {
+          speaker: 'VAULT',
+          kicker: 'NAMES OPEN',
+          portrait: 'bastion',
+          title: 'The sealed roll call stands down.',
+          body: 'Courier spines remember the legal roads. Walk the rim. Cut what still cages the launch.',
+          focusWorldId: 'vault',
+        },
+      ],
+    },
+    wardenArrival: {
+      skipLabel: 'Face the hunt',
+      continueLabel: 'Outrun it',
+      pages: [
+        {
+          speaker: 'THE WARDEN',
+          kicker: 'UNAUTHORISED CONVOY',
+          portrait: 'warden',
+          title: 'Unauthorised network detected.',
+          body: 'The convoy is a fault. I will reclaim the ore. I will silence every pit that answers.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'THE HUNT BEGINS',
+          portrait: 'runner',
+          title: 'It found us.',
+          body: 'It will take the weakest linked world. Close a loop and push it back, or expand and risk the cage.',
+        },
+      ],
+    },
+    circuitClosed: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Hold or expand',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'LOOP CLOSED',
+          portrait: 'haven',
+          title: 'The signal went around.',
+          body: 'This loop cannot be silenced at one choke. The Warden was pushed back. One shield cracked.',
+          focusWorldId: 'relay',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'RESISTANCE',
+          portrait: 'runner',
+          title: 'We can defend this.',
+          body: 'Gold means protected. Spend the retreat on another world, or close the second loop and crack the crown.',
+        },
+      ],
+    },
+    suppression: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Go back for them',
+      pages: [
+        {
+          speaker: 'THE WARDEN',
+          kicker: 'SIGNAL LOST',
+          portrait: 'warden',
+          title: 'Silence restored.',
+          body: 'They took {world}. The cage is back. Mines first. People last.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'STILL THERE',
+          portrait: 'runner',
+          title: 'Land there again.',
+          body: 'The route remembers. Recapture {world} before the hunt walks closer.',
+        },
+      ],
+    },
+    recapture: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Stay with them',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'SIGNAL RESTORED',
+          portrait: 'ember',
+          title: "We're still here.",
+          body: '{world} answers again. The original route and courier are live. The cage failed twice.',
+          focusWorldId: 'kiln',
+        },
+      ],
+    },
+    commandExposed: {
+      skipLabel: 'Board Command',
+      continueLabel: 'Hunt the crown',
+      pages: [
+        {
+          speaker: 'COMMAND',
+          kicker: 'CROWN CRACKED',
+          portrait: 'command',
+          title: 'Two loops hit the hull.',
+          body: 'The shield moons are gone. Mining Command is a moving tiny world now, not a voice from the dark.',
+        },
+        {
+          speaker: 'THE RUN',
+          kicker: 'YOUR CHARGE',
+          portrait: 'orbitbreaker',
+          title: 'A convoy cannot be imprisoned.',
+          body: 'Track it. Land. Walk the rim. Cut the lattice. The belt will answer together.',
+        },
+      ],
+    },
+    commandApproach: {
+      skipLabel: 'Cut the lattice',
+      continueLabel: 'Walk the rim',
+      pages: [
+        {
+          speaker: 'COMMAND',
+          kicker: 'CORE LATTICE',
+          portrait: 'command',
+          title: 'You are on the crown.',
+          body: 'Grab the ship. Drag through the teeth. One cut is enough. Do not make this a second war.',
+        },
+      ],
+    },
+    reachAnswers: {
+      skipLabel: 'See the route',
+      continueLabel: 'Bank the route',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'THE BELT ANSWERS',
+          portrait: 'haven',
+          title: 'The broken convoy turns its lights.',
+          body: 'You reminded them they were never alone. The relay, the furnaces and the vault all speak at once.',
+          focusWorldId: 'relay',
+        },
+      ],
+    },
+    runLost: {
+      skipLabel: 'Begin again',
+      continueLabel: 'Steal the ship again',
+      pages: [
+        {
+          speaker: 'THE WARDEN',
+          kicker: 'THE STILLNESS CLOSES',
+          portrait: 'warden',
+          title: 'You were one pit too slow.',
+          body: 'Isolation is safety. The haul is order. Connection is a fault I have closed.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'NOT FINISHED',
+          portrait: 'runner',
+          title: 'Steal the ship again.',
+          body: 'Relay is still calling. The second word is still yours to carry.',
+        },
+      ],
+    },
+  },
+  rangeUnlockLine: 'The dark is not as wide as they said.',
+  furtherLandingLine: 'A whole neighbourhood is talking.',
+  commandApproachLine: 'A convoy cannot be imprisoned.',
   camera: {
     followPlayer: true,
     viewportWorldHeight: 24,
@@ -28,6 +329,14 @@ export const BrokenBeltSystemDefinition = {
     perfectTitle: 'Every voice in the belt is free.',
     body: 'The broken convoy turns its lights against the Stillness.',
     perfectBody: 'Every shard and station now carries the uprising onward.',
+    endingReveal: 'You did not save them alone. You reminded them they were never alone.',
+    expansionSting: 'WARDEN NODE DISCONNECTED · SECTOR WARDENS: 10',
+    emblems: {
+      heart: { title: 'COMMAND', subtitle: 'DEFEATED' },
+      bloom: { title: 'SOLIDARITY', subtitle: 'ALL WORLDS' },
+      arc: { title: 'WAYFINDER', subtitle: '3 STARDUST' },
+    },
+    continueToNextSystem: true,
   },
   constellation: {
     nodes: [
@@ -40,8 +349,8 @@ export const BrokenBeltSystemDefinition = {
       { id: 'belt-heart', label: 'Belt Heart', x: 216, y: 68, isHeart: true },
     ],
     edges: [
-      ['relay', 'loom'], ['relay', 'kiln'], ['loom', 'shard'],
-      ['loom', 'drift'], ['kiln', 'drift'], ['drift', 'shard'],
+      ['relay', 'loom'], ['relay', 'kiln'], ['kiln', 'loom'],
+      ['loom', 'shard'], ['loom', 'drift'], ['kiln', 'drift'], ['drift', 'shard'],
       ['drift', 'vault'], ['shard', 'vault'], ['vault', 'belt-heart'],
     ],
   },
@@ -50,6 +359,7 @@ export const BrokenBeltSystemDefinition = {
   innerClusterWorldIdentifiers: ['relay', 'kiln', 'loom'],
   furtherReachWorldIdentifiers: ['shard', 'drift', 'vault'],
   worldheartUnlockThreshold: 3,
+  commandWorldRequiresShieldBreaks: true,
   routeSuggestions: {
     relay: ['loom', 'kiln'],
     loom: ['drift', 'shard', 'kiln'],
@@ -59,6 +369,14 @@ export const BrokenBeltSystemDefinition = {
     vault: ['belt-heart', 'shard', 'drift'],
     splinter: ['drift', 'vault'],
   },
+  routeGuidance: {
+    loom: {
+      relay: "Walk Loom's far rim, then aim back around Kiln until the path locks Relay. The whole arc is on the map—hold it to close the gold loop.",
+    },
+    vault: {
+      shard: 'Shard is the direct lock; Drift is the alternate arc. Either closes the second gold loop and exposes Command.',
+    },
+  },
   worlds: [
     {
       id: 'relay', label: 'RELAY', visualKey: 'relay',
@@ -66,6 +384,7 @@ export const BrokenBeltSystemDefinition = {
       slingshotValue: 300, liberationValue: 1000,
       aliveColor: 0x658f84, atmosphereColor: 0xa7e1c7, accentColor: 0xf4dc8f,
       initiallyRestored: true, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
+      occupationScarAngles: [-2.62, -2.42, -2.22],
       memory: 'The last free relay had kept calling into the dark.',
       restoration: {
         durationSeconds: 2.2, waveWidth: 0.045, growthTrailWidth: 0.18,
@@ -79,6 +398,12 @@ export const BrokenBeltSystemDefinition = {
       slingshotValue: 450, liberationValue: 1000,
       aliveColor: 0xb76545, atmosphereColor: 0xffad72, accentColor: 0xffcf76,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
+      occupationScarAngles: [2.28, 2.5, 2.72, 2.94],
+      hostileEncounter: {
+        clampOffsetsRadians: [0.55],
+        cutHitRadius: 0.48,
+        maxCutLength: 2.85,
+      },
       memory: 'The furnaces turn their heat away from the Stillness foundries.',
       restoration: {
         durationSeconds: 2.3, waveWidth: 0.048, growthTrailWidth: 0.18,
@@ -92,6 +417,7 @@ export const BrokenBeltSystemDefinition = {
       slingshotValue: 500, liberationValue: 1300,
       aliveColor: 0x789a7c, atmosphereColor: 0xb9e2c5, accentColor: 0xcfe89a,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
+      occupationScarAngles: [-0.58, -0.29, 0],
       memory: 'The convoy bridges remember routes the wardens erased.',
       restoration: {
         durationSeconds: 1.9, waveWidth: 0.055, growthTrailWidth: 0.2,
@@ -105,6 +431,7 @@ export const BrokenBeltSystemDefinition = {
       slingshotValue: 1200, liberationValue: 1800,
       aliveColor: 0x7085a8, atmosphereColor: 0xb9cdf9, accentColor: 0xd8e5ff,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
+      occupationScarAngles: [-2.08, -1.9, -1.72],
       memory: 'Every broken face reflects a different way through the blockade.',
       restoration: {
         durationSeconds: 2.55, waveWidth: 0.042, growthTrailWidth: 0.2,
@@ -118,6 +445,7 @@ export const BrokenBeltSystemDefinition = {
       slingshotValue: 550, liberationValue: 1200,
       aliveColor: 0x3e7895, atmosphereColor: 0x8fdbe6, accentColor: 0xb1f0e0,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
+      occupationScarAngles: [1.18, 1.37, 1.56, 1.75],
       memory: 'The drifting miners light a path for the worlds behind them.',
       restoration: {
         durationSeconds: 1.95, waveWidth: 0.052, growthTrailWidth: 0.2,
@@ -131,6 +459,13 @@ export const BrokenBeltSystemDefinition = {
       slingshotValue: 700, liberationValue: 1500,
       aliveColor: 0x7c6c91, atmosphereColor: 0xcbb8e1, accentColor: 0xf2d59c,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
+      occupationScarAngles: [0.08, 0.28, 0.48],
+      disposition: 'hostile',
+      hostileEncounter: {
+        clampOffsetsRadians: [0.4, 0.85, 1.3],
+        cutHitRadius: 0.48,
+        maxCutLength: 2.85,
+      },
       memory: 'The sealed names become the first roll call of the uprising.',
       restoration: {
         durationSeconds: 1.7, waveWidth: 0.06, growthTrailWidth: 0.22,
@@ -158,6 +493,15 @@ export const BrokenBeltSystemDefinition = {
       position: { x: 31, y: 13, z: 0 }, radius: 0.9,
       initiallyRestored: false, countsTowardRestoration: false,
       isRouteDestination: true, routeAvailableInitially: false,
+      orbit: {
+        centre: { x: 26, y: 10, z: 0 }, radius: 4.2,
+        phaseRadians: 0.4, angularSpeedRadiansPerSecond: 0.08,
+      },
+      hostileEncounter: {
+        clampOffsetsRadians: [0.35, 0.75, 1.2],
+        cutHitRadius: 0.5,
+        maxCutLength: 2.7,
+      },
     },
   ],
   stardust: [
@@ -166,4 +510,3 @@ export const BrokenBeltSystemDefinition = {
     { id: 'broken-belt-arc-3', position: { x: -14.333, y: 3.575, z: 0 } },
   ],
 };
-

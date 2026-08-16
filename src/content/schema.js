@@ -68,6 +68,14 @@ function validateStoryBoardPages(Pages, Label) {
     if (typeof Page?.portrait === 'string' && !AllowedStoryBoardPortraits.has(Page.portrait)) {
       Errors.push(`Authored system ${Label} page ${PageIndex + 1} has unknown portrait.`);
     }
+    if (
+      Page?.focusWorldId !== undefined
+      && (typeof Page.focusWorldId !== 'string' || Page.focusWorldId.trim() === '')
+    ) {
+      Errors.push(
+        `Authored system ${Label} page ${PageIndex + 1} requires a non-empty focusWorldId when present.`,
+      );
+    }
   });
   return Errors;
 }
@@ -270,6 +278,19 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
   const AuthoredWorldIdentifiers = new Set(
     WorldDefinitions.map((WorldDefinition) => WorldDefinition.id).filter(Boolean),
   );
+  const StoryFocusPages = [
+    ...(Array.isArray(SystemDefinition.openingBriefing) ? SystemDefinition.openingBriefing : []),
+    ...Object.values(SystemDefinition.storyBoards ?? {}).flatMap((Board) => Board?.pages ?? []),
+  ];
+  for (const Page of StoryFocusPages) {
+    if (
+      typeof Page?.focusWorldId === 'string'
+      && Page.focusWorldId.trim() !== ''
+      && !AuthoredWorldIdentifiers.has(Page.focusWorldId)
+    ) {
+      Errors.push(`Story page focusWorldId ${Page.focusWorldId} does not exist.`);
+    }
+  }
   const validateWorldIdentifierList = (List, Label) => {
     if (!Array.isArray(List) || List.length < 1) {
       Errors.push(`Authored system ${Label} must be a non-empty array of world ids.`);

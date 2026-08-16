@@ -1,10 +1,311 @@
-/** ORBITBREAK's moving-launch-node arena: intercept a moon to cross the living caravan. */
+/** Verdant Caravan: travelling-garden Warden campaign around Pollen Moon intercept. */
 export const WanderingGardenSystemDefinition = {
   id: 'wandering-garden',
-  contentVersion: 'wandering-garden-1',
+  contentVersion: 'wandering-garden-2',
   label: 'VERDANT CARAVAN',
-  launchBudget: 8,
-  openingBody: 'The Stillness uprooted a travelling garden. Follow the lantern road, or intercept Pollen Moon and carry its hidden names across the void.',
+  launchBudget: 10,
+  circuitBonusValue: 1250,
+  wardenVictoryValuePerStep: 1000,
+  openingBroadcast: 'WARDEN BROADCAST · ROOTS STAY BURIED · NAMES STAY ERASED',
+  wardenArrivalBroadcast: 'WARDEN BROADCAST · A GARDEN THAT MOVES IS A REBELLION',
+  openingBody: 'The garden was uprooted. Carry the third word.',
+  openingBriefing: [
+    {
+      speaker: 'THE WARDEN',
+      kicker: 'UPROOTING EDICT',
+      portrait: 'warden',
+      title: 'Roots stay buried.',
+      body: 'Names stay erased. A garden that travels is a rebellion. Stay on your plot.',
+    },
+    {
+      speaker: 'THE RUNNER',
+      kicker: 'TWO SIGNALS DOWN',
+      portrait: 'runner',
+      title: 'The haul is free. The Reach is talking.',
+      body: 'This Warden tore a travelling garden out of the dark. The Orbitbreaker still has one more word to carry.',
+    },
+    {
+      speaker: 'BOWER',
+      kicker: 'VERDANT CARAVAN',
+      portrait: 'haven',
+      title: 'The last free shelter kept a lamp lit.',
+      body: 'Lantern, Canopy and the stolen names sit dark. Carry the third word before this Warden notices.',
+      focusWorldId: 'bower',
+    },
+    {
+      speaker: 'THE RUN',
+      kicker: 'YOUR CHARGE',
+      portrait: 'orbitbreaker',
+      title: 'Wake the caravan.',
+      body: 'Land. Link. Intercept Pollen Moon. When the garden starts travelling, this Warden will hunt. Close the loops. Break garden Command.',
+    },
+  ],
+  storyBoards: {
+    firstAnswer: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Carry the word',
+      pages: [
+        {
+          speaker: 'LANTERN',
+          kicker: 'FIRST ANSWER',
+          portrait: 'ember',
+          title: 'Is someone there?',
+          body: 'A patient flower turns its lamp toward the escaping caravan. The shelter is no longer speaking into silence.',
+          focusWorldId: 'lantern',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'THE WORD CARRIES',
+          portrait: 'runner',
+          title: 'They heard us.',
+          body: 'One more neighbour and this plot is a caravan. Walk, aim, land. Watch them wake.',
+        },
+      ],
+    },
+    secondAnswer: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Wake the third',
+      pages: [
+        {
+          speaker: 'CANOPY',
+          kicker: 'SECOND VOICE',
+          portrait: 'grove',
+          title: 'We thought we were alone.',
+          body: 'Its branches hide the names the Stillness tried to erase. Two worlds are talking. The garden is trying to remember how to travel.',
+          focusWorldId: 'canopy',
+        },
+        {
+          speaker: 'BOWER',
+          kicker: 'THE SHELTER ANSWERS',
+          portrait: 'haven',
+          title: 'Keep going.',
+          body: 'When three gardens talk, the uprooting looks smaller. The Warden called this empty. It is not.',
+          focusWorldId: 'bower',
+        },
+      ],
+    },
+    rangeUnlock: {
+      skipLabel: 'Scout further',
+      continueLabel: 'Look further',
+      pages: [
+        {
+          speaker: 'THE RUN',
+          kicker: 'THE SILENCE RECEEDS',
+          portrait: 'orbitbreaker',
+          title: 'The dark is not as wide as they said.',
+          body: 'Crown, Dew and Nest were always there. The veil was a story. Scout the wider caravan. Intercept Pollen Moon.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'RANGE',
+          portrait: 'runner',
+          title: 'It was a lie.',
+          body: 'Go further. Link a visible garden. It will look easy. That is when the hunt starts.',
+        },
+      ],
+    },
+    neighbourhood: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Hold this feeling',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'A CARAVAN',
+          portrait: 'haven',
+          title: 'A whole neighbourhood is talking.',
+          body: 'Lamps are lit. Leaf-sails are moving. For a moment the garden looks like it can stay this way.',
+          focusWorldId: 'bower',
+        },
+      ],
+    },
+    firstCrown: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Return the names',
+      pages: [
+        {
+          speaker: 'CROWN',
+          kicker: 'OLD BLOOM',
+          portrait: 'bastion',
+          title: 'The old crown blooms.',
+          body: 'Pollen Moon still carries stolen names. Time the intercept. We were never a still plot.',
+          focusWorldId: 'crown',
+        },
+      ],
+    },
+    firstDew: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Read the drop',
+      pages: [
+        {
+          speaker: 'DEW',
+          kicker: 'CLEAR WATER',
+          portrait: 'tide',
+          title: 'One drop reflects the next road.',
+          body: 'The caravan will take it. We will carry word the way dew always did.',
+          focusWorldId: 'dew',
+        },
+      ],
+    },
+    firstNest: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Cut if you must',
+      pages: [
+        {
+          speaker: 'NEST',
+          kicker: 'SHELTER OPENS',
+          portrait: 'frost',
+          title: 'The travelling nest stands down.',
+          body: 'It saved a place for every uprooted world. Walk the rim. Cut what still cages the launch.',
+          focusWorldId: 'nest',
+        },
+      ],
+    },
+    wardenArrival: {
+      skipLabel: 'Face the hunt',
+      continueLabel: 'Outrun it',
+      pages: [
+        {
+          speaker: 'THE WARDEN',
+          kicker: 'UNAUTHORISED GARDEN',
+          portrait: 'warden',
+          title: 'Unauthorised network detected.',
+          body: 'A garden that moves is a rebellion. I will bury every name that answers.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'THE HUNT BEGINS',
+          portrait: 'runner',
+          title: 'It found us.',
+          body: 'It will take the weakest linked world. Close a loop and push it back, or expand and risk the cage.',
+        },
+      ],
+    },
+    circuitClosed: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Hold or expand',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'LOOP CLOSED',
+          portrait: 'haven',
+          title: 'The signal went around.',
+          body: 'This loop cannot be silenced at one choke. The Warden was pushed back. One shield cracked.',
+          focusWorldId: 'bower',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'RESISTANCE',
+          portrait: 'runner',
+          title: 'We can defend this.',
+          body: 'Gold means protected. Spend the retreat on another world, or close the second loop and crack the crown.',
+        },
+      ],
+    },
+    suppression: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Go back for them',
+      pages: [
+        {
+          speaker: 'THE WARDEN',
+          kicker: 'SIGNAL LOST',
+          portrait: 'warden',
+          title: 'Silence restored.',
+          body: 'They took {world}. The cage is back. Mines first. People last.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'STILL THERE',
+          portrait: 'runner',
+          title: 'Land there again.',
+          body: 'The route remembers. Recapture {world} before the hunt walks closer.',
+        },
+      ],
+    },
+    recapture: {
+      skipLabel: 'Keep flying',
+      continueLabel: 'Stay with them',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'SIGNAL RESTORED',
+          portrait: 'ember',
+          title: "We're still here.",
+          body: '{world} answers again. The original route and courier are live. The cage failed twice.',
+          focusWorldId: 'lantern',
+        },
+      ],
+    },
+    commandExposed: {
+      skipLabel: 'Board Command',
+      continueLabel: 'Hunt the crown',
+      pages: [
+        {
+          speaker: 'COMMAND',
+          kicker: 'CROWN CRACKED',
+          portrait: 'command',
+          title: 'Two loops hit the hull.',
+          body: 'The shield moons are gone. Garden Command is a moving tiny world now, not a voice from the dark.',
+        },
+        {
+          speaker: 'THE RUN',
+          kicker: 'YOUR CHARGE',
+          portrait: 'orbitbreaker',
+          title: 'A garden cannot be imprisoned.',
+          body: 'Track it. Land. Walk the rim. Cut the lattice. The caravan will answer together.',
+        },
+      ],
+    },
+    commandApproach: {
+      skipLabel: 'Cut the lattice',
+      continueLabel: 'Walk the rim',
+      pages: [
+        {
+          speaker: 'COMMAND',
+          kicker: 'CORE LATTICE',
+          portrait: 'command',
+          title: 'You are on the crown.',
+          body: 'Grab the ship. Drag through the teeth. One cut is enough. Do not make this a second war.',
+        },
+      ],
+    },
+    reachAnswers: {
+      skipLabel: 'See the route',
+      continueLabel: 'Bank the route',
+      pages: [
+        {
+          speaker: 'THE NETWORK',
+          kicker: 'THE CARAVAN ANSWERS',
+          portrait: 'haven',
+          title: 'The garden is travelling again.',
+          body: 'You reminded them they were never alone. The shelter, the lamps and the nest all speak at once.',
+          focusWorldId: 'bower',
+        },
+      ],
+    },
+    runLost: {
+      skipLabel: 'Begin again',
+      continueLabel: 'Steal the ship again',
+      pages: [
+        {
+          speaker: 'THE WARDEN',
+          kicker: 'THE STILLNESS CLOSES',
+          portrait: 'warden',
+          title: 'You were one plot too slow.',
+          body: 'Isolation is safety. Names stay erased. Connection is a fault I have closed.',
+        },
+        {
+          speaker: 'THE RUNNER',
+          kicker: 'NOT FINISHED',
+          portrait: 'runner',
+          title: 'Steal the ship again.',
+          body: 'Bower is still a shelter. The third word is still yours to carry.',
+        },
+      ],
+    },
+  },
+  rangeUnlockLine: 'The dark is not as wide as they said.',
+  furtherLandingLine: 'A whole neighbourhood is talking.',
+  commandApproachLine: 'A garden cannot be imprisoned.',
   camera: {
     followPlayer: true,
     viewportWorldHeight: 24,
@@ -26,8 +327,16 @@ export const WanderingGardenSystemDefinition = {
     eyebrow: 'VERDANT CARAVAN LIBERATED',
     title: 'The garden is travelling again.',
     perfectTitle: 'Every stolen seed has a home.',
-    body: 'The freed caravan carries shelter toward the long night.',
+    body: 'The freed caravan carries shelter through the dark.',
     perfectBody: 'Every world and moonlit path now travels with the uprising.',
+    endingReveal: 'You did not save them alone. You reminded them they were never alone.',
+    expansionSting: 'WARDEN NODE DISCONNECTED · SECTOR WARDENS: 9',
+    emblems: {
+      heart: { title: 'COMMAND', subtitle: 'DEFEATED' },
+      bloom: { title: 'SOLIDARITY', subtitle: 'ALL WORLDS' },
+      arc: { title: 'WAYFINDER', subtitle: '3 STARDUST' },
+    },
+    continueToNextSystem: false,
   },
   constellation: {
     nodes: [
@@ -40,9 +349,9 @@ export const WanderingGardenSystemDefinition = {
       { id: 'garden-heart', label: 'Garden Heart', x: 216, y: 68, isHeart: true },
     ],
     edges: [
-      ['bower', 'canopy'], ['bower', 'lantern'], ['canopy', 'crown'],
-      ['lantern', 'nest'], ['canopy', 'nest'], ['nest', 'dew'],
-      ['crown', 'dew'], ['dew', 'garden-heart'],
+      ['bower', 'canopy'], ['bower', 'lantern'], ['lantern', 'canopy'],
+      ['canopy', 'crown'], ['lantern', 'nest'], ['canopy', 'nest'],
+      ['nest', 'dew'], ['crown', 'dew'], ['dew', 'garden-heart'],
     ],
   },
   startingWorldIdentifier: 'bower',
@@ -50,6 +359,7 @@ export const WanderingGardenSystemDefinition = {
   innerClusterWorldIdentifiers: ['bower', 'lantern', 'canopy'],
   furtherReachWorldIdentifiers: ['crown', 'dew', 'nest'],
   worldheartUnlockThreshold: 3,
+  commandWorldRequiresShieldBreaks: true,
   routeSuggestions: {
     bower: ['canopy', 'lantern'],
     canopy: ['pollen-moon', 'crown', 'nest'],
@@ -59,6 +369,14 @@ export const WanderingGardenSystemDefinition = {
     dew: ['garden-heart', 'crown', 'lantern', 'nest'],
     'pollen-moon': ['crown', 'dew', 'nest'],
   },
+  routeGuidance: {
+    canopy: {
+      bower: "Walk Canopy's far rim, then aim back around Lantern until the path locks Bower. The whole arc is on the map—hold it to close the gold loop.",
+    },
+    nest: {
+      crown: 'Crown is the direct lock; Dew is the alternate arc. Either closes the second gold loop and exposes Command.',
+    },
+  },
   worlds: [
     {
       id: 'bower', label: 'BOWER', visualKey: 'bower',
@@ -66,6 +384,7 @@ export const WanderingGardenSystemDefinition = {
       slingshotValue: 300, liberationValue: 1000,
       aliveColor: 0x4f9870, atmosphereColor: 0x9ce6b2, accentColor: 0xf2e69a,
       initiallyRestored: true, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
+      occupationScarAngles: [-2.62, -2.42, -2.22],
       memory: 'The last free shelter kept a lamp lit for the uprooted worlds.',
       restoration: {
         durationSeconds: 2.2, waveWidth: 0.045, growthTrailWidth: 0.18,
@@ -79,6 +398,12 @@ export const WanderingGardenSystemDefinition = {
       slingshotValue: 450, liberationValue: 1000,
       aliveColor: 0xa88a45, atmosphereColor: 0xffe895, accentColor: 0xfff2b6,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
+      occupationScarAngles: [2.28, 2.5, 2.72, 2.94],
+      hostileEncounter: {
+        clampOffsetsRadians: [0.55],
+        cutHitRadius: 0.48,
+        maxCutLength: 2.85,
+      },
       memory: 'A patient flower turns its lamp toward the escaping caravan.',
       restoration: {
         durationSeconds: 2.3, waveWidth: 0.048, growthTrailWidth: 0.18,
@@ -92,6 +417,7 @@ export const WanderingGardenSystemDefinition = {
       slingshotValue: 600, liberationValue: 1400,
       aliveColor: 0x5b9c73, atmosphereColor: 0xb6e8bd, accentColor: 0xe6f39b,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
+      occupationScarAngles: [-0.58, -0.29, 0],
       memory: 'Its branches hide the names the Stillness tried to erase.',
       restoration: {
         durationSeconds: 1.9, waveWidth: 0.055, growthTrailWidth: 0.2,
@@ -105,6 +431,7 @@ export const WanderingGardenSystemDefinition = {
       slingshotValue: 1100, liberationValue: 1800,
       aliveColor: 0x8160a4, atmosphereColor: 0xd7b8ef, accentColor: 0xffc5ec,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
+      occupationScarAngles: [-2.08, -1.9, -1.72],
       memory: 'The old crown blooms when Pollen Moon returns its stolen names.',
       restoration: {
         durationSeconds: 2.55, waveWidth: 0.042, growthTrailWidth: 0.2,
@@ -118,6 +445,7 @@ export const WanderingGardenSystemDefinition = {
       slingshotValue: 650, liberationValue: 1300,
       aliveColor: 0x3d8f91, atmosphereColor: 0x9ff4dc, accentColor: 0xc2ffef,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
+      occupationScarAngles: [1.18, 1.37, 1.56, 1.75],
       memory: 'One clear drop reflects the road the caravan will take next.',
       restoration: {
         durationSeconds: 1.95, waveWidth: 0.052, growthTrailWidth: 0.2,
@@ -131,6 +459,13 @@ export const WanderingGardenSystemDefinition = {
       slingshotValue: 800, liberationValue: 1100,
       aliveColor: 0x8b704c, atmosphereColor: 0xe8cf9b, accentColor: 0xb8e58c,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
+      occupationScarAngles: [0.08, 0.28, 0.48],
+      disposition: 'hostile',
+      hostileEncounter: {
+        clampOffsetsRadians: [0.4, 0.85, 1.3],
+        cutHitRadius: 0.48,
+        maxCutLength: 2.85,
+      },
       memory: 'The travelling nest saved a place for every uprooted world.',
       restoration: {
         durationSeconds: 1.7, waveWidth: 0.06, growthTrailWidth: 0.22,
@@ -163,6 +498,15 @@ export const WanderingGardenSystemDefinition = {
       position: { x: 31, y: 12, z: 0 }, radius: 0.9,
       initiallyRestored: false, countsTowardRestoration: false,
       isRouteDestination: true, routeAvailableInitially: false,
+      orbit: {
+        centre: { x: 26.6, y: 12, z: 0 }, radius: 4.4,
+        phaseRadians: 0, angularSpeedRadiansPerSecond: 0.08,
+      },
+      hostileEncounter: {
+        clampOffsetsRadians: [0.35, 0.75, 1.2],
+        cutHitRadius: 0.5,
+        maxCutLength: 2.7,
+      },
     },
   ],
   stardust: [

@@ -131,7 +131,7 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     bloom: { title: 'SOLIDARITY', subtitle: 'ALL WORLDS' },
     arc: { title: 'WAYFINDER', subtitle: '3 STARDUST' },
   });
-  assert.equal(BreakerReachSystemDefinition.completion.continueToNextSystem, false);
+  assert.equal(BreakerReachSystemDefinition.completion.continueToNextSystem, true);
   assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
   assert.ok(CommandDefinition.hostileEncounter.clampOffsetsRadians.length >= 3);
   assert.ok(BreakerReachSystemDefinition.worlds.every(
@@ -201,6 +201,20 @@ test('authored continuation policy fails closed when it is not boolean', () => {
   ));
 });
 
+test('story page focusWorldId fails closed when empty or unknown', () => {
+  const EmptyFocusDefinition = structuredClone(BreakerReachSystemDefinition);
+  EmptyFocusDefinition.openingBriefing[2].focusWorldId = '   ';
+  assert.ok(validateAuthoredSystemDefinition(EmptyFocusDefinition).some(
+    (ErrorText) => ErrorText.includes('requires a non-empty focusWorldId when present'),
+  ));
+
+  const UnknownFocusDefinition = structuredClone(BrokenBeltSystemDefinition);
+  UnknownFocusDefinition.storyBoards.firstAnswer.pages[0].focusWorldId = 'ember';
+  assert.ok(validateAuthoredSystemDefinition(UnknownFocusDefinition).includes(
+    'Story page focusWorldId ember does not exist.',
+  ));
+});
+
 test('authored systems fail closed without a positive launch budget', () => {
   const InvalidSystemDefinition = structuredClone(FirstLightSystemDefinition);
   InvalidSystemDefinition.launchBudget = 0;
@@ -266,8 +280,20 @@ test('tactical surface encounters fail closed without authored clamps', () => {
 test('Broken Belt satisfies the authored-system content contract', () => {
   assert.deepEqual(validateAuthoredSystemDefinition(BrokenBeltSystemDefinition), []);
   assert.equal(BrokenBeltSystemDefinition.worlds.length, 6);
-  assert.equal(BrokenBeltSystemDefinition.contentVersion, 'broken-belt-1');
+  assert.equal(BrokenBeltSystemDefinition.contentVersion, 'broken-belt-2');
+  assert.equal(BrokenBeltSystemDefinition.launchBudget, 10);
   assert.equal(BrokenBeltSystemDefinition.camera.followPlayer, true);
+  assert.equal(BrokenBeltSystemDefinition.commandWorldRequiresShieldBreaks, true);
+  assert.equal(BrokenBeltSystemDefinition.completion.continueToNextSystem, true);
+  assert.equal(
+    BrokenBeltSystemDefinition.completion.expansionSting,
+    'WARDEN NODE DISCONNECTED · SECTOR WARDENS: 10',
+  );
+  assert.ok(BrokenBeltSystemDefinition.openingBriefing.length >= 4);
+  assert.ok(BrokenBeltSystemDefinition.storyBoards.wardenArrival);
+  assert.ok(BrokenBeltSystemDefinition.worlds.every(
+    (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2,
+  ));
   const WorldXs = BrokenBeltSystemDefinition.worlds.map(
     (WorldDefinition) => WorldDefinition.position.x,
   );
@@ -276,13 +302,42 @@ test('Broken Belt satisfies the authored-system content contract', () => {
     (WorldDefinition) => WorldDefinition.id === 'shard',
   );
   assert.equal(ShardDefinition.slingshotValue, 1200);
+  const VaultDefinition = BrokenBeltSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'vault',
+  );
+  assert.equal(VaultDefinition.disposition, 'hostile');
+  assert.ok(VaultDefinition.hostileEncounter.clampOffsetsRadians.length >= 3);
+  const CommandDefinition = BrokenBeltSystemDefinition.tacticalBodies.find(
+    (BodyDefinition) => BodyDefinition.kind === 'worldheart',
+  );
+  assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
+  assert.ok(CommandDefinition.hostileEncounter.clampOffsetsRadians.length >= 3);
+  assert.equal(
+    BrokenBeltSystemDefinition.routeGuidance.loom.relay.includes('close the gold loop'),
+    true,
+  );
+  const Runtime = createAuthoredSystemRuntime(BrokenBeltSystemDefinition);
+  Runtime.storyBoards.firstAnswer.pages[0].focusWorldId = 'mutated';
+  assert.equal(BrokenBeltSystemDefinition.storyBoards.firstAnswer.pages[0].focusWorldId, 'kiln');
 });
 
 test('Wandering Garden satisfies the moving-system content contract', () => {
   assert.deepEqual(validateAuthoredSystemDefinition(WanderingGardenSystemDefinition), []);
   assert.equal(WanderingGardenSystemDefinition.worlds.length, 6);
-  assert.equal(WanderingGardenSystemDefinition.contentVersion, 'wandering-garden-1');
+  assert.equal(WanderingGardenSystemDefinition.contentVersion, 'wandering-garden-2');
+  assert.equal(WanderingGardenSystemDefinition.launchBudget, 10);
   assert.equal(WanderingGardenSystemDefinition.camera.followPlayer, true);
+  assert.equal(WanderingGardenSystemDefinition.commandWorldRequiresShieldBreaks, true);
+  assert.equal(WanderingGardenSystemDefinition.completion.continueToNextSystem, false);
+  assert.equal(
+    WanderingGardenSystemDefinition.completion.expansionSting,
+    'WARDEN NODE DISCONNECTED · SECTOR WARDENS: 9',
+  );
+  assert.ok(WanderingGardenSystemDefinition.openingBriefing.length >= 4);
+  assert.ok(WanderingGardenSystemDefinition.storyBoards.commandExposed);
+  assert.ok(WanderingGardenSystemDefinition.worlds.every(
+    (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2,
+  ));
   const WorldXs = WanderingGardenSystemDefinition.worlds.map(
     (WorldDefinition) => WorldDefinition.position.x,
   );
@@ -292,6 +347,20 @@ test('Wandering Garden satisfies the moving-system content contract', () => {
   );
   assert.ok(PollenMoonDefinition.orbit);
   assert.ok(PollenMoonDefinition.orbit.angularSpeedRadiansPerSecond > 0);
+  const NestDefinition = WanderingGardenSystemDefinition.worlds.find(
+    (WorldDefinition) => WorldDefinition.id === 'nest',
+  );
+  assert.equal(NestDefinition.disposition, 'hostile');
+  assert.ok(NestDefinition.hostileEncounter.clampOffsetsRadians.length >= 3);
+  const CommandDefinition = WanderingGardenSystemDefinition.tacticalBodies.find(
+    (BodyDefinition) => BodyDefinition.kind === 'worldheart',
+  );
+  assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
+  assert.ok(CommandDefinition.hostileEncounter.clampOffsetsRadians.length >= 3);
+  assert.equal(
+    WanderingGardenSystemDefinition.routeGuidance.canopy.bower.includes('close the gold loop'),
+    true,
+  );
 });
 
 test('Long Night satisfies the authored campaign and environment contract', () => {
@@ -408,15 +477,15 @@ test('system selection falls back to the authored campaign entry', () => {
   assert.equal(getAuthoredSystemDefinition('missing-system'), BreakerReachSystemDefinition);
 });
 
-test('campaign order advances through Long Night into the Worldheart finale', () => {
+test('campaign order is Reach, Shatterbelt, then terminal Verdant Caravan', () => {
   assert.deepEqual(
     AuthoredCampaignSystemIdentifiers,
-    ['breaker-reach', 'broken-belt', 'wandering-garden', 'long-night', 'worldheart'],
+    ['breaker-reach', 'broken-belt', 'wandering-garden'],
   );
   assert.equal(getNextAuthoredSystemIdentifier('breaker-reach'), 'broken-belt');
   assert.equal(getNextAuthoredSystemIdentifier('broken-belt'), 'wandering-garden');
-  assert.equal(getNextAuthoredSystemIdentifier('wandering-garden'), 'long-night');
-  assert.equal(getNextAuthoredSystemIdentifier('long-night'), 'worldheart');
+  assert.equal(getNextAuthoredSystemIdentifier('wandering-garden'), null);
+  assert.equal(getNextAuthoredSystemIdentifier('long-night'), null);
   assert.equal(getNextAuthoredSystemIdentifier('worldheart'), null);
   assert.equal(getNextAuthoredSystemIdentifier('missing-system'), null);
 });
