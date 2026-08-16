@@ -84,7 +84,7 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260816-ob92` passes deterministic tests, syntax checks, the three-sector release audit and the 200-run validator benchmark.
+- Build `20260816-ob93` passes deterministic tests, syntax checks, the three-sector release audit and the 200-run validator benchmark.
 - Breaker's Reach is a nine-world sector: Haven, Ember and Grove stay the inner neighbourhood, then Spindle, Quarry, Mirage, Frost, Tide and Bastion wait behind the veil. Aiming frames the current world's neighbours so the bigger map stays readable; Scout zoom-out reaches 3.85. Golden complete replay still derives score 10900 on content `breaker-reach-7`.
 - Story boards are spaced to one flavour beat per landing; rule beats jump the queue and Skip/Escape dismiss the whole queued conversation. Landings celebrate banked points with a floating score burst and a HUD bank pulse, the ship is grabbable within a constant 44px screen target at any zoom, and the pursuit coach names the world the Warden will silence.
 - Aiming frames the live neighbourhood on a brighter, less fogged map. Pinch and zoom buttons work during aim, and zoom now reaches from a close world to the whole authored sector. Long Night and Worldheart stay query-only fixtures.

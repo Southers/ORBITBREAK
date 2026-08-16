@@ -41,6 +41,19 @@ export function classifySurfaceGesture({
     : SurfaceGestureModes.aim;
 }
 
+function hypot3(X, Y, Z) {
+  return Math.hypot(X, Y, Z);
+}
+
+function normalize3(Vector) {
+  const Length = hypot3(Vector.x, Vector.y, Vector.z ?? 0) || 1;
+  return {
+    x: Vector.x / Length,
+    y: Vector.y / Length,
+    z: (Vector.z ?? 0) / Length,
+  };
+}
+
 /** Returns a deterministic point on the orbital-plane circumference. */
 export function getSurfacePosition(BodyPosition, SurfaceDistance, AngleRadians) {
   if (!(SurfaceDistance > 0) || !Number.isFinite(AngleRadians)) {
@@ -53,13 +66,190 @@ export function getSurfacePosition(BodyPosition, SurfaceDistance, AngleRadians) 
   };
 }
 
-/** Moves a keyboard-controlled Runner around the same circumference as pointer walking. */
+/** Longitude around Z and latitude toward the poles. Flight still launches from the equator. */
+export function createSurfacePose({ longitude = 0, latitude = 0, meridianSign = 1 } = {}) {
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+    throw new Error('Surface pose requires finite longitude and latitude.');
+  }
+  return {
+    longitude: normalizeAngle(longitude),
+    latitude: Math.max(-Math.PI / 2, Math.min(Math.PI / 2, latitude)),
+    meridianSign: meridianSign < 0 ? -1 : 1,
+  };
+}
+
+export function getSurfaceDirection(Pose) {
+  const CosLatitude = Math.cos(Pose.latitude);
+  return {
+    x: CosLatitude * Math.cos(Pose.longitude),
+    y: CosLatitude * Math.sin(Pose.longitude),
+    z: Math.sin(Pose.latitude),
+  };
+}
+
+export function getSurfacePoseFromDirection(Direction) {
+  const Unit = normalize3(Direction);
+  return createSurfacePose({
+    longitude: Math.atan2(Unit.y, Unit.x),
+    latitude: Math.asin(Math.max(-1, Math.min(1, Unit.z))),
+  });
+}
+
+export function getSurfacePoseFromPosition(BodyPosition, Position) {
+  return getSurfacePoseFromDirection({
+    x: Position.x - BodyPosition.x,
+    y: Position.y - BodyPosition.y,
+    z: (Position.z ?? 0) - (BodyPosition.z ?? 0),
+  });
+}
+
+/** Places the Runner on the sphere, including over the poles and the far face. */
+export function getSphereSurfacePosition(BodyPosition, SurfaceDistance, Pose) {
+  if (!(SurfaceDistance > 0)) {
+    throw new Error('Sphere surface position requires a positive distance.');
+  }
+  const Direction = getSurfaceDirection(Pose);
+  return {
+    x: BodyPosition.x + (Direction.x * SurfaceDistance),
+    y: BodyPosition.y + (Direction.y * SurfaceDistance),
+    z: (BodyPosition.z ?? 0) + (Direction.z * SurfaceDistance),
+  };
+}
+
+export function flattenSurfacePoseToEquator(Pose) {
+  return createSurfacePose({
+    longitude: Pose.longitude,
+    latitude: 0,
+    meridianSign: 1,
+  });
+}
+
+/** Walks east/west and north/south on the sphere, wrapping over the poles. */
+export function adjustSurfacePose(Pose, { east = 0, north = 0, fine = false } = {}) {
+  if (!Number.isFinite(Pose?.longitude) || !Number.isFinite(Pose?.latitude)) {
+    throw new Error('Surface pose must be finite.');
+  }
+  const StepRadians = (fine ? 1 : 4) * (Math.PI / 180);
+  let Longitude = Pose.longitude;
+  let Latitude = Pose.latitude;
+  let MeridianSign = Pose.meridianSign < 0 ? -1 : 1;
+  if (east !== 0) {
+    Longitude += Math.sign(east) * StepRadians;
+  }
+  if (north !== 0) {
+    Latitude += Math.sign(north) * MeridianSign * StepRadians;
+    if (Latitude > Math.PI / 2) {
+      Latitude = Math.PI - Latitude;
+      Longitude += Math.PI;
+      MeridianSign *= -1;
+    } else if (Latitude < -Math.PI / 2) {
+      Latitude = -Math.PI - Latitude;
+      Longitude += Math.PI;
+      MeridianSign *= -1;
+    }
+  }
+  return createSurfacePose({
+    longitude: Longitude,
+    latitude: Latitude,
+    meridianSign: MeridianSign,
+  });
+}
+
+/** Moves a keyboard-controlled Runner around the orbital-plane circumference. */
 export function adjustSurfaceAngle(AngleRadians, Direction, { fine = false } = {}) {
   if (!Number.isFinite(AngleRadians)) {
     throw new Error('Surface angle must be finite.');
   }
   const StepRadians = (fine ? 1 : 4) * (Math.PI / 180);
   return normalizeAngle(AngleRadians + (Math.sign(Direction) * StepRadians));
+}
+
+export function intersectRaySphere(Origin, Direction, Center, Radius) {
+  if (!(Radius > 0)) {
+    throw new Error('Sphere intersection requires a positive radius.');
+  }
+  const Unit = normalize3(Direction);
+  const OffsetX = Origin.x - Center.x;
+  const OffsetY = Origin.y - Center.y;
+  const OffsetZ = (Origin.z ?? 0) - (Center.z ?? 0);
+  const HalfB = (OffsetX * Unit.x) + (OffsetY * Unit.y) + (OffsetZ * Unit.z);
+  const C = (OffsetX * OffsetX) + (OffsetY * OffsetY) + (OffsetZ * OffsetZ) - (Radius * Radius);
+  const Discriminant = (HalfB * HalfB) - C;
+  if (Discriminant < 0) {
+    return null;
+  }
+  const Root = Math.sqrt(Discriminant);
+  const Near = -HalfB - Root;
+  const Far = -HalfB + Root;
+  const Distance = Near >= 0 ? Near : Far;
+  if (!(Distance >= 0)) {
+    return null;
+  }
+  return {
+    x: Origin.x + (Unit.x * Distance),
+    y: Origin.y + (Unit.y * Distance),
+    z: (Origin.z ?? 0) + (Unit.z * Distance),
+    distance: Distance,
+  };
+}
+
+/** Closest point on the sphere to a ray, used when a drag leaves the visible limb. */
+export function projectRayOntoSphere(Origin, Direction, Center, Radius) {
+  const Hit = intersectRaySphere(Origin, Direction, Center, Radius);
+  if (Hit) {
+    return Hit;
+  }
+  const Unit = normalize3(Direction);
+  const OffsetX = Center.x - Origin.x;
+  const OffsetY = Center.y - Origin.y;
+  const OffsetZ = (Center.z ?? 0) - (Origin.z ?? 0);
+  const Along = Math.max(0, (OffsetX * Unit.x) + (OffsetY * Unit.y) + (OffsetZ * Unit.z));
+  const ClosestX = Origin.x + (Unit.x * Along);
+  const ClosestY = Origin.y + (Unit.y * Along);
+  const ClosestZ = (Origin.z ?? 0) + (Unit.z * Along);
+  return {
+    ...getSphereSurfacePosition(
+      Center,
+      Radius,
+      getSurfacePoseFromPosition(Center, { x: ClosestX, y: ClosestY, z: ClosestZ }),
+    ),
+    distance: Along,
+  };
+}
+
+/**
+ * Dragging across the globe walks. Pulling off it into space aims. A tiny twitch stays pending.
+ */
+export function classifySphereSurfaceGesture({
+  worldCenter,
+  worldRadius,
+  startPosition,
+  sphereHit = null,
+  planePosition,
+  deadzone = 0.18,
+}) {
+  if (!(worldRadius > 0)) {
+    throw new Error('Sphere gesture classification requires a positive world radius.');
+  }
+  if (sphereHit) {
+    const Start = getSurfacePoseFromPosition(worldCenter, startPosition);
+    const Target = getSurfacePoseFromPosition(worldCenter, sphereHit);
+    const StartDirection = getSurfaceDirection(Start);
+    const TargetDirection = getSurfaceDirection(Target);
+    const Dot = Math.max(-1, Math.min(
+      1,
+      (StartDirection.x * TargetDirection.x)
+      + (StartDirection.y * TargetDirection.y)
+      + (StartDirection.z * TargetDirection.z),
+    ));
+    const Arc = Math.acos(Dot) * worldRadius;
+    return Arc < deadzone ? SurfaceGestureModes.pending : SurfaceGestureModes.walk;
+  }
+  const PlaneMove = Math.hypot(
+    planePosition.x - startPosition.x,
+    planePosition.y - startPosition.y,
+  );
+  return PlaneMove < deadzone ? SurfaceGestureModes.pending : SurfaceGestureModes.aim;
 }
 
 /** Describes Scout zoom consistently for buttons, keyboard input and assistive status. */

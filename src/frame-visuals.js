@@ -58,6 +58,8 @@ export function createFrameVisuals(THREE, host) {
   } = host;
 
   let NextTrailParticleIndex = 0;
+  const SurfaceStandFrom = new THREE.Vector3(0, 1, 0);
+  const SurfaceStandTo = new THREE.Vector3();
 
   /** Animates uncollected motes and brightens those intersected by the current prediction. */
   function updateStardustVisuals(ElapsedTimeSeconds) {
@@ -325,21 +327,16 @@ export function createFrameVisuals(THREE, host) {
           (BodyDefinition) => BodyDefinition.id === host.CurrentWorldIdentifier,
         );
       if (AttachedBody?.position) {
-        const SurfaceAngle = Math.atan2(
-          host.SeedPhysicsState.position.y - AttachedBody.position.y,
+        SurfaceStandTo.set(
           host.SeedPhysicsState.position.x - AttachedBody.position.x,
+          host.SeedPhysicsState.position.y - AttachedBody.position.y,
+          (host.SeedPhysicsState.position.z ?? 0) - (AttachedBody.position.z ?? 0),
         );
-        RunnerVisualGroup.rotation.z = SurfaceAngle - (Math.PI * 0.5);
+        if (SurfaceStandTo.lengthSq() > 1e-8) {
+          SurfaceStandTo.normalize();
+          RunnerVisualGroup.quaternion.setFromUnitVectors(SurfaceStandFrom, SurfaceStandTo);
+        }
       }
-      RunnerVisualGroup.rotation.y = Math.sin(ElapsedTimeSeconds * 1.7) * 0.08;
-      const RecoveryRoll = RunnerAnimationState === 'recovering'
-        ? Math.sin(ElapsedTimeSeconds * 18) * 0.5
-        : 0;
-      RunnerVisualGroup.rotation.x = THREE.MathUtils.lerp(
-        RunnerVisualGroup.rotation.x,
-        RecoveryRoll,
-        PoseBlend,
-      );
     }
     SeedHaloMesh.scale.setScalar(1 + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.08));
     SeedHaloMaterial.color.setHex(

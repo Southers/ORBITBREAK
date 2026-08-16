@@ -11,6 +11,14 @@ import {
   getKeyboardAimDragVector,
   getScoutZoomPresentation,
   getSurfacePosition,
+  adjustSurfacePose,
+  classifySphereSurfaceGesture,
+  createSurfacePose,
+  flattenSurfacePoseToEquator,
+  getSphereSurfacePosition,
+  getSurfaceDirection,
+  getSurfacePoseFromDirection,
+  intersectRaySphere,
   clampCameraZoomScale,
   getPinchZoomScale,
   getPointerClientDistance,
@@ -100,6 +108,58 @@ test('pointer and keyboard surface movement stay on one deterministic circumfere
     y: 1,
     z: 0,
   });
+});
+
+test('sphere walking crosses the poles and flattens back to the equator for launch', () => {
+  const Equator = createSurfacePose({ longitude: 0, latitude: 0 });
+  const North = adjustSurfacePose(Equator, { north: 1 });
+  assert.ok(North.latitude > 0);
+  let Pose = Equator;
+  for (let Step = 0; Step < 45; Step += 1) {
+    Pose = adjustSurfacePose(Pose, { north: 1 });
+  }
+  assert.ok(Math.abs(Pose.latitude) < 0.2);
+  assert.ok(Math.abs(Math.abs(Pose.longitude) - Math.PI) < 0.2);
+  for (let Step = 0; Step < 5; Step += 1) {
+    Pose = adjustSurfacePose(Pose, { north: 1 });
+  }
+  assert.ok(Pose.latitude < 0);
+  assert.ok(Pose.latitude > -Math.PI / 2);
+  const Direction = getSurfaceDirection(Pose);
+  assert.ok(Direction.x < 0);
+  const SpherePoint = getSphereSurfacePosition({ x: 0, y: 0, z: 0 }, 2, Pose);
+  assert.ok(Math.abs(Math.hypot(SpherePoint.x, SpherePoint.y, SpherePoint.z) - 2) < 1e-9);
+  const Flattened = flattenSurfacePoseToEquator(Pose);
+  assert.equal(Flattened.latitude, 0);
+  assert.equal(Flattened.longitude, Pose.longitude);
+  const FromDirection = getSurfacePoseFromDirection({ x: 0, y: 0, z: 1 });
+  assert.ok(Math.abs(FromDirection.latitude - (Math.PI / 2)) < 1e-9);
+});
+
+test('a ray hitting the globe walks and a pull into space aims', () => {
+  const World = { x: 0, y: 0, z: 0 };
+  const Hit = intersectRaySphere(
+    { x: 4, y: 0, z: 0 },
+    { x: -1, y: 0, z: 0 },
+    World,
+    2,
+  );
+  assert.ok(Hit);
+  assert.ok(Math.abs(Hit.x - 2) < 1e-9);
+  assert.equal(classifySphereSurfaceGesture({
+    worldCenter: World,
+    worldRadius: 2,
+    startPosition: { x: 2, y: 0, z: 0 },
+    sphereHit: { x: 0, y: 2, z: 0 },
+    planePosition: { x: 0, y: 2 },
+  }), SurfaceGestureModes.walk);
+  assert.equal(classifySphereSurfaceGesture({
+    worldCenter: World,
+    worldRadius: 2,
+    startPosition: { x: 2, y: 0, z: 0 },
+    sphereHit: null,
+    planePosition: { x: 3.2, y: 0 },
+  }), SurfaceGestureModes.aim);
 });
 
 test('Scout zoom presentation announces percentage and marks only reached limits unavailable', () => {

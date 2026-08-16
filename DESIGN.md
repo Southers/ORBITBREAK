@@ -28,7 +28,7 @@ The Warden's ideology is concise and visible:
 
 1. **Scout:** pan and zoom across a large authored sector; inspect worlds, routes, the ghost and the Warden's telegraphed move.
 2. **Choose:** balance a safe connection, a valuable occupied world, a scoring slingshot or a route that protects the existing network.
-3. **Reposition:** walk clockwise or counter-clockwise around the current world's orbital-plane circumference to choose a launch point or reach a local relay obstacle.
+3. **Reposition:** walk the current world as a globe—front, back and over the poles—to choose a launch point or reach a local relay obstacle. Launch still leaves from the orbital plane.
 4. **Launch:** pull away from the Runner and release. The astronaut folds into a launch craft, then a small ship, while retaining one deterministic physics body.
 5. **Fly:** read the exact full-path prediction, chain gravity assists through visible wells and optionally spend one Break. Drag from the ship to choose a direction, or break along heading with Space.
 6. **Land:** unfold back into the Runner. A successful new landing breaks the local cage, activates its relay and establishes a visible link from the origin world. A first traversal between two active relays can also create a missing link.
@@ -41,18 +41,18 @@ There is no wall-clock countdown during scouting or surface planning.
 
 The game remains one-pointer/touch accessible.
 
-- Drag the ship, then pull away to aim and build a relay. Trace the rim to walk; the world turns so the Runner stays on the visible face. Release on the ship, or press Escape, to cancel without spending the flight.
-- Drag the current world's disk (not a committed pull) to walk the orbital-plane circumference. Q/E remain the keyboard walk.
+- Drag the ship, then pull away to aim and build a relay. Drag across the globe to walk in 3D, including over the poles; the camera stays on the visible face. Release on the ship, or press Escape, to cancel without spending the flight.
+- Q/E walk around, R/F walk over the poles. Keyboard and pointer reach the same sphere.
 - Drag empty space to pan. Pinch or mouse wheel to zoom. C snaps the camera back to the Runner.
 - During flight, drag from the ship to **break** your line in any direction, then release. Space still breaks along heading. The preview cannot solve a future player-timed break at launch time.
 - On a caged world, drag from the ship through a clamp to **destroy** it. A longer drag can take more than one. Drag back onto the ship, or press Escape, to cancel. Misses do not spend the flight. No health bars.
 - Keyboard controls must reach the same deterministic actions as pointer controls.
 
-Surface movement is deliberately one-dimensional. It creates launch-position choice, scale and character without turning ORBITBREAK into a platformer.
+Surface movement is spherical. It creates launch-position choice and a readable tiny-world scale without turning ORBITBREAK into a platformer. Aiming flattens back onto the orbital plane so gravity paths stay 2D and deterministic.
 
 ## Flight skill
 
-Aiming frames the readable neighbourhood and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. Pinch, wheel or the zoom buttons move from a close world to the whole authored Reach. Fog lifts while planning so the map stays bright. After release the camera follows the ship. A landing recenters on the new world and orbits with the Runner so walking rolls the globe; reduced motion keeps the top-down follow. Story boards look at the speaker's world or the Warden. A committed chain is visible before release, including three- and four-world slingshots. Breaker's Reach, Shatterbelt and Verdant Caravan are the three authored Warden sectors; Long Night and Worldheart stay expansion fixtures.
+Aiming frames the readable neighbourhood and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. Pinch, wheel or the zoom buttons move from a close world to the whole authored Reach. Fog lifts while planning so the map stays bright. After release the camera follows the ship. A landing recenters on the new world and sits outside the Runner's current face so walking traverses the globe in 3D; reduced motion keeps the top-down follow. Story boards look at the speaker's world or the Warden. A committed chain is visible before release, including three- and four-world slingshots. Breaker's Reach, Shatterbelt and Verdant Caravan are the three authored Warden sectors; Long Night and Worldheart stay expansion fixtures.
 
 Skill comes from:
 

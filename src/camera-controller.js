@@ -48,6 +48,16 @@ export function createCameraController(THREE, host) {
   } = host;
   const ActiveSystem = host.ActiveSystem;
 
+  function getLandedCameraWorld() {
+    if (host.CurrentWorldIdentifier === WorldheartDefinition.id) {
+      return WorldheartDefinition;
+    }
+    if (host.SeedstoneDefinition && host.CurrentWorldIdentifier === host.SeedstoneDefinition.id) {
+      return host.SeedstoneDefinition;
+    }
+    return getWorldDefinition(host.CurrentWorldIdentifier);
+  }
+
 function captureAimInteractionCamera() {
   if (host.AimInteractionCamera) {
     return;
@@ -316,11 +326,34 @@ function centerLandedCamera({ snap = true } = {}) {
   host.IsScoutMode = false;
   CameraPanOffset.set(0, 0, 0);
   const Point = host.SeedPhysicsState.position;
-  DesiredCameraLookTarget.set(Point.x, Point.y, 0);
-  if (snap) {
-    CameraLookTarget.copy(DesiredCameraLookTarget);
-    Camera.position.x = Point.x;
-    Camera.position.y = Point.y;
+  const LandedWorld = getLandedCameraWorld();
+  if (LandedWorld && !host.PrefersReducedMotion) {
+    const LandedPose = getLandedSurfaceCameraPose({
+      worldX: LandedWorld.position.x,
+      worldY: LandedWorld.position.y,
+      worldZ: LandedWorld.position.z ?? 0,
+      worldRadius: LandedWorld.radius,
+      runnerX: Point.x,
+      runnerY: Point.y,
+      runnerZ: Point.z ?? 0,
+      cameraScale: host.CameraDistanceScale || 0.5,
+      baseCameraDistance: host.BaseCameraDistance,
+      reducedMotion: false,
+    });
+    DesiredCameraLookTarget.set(LandedPose.lookAtX, LandedPose.lookAtY, LandedPose.lookAtZ);
+    if (snap) {
+      CameraLookTarget.copy(DesiredCameraLookTarget);
+      Camera.position.set(LandedPose.cameraX, LandedPose.cameraY, LandedPose.cameraZ);
+      Camera.up.set(LandedPose.upX, LandedPose.upY, LandedPose.upZ);
+      Camera.lookAt(CameraLookTarget);
+    }
+  } else {
+    DesiredCameraLookTarget.set(Point.x, Point.y, 0);
+    if (snap) {
+      CameraLookTarget.copy(DesiredCameraLookTarget);
+      Camera.position.x = Point.x;
+      Camera.position.y = Point.y;
+    }
   }
   GameCanvas.dataset.scoutMode = 'false';
   GameCanvas.classList.remove('is-scouting');
@@ -364,14 +397,16 @@ function updateCamera(DeltaTimeSeconds) {
     && (host.GamePhase === 'attached' || host.GamePhase === 'restoring')
     && !host.PrefersReducedMotion
   ) {
-    const LandedWorld = getWorldDefinition(host.CurrentWorldIdentifier);
+    const LandedWorld = getLandedCameraWorld();
     if (LandedWorld) {
       const LandedLookPose = getLandedSurfaceCameraPose({
         worldX: LandedWorld.position.x,
         worldY: LandedWorld.position.y,
+        worldZ: LandedWorld.position.z ?? 0,
         worldRadius: LandedWorld.radius,
         runnerX: host.SeedPhysicsState.position.x,
         runnerY: host.SeedPhysicsState.position.y,
+        runnerZ: host.SeedPhysicsState.position.z ?? 0,
         cameraScale: host.CameraDistanceScale,
         baseCameraDistance: host.BaseCameraDistance,
         reducedMotion: false,
@@ -379,7 +414,7 @@ function updateCamera(DeltaTimeSeconds) {
       DesiredCameraLookTarget.set(
         LandedLookPose.lookAtX + CameraPanOffset.x,
         LandedLookPose.lookAtY + CameraPanOffset.y,
-        0,
+        LandedLookPose.lookAtZ,
       );
     } else {
       DesiredCameraLookTarget.set(
@@ -430,7 +465,7 @@ function updateCamera(DeltaTimeSeconds) {
     UsesExplorationCamera
     && (host.GamePhase === 'attached' || host.GamePhase === 'restoring')
   ) {
-    const LandedWorld = getWorldDefinition(host.CurrentWorldIdentifier);
+    const LandedWorld = getLandedCameraWorld();
     DesiredDistanceScale = LandedWorld
       ? getLandedCameraScale({
         worldRadius: LandedWorld.radius,
@@ -461,15 +496,17 @@ function updateCamera(DeltaTimeSeconds) {
     && !host.RelayRevealLookTarget
     && (host.GamePhase === 'attached' || host.GamePhase === 'restoring');
   const LandedWorld = UsesLandedFacingCamera
-    ? getWorldDefinition(host.CurrentWorldIdentifier)
+    ? getLandedCameraWorld()
     : null;
   const LandedCameraPose = LandedWorld
     ? getLandedSurfaceCameraPose({
       worldX: LandedWorld.position.x,
       worldY: LandedWorld.position.y,
+      worldZ: LandedWorld.position.z ?? 0,
       worldRadius: LandedWorld.radius,
       runnerX: host.SeedPhysicsState.position.x,
       runnerY: host.SeedPhysicsState.position.y,
+      runnerZ: host.SeedPhysicsState.position.z ?? 0,
       cameraScale: host.CameraDistanceScale,
       baseCameraDistance: host.BaseCameraDistance,
       reducedMotion: host.PrefersReducedMotion,
@@ -482,9 +519,12 @@ function updateCamera(DeltaTimeSeconds) {
     Camera.position.y = CameraLookTarget.y
       + (LandedCameraPose.cameraY - LandedCameraPose.lookAtY)
       + CameraShakeY;
-    Camera.position.z = LandedCameraPose.cameraZ;
+    Camera.position.z = CameraLookTarget.z
+      + (LandedCameraPose.cameraZ - LandedCameraPose.lookAtZ);
+    Camera.up.set(LandedCameraPose.upX, LandedCameraPose.upY, LandedCameraPose.upZ);
     GameCanvas.dataset.landedFacingCamera = 'true';
   } else {
+    Camera.up.set(0, 0, 1);
     Camera.position.x = (UsesExplorationCamera ? CameraLookTarget.x : 0) + CameraShakeX;
     Camera.position.y = (UsesExplorationCamera ? CameraLookTarget.y : 0) + CameraShakeY;
     Camera.position.z = host.BaseCameraDistance * host.CameraDistanceScale;

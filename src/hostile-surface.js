@@ -6,8 +6,11 @@
  */
 
 import {
-  adjustSurfaceAngle,
-  getSurfacePosition,
+  adjustSurfacePose,
+  createSurfacePose,
+  flattenSurfacePoseToEquator,
+  getSphereSurfacePosition,
+  getSurfacePoseFromPosition,
   shouldCancelAimedLaunch,
 } from './controls.js';
 import {
@@ -56,11 +59,17 @@ export function createHostileSurface(THREE, host) {
       : getWorldDefinition(host.CurrentWorldIdentifier);
   }
 
+  function getRunnerSurfacePose(WorldDefinition) {
+    const Pose = getSurfacePoseFromPosition(WorldDefinition.position, host.SeedPhysicsState.position);
+    return createSurfacePose({
+      longitude: Pose.longitude,
+      latitude: Pose.latitude,
+      meridianSign: host.AttachedSurfaceMeridianSign ?? 1,
+    });
+  }
+
   function getRunnerSurfaceAngle(WorldDefinition) {
-    return Math.atan2(
-      host.SeedPhysicsState.position.y - WorldDefinition.position.y,
-      host.SeedPhysicsState.position.x - WorldDefinition.position.x,
-    );
+    return getRunnerSurfacePose(WorldDefinition).longitude;
   }
 
   function getShipCutOrigin() {
@@ -205,7 +214,7 @@ export function createHostileSurface(THREE, host) {
     } else if (RemainingCount === 3) {
       showInstruction(
         `${AttachedWorld.label} still has bars.`,
-        'Grab the ship and drag through a clamp. Walk with Q/E if destroy cannot reach.',
+        'Grab the ship and drag through a clamp. Walk the globe if destroy cannot reach.',
       );
     } else {
       showInstruction(
@@ -246,14 +255,15 @@ export function createHostileSurface(THREE, host) {
     return true;
   }
 
-  /** Repositions the Runner around a world's playable great-circle without spending a launch. */
-  function setRunnerSurfaceAngle(AngleRadians, InputKind = 'pointer') {
+  /** Repositions the Runner on the world's sphere without spending a launch. */
+  function setRunnerSurfacePose(Pose, InputKind = 'pointer') {
     const AttachedWorld = getCurrentAttachedWorld();
     if (!AttachedWorld || host.ReplayPlaybackState !== null) return false;
-    const SurfacePosition = getSurfacePosition(
+    const NormalizedPose = createSurfacePose(Pose);
+    const SurfacePosition = getSphereSurfacePosition(
       AttachedWorld.position,
       AttachedWorld.radius + SeedRadius + 0.03,
-      AngleRadians,
+      NormalizedPose,
     );
     host.SeedPhysicsState.position = createVector(
       SurfacePosition.x,
@@ -264,11 +274,15 @@ export function createHostileSurface(THREE, host) {
     SeedGroup.position.set(SurfacePosition.x, SurfacePosition.y, SurfacePosition.z);
     host.LastSafeWorldIdentifier = host.CurrentWorldIdentifier;
     host.LastSafeSeedPosition = createVector(SurfacePosition.x, SurfacePosition.y, SurfacePosition.z);
+    host.AttachedSurfaceMeridianSign = NormalizedPose.meridianSign;
     if (host.CurrentWorldIdentifier === WorldheartDefinition.id) {
-      host.AttachedWorldheartSurfaceAngle = AngleRadians;
+      host.AttachedWorldheartSurfaceAngle = NormalizedPose.longitude;
+      host.AttachedWorldheartSurfaceLatitude = NormalizedPose.latitude;
     }
     publishAttachedSeedState(host.CurrentWorldIdentifier, SurfacePosition);
-    GameCanvas.dataset.surfaceAngle = AngleRadians.toFixed(4);
+    GameCanvas.dataset.surfaceAngle = NormalizedPose.longitude.toFixed(4);
+    GameCanvas.dataset.surfaceLatitude = NormalizedPose.latitude.toFixed(4);
+    GameCanvas.dataset.surfaceMeridianSign = String(NormalizedPose.meridianSign);
     GameCanvas.dataset.surfaceInput = InputKind;
     if (host.ActiveHostileEncounterState) {
       publishHostileEncounterState();
@@ -278,15 +292,36 @@ export function createHostileSurface(THREE, host) {
     return true;
   }
 
-  function moveRunnerAroundSurface(Direction, Fine = false) {
+  function setRunnerSurfaceAngle(AngleRadians, InputKind = 'pointer') {
     const AttachedWorld = getCurrentAttachedWorld();
     if (!AttachedWorld) return false;
-    const CurrentAngle = Math.atan2(
-      host.SeedPhysicsState.position.y - AttachedWorld.position.y,
-      host.SeedPhysicsState.position.x - AttachedWorld.position.x,
+    const CurrentPose = getRunnerSurfacePose(AttachedWorld);
+    return setRunnerSurfacePose({
+      longitude: AngleRadians,
+      latitude: CurrentPose.latitude,
+      meridianSign: CurrentPose.meridianSign,
+    }, InputKind);
+  }
+
+  function flattenRunnerToEquator(InputKind = 'pointer') {
+    const AttachedWorld = getCurrentAttachedWorld();
+    if (!AttachedWorld) return false;
+    return setRunnerSurfacePose(
+      flattenSurfacePoseToEquator(getRunnerSurfacePose(AttachedWorld)),
+      InputKind,
     );
-    return setRunnerSurfaceAngle(
-      adjustSurfaceAngle(CurrentAngle, Direction, { fine: Fine }),
+  }
+
+  function moveRunnerAroundSurface(Direction, Fine = false) {
+    return moveRunnerOnSurface({ east: Direction, fine: Fine });
+  }
+
+  function moveRunnerOnSurface({ east = 0, north = 0, fine = false } = {}) {
+    const AttachedWorld = getCurrentAttachedWorld();
+    if (!AttachedWorld) return false;
+    if (east === 0 && north === 0) return false;
+    return setRunnerSurfacePose(
+      adjustSurfacePose(getRunnerSurfacePose(AttachedWorld), { east, north, fine }),
       'keyboard',
     );
   }
@@ -295,6 +330,7 @@ export function createHostileSurface(THREE, host) {
     calculateSurfaceRestPosition,
     getCurrentAttachedWorld,
     getRunnerSurfaceAngle,
+    getRunnerSurfacePose,
     getShipCutOrigin,
     getCurrentCutPreview,
     getCurrentCutHitIds,
@@ -305,6 +341,9 @@ export function createHostileSurface(THREE, host) {
     showHostileEncounterInstruction,
     beginHostileEncounter,
     setRunnerSurfaceAngle,
+    setRunnerSurfacePose,
+    flattenRunnerToEquator,
     moveRunnerAroundSurface,
+    moveRunnerOnSurface,
   };
 }

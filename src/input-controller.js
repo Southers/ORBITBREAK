@@ -6,12 +6,15 @@
 import {
   SurfaceGestureModes,
   adjustKeyboardAimState,
-  classifySurfaceGesture,
+  classifySphereSurfaceGesture,
   createKeyboardAimState,
   findNearestKeyboardAimAngle,
   getKeyboardAimDragVector,
   getPinchZoomScale,
   getPointerClientDistance,
+  getSurfacePoseFromPosition,
+  intersectRaySphere,
+  projectRayOntoSphere,
   shouldCancelAimedLaunch,
 } from './controls.js';
 import {
@@ -77,7 +80,9 @@ export function createInputController(THREE, host) {
     setScoutMode,
     getCurrentAttachedWorld,
     setRunnerSurfaceAngle,
-    moveRunnerAroundSurface,
+    setRunnerSurfacePose,
+    flattenRunnerToEquator,
+    moveRunnerOnSurface,
     showInstruction,
     showStatusToast,
     hideInstruction,
@@ -88,6 +93,7 @@ export function createInputController(THREE, host) {
     publishHostileEncounterState,
     getShipCutOrigin,
     getRunnerSurfaceAngle,
+    getRunnerSurfacePose,
     completeWorldheartLiberation,
     flushQueuedStoryBoardsIfReady,
     updateLaunchCounter,
@@ -107,11 +113,17 @@ export function createInputController(THREE, host) {
     MinimumScoutZoomScale,
   } = host;
 
+  const PointerFallbackPlane = new THREE.Plane();
+  const PointerFallbackNormal = new THREE.Vector3();
+  const PointerFallbackPoint = new THREE.Vector3();
+
 /**
- * Converts pointer coordinates into the XY orbital plane.
+ * Converts pointer coordinates into world space. Planning and flight still hit
+ * the orbital plane; landed globe walking can hit the sphere when the camera
+ * sits beside the world.
  *
  * @param {PointerEvent} PointerEventData - Browser pointer event.
- * @returns {THREE.Vector3|null} Intersection position or null if the ray misses the plane.
+ * @returns {THREE.Vector3|null} Intersection position or null if the ray misses.
  */
 function getPointerWorldPosition(PointerEventData, UnprojectCamera = Camera) {
   const CanvasBounds = GameCanvas.getBoundingClientRect();
@@ -123,8 +135,34 @@ function getPointerWorldPosition(PointerEventData, UnprojectCamera = Camera) {
   ) + 1;
 
   PointerRaycaster.setFromCamera(PointerNormalizedDeviceCoordinates, UnprojectCamera);
-  const IntersectionResult = PointerRaycaster.ray.intersectPlane(OrbitalPlane, PointerWorldPosition);
-  return IntersectionResult ? PointerWorldPosition : null;
+  const RayDirectionZ = PointerRaycaster.ray.direction.z;
+  if (Math.abs(RayDirectionZ) > 0.12) {
+    const PlaneHit = PointerRaycaster.ray.intersectPlane(OrbitalPlane, PointerWorldPosition);
+    if (
+      PlaneHit
+      && PointerWorldPosition.distanceTo(PointerRaycaster.ray.origin) > 0.5
+    ) {
+      return PointerWorldPosition;
+    }
+  }
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (AttachedWorld) {
+    const GlobeHit = intersectRaySphere(
+      PointerRaycaster.ray.origin,
+      PointerRaycaster.ray.direction,
+      AttachedWorld.position,
+      AttachedWorld.radius + 0.45,
+    );
+    if (GlobeHit) {
+      PointerWorldPosition.set(GlobeHit.x, GlobeHit.y, GlobeHit.z);
+      return PointerWorldPosition;
+    }
+  }
+  PointerFallbackNormal.copy(UnprojectCamera.getWorldDirection(PointerFallbackNormal));
+  PointerFallbackPoint.copy(UnprojectCamera.position).addScaledVector(PointerFallbackNormal, 12);
+  PointerFallbackPlane.setFromNormalAndCoplanarPoint(PointerFallbackNormal, PointerFallbackPoint);
+  const FacingHit = PointerRaycaster.ray.intersectPlane(PointerFallbackPlane, PointerWorldPosition);
+  return FacingHit ? PointerWorldPosition : null;
 }
 
 /**
@@ -177,11 +215,53 @@ function isPointerOverAttachedWorld(WorldPosition) {
   if (!AttachedWorld || !WorldPosition) {
     return false;
   }
+  const SphereHit = intersectRaySphere(
+    PointerRaycaster.ray.origin,
+    PointerRaycaster.ray.direction,
+    AttachedWorld.position,
+    AttachedWorld.radius + 0.45,
+  );
+  if (SphereHit) {
+    return true;
+  }
   const Distance = Math.hypot(
     WorldPosition.x - AttachedWorld.position.x,
     WorldPosition.y - AttachedWorld.position.y,
   );
   return Distance <= AttachedWorld.radius + 0.45;
+}
+
+function getAttachedGlobeHit(RequireVisibleFace = false) {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld) {
+    return null;
+  }
+  const SurfaceRadius = AttachedWorld.radius + host.SeedRadius + 0.03;
+  if (RequireVisibleFace) {
+    return intersectRaySphere(
+      PointerRaycaster.ray.origin,
+      PointerRaycaster.ray.direction,
+      AttachedWorld.position,
+      AttachedWorld.radius + 0.45,
+    );
+  }
+  return projectRayOntoSphere(
+    PointerRaycaster.ray.origin,
+    PointerRaycaster.ray.direction,
+    AttachedWorld.position,
+    SurfaceRadius,
+  );
+}
+
+function walkRunnerToGlobeHit(Hit, InputKind = 'pointer') {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld || !Hit) {
+    return false;
+  }
+  return setRunnerSurfacePose(
+    getSurfacePoseFromPosition(AttachedWorld.position, Hit),
+    InputKind,
+  );
 }
 
 function rememberPointerLocation(PointerEventData) {
@@ -304,6 +384,7 @@ function beginKeyboardAim() {
     return false;
   }
 
+  flattenRunnerToEquator('keyboard');
   const SuggestedTarget = getCurrentRouteChoices(1)[0];
   const SuggestedTargetPosition = SuggestedTarget?.position ?? {
     x: host.SeedPhysicsState.position.x + 1,
@@ -378,23 +459,24 @@ function handleKeyboardAimKey(KeyboardEventData) {
   const PressedKey = KeyboardEventData.key.toLowerCase();
   if (
     !host.IsKeyboardAiming
-    && (PressedKey === 'q' || PressedKey === 'e')
+    && (PressedKey === 'q' || PressedKey === 'e' || PressedKey === 'r' || PressedKey === 'f')
     && host.GamePhase === 'attached'
     && host.ReplayPlaybackState === null
   ) {
     KeyboardEventData.preventDefault();
     setScoutMode(false);
-    const DidMove = moveRunnerAroundSurface(
-      PressedKey === 'q' ? 1 : -1,
-      KeyboardEventData.shiftKey,
-    );
+    const DidMove = moveRunnerOnSurface({
+      east: PressedKey === 'q' ? 1 : (PressedKey === 'e' ? -1 : 0),
+      north: PressedKey === 'r' ? 1 : (PressedKey === 'f' ? -1 : 0),
+      fine: KeyboardEventData.shiftKey,
+    });
     if (DidMove) {
       host.RunnerWalkLifeSeconds = 0.34;
     }
     if (DidMove && !host.ActiveHostileEncounterState) {
       showInstruction(
         'Launch point moved',
-        'Q/E walk · the world turns with you · Shift makes fine steps · pull away or arrows aim · Enter launches.',
+        'Q/E around · R/F over the poles · drag the globe · pull away or arrows aim · Enter launches.',
       );
     }
     return DidMove;
@@ -559,6 +641,7 @@ function updateCameraPan(WorldPosition) {
 
 function beginCutAim(WorldPosition) {
   if (!host.ActiveHostileEncounterState || host.GamePhase !== 'attached') return false;
+  flattenRunnerToEquator('pointer');
   host.IsCutAiming = true;
   host.CutAimPointer = { x: WorldPosition.x, y: WorldPosition.y };
   GameCanvas.classList.add('is-aiming');
@@ -654,7 +737,7 @@ function applyHostileCut(Origin, End) {
     showStatusToast('THE RIM IS CLEAR', 1350);
     showInstruction(
       `${AttachedWorld.label} can fly.`,
-      'Pull away from the ship to aim and build a relay. Trace the rim to walk. Drag empty space to look around.',
+      'Pull away from the ship to aim and build a relay. Drag the globe to walk. Drag empty space to look around.',
     );
     flushQueuedStoryBoardsIfReady();
     return true;
@@ -705,18 +788,24 @@ function fireNearestHostileCut() {
   if (!Preview || Preview.hits.length < 1) {
     // Out of reach: each tap walks the rim toward the nearest clamp so the
     // one-pointer DESTROY button can never feel like a soft-lock.
-    const RunnerAngle = getRunnerSurfaceAngle(AttachedWorld);
+    const RunnerPose = getRunnerSurfacePose(AttachedWorld);
     const MoveDirection = getHostileEncounterMoveDirection(
       host.ActiveHostileEncounterState,
-      RunnerAngle,
+      RunnerPose.longitude,
     );
     const AngularDistance = getHostileEncounterAngularDistance(
       host.ActiveHostileEncounterState,
-      RunnerAngle,
+      RunnerPose.longitude,
     );
     const StepRadians = Math.min(0.35, Math.max(0, AngularDistance - 0.45));
-    if (MoveDirection !== 0 && StepRadians > 0.001) {
-      setRunnerSurfaceAngle(RunnerAngle + (MoveDirection * StepRadians), 'keyboard');
+    const LatitudeStep = Math.min(0.18, Math.abs(RunnerPose.latitude));
+    if (MoveDirection !== 0 && (StepRadians > 0.001 || LatitudeStep > 0.001)) {
+      setRunnerSurfacePose({
+        longitude: RunnerPose.longitude + (MoveDirection * StepRadians),
+        latitude: RunnerPose.latitude > 0
+          ? RunnerPose.latitude - LatitudeStep
+          : RunnerPose.latitude + LatitudeStep,
+      }, 'keyboard');
       Preview = getCurrentCutPreview();
     }
     if (!Preview || Preview.hits.length < 1) {
@@ -818,6 +907,7 @@ function releaseBurnAim() {
 }
 
 function beginLaunchAim(WorldPosition) {
+  flattenRunnerToEquator('pointer');
   host.PointerGestureMode = SurfaceGestureModes.aim;
   PointerGestureStartWorldPosition.copy(WorldPosition);
   LastAimPointerWorldPosition.copy(WorldPosition);
@@ -841,7 +931,7 @@ function beginSurfaceWalk() {
   if (!showHostileEncounterInstruction()) {
     showInstruction(
       `Walking around ${AttachedWorld.label}`,
-      'The world turns with you. Trace the rim to choose a launch point. Pull away from the ship to aim and build a relay.',
+      'The globe turns in 3D. Drag across it, including over the poles. Pull away from the ship to aim and build a relay.',
     );
   }
 }
@@ -912,7 +1002,7 @@ function handlePointerDown(PointerEventData) {
     LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
     showInstruction(
       'Walk or launch',
-      'Trace the rim to walk. Pull away to aim and build a relay. Release on the ship to cancel.',
+      'Drag across the globe to walk. Pull away to aim and build a relay. Release on the ship to cancel.',
     );
     PointerEventData.preventDefault();
     return;
@@ -979,23 +1069,24 @@ function handlePointerMove(PointerEventData) {
   ) {
     const AttachedWorld = getCurrentAttachedWorld();
     if (AttachedWorld) {
-      const Classification = classifySurfaceGesture({
+      const GlobeHit = getAttachedGlobeHit(true);
+      const Classification = classifySphereSurfaceGesture({
+        worldCenter: AttachedWorld.position,
+        worldRadius: AttachedWorld.radius,
         startPosition: {
-          x: PointerGestureStartWorldPosition.x,
-          y: PointerGestureStartWorldPosition.y,
+          x: host.SeedPhysicsState.position.x,
+          y: host.SeedPhysicsState.position.y,
+          z: host.SeedPhysicsState.position.z,
         },
-        currentPosition: {
+        sphereHit: GlobeHit,
+        planePosition: {
           x: CurrentPointerWorldPosition.x,
           y: CurrentPointerWorldPosition.y,
         },
-        bodyPosition: AttachedWorld.position,
       });
       if (Classification === SurfaceGestureModes.walk) {
         beginSurfaceWalk();
-        setRunnerSurfaceAngle(Math.atan2(
-          CurrentPointerWorldPosition.y - AttachedWorld.position.y,
-          CurrentPointerWorldPosition.x - AttachedWorld.position.x,
-        ));
+        walkRunnerToGlobeHit(getAttachedGlobeHit(false));
       } else if (Classification === SurfaceGestureModes.aim) {
         beginLaunchAim(CurrentPointerWorldPosition);
       }
@@ -1023,12 +1114,7 @@ function handlePointerMove(PointerEventData) {
   }
 
   if (host.IsPointerWalking) {
-    const AttachedWorld = getCurrentAttachedWorld();
-    const SurfaceAngle = Math.atan2(
-      CurrentPointerWorldPosition.y - AttachedWorld.position.y,
-      CurrentPointerWorldPosition.x - AttachedWorld.position.x,
-    );
-    setRunnerSurfaceAngle(SurfaceAngle);
+    walkRunnerToGlobeHit(getAttachedGlobeHit(false));
     PointerEventData.preventDefault();
     return;
   }

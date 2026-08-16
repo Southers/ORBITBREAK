@@ -194,6 +194,7 @@ export function createLandingDirector(THREE, host) {
       SurfaceRestPosition.z,
     );
     host.LaunchIgnoredWorldIdentifier = null;
+    host.AttachedSurfaceMeridianSign = 1;
     centerLandedCamera({ snap: true });
 
     const LiveWorldsBefore = host.listLiveWorldIdentifiers();
@@ -369,6 +370,7 @@ export function createLandingDirector(THREE, host) {
     host.publishAttachedSeedState(host.CurrentWorldIdentifier, SurfaceRestPosition);
     host.LaunchIgnoredWorldIdentifier = null;
     host.LaunchIgnoredBodyIdentifier = null;
+    host.AttachedSurfaceMeridianSign = 1;
     host.GamePhase = 'attached';
     centerLandedCamera({ snap: true });
     GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
@@ -481,6 +483,8 @@ export function createLandingDirector(THREE, host) {
     host.CurrentWorldIdentifier = host.WorldheartDefinition.id;
     host.publishAttachedSeedState(host.CurrentWorldIdentifier, SurfaceRestPosition);
     host.AttachedWorldheartSurfaceAngle = host.getRunnerSurfaceAngle(host.WorldheartDefinition);
+    host.AttachedWorldheartSurfaceLatitude = 0;
+    host.AttachedSurfaceMeridianSign = 1;
     centerLandedCamera({ snap: true });
     host.RunState = settleRunFlight(host.RunState, { reachedCommandWorld: true });
     host.updateLaunchCounter();

@@ -434,26 +434,29 @@ export function getExtractionFreighterTravelProgress(
 }
 
 /**
- * Orbits the camera with the Runner so walking rolls the globe. Reduced motion keeps
- * the current top-down follow. Physics stay on the orbital-plane circumference.
+ * Sits outside the Runner's current face of the globe so walking traverses 3D
+ * rotational space. Reduced motion keeps the current top-down follow. Launch
+ * still flattens into the orbital plane.
  */
 export function getLandedSurfaceCameraPose({
   worldX,
   worldY,
+  worldZ = 0,
   worldRadius,
   runnerX,
   runnerY,
+  runnerZ = 0,
   cameraScale,
   baseCameraDistance,
   reducedMotion = false,
 } = {}) {
-  if (!Number.isFinite(worldX) || !Number.isFinite(worldY)) {
+  if (!Number.isFinite(worldX) || !Number.isFinite(worldY) || !Number.isFinite(worldZ)) {
     throw new Error('Landed camera pose requires a finite world centre.');
   }
   if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
     throw new Error('Landed camera pose requires a positive world radius.');
   }
-  if (!Number.isFinite(runnerX) || !Number.isFinite(runnerY)) {
+  if (!Number.isFinite(runnerX) || !Number.isFinite(runnerY) || !Number.isFinite(runnerZ)) {
     throw new Error('Landed camera pose requires a finite runner position.');
   }
   if (!Number.isFinite(cameraScale) || cameraScale <= 0) {
@@ -470,22 +473,35 @@ export function getLandedSurfaceCameraPose({
       lookAtX: runnerX,
       lookAtY: runnerY,
       lookAtZ: 0,
+      upX: 0,
+      upY: 0,
+      upZ: 1,
     };
   }
   const OffsetX = runnerX - worldX;
   const OffsetY = runnerY - worldY;
-  const OffsetDistance = Math.hypot(OffsetX, OffsetY) || 1;
+  const OffsetZ = runnerZ - worldZ;
+  const OffsetDistance = Math.hypot(OffsetX, OffsetY, OffsetZ) || 1;
   const DirectionX = OffsetX / OffsetDistance;
   const DirectionY = OffsetY / OffsetDistance;
-  const RadialPull = worldRadius * 2.35;
-  const CameraZ = Math.max(worldRadius * 2.8, baseCameraDistance * cameraScale * 0.42);
+  const DirectionZ = OffsetZ / OffsetDistance;
+  const PoleLock = Math.abs(DirectionZ) > 0.92;
+  const LiftedZ = PoleLock ? DirectionZ : DirectionZ + 0.38;
+  const LiftedDistance = Math.hypot(DirectionX, DirectionY, LiftedZ) || 1;
+  const CameraDirectionX = DirectionX / LiftedDistance;
+  const CameraDirectionY = DirectionY / LiftedDistance;
+  const CameraDirectionZ = LiftedZ / LiftedDistance;
+  const RadialPull = worldRadius * 2.45;
   return {
-    cameraX: worldX + (DirectionX * RadialPull),
-    cameraY: worldY + (DirectionY * RadialPull),
-    cameraZ: CameraZ,
-    lookAtX: worldX + (DirectionX * worldRadius * 0.22),
-    lookAtY: worldY + (DirectionY * worldRadius * 0.22),
-    lookAtZ: 0,
+    cameraX: worldX + (CameraDirectionX * RadialPull),
+    cameraY: worldY + (CameraDirectionY * RadialPull),
+    cameraZ: worldZ + (CameraDirectionZ * RadialPull),
+    lookAtX: worldX + (DirectionX * worldRadius * 0.18),
+    lookAtY: worldY + (DirectionY * worldRadius * 0.18),
+    lookAtZ: worldZ + (DirectionZ * worldRadius * 0.18),
+    upX: 0,
+    upY: PoleLock ? 1 : 0,
+    upZ: PoleLock ? 0 : 1,
   };
 }
 

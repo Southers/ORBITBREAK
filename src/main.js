@@ -5,10 +5,11 @@ import {
   SurfaceGestureModes,
   createKeyboardAimState,
   getKeyboardAimDragVector,
+  getSphereSurfacePosition,
   getSurfacePosition,
   LaunchCancelRadius,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260816-ob92';
+} from './controls.js?v=20260816-ob93';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -31,14 +32,14 @@ import { createPlayerVisuals } from './player-visuals.js?v=20260815-ob90';
 import { createStoryDirector } from './story-director.js?v=20260816-ob91';
 import { createHud } from './hud.js?v=20260815-ob90';
 import { createAimPreview } from './aim-preview.js?v=20260816-ob92';
-import { createLandingDirector } from './landing-director.js?v=20260815-ob90';
-import { createCameraController } from './camera-controller.js?v=20260816-ob92';
-import { createInputController } from './input-controller.js?v=20260816-ob92';
-import { createHostileSurface } from './hostile-surface.js?v=20260816-ob92';
+import { createLandingDirector } from './landing-director.js?v=20260816-ob93';
+import { createCameraController } from './camera-controller.js?v=20260816-ob93';
+import { createInputController } from './input-controller.js?v=20260816-ob93';
+import { createHostileSurface } from './hostile-surface.js?v=20260816-ob93';
 import { createScanner } from './scanner.js?v=20260815-ob90';
 import { createRoutePresentation } from './route-presentation.js?v=20260815-ob90';
 import { createRecordsUi } from './records-ui.js?v=20260815-ob90';
-import { createFrameVisuals } from './frame-visuals.js?v=20260815-ob90';
+import { createFrameVisuals } from './frame-visuals.js?v=20260816-ob93';
 import { createRestorationVisuals } from './restoration-visuals.js?v=20260816-ob92';
 
 import {
@@ -141,7 +142,7 @@ import {
   getStoryMusicStage,
   getWorldLifeStage,
   getWorldLandingAimLabel,
-} from './presentation.js?v=20260816-ob91';
+} from './presentation.js?v=20260816-ob93';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -302,7 +303,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260816-ob92';
+GameCanvas.dataset.build = '20260816-ob93';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -492,6 +493,8 @@ let SeedstoneUsesRemaining = SeedstoneDefinition.uses;
 let SeedstoneCrumbleStartedAtSeconds = null;
 let AttachedSeedstoneSurfaceOffset = null;
 let AttachedWorldheartSurfaceAngle = null;
+let AttachedWorldheartSurfaceLatitude = 0;
+let AttachedSurfaceMeridianSign = 1;
 let PendingWorldheartBankedPoints = 0;
 let WorldheartJustUnlocked = false;
 let FinaleRestorationStartedAtSeconds = null;
@@ -1322,10 +1325,13 @@ function synchronizeWorldheartPosition() {
     && AttachedWorldheartSurfaceAngle !== null
     && GamePhase !== 'runFailed'
   ) {
-    const SurfacePosition = getSurfacePosition(
+    const SurfacePosition = getSphereSurfacePosition(
       WorldheartDefinition.position,
       WorldheartDefinition.radius + SeedRadius + 0.03,
-      AttachedWorldheartSurfaceAngle,
+      {
+        longitude: AttachedWorldheartSurfaceAngle,
+        latitude: AttachedWorldheartSurfaceLatitude,
+      },
     );
     SeedPhysicsState.position.x = SurfacePosition.x;
     SeedPhysicsState.position.y = SurfacePosition.y;
@@ -1560,11 +1566,16 @@ const HostileSurface = createHostileSurface(THREE, {
   set LastSafeSeedPosition(Value) { LastSafeSeedPosition = Value; },
   get AttachedWorldheartSurfaceAngle() { return AttachedWorldheartSurfaceAngle; },
   set AttachedWorldheartSurfaceAngle(Value) { AttachedWorldheartSurfaceAngle = Value; },
+  get AttachedWorldheartSurfaceLatitude() { return AttachedWorldheartSurfaceLatitude; },
+  set AttachedWorldheartSurfaceLatitude(Value) { AttachedWorldheartSurfaceLatitude = Value; },
+  get AttachedSurfaceMeridianSign() { return AttachedSurfaceMeridianSign; },
+  set AttachedSurfaceMeridianSign(Value) { AttachedSurfaceMeridianSign = Value; },
 });
 const {
   calculateSurfaceRestPosition,
   getCurrentAttachedWorld,
   getRunnerSurfaceAngle,
+  getRunnerSurfacePose,
   getShipCutOrigin,
   getCurrentCutPreview,
   getCurrentCutHitIds,
@@ -1573,7 +1584,10 @@ const {
   showHostileEncounterInstruction,
   beginHostileEncounter,
   setRunnerSurfaceAngle,
+  setRunnerSurfacePose,
+  flattenRunnerToEquator,
   moveRunnerAroundSurface,
+  moveRunnerOnSurface,
 } = HostileSurface;
 
 
@@ -1873,6 +1887,10 @@ const LandingDirector = createLandingDirector(THREE, {
   set AttachedSeedstoneSurfaceOffset(Value) { AttachedSeedstoneSurfaceOffset = Value; },
   get AttachedWorldheartSurfaceAngle() { return AttachedWorldheartSurfaceAngle; },
   set AttachedWorldheartSurfaceAngle(Value) { AttachedWorldheartSurfaceAngle = Value; },
+  get AttachedWorldheartSurfaceLatitude() { return AttachedWorldheartSurfaceLatitude; },
+  set AttachedWorldheartSurfaceLatitude(Value) { AttachedWorldheartSurfaceLatitude = Value; },
+  get AttachedSurfaceMeridianSign() { return AttachedSurfaceMeridianSign; },
+  set AttachedSurfaceMeridianSign(Value) { AttachedSurfaceMeridianSign = Value; },
   get ReplayPlaybackState() { return ReplayPlaybackState; },
 });
 const {
@@ -1912,6 +1930,7 @@ const CameraController = createCameraController(THREE, {
   ScoutButtonElement,
   WorldDefinitions,
   WorldheartDefinition,
+  SeedstoneDefinition,
   PredictedSlingshotWorldIdentifiers,
   TrajectoryMaterial,
   MinimumScoutZoomScale,
@@ -2278,7 +2297,10 @@ const InputController = createInputController(THREE, {
   setScoutMode,
   getCurrentAttachedWorld,
   setRunnerSurfaceAngle,
+  setRunnerSurfacePose,
+  flattenRunnerToEquator,
   moveRunnerAroundSurface,
+  moveRunnerOnSurface,
   showInstruction,
   showStatusToast,
   hideInstruction,
@@ -2289,6 +2311,7 @@ const InputController = createInputController(THREE, {
   publishHostileEncounterState,
   getShipCutOrigin,
   getRunnerSurfaceAngle,
+  getRunnerSurfacePose,
   completeWorldheartLiberation,
   flushQueuedStoryBoardsIfReady,
   updateLaunchCounter,
@@ -3004,6 +3027,8 @@ function resetGame() {
   GameCanvas.dataset.runnerAnimation = 'ready';
   GameCanvas.dataset.runnerForm = 'astronaut';
   GameCanvas.dataset.surfaceAngle = '';
+  GameCanvas.dataset.surfaceLatitude = '';
+  GameCanvas.dataset.surfaceMeridianSign = '';
   GameCanvas.dataset.surfaceInput = '';
   GameCanvas.dataset.scoutMode = 'false';
   GameCanvas.dataset.scoutZoom = '1.00';
@@ -3109,6 +3134,8 @@ function resetGame() {
   SeedstoneCrumbleStartedAtSeconds = null;
   AttachedSeedstoneSurfaceOffset = null;
   AttachedWorldheartSurfaceAngle = null;
+  AttachedWorldheartSurfaceLatitude = 0;
+  AttachedSurfaceMeridianSign = 1;
   WorldheartDefinition.routeAvailable = WorldheartDefinition.routeAvailableInitially === true;
   WorldheartDefinition.restored = WorldheartDefinition.initiallyRestored === true;
   WorldheartJustUnlocked = false;

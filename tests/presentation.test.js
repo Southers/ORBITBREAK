@@ -940,7 +940,20 @@ test('landed facing camera keeps the Runner on the near face and reduced motion 
   });
   assert.ok(Facing.cameraX > Runner.x);
   assert.ok(Facing.lookAtX < Runner.x);
-  assert.ok(Facing.cameraZ < 42 * 0.5);
+  assert.ok(Facing.cameraZ > 1);
+  const Pole = getLandedSurfaceCameraPose({
+    worldX: World.x,
+    worldY: World.y,
+    worldZ: 0,
+    worldRadius: World.radius,
+    runnerX: World.x,
+    runnerY: World.y,
+    runnerZ: World.radius,
+    cameraScale: 0.5,
+    baseCameraDistance: 42,
+  });
+  assert.ok(Pole.cameraZ > World.radius);
+  assert.ok(Math.abs(Pole.cameraX - World.x) < 0.01);
   const Overhead = getLandedSurfaceCameraPose({
     worldX: World.x,
     worldY: World.y,
