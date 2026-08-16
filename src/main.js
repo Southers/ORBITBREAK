@@ -38,6 +38,7 @@ import { createHostileSurface } from './hostile-surface.js?v=20260815-ob90';
 import { createScanner } from './scanner.js?v=20260815-ob90';
 import { createRoutePresentation } from './route-presentation.js?v=20260815-ob90';
 import { createRecordsUi } from './records-ui.js?v=20260815-ob90';
+import { createFrameVisuals } from './frame-visuals.js?v=20260815-ob90';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -109,7 +110,6 @@ import {
   getExtractionFreighterTravelProgress,
   getCourierDockWorldRole,
   getInhabitantSilhouette,
-  getLiberationFlashOpacity,
   getLeaderboardActionLabel,
   getLiveLinkShipCount,
   getStoryBoardPresentation,
@@ -129,9 +129,6 @@ import {
   getRunUnlockState,
   shouldAssistCommandLock,
   shouldHoldCommittedPrediction,
-  getRunnerAnimationState,
-  getRunnerForm,
-  getRunnerPose,
   getSlingshotBandVisualState,
   getSlingshotPreviewPresentation,
   getStillnessPresentation,
@@ -1272,7 +1269,6 @@ const {
   updateTrailParticleInstance,
 } = PlayerVisuals;
 
-let NextTrailParticleIndex = 0;
 let TrailEmissionAccumulatorSeconds = 0;
 
 
@@ -1521,50 +1517,6 @@ function rollbackFlightStardust() {
   rollbackSharedFlightStardust(StardustDefinitions, FlightCollectedStardustIdentifiers);
   FlightCollectedStardustIdentifiers.clear();
   updateStardustCounter();
-}
-
-/** Animates uncollected motes and brightens those intersected by the current prediction. */
-function updateStardustVisuals(ElapsedTimeSeconds) {
-  const ShouldShowStardust = ![
-    'restoring',
-    'victoryPending',
-    'victory',
-  ].includes(GamePhase);
-  let HasVisibleStardust = false;
-
-  for (let StardustIndex = 0; StardustIndex < StardustDefinitions.length; StardustIndex += 1) {
-    const StardustDefinition = StardustDefinitions[StardustIndex];
-    const IsPredictedPickup = PredictedStardustIdentifiers.has(StardustDefinition.id);
-    const PulseScale = 0.9 + (Math.sin(
-      (ElapsedTimeSeconds * 5.2) + (StardustIndex * 1.7),
-    ) * 0.14);
-    const StardustScale = StardustDefinition.collected
-      ? 0
-      : PulseScale * (IsPredictedPickup ? 1.55 : 1);
-    HasVisibleStardust ||= !StardustDefinition.collected;
-
-    StardustTransform.position.set(
-      StardustDefinition.position.x,
-      StardustDefinition.position.y,
-      0.24,
-    );
-    StardustTransform.rotation.set(
-      ElapsedTimeSeconds * (0.8 + (StardustIndex * 0.12)),
-      ElapsedTimeSeconds * (1.1 + (StardustIndex * 0.09)),
-      ElapsedTimeSeconds * 0.7,
-    );
-    StardustTransform.scale.setScalar(StardustScale);
-    StardustTransform.updateMatrix();
-    StardustMesh.setMatrixAt(StardustIndex, StardustTransform.matrix);
-    StardustMesh.setColorAt(
-      StardustIndex,
-      IsPredictedPickup ? StardustPredictedColor : StardustBaseColor,
-    );
-  }
-
-  StardustMesh.instanceMatrix.needsUpdate = true;
-  StardustMesh.instanceColor.needsUpdate = true;
-  StardustMesh.visible = ShouldShowStardust && HasVisibleStardust;
 }
 
 /**
@@ -1944,40 +1896,6 @@ function revealVictoryPanel() {
 /**
  * Emits one pooled trail particle at the current seed position.
  */
-function emitTrailParticle() {
-  const TrailParticle = TrailParticlePool[NextTrailParticleIndex];
-  NextTrailParticleIndex = (NextTrailParticleIndex + 1) % TrailParticlePool.length;
-
-  TrailParticle.position.copy(SeedGroup.position);
-  TrailParticle.lifeRemainingSeconds = TrailParticle.maximumLifeSeconds;
-  updateTrailParticleInstance(TrailParticle, 0.78);
-  TrailParticleMesh.instanceMatrix.needsUpdate = true;
-}
-
-/**
- * Advances trail fade and scale animation.
- *
- * @param {number} DeltaTimeSeconds - Real frame delta.
- */
-function updateTrailParticles(DeltaTimeSeconds) {
-  for (const TrailParticle of TrailParticlePool) {
-    if (TrailParticle.lifeRemainingSeconds <= 0) {
-      continue;
-    }
-
-    TrailParticle.lifeRemainingSeconds -= DeltaTimeSeconds;
-
-    if (TrailParticle.lifeRemainingSeconds <= 0) {
-      updateTrailParticleInstance(TrailParticle, 0);
-      continue;
-    }
-
-    const LifeRatio = TrailParticle.lifeRemainingSeconds / TrailParticle.maximumLifeSeconds;
-    updateTrailParticleInstance(TrailParticle, 0.18 + (LifeRatio * 0.69));
-  }
-  TrailParticleMesh.instanceMatrix.needsUpdate = true;
-}
-
 const CameraController = createCameraController(THREE, {
   Camera,
   GameCanvas,
@@ -2068,6 +1986,77 @@ const {
   handleScoutWheel,
   updateCamera,
 } = CameraController;
+
+const FrameVisuals = createFrameVisuals(THREE, {
+  GameCanvas,
+  Camera,
+  SeedGroup,
+  RouteLabelProjection,
+  StardustDefinitions,
+  StardustTransform,
+  StardustMesh,
+  StardustPredictedColor,
+  StardustBaseColor,
+  ShaderMotionVisualKeys,
+  WorldRuntimesByVisualKey,
+  EmptyWorldRuntimeList,
+  SurfaceSwayQuaternion,
+  LocalSwayAxis,
+  TrailParticlePool,
+  TrailParticleMesh,
+  updateTrailParticleInstance,
+  RunnerVisualGroup,
+  ShipVisualGroup,
+  ShipPresentationScale,
+  RunnerArmMeshes,
+  RunnerLegMeshes,
+  RunnerThrusterGroup,
+  SeedHaloMesh,
+  SeedHaloMaterial,
+  LiberationFlashElement,
+  LandingMarkerMesh,
+  LaunchPulseMesh,
+  ImpactPulseMesh,
+  PullGuideLine,
+  PullGuideMaterial,
+  CutGuideLine,
+  CutGuideMaterial,
+  CircuitBeaconLine,
+  CircuitBeaconMaterial,
+  StartingWorldIdentifier,
+  TacticalBodyDefinitions,
+  getWorldDefinition,
+  updateTargetBeacons,
+  updateFlightPlanningPresentation,
+  get GamePhase() { return GamePhase; },
+  get SeedPhysicsState() { return SeedPhysicsState; },
+  get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
+  get PredictedStardustIdentifiers() { return PredictedStardustIdentifiers; },
+  get PointerGestureMode() { return PointerGestureMode; },
+  get RunnerWalkLifeSeconds() { return RunnerWalkLifeSeconds; },
+  set RunnerWalkLifeSeconds(Value) { RunnerWalkLifeSeconds = Value; },
+  get IsPointerAiming() { return IsPointerAiming; },
+  get IsKeyboardAiming() { return IsKeyboardAiming; },
+  get PrefersReducedMotion() { return PrefersReducedMotion; },
+  get FlightElapsedSeconds() { return FlightElapsedSeconds; },
+  get LiberationFlashLifeSeconds() { return LiberationFlashLifeSeconds; },
+  set LiberationFlashLifeSeconds(Value) { LiberationFlashLifeSeconds = Value; },
+  get TrailEmissionAccumulatorSeconds() { return TrailEmissionAccumulatorSeconds; },
+  set TrailEmissionAccumulatorSeconds(Value) { TrailEmissionAccumulatorSeconds = Value; },
+  get LaunchPulseLifeSeconds() { return LaunchPulseLifeSeconds; },
+  set LaunchPulseLifeSeconds(Value) { LaunchPulseLifeSeconds = Value; },
+  get ImpactPulseLifeSeconds() { return ImpactPulseLifeSeconds; },
+  set ImpactPulseLifeSeconds(Value) { ImpactPulseLifeSeconds = Value; },
+  get HasLaunchedOnce() { return HasLaunchedOnce; },
+  get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
+});
+const {
+  updateStardustVisuals,
+  updateWorldBiomeMotion,
+  updateSeedVisuals,
+  updateTrailParticles,
+} = FrameVisuals;
+
 
 
 /**
@@ -2943,280 +2932,6 @@ function updateWorldLifeAudio() {
   if (ScoutZoomScale > MaximumScoutScale) {
     ScoutZoomScale = MaximumScoutScale;
     GameCanvas.dataset.scoutZoom = ScoutZoomScale.toFixed(2);
-  }
-}
-
-/** Adds distinct, restrained biome motion without distracting from aiming. */
-function updateWorldBiomeMotion(DeltaTimeSeconds, ElapsedTimeSeconds) {
-  for (const VisualKey of ShaderMotionVisualKeys) {
-    for (const WorldRuntime of (
-      WorldRuntimesByVisualKey.get(VisualKey) ?? EmptyWorldRuntimeList
-    )) {
-      WorldRuntime.restorationUniforms.biomeTime.value = ElapsedTimeSeconds;
-    }
-  }
-
-  for (const MeadowRuntime of (
-    WorldRuntimesByVisualKey.get('meadow') ?? EmptyWorldRuntimeList
-  )) {
-    for (const SurfacePropObject of MeadowRuntime.surfaceMarkerGroup.children) {
-      if (SurfacePropObject.userData.swayAmount) {
-        const SwayAngle = Math.sin(
-          (ElapsedTimeSeconds * 1.55) + SurfacePropObject.userData.swayPhase,
-        ) * SurfacePropObject.userData.swayAmount;
-        SurfaceSwayQuaternion.setFromAxisAngle(LocalSwayAxis, SwayAngle);
-        SurfacePropObject.quaternion.copy(SurfacePropObject.userData.baseQuaternion).multiply(
-          SurfaceSwayQuaternion,
-        );
-      }
-
-      if (SurfacePropObject.userData.kind === 'pond') {
-        SurfacePropObject.userData.waterMaterial.emissiveIntensity = 0.4
-          + (Math.sin(ElapsedTimeSeconds * 1.8) * 0.08);
-      }
-
-      if (SurfacePropObject.userData.kind === 'cottage') {
-        SurfacePropObject.userData.windowMaterial.emissiveIntensity = 0.7
-          + (Math.sin((ElapsedTimeSeconds * 2.1) + 0.6) * 0.08);
-      }
-    }
-
-    if (MeadowRuntime.ambientMoteGroup) {
-      MeadowRuntime.ambientMoteGroup.rotation.y += DeltaTimeSeconds * 0.09;
-      MeadowRuntime.ambientMoteGroup.rotation.z += DeltaTimeSeconds * 0.025;
-      MeadowRuntime.ambientMoteGroup.material.opacity = (
-        MeadowRuntime.ambientMoteGroup.userData.baseOpacity
-        + (Math.sin(ElapsedTimeSeconds * 2.4) * 0.1)
-      );
-    }
-  }
-
-  for (const EmberRuntime of (
-    WorldRuntimesByVisualKey.get('ember') ?? EmptyWorldRuntimeList
-  )) {
-    for (const SurfacePropObject of EmberRuntime.surfaceMarkerGroup.children) {
-      const LavaMaterial = SurfacePropObject.userData.lavaMaterial
-        ?? SurfacePropObject.userData.heatMaterial;
-      if (LavaMaterial && EmberRuntime.definition.restored) {
-        const Phase = SurfacePropObject.userData.motionPhase ?? 0;
-        const BaseIntensity = SurfacePropObject.userData.kind === 'volcano' ? 2.2 : 1.8;
-        LavaMaterial.emissiveIntensity = BaseIntensity
-          + (Math.sin((ElapsedTimeSeconds * 4.2) + Phase) * 0.24);
-      }
-    }
-    if (EmberRuntime.ambientMoteGroup) {
-      EmberRuntime.ambientMoteGroup.rotation.y += DeltaTimeSeconds * 0.34;
-      EmberRuntime.ambientMoteGroup.rotation.z -= DeltaTimeSeconds * 0.09;
-    }
-  }
-
-  for (const FrostRuntime of (
-    WorldRuntimesByVisualKey.get('frost') ?? EmptyWorldRuntimeList
-  )) {
-    for (const SurfacePropObject of FrostRuntime.surfaceMarkerGroup.children) {
-      const CrystalMaterial = SurfacePropObject.userData.crystalMaterial;
-      if (CrystalMaterial && FrostRuntime.definition.restored) {
-        const Phase = SurfacePropObject.userData.motionPhase ?? 0;
-        const BaseIntensity = SurfacePropObject.userData.kind === 'iceArch' ? 0.62 : 0.58;
-        CrystalMaterial.emissiveIntensity = BaseIntensity
-          + (Math.sin((ElapsedTimeSeconds * 1.25) + Phase) * 0.1);
-      }
-    }
-    if (FrostRuntime.ambientMoteGroup) {
-      FrostRuntime.ambientMoteGroup.rotation.y += DeltaTimeSeconds * 0.045;
-      FrostRuntime.ambientMoteGroup.rotation.x += DeltaTimeSeconds * 0.018;
-    }
-  }
-}
-
-/**
- * Updates seed animation and trail independent of fixed-step physics.
- *
- * @param {number} DeltaTimeSeconds - Real frame delta.
- * @param {number} ElapsedTimeSeconds - Total elapsed game time.
- */
-function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
-  SeedGroup.position.set(
-    SeedPhysicsState.position.x,
-    SeedPhysicsState.position.y,
-    SeedPhysicsState.position.z,
-  );
-  RouteLabelProjection.copy(SeedGroup.position).project(Camera);
-  GameCanvas.dataset.seedScreenX = String(Math.round(
-    (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth,
-  ));
-  GameCanvas.dataset.seedScreenY = String(Math.round(
-    (-RouteLabelProjection.y * 0.5 + 0.5) * window.innerHeight,
-  ));
-  GameCanvas.dataset.runnerScreenX = GameCanvas.dataset.seedScreenX;
-  GameCanvas.dataset.runnerScreenY = GameCanvas.dataset.seedScreenY;
-
-  const IsWalking = (
-    PointerGestureMode === SurfaceGestureModes.walk
-    || RunnerWalkLifeSeconds > 0
-  ) && GamePhase === 'attached';
-  if (RunnerWalkLifeSeconds > 0) {
-    RunnerWalkLifeSeconds = Math.max(0, RunnerWalkLifeSeconds - DeltaTimeSeconds);
-  }
-  const RunnerAnimationState = getRunnerAnimationState(
-    GamePhase,
-    IsPointerAiming || IsKeyboardAiming,
-    IsWalking && !PrefersReducedMotion,
-  );
-  const RunnerPose = getRunnerPose(
-    RunnerAnimationState,
-    ElapsedTimeSeconds * 9.2,
-  );
-  const RunnerForm = getRunnerForm(GamePhase, FlightElapsedSeconds);
-  const PoseBlend = PrefersReducedMotion
-    ? 1
-    : 1 - Math.exp(-DeltaTimeSeconds * 13);
-  GameCanvas.dataset.runnerAnimation = RunnerAnimationState;
-  GameCanvas.dataset.runnerForm = RunnerForm;
-  RunnerVisualGroup.visible = RunnerForm === 'astronaut';
-  ShipVisualGroup.visible = RunnerForm !== 'astronaut';
-  if (RunnerForm === 'launch-craft') {
-    const UnfoldProgress = THREE.MathUtils.clamp(FlightElapsedSeconds / 0.28, 0, 1);
-    ShipVisualGroup.scale.set(
-      THREE.MathUtils.lerp(0.62, 1.08, UnfoldProgress) * ShipPresentationScale,
-      THREE.MathUtils.lerp(0.82, 1, UnfoldProgress) * ShipPresentationScale,
-      ShipPresentationScale,
-    );
-  } else {
-    ShipVisualGroup.scale.set(
-      1.08 * ShipPresentationScale,
-      ShipPresentationScale,
-      ShipPresentationScale,
-    );
-  }
-  for (const ArmMesh of RunnerArmMeshes) {
-    ArmMesh.rotation.z = THREE.MathUtils.lerp(
-      ArmMesh.rotation.z,
-      ArmMesh.userData.side * -RunnerPose.armAngle,
-      PoseBlend,
-    );
-  }
-  for (const LegMesh of RunnerLegMeshes) {
-    LegMesh.rotation.z = THREE.MathUtils.lerp(
-      LegMesh.rotation.z,
-      LegMesh.userData.side * -RunnerPose.legAngle,
-      PoseBlend,
-    );
-  }
-  RunnerThrusterGroup.visible = RunnerPose.thrusterVisible;
-  if (RunnerPose.thrusterVisible) {
-    const Speed = Math.hypot(SeedPhysicsState.velocity.x, SeedPhysicsState.velocity.y);
-    const ThrusterScale = 0.76 + Math.min(0.55, Speed * 0.024)
-      + (PrefersReducedMotion ? 0 : Math.sin(ElapsedTimeSeconds * 32) * 0.08);
-    RunnerThrusterGroup.scale.set(1, ThrusterScale, 1);
-  }
-
-  if (GamePhase === 'flying') {
-    const FlightAngle = Math.atan2(SeedPhysicsState.velocity.y, SeedPhysicsState.velocity.x);
-    RunnerVisualGroup.rotation.z = FlightAngle - (Math.PI * 0.5);
-    ShipVisualGroup.rotation.z = FlightAngle - (Math.PI * 0.5);
-    ShipVisualGroup.rotation.y = PrefersReducedMotion
-      ? 0
-      : Math.sin(ElapsedTimeSeconds * 3.2) * 0.08;
-    RunnerVisualGroup.rotation.y += DeltaTimeSeconds * 1.8;
-    RunnerVisualGroup.rotation.x = THREE.MathUtils.lerp(
-      RunnerVisualGroup.rotation.x,
-      0,
-      PoseBlend,
-    );
-  } else {
-    ShipVisualGroup.rotation.set(0, 0, 0);
-    const AttachedBody = getWorldDefinition(CurrentWorldIdentifier)
-      ?? TacticalBodyDefinitions.find(
-        (BodyDefinition) => BodyDefinition.id === CurrentWorldIdentifier,
-      );
-    if (AttachedBody?.position) {
-      const SurfaceAngle = Math.atan2(
-        SeedPhysicsState.position.y - AttachedBody.position.y,
-        SeedPhysicsState.position.x - AttachedBody.position.x,
-      );
-      RunnerVisualGroup.rotation.z = SurfaceAngle - (Math.PI * 0.5);
-    }
-    RunnerVisualGroup.rotation.y = Math.sin(ElapsedTimeSeconds * 1.7) * 0.08;
-    const RecoveryRoll = RunnerAnimationState === 'recovering'
-      ? Math.sin(ElapsedTimeSeconds * 18) * 0.5
-      : 0;
-    RunnerVisualGroup.rotation.x = THREE.MathUtils.lerp(
-      RunnerVisualGroup.rotation.x,
-      RecoveryRoll,
-      PoseBlend,
-    );
-  }
-  SeedHaloMesh.scale.setScalar(1 + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.08));
-  SeedHaloMaterial.color.setHex(
-    RunnerAnimationState === 'recovering' ? 0xff766d : 0x6de8ff,
-  );
-  SeedHaloMaterial.opacity = (
-    RunnerAnimationState === 'liberating' ? 0.2 : 0.105
-  ) + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.025);
-
-  if (LiberationFlashLifeSeconds > 0) {
-    LiberationFlashLifeSeconds = Math.max(
-      0,
-      LiberationFlashLifeSeconds - DeltaTimeSeconds,
-    );
-    LiberationFlashElement.style.opacity = String(getLiberationFlashOpacity(
-      LiberationFlashLifeSeconds,
-    ));
-  } else {
-    LiberationFlashElement.style.opacity = '0';
-  }
-
-  if (GamePhase === 'flying') {
-    updateFlightPlanningPresentation();
-    TrailEmissionAccumulatorSeconds += DeltaTimeSeconds;
-    while (TrailEmissionAccumulatorSeconds >= 0.036) {
-      emitTrailParticle();
-      TrailEmissionAccumulatorSeconds -= 0.036;
-    }
-  }
-
-  updateTrailParticles(DeltaTimeSeconds);
-
-  if (LandingMarkerMesh.visible) {
-    LandingMarkerMesh.rotation.z += DeltaTimeSeconds * 1.7;
-    const LandingPulseScale = 1 + (Math.sin(ElapsedTimeSeconds * 6) * 0.11);
-    LandingMarkerMesh.scale.setScalar(LandingPulseScale);
-  }
-
-  if (LaunchPulseLifeSeconds > 0) {
-    LaunchPulseLifeSeconds = Math.max(0, LaunchPulseLifeSeconds - DeltaTimeSeconds);
-    const LaunchProgress = 1 - (LaunchPulseLifeSeconds / 0.42);
-    LaunchPulseMesh.scale.setScalar(1 + (LaunchProgress * 3.4));
-    LaunchPulseMesh.material.opacity = (1 - LaunchProgress) * 0.68;
-    LaunchPulseMesh.visible = LaunchPulseLifeSeconds > 0;
-  }
-
-  if (ImpactPulseLifeSeconds > 0) {
-    ImpactPulseLifeSeconds = Math.max(0, ImpactPulseLifeSeconds - DeltaTimeSeconds);
-    const ImpactProgress = 1 - (ImpactPulseLifeSeconds / 0.58);
-    ImpactPulseMesh.scale.setScalar(1 + (ImpactProgress * 6.2));
-    ImpactPulseMesh.material.opacity = (1 - ImpactProgress) * 0.9;
-    ImpactPulseMesh.visible = ImpactPulseLifeSeconds > 0;
-    SeedGroup.scale.setScalar(1 + (Math.sin(ImpactProgress * Math.PI) * 0.16));
-  } else {
-    SeedGroup.scale.setScalar(1);
-  }
-
-  const IsOpeningCoachVisible = GamePhase === 'attached'
-    && CurrentWorldIdentifier === StartingWorldIdentifier
-    && !HasLaunchedOnce
-    && !IsOpeningBriefingActive;
-  PullGuideLine.visible = IsOpeningCoachVisible;
-  updateTargetBeacons(ElapsedTimeSeconds);
-  if (IsOpeningCoachVisible) {
-    PullGuideMaterial.dashOffset -= DeltaTimeSeconds * 0.9;
-  }
-  if (CutGuideLine.visible) {
-    CutGuideMaterial.dashOffset -= DeltaTimeSeconds * 1.4;
-  }
-  if (CircuitBeaconLine.visible) {
-    CircuitBeaconMaterial.dashOffset -= DeltaTimeSeconds * 0.55;
   }
 }
 

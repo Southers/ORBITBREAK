@@ -40,6 +40,7 @@ export function auditReleaseReadiness() {
   const ScannerSource = readRepositoryFile('src/scanner.js');
   const RoutePresentationSource = readRepositoryFile('src/route-presentation.js');
   const RecordsUiSource = readRepositoryFile('src/records-ui.js');
+  const FrameVisualsSource = readRepositoryFile('src/frame-visuals.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -89,7 +90,7 @@ export function auditReleaseReadiness() {
       && MainSource.includes('applySectorPlanningCamera(')
       && CameraSource.includes('snapLiveCameraToPlanningView(')
       && CameraSource.includes('host.PlanningCameraScale * host.AimZoomScale')
-      && MainSource.includes('updateFlightPlanningPresentation(')
+      && FrameVisualsSource.includes('updateFlightPlanningPresentation(')
       && InputControllerSource.includes('beginPinchIfNeeded()')
       && MainSource.includes('refreshPlanningZoomControls('),
     'Aiming must frame the readable neighbourhood, lift fog and keep pinch zoom on the exact remaining path.',
