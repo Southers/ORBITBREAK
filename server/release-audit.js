@@ -494,7 +494,7 @@ export function auditReleaseReadiness() {
     'RELEASE.md must describe the current surface, Break, Cut and bonus-fuel rules.',
   );
   requireCondition(
-    ReleaseBrief.includes('One dense six-world sector'),
+    ReleaseBrief.includes('One dense nine-world sector'),
     'RELEASE.md must present the selected one-sector candidate rather than the compatibility library.',
   );
 

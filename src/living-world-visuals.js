@@ -146,6 +146,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     tide: { height: 0.92, width: 1.3, depth: 0.68 },
     frost: { height: 1.22, width: 0.72, depth: 0.88 },
     vault: { height: 1.48, width: 0.78, depth: 0.92 },
+    loom: { height: 0.86, width: 1.12, depth: 0.7 },
+    kiln: { height: 1.36, width: 0.74, depth: 0.88 },
+    shard: { height: 1.28, width: 0.7, depth: 0.94 },
   };
   const OccupationFumeColors = {
     meadow: new THREE.Color(0x8a6a40),
@@ -154,6 +157,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     tide: new THREE.Color(0x4a5a48),
     frost: new THREE.Color(0xb8c4cc),
     vault: new THREE.Color(0x6a2030),
+    loom: new THREE.Color(0x5a6a40),
+    kiln: new THREE.Color(0xff5a24),
+    shard: new THREE.Color(0x8a9ab8),
   };
   const OccupationScarInstances = WorldDefinitions.flatMap((WorldDefinition) => (
     (WorldDefinition.occupationScarAngles ?? []).map((Angle, PatternIndex) => ({
@@ -693,6 +699,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     tide: { speed: 0.88, stride: 0.095 },
     frost: { speed: 0.3, stride: 0.065 },
     vault: { speed: 0.24, stride: 0.055 },
+    loom: { speed: 0.38, stride: 0.12 },
+    kiln: { speed: 0.64, stride: 0.08 },
+    shard: { speed: 0.28, stride: 0.07 },
   };
   const InhabitantGuardColor = new THREE.Color(0x6a1c22);
   const InhabitantPrisonerColor = new THREE.Color(0x6e5a52);

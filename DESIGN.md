@@ -98,7 +98,7 @@ Trade traffic is not background decoration. Its presence shows which links are a
 
 ## The Warden
 
-The opening allows enough safety for the player to witness connection working, then to believe it might stay easy. Haven, Ember and Grove are the inner neighbourhood. While those three are live the outer Reach sits behind a readable stillness veil: Frost, Tide, Bastion and Command remain physically present, but dimmer and less zoomable. Completing that inner cluster recedes the veil, raises the Scout zoom-out ceiling and teaches that the silence was never as wide as the Warden claimed. The Warden does not enter on the third live relay. It enters once the player has used that extra range to land on a further world and the neighbourhood has become a visible system. The camera briefly reveals the vessel without taking control away for long.
+The opening allows enough safety for the player to witness connection working, then to believe it might stay easy. Haven, Ember and Grove are the inner neighbourhood. While those three are live the outer Reach sits behind a readable stillness veil: Frost, Tide, Bastion, Spindle, Quarry, Mirage and Command remain physically present, but dimmer and less zoomable. Completing that inner cluster recedes the veil, raises the Scout zoom-out ceiling and teaches that the silence was never as wide as the Warden claimed. The Warden does not enter on the third live relay. It enters once the player has used that extra range to land on a further world and the neighbourhood has become a visible system. The camera briefly reveals the vessel without taking control away for long.
 
 Pursuit is deterministic and action-driven:
 
@@ -239,7 +239,7 @@ Range is the silence receding, not the Orbitbreaker levelling up.
 
 After Haven, Ember and Grove are all live:
 
-- the stillness veil on Tide, Frost, Bastion and Command recedes;
+- the stillness veil on Tide, Frost, Bastion, Spindle, Quarry, Mirage and Command recedes;
 - Scout may zoom further out;
 - the coach says the dark is not as wide as they said.
 
@@ -327,7 +327,7 @@ Implement in this order. Each checkpoint is one coherent commit, with `npm test`
 7. **Sound and breathing room.** Distinct dock, crowd, mine and lane layers; hold the camera on the change before handing control back.
 8. **Stance retune if needed.** Larger world radii and well restance only if zoom and shrink were not enough. New `contentVersion`, new goldens, same verbs.
 
-Checkpoints 2–7 are in the playable Breaker's Reach build (`breaker-reach-6`). Checkpoint 8 was skipped: the 0.52 Runner and landed follow already make the courier a visitor, so radii and wells were not restanced.
+Checkpoints 2–7 are in the playable Breaker's Reach build (`breaker-reach-7`). The authored sector is nine worlds: the original inner garden plus Spindle, Quarry and Mirage on the outer Reach. Checkpoint 8 was skipped: the 0.52 Runner and landed follow already make the courier a visitor, so radii and wells were not restanced.
 
 Stop conditions:
 

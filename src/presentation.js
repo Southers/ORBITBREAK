@@ -92,12 +92,13 @@ export function getRangeVeilStrength(
 }
 
 export const PlanningMinimumZoomScale = 0.22;
-export const PlanningMaximumZoomScale = 3.15;
+export const PlanningMaximumZoomScale = 3.85;
 export const PlanningNeighbourhoodPadding = 3.4;
 
 /**
  * Default aim frames the readable neighbourhood, not the whole dark Reach.
- * Predicted landings and unveiled worlds expand the map; Command waits until it is exposed.
+ * Before the veil lifts that is the inner cluster. Afterward it is the current
+ * world plus its authored neighbours. Predicted landings and Command expand it.
  */
 export function getPlanningFocusWorldIdentifiers({
   innerClusterLive = false,
@@ -107,6 +108,7 @@ export function getPlanningFocusWorldIdentifiers({
   innerClusterWorldIdentifiers = [],
   furtherReachWorldIdentifiers = [],
   commandWorldIdentifier = 'worldheart',
+  nearbyWorldIdentifiers = [],
 } = {}) {
   if (typeof innerClusterLive !== 'boolean') {
     throw new Error('Planning focus requires an inner-cluster flag.');
@@ -120,17 +122,26 @@ export function getPlanningFocusWorldIdentifiers({
   if (!Array.isArray(innerClusterWorldIdentifiers) || !Array.isArray(furtherReachWorldIdentifiers)) {
     throw new Error('Planning focus requires authored cluster identifier lists.');
   }
-  const Identifiers = new Set(innerClusterWorldIdentifiers);
-  if (innerClusterLive) {
-    for (const WorldIdentifier of furtherReachWorldIdentifiers) {
-      Identifiers.add(WorldIdentifier);
-    }
+  if (!Array.isArray(nearbyWorldIdentifiers)) {
+    throw new Error('Planning focus requires a nearby-world list.');
   }
-  if (commandRouteAvailable && typeof commandWorldIdentifier === 'string') {
-    Identifiers.add(commandWorldIdentifier);
-  }
+  const Identifiers = new Set();
   if (typeof currentWorldIdentifier === 'string' && currentWorldIdentifier.length > 0) {
     Identifiers.add(currentWorldIdentifier);
+  }
+  if (innerClusterLive !== true) {
+    for (const WorldIdentifier of innerClusterWorldIdentifiers) {
+      Identifiers.add(WorldIdentifier);
+    }
+  } else {
+    for (const WorldIdentifier of nearbyWorldIdentifiers) {
+      if (typeof WorldIdentifier === 'string' && WorldIdentifier.length > 0) {
+        Identifiers.add(WorldIdentifier);
+      }
+    }
+  }
+  if (commandRouteAvailable === true && typeof commandWorldIdentifier === 'string') {
+    Identifiers.add(commandWorldIdentifier);
   }
   for (const BodyIdentifier of predictedBodyIdentifiers) {
     if (typeof BodyIdentifier === 'string' && BodyIdentifier.length > 0) {
@@ -197,8 +208,14 @@ export function getTradeHullKind(originVisualKey, destinationVisualKey) {
   if (Keys.includes('tide')) {
     return 'hull';
   }
-  if (Keys.includes('vault')) {
+  if (Keys.includes('vault') || Keys.includes('shard')) {
     return 'spine';
+  }
+  if (Keys.includes('kiln')) {
+    return 'barge';
+  }
+  if (Keys.includes('loom')) {
+    return 'sail';
   }
   return 'boat';
 }
@@ -1318,6 +1335,9 @@ export function getTriggeredCampaignStoryBoardIds({
   maybeQueue('firstTide', linkCreated === true && linkedWorldIdentifier === 'tide');
   maybeQueue('firstFrost', linkCreated === true && linkedWorldIdentifier === 'frost');
   maybeQueue('firstBastion', linkCreated === true && linkedWorldIdentifier === 'bastion');
+  maybeQueue('firstSpindle', linkCreated === true && linkedWorldIdentifier === 'spindle');
+  maybeQueue('firstQuarry', linkCreated === true && linkedWorldIdentifier === 'quarry');
+  maybeQueue('firstMirage', linkCreated === true && linkedWorldIdentifier === 'mirage');
   maybeQueue('neighbourhood', neighbourhoodJustAwake === true);
   maybeQueue('wardenArrival', wardenJustRevealed === true);
   maybeQueue('circuitClosed', circuitJustClosed === true && commandJustExposed !== true);

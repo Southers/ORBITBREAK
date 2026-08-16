@@ -83,7 +83,7 @@ test('HTTP contract supports submit, ranked list, replay fetch and CORS', async 
   assert.equal(SubmitResponse.headers.get('access-control-allow-origin'), 'https://southers.github.io');
 
   const ListResponse = await Handler(new Request(
-    'https://scores.example/api/leaderboard?system=breaker-reach&content=breaker-reach-6',
+    'https://scores.example/api/leaderboard?system=breaker-reach&content=breaker-reach-7',
   ));
   assert.equal((await ListResponse.json()).entries[0].score, 10900);
 

@@ -300,7 +300,7 @@ const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260816-ob89';
+GameCanvas.dataset.build = '20260816-ob90';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
