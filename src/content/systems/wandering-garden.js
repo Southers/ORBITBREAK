@@ -384,7 +384,12 @@ export const WanderingGardenSystemDefinition = {
       slingshotValue: 300, liberationValue: 1000,
       aliveColor: 0x4f9870, atmosphereColor: 0x9ce6b2, accentColor: 0xf2e69a,
       initiallyRestored: true, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
-      occupationScarAngles: [-2.62, -2.42, -2.22],
+      occupationScarAngles: [0.07, 3.14, 1.2],
+      occupationSites: [
+        { longitude: 0.07, latitude: 0.16 },
+        { longitude: 3.14, latitude: -0.42 },
+        { longitude: 1.2, latitude: 0.92 },
+      ],
       memory: 'The last free shelter kept a lamp lit for the uprooted worlds.',
       restoration: {
         durationSeconds: 2.2, waveWidth: 0.045, growthTrailWidth: 0.18,
@@ -398,7 +403,13 @@ export const WanderingGardenSystemDefinition = {
       slingshotValue: 450, liberationValue: 1000,
       aliveColor: 0xa88a45, atmosphereColor: 0xffe895, accentColor: 0xfff2b6,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
-      occupationScarAngles: [2.28, 2.5, 2.72, 2.94],
+      occupationScarAngles: [2.8, 0.9, -1.85, 1.5],
+      occupationSites: [
+        { longitude: 2.8, latitude: 0.14 },
+        { longitude: 0.9, latitude: 0.22 },
+        { longitude: -1.85, latitude: -0.48 },
+        { longitude: 1.5, latitude: 0.94 },
+      ],
       hostileEncounter: {
         clampOffsetsRadians: [0.55],
         cutHitRadius: 0.48,
@@ -417,7 +428,12 @@ export const WanderingGardenSystemDefinition = {
       slingshotValue: 600, liberationValue: 1400,
       aliveColor: 0x5b9c73, atmosphereColor: 0xb6e8bd, accentColor: 0xe6f39b,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
-      occupationScarAngles: [-0.58, -0.29, 0],
+      occupationScarAngles: [-2.2, 0.62, -0.9],
+      occupationSites: [
+        { longitude: -2.2, latitude: 0.18 },
+        { longitude: 0.62, latitude: -0.44 },
+        { longitude: -0.9, latitude: 0.88 },
+      ],
       memory: 'Its branches hide the names the Stillness tried to erase.',
       restoration: {
         durationSeconds: 1.9, waveWidth: 0.055, growthTrailWidth: 0.2,
@@ -432,6 +448,11 @@ export const WanderingGardenSystemDefinition = {
       aliveColor: 0x8160a4, atmosphereColor: 0xd7b8ef, accentColor: 0xffc5ec,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
       occupationScarAngles: [-2.08, -1.9, -1.72],
+      occupationSites: [
+        { longitude: -2.08, latitude: 0.18 },
+        { longitude: -1.9, latitude: -0.42 },
+        { longitude: -1.72, latitude: 0.88 },
+      ],
       memory: 'The old crown blooms when Pollen Moon returns its stolen names.',
       restoration: {
         durationSeconds: 2.55, waveWidth: 0.042, growthTrailWidth: 0.2,
@@ -446,6 +467,12 @@ export const WanderingGardenSystemDefinition = {
       aliveColor: 0x3d8f91, atmosphereColor: 0x9ff4dc, accentColor: 0xc2ffef,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
       occupationScarAngles: [1.18, 1.37, 1.56, 1.75],
+      occupationSites: [
+        { longitude: 1.18, latitude: 0.18 },
+        { longitude: 1.37, latitude: -0.42 },
+        { longitude: 1.56, latitude: 0.88 },
+        { longitude: 1.75, latitude: -0.28 },
+      ],
       memory: 'One clear drop reflects the road the caravan will take next.',
       restoration: {
         durationSeconds: 1.95, waveWidth: 0.052, growthTrailWidth: 0.2,
@@ -460,6 +487,11 @@ export const WanderingGardenSystemDefinition = {
       aliveColor: 0x8b704c, atmosphereColor: 0xe8cf9b, accentColor: 0xb8e58c,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
       occupationScarAngles: [0.08, 0.28, 0.48],
+      occupationSites: [
+        { longitude: 0.08, latitude: 0.18 },
+        { longitude: 0.28, latitude: -0.42 },
+        { longitude: 0.48, latitude: 0.88 },
+      ],
       disposition: 'hostile',
       hostileEncounter: {
         clampOffsetsRadians: [0.4, 0.85, 1.3],

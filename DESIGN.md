@@ -204,16 +204,15 @@ This is the next durable improvement. It is Milestone 8 in the charter: world de
 
 ### Honest current state
 
-The Reach already has the verbs. What a new player actually sees does not yet match the fantasy:
+The Reach has the verbs, sphere walking, staged prosperity and instanced life. Checkpoints 15–18 put that life on the globe:
 
-- Opening copy is a Warden toast plus one dense paragraph about zoom, gold rings, chains, Frost, Burn and the Warden.
-- The objective still counts `RELAYS 1 / 3` toward a hunt that starts after two hops.
-- A live link is a luminous segment and one shared cone courier. That is a diagram, not prosperity.
-- Restored worlds grow one landmark and three identical walking pins. Houses, industry and crowds do not accumulate as more routes open.
-- The Runner visual scale is 0.52 against world radii of about 2.5–4.2, with a landed close camera and Scout zoom from 0.38 to 1.95, so miniature industry can read. Occupied worlds now show mines, fumes, guards, held people and outbound extraction; Haven stays the quiet garden. Living prosperity (houses, culture-true ships) is still the next art checkpoint.
-- Draw-call peaks already sit near the 190 budget, so new life must be instanced and pooled.
+- Occupation scars, houses, windows, streets, people and town glow sit on authored longitude/latitude sites. Haven, Ember and Grove have a near-side cluster, a far-side town and a polar site. Shatterbelt and Verdant Caravan use the same rule so those globes are not empty rings.
+- Buildings are pooled cottage, furnace, canopy and jetty families. Inhabitants are a walker mesh plus a pack mesh. Trade uses barge, sail and sled hulls instead of one scaled cone.
+- Living clusters emit a limb glow, so the other face advertises a harbour or mine without quest markers. Meadow, Ember and Frost diorama props now occupy the far hemisphere too.
+- Destroy pylons, flight, prediction and replay stay in the orbital plane. Physics identity and `breaker-reach-7` are unchanged.
+- Draw-call ceiling remains 190. New life is instanced and pooled.
 
-Judging from current evidence, not intention: **Art** and **Theme** are the weak categories because connection does not look like life. **Gameplay** improved once the full path was visible, but the hunt still arrives before the hopeful act has a chance to exist.
+Judging from current evidence: **Art** and **Theme** now have a still-frame of different roofs and ships on linked worlds, and walking has a visual reason. Remaining gauntlet work is density, readability and mobile polish — not a second game.
 
 ### What we are building
 
@@ -277,7 +276,7 @@ Ember grows furnaces and barges. Grove grows canopies and leaf-sails. Tide grows
 
 - Runner walk cycle on circumference motion; idle breath when still. Reduced motion keeps the pose without the stride.
 - More inhabitants per restored world, with at least two silhouettes per culture, still one or two instanced draws.
-- They remain orbital-plane extras: short patrols, gathering at docks when a ship arrives, hiding under suppression.
+- They remain extras on the sphere: short patrols around their home site, gathering at docks when a ship arrives, hiding under suppression.
 - No named NPCs, no conversation graph, no quest markers.
 
 ### Story UI, precisely
@@ -311,7 +310,7 @@ No cage, no mines, no traffic. A few free inhabitants, the local landmark, dim w
 
 **Living (connected)**
 
-The prosperity kit from Linked through Circuit. Extraction is gone. Trade hulls are culture-true and travel both ways. Houses and workshops replace pits. The same people who were held now walk the rim.
+The prosperity kit from Linked through Circuit. Extraction is gone. Trade hulls are culture-true and travel both ways. Houses and workshops replace pits. The same people who were held now walk their towns on the sphere.
 
 Suppression slams a living world back to Tyrant without deleting its canonical route. Recapture plays Isolated then Living again as the first restored link relights.
 
@@ -328,7 +327,7 @@ Implement in this order. Each checkpoint is one coherent commit, with `npm test`
 7. **Sound and breathing room.** Distinct dock, crowd, mine and lane layers; hold the camera on the change before handing control back.
 8. **Stance retune if needed.** Larger world radii and well restance only if zoom and shrink were not enough. New `contentVersion`, new goldens, same verbs.
 
-Checkpoints 2–7 are in the playable Breaker's Reach build (`breaker-reach-7`). The authored sector is nine worlds: the original inner garden plus Spindle, Quarry and Mirage on the outer Reach. Checkpoint 8 was skipped: the 0.52 Runner and landed follow already make the courier a visitor, so radii and wells were not restanced.
+Checkpoints 2–7 are in the playable Breaker's Reach build (`breaker-reach-7`). The authored sector is nine worlds: the original inner garden plus Spindle, Quarry and Mirage on the outer Reach. Checkpoint 8 was skipped: the 0.52 Runner and landed follow already make the courier a visitor, so radii and wells were not restanced. Checkpoints 15–18 put life on the sphere with culture-true pooled silhouettes and far-face glow.
 
 Stop conditions:
 
@@ -373,7 +372,7 @@ Infinite procedural space, free-roaming planet surfaces, conventional combat, in
 ## Success criteria
 
 - A new player understands that connection helps worlds, sees those worlds prosper, then understands why the Warden arrives.
-- Walking changes launch geometry without feeling like busywork. The coach names which neighbour this face looks toward.
+- Walking changes launch geometry without feeling like busywork. The coach names which neighbour this face looks toward. The far face shows a town, mine or glow, not an empty sphere.
 - Breaker Burn turns flight from waiting into a meaningful timing decision.
 - The Warden's next move is always understandable and creates a defend-versus-expand choice.
 - The first recapture feels sad but fair, reversible and mechanically useful.

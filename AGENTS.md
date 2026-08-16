@@ -41,7 +41,7 @@ Replace it in small playable checkpoints. Preserve working physics, tests and us
 - Preserve deterministic fixed-step physics and one shared simulation for live flight, prediction and replay.
 - Retain one-pointer/touch accessibility, equivalent keyboard control and fast recovery.
 - Add only one new flight verb initially: a single deterministic Breaker Burn per flight.
-- Constrain surface movement to the current world's sphere: walk any great circle, including over the poles and the far face. Walking is slow and chooses a launch face. Do not build a free-roaming platform game. Flight, prediction and launch stay in the orbital plane.
+- Constrain surface movement to the current world's sphere: walk any great circle, including over the poles and the far face. Walking is slow and chooses a launch face. Occupied and living surface life sits on authored sphere sites so walking discovers the far face; Destroy clamps stay on the orbital-plane circumference. Do not build a free-roaming platform game. Flight, prediction and launch stay in the orbital plane.
 - Make the Runner → launch craft → flight ship → Runner transformation readable without changing the physics identity.
 - Telegraph the Warden's next move and every hostile obstacle before it can punish the player.
 - Keep surface hostility brief and contextual: pylons, barriers or drones disabled with one Destroy, never health bars or a second combat game.

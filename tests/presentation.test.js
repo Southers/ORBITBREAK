@@ -34,6 +34,13 @@ import {
   getProsperityPresence,
   getProsperityBuildingKind,
   getProsperityBuildingProfile,
+  getProsperityBuildingFamily,
+  getDerivedOccupationLatitude,
+  resolveOccupationSite,
+  listOccupationSites,
+  getSphereLifePlacement,
+  getInhabitantSurfaceSite,
+  getTradeHullFamily,
   getLivingInhabitantSlotCount,
   shouldShowInhabitantSlot,
   getInhabitantSilhouette,
@@ -887,6 +894,50 @@ test('prosperity densifies from a first link to busy routes and circuits', () =>
   assert.equal(getProsperityBuildingKind('circuit', 2), 'dock');
   assert.equal(getProsperityBuildingKind('isolated', 0), null);
   assert.equal(getProsperityBuildingProfile('dock').height < getProsperityBuildingProfile('house').height, true);
+  assert.equal(getProsperityBuildingFamily('ember'), 'furnace');
+  assert.equal(getProsperityBuildingFamily('grove'), 'canopy');
+  assert.equal(getProsperityBuildingFamily('meadow'), 'cottage');
+  assert.equal(getProsperityBuildingFamily('tide'), 'jetty');
+  assert.equal(getTradeHullFamily('barge'), 'barge');
+  assert.equal(getTradeHullFamily('sail'), 'sail');
+  assert.equal(getTradeHullFamily('spine'), 'sled');
+  assert.deepEqual(resolveOccupationSite(-2.62), { longitude: -2.62, latitude: 0 });
+  assert.equal(getDerivedOccupationLatitude(0), 0.35);
+  assert.equal(getDerivedOccupationLatitude(2), 0.7);
+  const FallbackSites = listOccupationSites({ occupationScarAngles: [-2.62, -2.42, -2.22] });
+  assert.equal(FallbackSites[0].longitude, -2.62);
+  assert.equal(FallbackSites[0].latitude, getDerivedOccupationLatitude(0));
+  assert.deepEqual(listOccupationSites({
+    occupationSites: [{ longitude: 0.85, latitude: -0.42 }, { longitude: 1.2, latitude: 0.95 }],
+    occupationScarAngles: [0.85, 1.2],
+  })[0], { longitude: 0.85, latitude: -0.42 });
+  const PolarPlacement = getSphereLifePlacement({
+    worldX: 0,
+    worldY: 0,
+    worldZ: 0,
+    worldRadius: 2.5,
+    longitude: 0,
+    latitude: 1.2,
+  });
+  assert.ok(Math.abs(PolarPlacement.z) > 2);
+  assert.ok(Math.abs(PolarPlacement.x) < Math.abs(PolarPlacement.z));
+  const EquatorPlacement = getSphereLifePlacement({
+    worldX: 10,
+    worldY: 4,
+    worldZ: 0,
+    worldRadius: 2,
+    longitude: 0,
+    latitude: 0,
+  });
+  assert.equal(EquatorPlacement.z, 0);
+  assert.equal(EquatorPlacement.x, 12);
+  const PatrolSite = getInhabitantSurfaceSite({
+    homeSite: { longitude: 1, latitude: 0.4 },
+    slotIndex: 2,
+    freedom: 1,
+    walkingOffset: 0,
+  });
+  assert.ok(Math.abs(PatrolSite.latitude - 0.4) < 0.2);
   assert.equal(getLivingInhabitantSlotCount('isolated'), 3);
   assert.equal(getLivingInhabitantSlotCount('linked'), 6);
   assert.equal(getLivingInhabitantSlotCount('busy'), 9);

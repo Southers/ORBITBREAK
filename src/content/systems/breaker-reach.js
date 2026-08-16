@@ -409,13 +409,24 @@ export const BreakerReachSystemDefinition = {
     {
       ...FirstLightSystemDefinition.worlds[0],
       label: 'HAVEN', position: { x: -22, y: -8, z: 0 }, gravitationalParameter: 105,
-      occupationScarAngles: [-2.62, -2.42, -2.22],
+      occupationScarAngles: [-0.34, 2.8, 1.2],
+      occupationSites: [
+        { longitude: -0.34, latitude: 0.16 },
+        { longitude: 2.8, latitude: -0.42 },
+        { longitude: 1.2, latitude: 0.92 },
+      ],
       memory: 'The Runner leaves the last free garden behind.',
     },
     {
       ...FirstLightSystemDefinition.worlds[1],
       position: { x: -8, y: -13, z: 0 }, radius: 3.2, gravitationalParameter: 340,
-      occupationScarAngles: [2.28, 2.5, 2.72, 2.94],
+      occupationScarAngles: [2.8, 0.57, -1.85, 1.5],
+      occupationSites: [
+        { longitude: 2.8, latitude: 0.14 },
+        { longitude: 0.57, latitude: 0.22 },
+        { longitude: -1.85, latitude: -0.48 },
+        { longitude: 1.5, latitude: 0.94 },
+      ],
       hostileEncounter: {
         clampOffsetsRadians: [0.55],
         cutHitRadius: 0.48,
@@ -426,13 +437,24 @@ export const BreakerReachSystemDefinition = {
     {
       ...FirstLightSystemDefinition.worlds[2],
       position: { x: 6, y: -4, z: 0 }, radius: 2.5, gravitationalParameter: 220,
-      occupationScarAngles: [-0.58, -0.29, 0],
+      occupationScarAngles: [-2.57, 0.62, -0.9],
+      occupationSites: [
+        { longitude: -2.57, latitude: 0.18 },
+        { longitude: 0.62, latitude: -0.44 },
+        { longitude: -0.9, latitude: 0.88 },
+      ],
       memory: 'Roots split the perfect grid from below.',
     },
     {
       ...FirstLightSystemDefinition.worlds[4],
       position: { x: 18, y: 2, z: 0 }, radius: 2.8, gravitationalParameter: 240,
       occupationScarAngles: [1.18, 1.37, 1.56, 1.75],
+      occupationSites: [
+        { longitude: 1.18, latitude: 0.18 },
+        { longitude: 1.37, latitude: -0.42 },
+        { longitude: 1.56, latitude: 0.88 },
+        { longitude: 1.75, latitude: -0.28 },
+      ],
       memory: 'The water refuses its ordered orbit.',
     },
     {
@@ -440,6 +462,11 @@ export const BreakerReachSystemDefinition = {
       position: { x: -8, y: 11, z: 0 }, radius: 4.2, gravitationalParameter: 220,
       slingshotValue: 1000, liberationValue: 1400,
       occupationScarAngles: [-2.08, -1.9, -1.72],
+      occupationSites: [
+        { longitude: -2.08, latitude: 0.18 },
+        { longitude: -1.9, latitude: -0.42 },
+        { longitude: -1.72, latitude: 0.88 },
+      ],
       memory: 'A giant ocean turns beneath the ice.',
     },
     {
@@ -449,6 +476,11 @@ export const BreakerReachSystemDefinition = {
       aliveColor: 0x746fa8, atmosphereColor: 0xb7b7ff, accentColor: 0xf2c1ff,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true,
       occupationScarAngles: [0.08, 0.28, 0.48],
+      occupationSites: [
+        { longitude: 0.08, latitude: 0.18 },
+        { longitude: 0.28, latitude: -0.42 },
+        { longitude: 0.48, latitude: 0.88 },
+      ],
       disposition: 'hostile',
       hostileEncounter: {
         clampOffsetsRadians: [0.4, 0.85, 1.3],
@@ -469,6 +501,11 @@ export const BreakerReachSystemDefinition = {
       aliveColor: 0x789a7c, atmosphereColor: 0xb9e2c5, accentColor: 0xcfe89a,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
       occupationScarAngles: [2.05, 2.28, 2.51],
+      occupationSites: [
+        { longitude: 2.05, latitude: 0.18 },
+        { longitude: 2.28, latitude: -0.42 },
+        { longitude: 2.51, latitude: 0.88 },
+      ],
       memory: 'The looms remember every route they were forbidden to weave.',
       restoration: {
         durationSeconds: 1.9, waveWidth: 0.055, growthTrailWidth: 0.2,
@@ -483,6 +520,11 @@ export const BreakerReachSystemDefinition = {
       aliveColor: 0xb76545, atmosphereColor: 0xffad72, accentColor: 0xffcf76,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
       occupationScarAngles: [-1.15, -0.92, -0.69],
+      occupationSites: [
+        { longitude: -1.15, latitude: 0.18 },
+        { longitude: -0.92, latitude: -0.42 },
+        { longitude: -0.69, latitude: 0.88 },
+      ],
       memory: 'The pit stops sending stone to Command and starts sending it home.',
       restoration: {
         durationSeconds: 2.3, waveWidth: 0.048, growthTrailWidth: 0.18,
@@ -497,6 +539,12 @@ export const BreakerReachSystemDefinition = {
       aliveColor: 0x7085a8, atmosphereColor: 0xb9cdf9, accentColor: 0xd8e5ff,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
       occupationScarAngles: [0.72, 0.94, 1.16, 1.38],
+      occupationSites: [
+        { longitude: 0.72, latitude: 0.18 },
+        { longitude: 0.94, latitude: -0.42 },
+        { longitude: 1.16, latitude: 0.88 },
+        { longitude: 1.38, latitude: -0.28 },
+      ],
       memory: 'The glass shows the moving crown instead of an empty sky.',
       restoration: {
         durationSeconds: 2.4, waveWidth: 0.044, growthTrailWidth: 0.2,
