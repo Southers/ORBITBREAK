@@ -3127,11 +3127,7 @@ function resetGame() {
   SeedGroup.position.set(StartingSeedPosition.x, StartingSeedPosition.y, 0);
   CurrentWorldIdentifier = StartingWorldIdentifier;
   if (ActiveSystem.camera?.followPlayer === true) {
-    CameraLookTarget.set(StartingSeedPosition.x, StartingSeedPosition.y, 0);
-    DesiredCameraLookTarget.copy(CameraLookTarget);
-    Camera.position.x = StartingSeedPosition.x;
-    Camera.position.y = StartingSeedPosition.y;
-    Camera.lookAt(CameraLookTarget);
+    centerLandedCamera({ snap: true });
   }
   publishAttachedSeedState(CurrentWorldIdentifier, StartingSeedPosition);
   LastSafeWorldIdentifier = StartingWorldIdentifier;

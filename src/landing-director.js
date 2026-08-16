@@ -102,7 +102,7 @@ export function createLandingDirector(THREE, host) {
       `${THREE.MathUtils.clamp((-RouteLabelProjection.y * 0.5 + 0.5) * 100, 0, 100)}%`,
     );
     host.LiberationFlashLifeSeconds = 0.72;
-    host.CameraImpactLifeSeconds = Math.max(host.CameraImpactLifeSeconds, 0.34);
+    host.CameraImpactLifeSeconds = Math.max(host.CameraImpactLifeSeconds, 0.26);
 
     for (const SurfacePropObject of WorldRuntime.surfaceMarkerGroup.children) {
       SurfacePropObject.userData.restorationDistance = calculateNormalizedSphericalDistance(
@@ -195,7 +195,7 @@ export function createLandingDirector(THREE, host) {
     );
     host.LaunchIgnoredWorldIdentifier = null;
     host.AttachedSurfaceMeridianSign = 1;
-    centerLandedCamera({ snap: true });
+    centerLandedCamera({ snap: false });
 
     const LiveWorldsBefore = host.listLiveWorldIdentifiers();
     const InnerClusterLiveBefore = host.isLiveInnerCluster(LiveWorldsBefore);
@@ -372,7 +372,7 @@ export function createLandingDirector(THREE, host) {
     host.LaunchIgnoredBodyIdentifier = null;
     host.AttachedSurfaceMeridianSign = 1;
     host.GamePhase = 'attached';
-    centerLandedCamera({ snap: true });
+    centerLandedCamera({ snap: false });
     GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
     const BankResult = host.bankCurrentFlight();
     if (BankResult.bankedPoints > 0) {
@@ -485,7 +485,7 @@ export function createLandingDirector(THREE, host) {
     host.AttachedWorldheartSurfaceAngle = host.getRunnerSurfaceAngle(host.WorldheartDefinition);
     host.AttachedWorldheartSurfaceLatitude = 0;
     host.AttachedSurfaceMeridianSign = 1;
-    centerLandedCamera({ snap: true });
+    centerLandedCamera({ snap: false });
     host.RunState = settleRunFlight(host.RunState, { reachedCommandWorld: true });
     host.updateLaunchCounter();
     const BankResult = host.bankCurrentFlight();
