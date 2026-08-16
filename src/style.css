@@ -1274,6 +1274,91 @@ button[aria-disabled='true'] {
   gap: 8px;
 }
 
+.hud--bottom {
+  justify-content: flex-end;
+}
+
+.mode-chip {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 44px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  max-width: 92vw;
+  padding: 5px 14px;
+  border: 1px solid rgba(140, 200, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(6, 13, 20, 0.62);
+  pointer-events: none;
+  transition: border-color 240ms ease, box-shadow 240ms ease, opacity 240ms ease;
+}
+
+.mode-chip strong {
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+  color: rgba(180, 224, 255, 0.92);
+}
+
+.mode-chip span {
+  overflow: hidden;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(226, 235, 241, 0.7);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mode-chip.is-hidden {
+  opacity: 0;
+}
+
+#GameShell[data-control-mode='launch'] .mode-chip {
+  border-color: rgba(190, 246, 163, 0.45);
+  box-shadow: 0 0 18px rgba(141, 204, 112, 0.18);
+}
+
+#GameShell[data-control-mode='launch'] .mode-chip strong {
+  color: #dffbd2;
+}
+
+#GameShell[data-control-mode='flight'] .mode-chip {
+  border-color: rgba(255, 214, 140, 0.4);
+}
+
+#GameShell[data-control-mode='flight'] .mode-chip strong {
+  color: #ffe4a0;
+}
+
+#GameShell[data-control-mode='walk'] .mode-chip {
+  border-color: rgba(140, 200, 255, 0.42);
+}
+
+#GameShell[data-control-mode='scout'] .mode-chip {
+  border-color: rgba(200, 180, 255, 0.42);
+}
+
+.aim-vignette {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(2, 6, 12, 0) 46%, rgba(2, 6, 12, 0.5) 100%);
+  transition: opacity 300ms ease;
+}
+
+#GameShell[data-control-mode='launch'] .aim-vignette {
+  opacity: 1;
+}
+
+#GameShell[data-control-mode='explore'] #GameCanvas {
+  cursor: grab;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1288,9 +1373,18 @@ button[aria-disabled='true'] {
 }
 
 @media (max-width: 640px) {
-  .brand__subtitle,
-  .hud--bottom > span {
+  .brand__subtitle {
     display: none;
+  }
+
+  .mode-chip {
+    top: 76px;
+    bottom: auto;
+    padding: 4px 12px;
+  }
+
+  .mode-chip span {
+    font-size: 10px;
   }
 
   .hud__actions {

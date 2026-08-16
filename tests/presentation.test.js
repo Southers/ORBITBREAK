@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  getControlModePresentation,
   getLiberationFlashOpacity,
   getLeaderboardActionLabel,
   getPersonalBestStatus,
@@ -1153,4 +1154,34 @@ test('liberation flash remains bounded and reaches zero', () => {
   assert.equal(getLiberationFlashOpacity(-1), 0);
   assert.ok(getLiberationFlashOpacity(0.36) > 0);
   assert.ok(getLiberationFlashOpacity(0.72) <= 1);
+});
+
+test('control mode chip names the active gesture mode without guessing', () => {
+  assert.deepEqual(
+    getControlModePresentation({ gamePhase: 'attached' }),
+    {
+      mode: 'explore',
+      label: 'EXPLORE',
+      hint: 'Trace the globe to walk · pull the ship to launch',
+      visible: true,
+    },
+  );
+  assert.equal(getControlModePresentation({ gamePhase: 'attached', isAiming: true }).mode, 'launch');
+  assert.equal(getControlModePresentation({ gamePhase: 'attached', isWalking: true }).mode, 'walk');
+  assert.equal(getControlModePresentation({ gamePhase: 'attached', isScoutMode: true }).mode, 'scout');
+  assert.equal(getControlModePresentation({ gamePhase: 'restoring' }).mode, 'explore');
+  assert.equal(getControlModePresentation({ gamePhase: 'recovering' }).mode, 'recover');
+});
+
+test('control mode chip explains the Break during flight and hides in menus', () => {
+  const BreakReady = getControlModePresentation({ gamePhase: 'flying', isBreakAvailable: true });
+  assert.equal(BreakReady.mode, 'flight');
+  assert.match(BreakReady.hint, /Break/);
+  const BreakSpent = getControlModePresentation({ gamePhase: 'flying', isBreakAvailable: false });
+  assert.doesNotMatch(BreakSpent.hint, /Break/);
+  assert.equal(getControlModePresentation({ gamePhase: 'flying', isBurnAiming: true }).label, 'BREAK');
+  assert.equal(getControlModePresentation({ gamePhase: 'victory' }).visible, false);
+  assert.equal(getControlModePresentation({ gamePhase: 'attached', replayActive: true }).visible, false);
+  assert.equal(getControlModePresentation({ gamePhase: 'attached', briefingActive: true }).visible, false);
+  assert.throws(() => getControlModePresentation({ gamePhase: '' }));
 });

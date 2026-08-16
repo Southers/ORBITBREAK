@@ -52,6 +52,7 @@
       On a caged world, drag from the ship through a clamp to cut it.
     </p>
     <div id="LiberationFlash" class="liberation-flash" aria-hidden="true"></div>
+    <div id="AimVignette" class="aim-vignette" aria-hidden="true"></div>
     <div id="ScoreBurst" class="score-burst" aria-hidden="true" hidden></div>
 
     <section
@@ -231,8 +232,12 @@
       <button id="CloseLeaderboardButton" class="is-secondary" type="button">Back to results</button>
     </section>
 
+    <section id="ModeChip" class="mode-chip" role="status" aria-live="polite" aria-atomic="true">
+      <strong id="ModeChipLabel">EXPLORE</strong>
+      <span id="ModeChipHint">Trace the globe to walk · pull the ship to launch</span>
+    </section>
+
     <footer class="hud hud--bottom">
-      <span>Trace to walk · pull to launch · tap to Burn</span>
       <div class="hud__actions">
         <button id="ScoutButton" type="button" aria-pressed="false" aria-controls="GameCanvas" aria-keyshortcuts="C">Scout [C]</button>
         <button id="ScoutZoomOutButton" class="scout-zoom-button" type="button" aria-label="Scout zoom out, currently 100%" aria-controls="GameCanvas" aria-keyshortcuts="-" aria-disabled="false" hidden>−</button>

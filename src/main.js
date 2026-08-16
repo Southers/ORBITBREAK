@@ -111,6 +111,7 @@ import {
   loadPersonalBest,
 } from './records.js?v=20260814-ob8';
 import {
+  getControlModePresentation,
   getExtractionFreighterTravelProgress,
   getCourierDockWorldRole,
   getInhabitantSilhouette,
@@ -225,7 +226,11 @@ const SecondRelayAnswerLine = '“We thought we were alone.”';
  * of tiny planets floating in space.
  */
 
+const GameShellElement = document.querySelector('#GameShell');
 const GameCanvas = document.querySelector('#GameCanvas');
+const ModeChipElement = document.querySelector('#ModeChip');
+const ModeChipLabelElement = document.querySelector('#ModeChipLabel');
+const ModeChipHintElement = document.querySelector('#ModeChipHint');
 const LiberationFlashElement = document.querySelector('#LiberationFlash');
 const ScoreBurstElement = document.querySelector('#ScoreBurst');
 const CounterElement = document.querySelector('.counter');
@@ -3237,6 +3242,33 @@ function continueCampaignOrReplay() {
   window.location.assign(NextSystemUrl);
 }
 
+let LastControlModeKey = '';
+
+/** Keeps the EXPLORE / LAUNCH / FLIGHT chip and shell mode attribute current. */
+function updateControlModeInterface() {
+  const Presentation = getControlModePresentation({
+    gamePhase: GamePhase,
+    isAiming: IsPointerAiming || IsKeyboardAiming,
+    isWalking: IsPointerWalking,
+    isScoutMode: IsScoutMode,
+    isBurnAiming: IsBurnAiming,
+    isBreakAvailable: IsBreakerBurnAvailable,
+    replayActive: ReplayPlaybackState !== null,
+    briefingActive: IsOpeningBriefingActive,
+  });
+  const ControlModeKey = `${Presentation.mode}|${Presentation.hint}`;
+  if (ControlModeKey === LastControlModeKey) {
+    return;
+  }
+  LastControlModeKey = ControlModeKey;
+  GameShellElement.dataset.controlMode = Presentation.mode;
+  ModeChipElement.classList.toggle('is-hidden', !Presentation.visible);
+  if (Presentation.visible) {
+    ModeChipLabelElement.textContent = Presentation.label;
+    ModeChipHintElement.textContent = Presentation.hint;
+  }
+}
+
 /** Main frame loop. */
 function renderFrame() {
   window.requestAnimationFrame(renderFrame);
@@ -3247,6 +3279,7 @@ function renderFrame() {
   if (IsOpeningBriefingActive) {
     const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
     updateCamera(DeltaTimeSeconds);
+    updateControlModeInterface();
     Renderer.render(Scene, Camera);
     return;
   }
@@ -3287,6 +3320,7 @@ function renderFrame() {
     flushQueuedStoryBoardsIfReady();
   }
   updateCamera(DeltaTimeSeconds);
+  updateControlModeInterface();
   updateTacticalBodies(ElapsedTimeSeconds, CachedInstructionPanelTop);
   updateStardustVisuals(ElapsedTimeSeconds);
   updateRouteLabels(CachedInstructionPanelTop);

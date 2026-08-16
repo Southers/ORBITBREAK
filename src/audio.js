@@ -301,6 +301,13 @@ export class WorldseedAudio {
     this.playTone({ frequency: 330, endFrequency: 440, duration: 0.08, volume: 0.045 });
   }
 
+  beginWalk() {
+    if (this.storyPaused || !this.ensureStarted()) {
+      return;
+    }
+    this.playTone({ frequency: 236, endFrequency: 188, duration: 0.07, volume: 0.028 });
+  }
+
   updateAim(PowerRatio, IsLandingLocked) {
     if (!this.aimVoice) {
       return;

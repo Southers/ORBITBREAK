@@ -1031,6 +1031,7 @@ function beginLaunchAim(WorldPosition, PointerEventData = null) {
 function beginSurfaceWalk() {
   host.PointerGestureMode = SurfaceGestureModes.walk;
   host.IsPointerWalking = true;
+  WorldseedSound.beginWalk();
   GameCanvas.classList.add('is-walking');
   LastSurfaceWalkAtSeconds = 0;
   const AttachedWorld = getCurrentAttachedWorld();
