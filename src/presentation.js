@@ -97,7 +97,8 @@ export const PlanningNeighbourhoodPadding = 3.4;
 
 /**
  * Default aim frames the readable neighbourhood, not the whole dark Reach.
- * Predicted landings and unveiled worlds expand the map; Command waits until it is exposed.
+ * Before the veil lifts that is the inner cluster. Afterward it is the current
+ * world plus its authored neighbours. Predicted landings and Command expand it.
  */
 export function getPlanningFocusWorldIdentifiers({
   innerClusterLive = false,
