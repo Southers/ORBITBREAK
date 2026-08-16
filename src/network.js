@@ -67,11 +67,11 @@ export function wouldCloseRelayCircuit(
 }
 
 /**
- * After the first unique loop, a gold ghost of the next missing edge that would
- * close another circuit. Prefers a closing flight from the current world.
+ * Gold ghost of a missing edge that would close a circuit.
+ * Prefers a closing flight from the current world, including the first loop.
  */
 export function findCircuitBeaconLink(NetworkState, CurrentWorldIdentifier = null) {
-  if (!NetworkState || NetworkState.circuits.size < 1) {
+  if (!NetworkState) {
     return null;
   }
   const LiveWorldIdentifiers = [...NetworkState.activeWorldIdentifiers]

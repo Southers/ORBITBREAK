@@ -940,6 +940,7 @@ function releaseAimedLaunch() {
 
   host.RunState = releaseRunLaunch(host.RunState);
   updateLaunchCounter();
+  CameraPanOffset.set(0, 0, 0);
 
   host.SeedPhysicsState.velocity = createVector(
     AimLaunchVelocity.x,

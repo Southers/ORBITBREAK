@@ -87,11 +87,14 @@ test('a unique circuit protects its worlds once and repairs without closing agai
   assert.equal(listLiveRelayCircuits(Network).length, 1);
 });
 
-test('the circuit beacon names the next missing closing edge after the first loop', () => {
+test('the circuit beacon names a missing closing edge, including the first loop', () => {
   const Network = createRelayNetworkState('haven');
   connectRelayWorlds(Network, 'haven', 'ember');
   connectRelayWorlds(Network, 'ember', 'grove');
-  assert.equal(findCircuitBeaconLink(Network, 'grove'), null);
+  const FirstBeacon = findCircuitBeaconLink(Network, 'grove');
+  assert.equal(FirstBeacon.id, 'grove::haven');
+  assert.equal(FirstBeacon.originWorldIdentifier, 'grove');
+  assert.equal(FirstBeacon.destinationWorldIdentifier, 'haven');
   connectRelayWorlds(Network, 'grove', 'haven');
   connectRelayWorlds(Network, 'haven', 'frost');
   const Beacon = findCircuitBeaconLink(Network, 'frost');

@@ -7,6 +7,7 @@ import { getScoutZoomPresentation } from './controls.js';
 import { countLiveRelayWorlds, listRelayCircuits } from './network.js';
 import {
   getLandedCameraScale,
+  getFlightCameraScale,
   getPlanningAtmosphere,
   getPlanningFocusWorldIdentifiers,
   getSectorPlanningCamera,
@@ -131,10 +132,11 @@ function snapLiveCameraToPlanningView() {
 }
 
 function shouldUseSectorPlanningCamera() {
-  return (host.IsPointerAiming || host.IsKeyboardAiming || host.GamePhase === 'flying')
+  return (host.IsPointerAiming || host.IsKeyboardAiming)
     && !host.IsScoutMode
     && host.GamePhase !== 'restoring'
-    && host.GamePhase !== 'recovering';
+    && host.GamePhase !== 'recovering'
+    && host.GamePhase !== 'flying';
 }
 
 function updateFlightPlanningPresentation() {
@@ -266,6 +268,61 @@ function handleScoutWheel(WheelEventData) {
   }
 }
 
+function resolveStoryLookPoint(Focus) {
+  if (!Focus) {
+    return null;
+  }
+  if (Focus.kind === 'runner') {
+    return host.SeedPhysicsState.position;
+  }
+  if (Focus.kind === 'warden') {
+    return host.getWardenLookPosition?.() ?? host.SeedPhysicsState.position;
+  }
+  if (Focus.kind === 'command') {
+    return calculateBodyPositionAtTime(WorldheartDefinition, host.PhysicsElapsedTimeSeconds);
+  }
+  if (Focus.kind === 'neighbourhood') {
+    const Planning = getSectorPlanningCamera({
+      runner: host.SeedPhysicsState.position,
+      focusPoints: getPlanningFocusPoints(),
+      pathPoints: [],
+      viewportWorldWidth: ActiveSystem.camera?.viewportWorldWidth ?? 20,
+      viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
+    });
+    return { x: Planning.lookX, y: Planning.lookY, scale: Planning.scale };
+  }
+  if (Focus.kind === 'world' && Focus.worldId) {
+    if (Focus.worldId === WorldheartDefinition.id) {
+      return calculateBodyPositionAtTime(WorldheartDefinition, host.PhysicsElapsedTimeSeconds);
+    }
+    const WorldDefinition = getWorldDefinition(Focus.worldId);
+    return WorldDefinition?.position ?? host.SeedPhysicsState.position;
+  }
+  if (Focus.kind === 'named') {
+    const NamedLabel = String(host.ActiveStoryBoardTokens?.world ?? '').trim().toUpperCase();
+    const NamedWorld = WorldDefinitions.find((WorldDefinition) => (
+      WorldDefinition.label.toUpperCase() === NamedLabel
+    ));
+    return NamedWorld?.position ?? host.SeedPhysicsState.position;
+  }
+  return host.SeedPhysicsState.position;
+}
+
+function centerLandedCamera({ snap = true } = {}) {
+  host.IsScoutMode = false;
+  CameraPanOffset.set(0, 0, 0);
+  const Point = host.SeedPhysicsState.position;
+  DesiredCameraLookTarget.set(Point.x, Point.y, 0);
+  if (snap) {
+    CameraLookTarget.copy(DesiredCameraLookTarget);
+    Camera.position.x = Point.x;
+    Camera.position.y = Point.y;
+  }
+  GameCanvas.dataset.scoutMode = 'false';
+  GameCanvas.classList.remove('is-scouting');
+  refreshPlanningZoomControls();
+}
+
 /**
  * Adds gentle camera follow while the seed is flying without losing the level overview.
  * This is intentionally restrained for motion comfort on phones.
@@ -275,6 +332,8 @@ function handleScoutWheel(WheelEventData) {
 function updateCamera(DeltaTimeSeconds) {
   const UsesExplorationCamera = ActiveSystem.camera?.followPlayer === true;
   const UsesPlanningCamera = UsesExplorationCamera && shouldUseSectorPlanningCamera();
+  const StoryFocus = host.IsOpeningBriefingActive ? host.StoryLookFocus : null;
+  const StoryLookPoint = StoryFocus ? resolveStoryLookPoint(StoryFocus) : null;
   if (
     host.GamePhase !== 'victory'
     && host.GamePhase !== 'victoryPending'
@@ -288,7 +347,9 @@ function updateCamera(DeltaTimeSeconds) {
     Scene.fog.density = PlanningAtmosphere.fogDensity;
     Renderer.toneMappingExposure = PlanningAtmosphere.toneMappingExposure;
   }
-  if (UsesExplorationCamera && host.IsScoutMode) {
+  if (UsesExplorationCamera && StoryLookPoint) {
+    DesiredCameraLookTarget.set(StoryLookPoint.x, StoryLookPoint.y, 0);
+  } else if (UsesExplorationCamera && host.IsScoutMode) {
     DesiredCameraLookTarget.copy(ScoutCameraTarget);
   } else if (UsesExplorationCamera && host.RelayRevealLookTarget && !host.PrefersReducedMotion) {
     DesiredCameraLookTarget.set(host.RelayRevealLookTarget.x, host.RelayRevealLookTarget.y, 0);
@@ -312,14 +373,26 @@ function updateCamera(DeltaTimeSeconds) {
 
   const CameraFollowAlpha = host.PrefersReducedMotion
     ? 1
-    : 1 - Math.exp(-DeltaTimeSeconds * (UsesExplorationCamera ? 3.8 : 2.6));
+    : 1 - Math.exp(-DeltaTimeSeconds * (
+      host.GamePhase === 'flying' || StoryLookPoint
+        ? 5.2
+        : (UsesExplorationCamera ? 3.8 : 2.6)
+    ));
   CameraLookTarget.lerp(DesiredCameraLookTarget, CameraFollowAlpha);
 
   let DesiredDistanceScale = 1;
-  if (host.IsScoutMode) {
+  if (StoryLookPoint) {
+    DesiredDistanceScale = StoryLookPoint.scale ?? StoryFocus?.scale ?? 0.7;
+  } else if (host.IsScoutMode) {
     DesiredDistanceScale = host.ScoutZoomScale;
   } else if (UsesPlanningCamera) {
     DesiredDistanceScale = host.PlanningCameraScale * host.AimZoomScale;
+  } else if (UsesExplorationCamera && host.GamePhase === 'flying') {
+    const FlightWorld = getWorldDefinition(host.CurrentWorldIdentifier);
+    DesiredDistanceScale = getFlightCameraScale({
+      worldRadius: FlightWorld?.radius ?? 3,
+      viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
+    });
   } else if (
     UsesExplorationCamera
     && (host.GamePhase === 'attached' || host.GamePhase === 'restoring')
@@ -333,7 +406,7 @@ function updateCamera(DeltaTimeSeconds) {
       : 0.5;
     GameCanvas.dataset.landedCameraScale = DesiredDistanceScale.toFixed(2);
   }
-  if (!host.IsScoutMode && !UsesPlanningCamera) {
+  if (!host.IsScoutMode && !UsesPlanningCamera && !StoryLookPoint) {
     DesiredDistanceScale *= host.CameraZoomScale;
   }
   host.CameraDistanceScale += (DesiredDistanceScale - host.CameraDistanceScale) * CameraFollowAlpha;
@@ -371,5 +444,6 @@ function updateCamera(DeltaTimeSeconds) {
     adjustViewZoom,
     handleScoutWheel,
     updateCamera,
+    centerLandedCamera,
   };
 }

@@ -10,6 +10,7 @@ import { calculateBodyPositionAtTime } from './physics.js';
 import {
   getHiddenWardenRouteCoach,
   getPlayfieldLabelVerticalBounds,
+  getPursuitRouteCoach,
   getTacticalLabelHorizontalMargin,
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
@@ -124,68 +125,35 @@ export function createRoutePresentation(THREE, host) {
       return;
     }
     const RouteChoices = getCurrentRouteChoices(2);
-    const CircuitChoice = RouteChoices.find((RouteChoice) => (
+    const CircuitChoices = RouteChoices.filter((RouteChoice) => (
       wouldCloseRelayCircuit(
         host.RelayNetworkState,
         host.CurrentWorldIdentifier,
         RouteChoice.id,
       )
     ));
-    if (CircuitChoice) {
-      const ExpansionChoice = RouteChoices.find((RouteChoice) => RouteChoice !== CircuitChoice);
-      const AlternateCircuitChoice = ExpansionChoice && wouldCloseRelayCircuit(
-        host.RelayNetworkState,
-        host.CurrentWorldIdentifier,
-        ExpansionChoice.id,
-      )
-        ? ExpansionChoice
-        : null;
-      const AuthoredGuidance = ActiveSystem.routeGuidance?.[host.CurrentWorldIdentifier]?.[
-        CircuitChoice.id
-      ];
-      showInstruction(
-        AlternateCircuitChoice
-          ? `Close via ${CircuitChoice.label} or ${AlternateCircuitChoice.label}`
-          : ExpansionChoice
-          ? `Reinforce ${CircuitChoice.label} or expand to ${ExpansionChoice.label}`
-          : `Reinforce the route to ${CircuitChoice.label}`,
-        AuthoredGuidance
-          ?? 'Close the gold relay loop to protect its worlds and push the Warden back.',
-      );
-      return;
-    }
-    const HasWorldheartChoice = RouteChoices.some(
-      (RouteChoice) => RouteChoice.id === WorldheartDefinition.id,
-    );
-    if (HasWorldheartChoice) {
-      showInstruction(
-        'The COMMAND WORLD route is open',
-        isSystemRestored(WorldDefinitions)
-          ? 'Every world is free. Guide the Runner into the golden command core.'
-          : 'Bank the run now, or liberate the final world first.',
-      );
-      return;
-    }
-    if (RouteChoices.length === 0) {
-      showInstruction(
-        `The ${ActiveSystem.label} network is awake`,
-        'Find the golden Command World route.',
-      );
-      return;
-    }
-
-    if (RouteChoices.length === 1) {
-      showInstruction(
-        RouteChoices[0].label + ' remains',
-        'Use the bright path to find your final landing.',
-      );
-      return;
-    }
-
-    showInstruction(
-      'Choose ' + RouteChoices[0].label + ' or ' + RouteChoices[1].label,
-      'Gold rings suggest routes — every landing becomes your next launch point.',
-    );
+    const CircuitChoice = CircuitChoices[0] ?? null;
+    const ExpansionChoice = RouteChoices.find((RouteChoice) => (
+      RouteChoice !== CircuitChoice && !CircuitChoices.includes(RouteChoice)
+    )) ?? null;
+    const AlternateCircuitChoice = CircuitChoices[1] ?? null;
+    const AuthoredGuidance = CircuitChoice
+      ? ActiveSystem.routeGuidance?.[host.CurrentWorldIdentifier]?.[CircuitChoice.id]
+      : '';
+    const Coach = getPursuitRouteCoach({
+      circuitLabels: AlternateCircuitChoice
+        ? [CircuitChoice.label, AlternateCircuitChoice.label]
+        : (CircuitChoice ? [CircuitChoice.label] : []),
+      expansionLabel: ExpansionChoice?.label ?? '',
+      commandAvailable: WorldheartDefinition.routeAvailable === true
+        && !WorldheartDefinition.restored,
+      allWorldsRestored: isSystemRestored(WorldDefinitions),
+      uniqueCircuitCount: host.RelayNetworkState.circuits.size,
+      remainingBonusFuel: host.RunState?.remainingLaunches ?? 0,
+      wardenDistance: host.WardenPursuitState.distance,
+      authoredGuidance: AuthoredGuidance ?? '',
+    });
+    showInstruction(Coach.title, Coach.body);
   }
 
   /** Updates the two suggested destination rings as a single draw call. */

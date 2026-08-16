@@ -59,6 +59,7 @@ export function createLandingDirector(THREE, host) {
     CompletedHostileEncounterWorldIdentifiers,
     CourierStartTimesByLinkId,
   } = host;
+  const centerLandedCamera = (...Args) => host.centerLandedCamera(...Args);
 
   /**
    * Starts the lightweight greybox restoration animation and marks objective state.
@@ -192,6 +193,7 @@ export function createLandingDirector(THREE, host) {
       SurfaceRestPosition.z,
     );
     host.LaunchIgnoredWorldIdentifier = null;
+    centerLandedCamera({ snap: true });
 
     const LiveWorldsBefore = host.listLiveWorldIdentifiers();
     const InnerClusterLiveBefore = host.isLiveInnerCluster(LiveWorldsBefore);
@@ -360,6 +362,7 @@ export function createLandingDirector(THREE, host) {
     host.LaunchIgnoredWorldIdentifier = null;
     host.LaunchIgnoredBodyIdentifier = null;
     host.GamePhase = 'attached';
+    centerLandedCamera({ snap: true });
     GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';
     const BankResult = host.bankCurrentFlight();
     host.commitFlightStardust();
@@ -467,6 +470,7 @@ export function createLandingDirector(THREE, host) {
     host.CurrentWorldIdentifier = host.WorldheartDefinition.id;
     host.publishAttachedSeedState(host.CurrentWorldIdentifier, SurfaceRestPosition);
     host.AttachedWorldheartSurfaceAngle = host.getRunnerSurfaceAngle(host.WorldheartDefinition);
+    centerLandedCamera({ snap: true });
     host.RunState = settleRunFlight(host.RunState, { reachedCommandWorld: true });
     host.updateLaunchCounter();
     const BankResult = host.bankCurrentFlight();

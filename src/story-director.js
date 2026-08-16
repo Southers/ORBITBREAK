@@ -6,6 +6,7 @@
 import {
   getStoryBoardPresentation,
   isCampaignStoryBoardReadyToPresent,
+  getStoryBoardCameraFocus,
 } from './presentation.js';
 import { getRouteChoices } from './campaign.js';
 
@@ -38,6 +39,7 @@ export function createStoryDirector(host) {
     host.IsOpeningBriefingActive = false;
     host.ActiveStoryBoardId = null;
     host.ActiveStoryBoardTokens = {};
+    host.StoryLookFocus = null;
     OpeningBriefingElement.hidden = true;
     GameCanvas.dataset.openingBriefing = 'closed';
     OpeningBriefingElement.classList.remove(
@@ -107,6 +109,10 @@ export function createStoryDirector(host) {
     InstructionPanelElement.classList.add('is-hidden');
     InstructionPanelElement.setAttribute('aria-hidden', 'true');
     GameCanvas.dataset.openingBriefing = `${host.ActiveStoryBoardId}:${Presentation.progressLabel}`;
+    host.StoryLookFocus = getStoryBoardCameraFocus({
+      boardId: host.ActiveStoryBoardId === 'opening' ? 'opening' : host.ActiveStoryBoardId,
+      portrait: Board.pages[PageIndex]?.portrait ?? '',
+    });
     WorldseedSound.setStoryPaused(true);
     if (playVoice) {
       WorldseedSound.briefingVoice(Presentation.speaker);

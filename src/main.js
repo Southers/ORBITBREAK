@@ -129,6 +129,7 @@ import {
   shouldHoldCommittedPrediction,
   getSlingshotBandVisualState,
   getSlingshotPreviewPresentation,
+  getWardenApproachCopy,
   shouldShowInhabitantSlot,
   getTradeHullColor,
   getTradeHullKind,
@@ -474,6 +475,7 @@ let OpeningBriefingPageIndex = 0;
 let IsOpeningBriefingActive = false;
 let ActiveStoryBoardId = null;
 let ActiveStoryBoardTokens = {};
+let StoryLookFocus = null;
 let StoryBoardQueue = [];
 const ShownStoryBoardIds = new Set();
 let PendingRunResetAfterStoryBoard = false;
@@ -748,25 +750,16 @@ function publishWardenState() {
   WardenCitadelMaterial.emissive.setHex(IsCommandExposed ? 0xffae32 : 0xb51f25);
   WardenBeaconMaterial.color.setHex(IsCommandExposed ? 0xffe79a : 0xff5148);
   WardenForecastLine.visible = IsVisible && Boolean(TargetWorld) && !IsCommandExposed;
-  WardenStateLabelElement.textContent = IsCommandDefeated
-    ? 'WARDEN DEFEATED'
-    : 'WARDEN APPROACH';
-  WardenDistanceElement.textContent = IsCommandDefeated
-    ? 'SIGNAL BROKEN'
-    : IsCommandExposed
-    ? 'EXPOSED'
-    : WardenPursuitState.distance === 0
-    ? 'ARRIVING NOW'
-    : `${WardenPursuitState.distance} FLIGHT${WardenPursuitState.distance === 1 ? '' : 'S'}`;
-  WardenTargetElement.textContent = IsCommandDefeated
-    ? 'WORLDS RESPONDING'
-    : IsCommandExposed
-    ? 'COMMAND WORLD'
-    : TargetWorld
-    ? `NEXT: ${TargetWorld.label}`
-    : getFrameLiveRelayCircuits().length > 0
-      ? 'NETWORK BLOCKED'
-      : 'TARGET UNKNOWN';
+  const ApproachCopy = getWardenApproachCopy({
+    defeated: IsCommandDefeated,
+    exposed: IsCommandExposed,
+    distance: WardenPursuitState.distance,
+    targetLabel: TargetWorld?.label ?? '',
+    blocked: getFrameLiveRelayCircuits().length > 0,
+  });
+  WardenStateLabelElement.textContent = ApproachCopy.state;
+  WardenDistanceElement.textContent = ApproachCopy.distance;
+  WardenTargetElement.textContent = ApproachCopy.target;
   GameCanvas.dataset.wardenStatus = PublishedWardenState.status;
   GameCanvas.dataset.wardenDistance = String(WardenPursuitState.distance);
   GameCanvas.dataset.wardenTarget = WardenPursuitState.targetWorldIdentifier ?? '';
@@ -944,7 +937,7 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
     GameCanvas.dataset.wardenArrivalAnswer = ArrivalAnswerLine;
     showInstruction(
       'Unauthorised network detected.',
-      `${ArrivalAnswerLine ? `${ArrivalAnswerLine} ` : ''}The Warden is targeting ${TargetWorld?.label ?? 'the frontier'} · ${WardenPursuitState.distance} resolved flights away.`,
+      `Each launch is one Warden step — ${WardenPursuitState.distance} flights away, targeting ${TargetWorld?.label ?? 'the frontier'}. Close a gold loop to push it back.`,
     );
     GameCanvas.dataset.wardenArrivalBroadcast = ActiveSystem.wardenArrivalBroadcast ?? '';
     RecaptureCutGiftAvailable = true;
@@ -954,7 +947,7 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
     }
   } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.advanced) {
     showStatusToast(
-      `WARDEN → ${TargetWorld?.label ?? 'FRONTIER'} · ${WardenPursuitState.distance} FLIGHTS`,
+      `WARDEN → ${TargetWorld?.label ?? 'FRONTIER'} · ${WardenPursuitState.distance} FLIGHTS AWAY`,
       1250,
     );
   } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.retreated) {
@@ -1380,6 +1373,7 @@ const RoutePresentation = createRoutePresentation(THREE, {
   get PhysicsElapsedTimeSeconds() { return PhysicsElapsedTimeSeconds; },
   get WardenPursuitState() { return WardenPursuitState; },
   get RelayNetworkState() { return RelayNetworkState; },
+  get RunState() { return RunState; },
 });
 const {
   getActiveTacticalBodyDefinitions,
@@ -1603,6 +1597,8 @@ const StoryDirector = createStoryDirector({
   set ActiveStoryBoardId(Value) { ActiveStoryBoardId = Value; },
   get ActiveStoryBoardTokens() { return ActiveStoryBoardTokens; },
   set ActiveStoryBoardTokens(Value) { ActiveStoryBoardTokens = Value; },
+  get StoryLookFocus() { return StoryLookFocus; },
+  set StoryLookFocus(Value) { StoryLookFocus = Value; },
   get StoryBoardQueue() { return StoryBoardQueue; },
   set StoryBoardQueue(Value) { StoryBoardQueue = Value; },
   ShownStoryBoardIds,
@@ -1794,6 +1790,7 @@ const LandingDirector = createLandingDirector(THREE, {
   settleNonCommandFlight,
   getWorldDefinition,
   enqueueCampaignStoryBoards,
+  centerLandedCamera: (...Args) => centerLandedCamera(...Args),
   updateBreakerBurnInterface: (...Args) => updateBreakerBurnInterface(...Args),
   hideCutGuide,
   publishHostileEncounterState,
@@ -1957,6 +1954,12 @@ const CameraController = createCameraController(THREE, {
   get WardenPursuitState() { return WardenPursuitState; },
   get RecaptureCutGiftAvailable() { return RecaptureCutGiftAvailable; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
+  get StoryLookFocus() { return StoryLookFocus; },
+  get ActiveStoryBoardTokens() { return ActiveStoryBoardTokens; },
+  getWardenLookPosition: () => ({
+    x: WardenVisualGroup.position.x,
+    y: WardenVisualGroup.position.y,
+  }),
   get GameElapsedTimeSeconds() { return GameElapsedTimeSeconds; },
   get BaseCameraDistance() { return BaseCameraDistance; },
   set BaseCameraDistance(Value) { BaseCameraDistance = Value; },
@@ -1977,6 +1980,7 @@ const {
   adjustViewZoom,
   handleScoutWheel,
   updateCamera,
+  centerLandedCamera,
 } = CameraController;
 
 const FrameVisuals = createFrameVisuals(THREE, {
@@ -2450,6 +2454,7 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
     LaunchIgnoredWorldIdentifier = null;
     LaunchIgnoredBodyIdentifier = null;
     GamePhase = 'attached';
+    centerLandedCamera({ snap: true });
     clearTrajectoryPreview();
     updateBreakerBurnInterface();
     if (SuppressedWorld) {
@@ -3113,6 +3118,7 @@ function resetGame() {
   GameElapsedTimeSeconds = 0;
   RelayRevealLookTarget = null;
   RelayRevealHoldUntilSeconds = 0;
+  StoryLookFocus = null;
   CourierStartTimesByLinkId.clear();
   GameCanvas.dataset.relayReveal = '';
   synchronizeSeedstonePosition();
@@ -3184,7 +3190,8 @@ function renderFrame() {
   }
 
   if (IsOpeningBriefingActive) {
-    Clock.getDelta();
+    const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
+    updateCamera(DeltaTimeSeconds);
     Renderer.render(Scene, Camera);
     return;
   }

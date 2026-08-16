@@ -45,10 +45,14 @@ import {
   getTyrantOccupationStrength,
   getExtractionFreighterTravelProgress,
   getLandedCameraScale,
+  getFlightCameraScale,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
   getLoopObjectivePresentation,
   getHiddenWardenRouteCoach,
+  getPursuitRouteCoach,
+  getWardenApproachCopy,
+  getStoryBoardCameraFocus,
   getOpeningBriefingPresentation,
   getStoryBoardPresentation,
   formatStoryBoardCopy,
@@ -142,7 +146,7 @@ test('loop objective teaches the neighbourhood before circuits and Command', () 
     uniqueCircuitCount: 0,
     wardenStatus: 'pursuing',
   }), {
-    label: 'CIRCUITS',
+    label: 'CLOSE LOOPS',
     state: '0 / 2',
     filledPips: 0,
     pipCount: 2,
@@ -850,6 +854,65 @@ test('landed camera frames one world tightly enough for surface art to read', ()
   assert.ok(EmberScale < 1);
   const TinyScale = getLandedCameraScale({ worldRadius: 2.15, viewportWorldHeight: 24 });
   assert.equal(TinyScale, 0.42);
+});
+
+test('flight camera follows wider than a landing but tighter than the planning map', () => {
+  const FlightScale = getFlightCameraScale({ worldRadius: 3.2, viewportWorldHeight: 24 });
+  const LandedScale = getLandedCameraScale({ worldRadius: 3.2, viewportWorldHeight: 24 });
+  assert.ok(FlightScale > LandedScale);
+  assert.ok(FlightScale < 1);
+  assert.equal(getFlightCameraScale({ worldRadius: 2.15, viewportWorldHeight: 24 }), 0.62);
+});
+
+test('pursuit coach treats a launch as the turn and a return flight as the loop', () => {
+  assert.deepEqual(getPursuitRouteCoach({
+    circuitLabels: ['TIDE'],
+    wardenDistance: 4,
+    remainingBonusFuel: 2,
+  }), {
+    title: 'Close a loop via TIDE',
+    body: 'Fly back to TIDE. Visiting new worlds is not enough. Each launch is one Warden step (4 left).',
+  });
+  assert.match(getPursuitRouteCoach({
+    allWorldsRestored: true,
+    uniqueCircuitCount: 0,
+    remainingBonusFuel: 0,
+    wardenDistance: 3,
+  }).body, /Bonus fuel is spent/);
+  assert.equal(getPursuitRouteCoach({
+    commandAvailable: true,
+    allWorldsRestored: true,
+  }).title, 'The COMMAND WORLD route is open');
+});
+
+test('Warden HUD counts remaining flights, not a separate clock', () => {
+  assert.deepEqual(getWardenApproachCopy({ distance: 4, targetLabel: 'EMBER' }), {
+    state: 'WARDEN INBOUND',
+    distance: '4 FLIGHTS AWAY',
+    target: 'NEXT: EMBER',
+  });
+  assert.equal(getWardenApproachCopy({ distance: 0, targetLabel: 'HAVEN' }).distance, 'ARRIVING THIS LANDING');
+  assert.equal(getWardenApproachCopy({ exposed: true }).distance, 'LAND ON COMMAND');
+  assert.equal(getWardenApproachCopy({ defeated: true }).state, 'WARDEN DEFEATED');
+});
+
+test('story boards look at the speaker, the Warden, or the neighbourhood', () => {
+  assert.deepEqual(getStoryBoardCameraFocus({
+    boardId: 'firstAnswer',
+    portrait: 'ember',
+  }), { kind: 'world', worldId: 'ember', scale: 0.62 });
+  assert.equal(getStoryBoardCameraFocus({
+    boardId: 'wardenArrival',
+    portrait: 'warden',
+  }).kind, 'warden');
+  assert.equal(getStoryBoardCameraFocus({
+    boardId: 'rangeUnlock',
+    portrait: 'orbitbreaker',
+  }).kind, 'neighbourhood');
+  assert.equal(getStoryBoardCameraFocus({
+    boardId: 'firstAnswer',
+    portrait: 'runner',
+  }).kind, 'runner');
 });
 
 test('liberation flash remains bounded and reaches zero', () => {

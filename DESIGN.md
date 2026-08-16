@@ -52,7 +52,7 @@ Surface movement is deliberately one-dimensional. It creates launch-position cho
 
 ## Flight skill
 
-Aiming frames the readable neighbourhood and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. Pinch, wheel or the zoom buttons move from a close world to the whole authored Reach. Fog lifts while planning so the map stays bright. A committed chain is visible before release, including three- and four-world slingshots. Extra solar systems stay expansion; this run is one dense sector.
+Aiming frames the readable neighbourhood and draws the exact remaining path from the live fixed-step simulation until it lands, hits a hazard or runs out of prediction. Pinch, wheel or the zoom buttons move from a close world to the whole authored Reach. Fog lifts while planning so the map stays bright. After release the camera follows the ship. A landing recenters on the new world. Story boards look at the speaker's world or the Warden. A committed chain is visible before release, including three- and four-world slingshots. Extra solar systems stay expansion; this run is one dense sector.
 
 Skill comes from:
 
@@ -112,7 +112,7 @@ Pursuit is deterministic and action-driven:
 - Reaching the Runner's current world without intact loop protection ends the ranked run.
 - Closing a resilient loop pushes the Warden back and damages its shield.
 
-Surface walking, pausing, reading and camera scouting do not advance it. The threat is pressure to make good flights, not pressure to operate the interface quickly.
+Surface walking, pausing, reading and camera scouting do not advance it. The threat is pressure to make good flights, not pressure to operate the interface quickly. The inbound HUD counts remaining resolved flights — each launch, landing or miss is one step. Visiting every world is not enough: two unique return-flight loops expose Command. Bonus fuel reaching zero never ends the run.
 
 A representative successful rhythm is intentionally short, with a hopeful first act:
 

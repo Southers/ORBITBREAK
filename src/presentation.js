@@ -432,6 +432,26 @@ export function getLandedCameraScale({
   );
 }
 
+/** Follows the ship in flight with enough height to read the next gravity well. */
+export function getFlightCameraScale({
+  worldRadius = 3,
+  viewportWorldHeight = 24,
+  minimumScale = 0.62,
+  maximumScale = 0.92,
+} = {}) {
+  if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
+    throw new Error('Flight camera requires a positive world radius.');
+  }
+  if (!Number.isFinite(viewportWorldHeight) || viewportWorldHeight <= 0) {
+    throw new Error('Flight camera requires a positive viewport height.');
+  }
+  const FramedHeight = worldRadius * 6.2;
+  return Math.min(
+    maximumScale,
+    Math.max(minimumScale, FramedHeight / viewportWorldHeight),
+  );
+}
+
 /** Bright initial break followed by a clean, short screen-space fade. */
 export function getLiberationFlashOpacity(RemainingSeconds, DurationSeconds = 0.72) {
   if (RemainingSeconds <= 0 || DurationSeconds <= 0) {
@@ -510,8 +530,8 @@ function assertFinitePoint(Point, Label) {
 }
 
 /**
- * Frames the whole Reach while aiming or flying so a multi-world slingshot chain is visible.
- * Intimate rest framing returns after landing; this view is the planning map, not Scout.
+ * Frames the whole Reach while aiming so a multi-world slingshot chain is visible.
+ * Flight follows the ship; intimate rest framing returns after landing.
  */
 export function getSectorPlanningCamera({
   runner,
@@ -1000,7 +1020,7 @@ export function getLoopObjectivePresentation({
   if (wardenStatus !== 'hidden') {
     const Circuits = Math.min(uniqueCircuitCount, circuitExposeCount);
     return {
-      label: 'CIRCUITS',
+      label: 'CLOSE LOOPS',
       state: `${Circuits} / ${circuitExposeCount}`,
       filledPips: Circuits,
       pipCount: circuitExposeCount,
@@ -1074,6 +1094,112 @@ export function getHiddenWardenRouteCoach({
   };
 }
 
+/** Makes pursuit readable: a launch is the turn, a return flight closes the loop. */
+export function getPursuitRouteCoach({
+  circuitLabels = [],
+  expansionLabel = '',
+  commandAvailable = false,
+  allWorldsRestored = false,
+  uniqueCircuitCount = 0,
+  circuitExposeCount = 2,
+  remainingBonusFuel = 0,
+  wardenDistance = 0,
+  authoredGuidance = '',
+} = {}) {
+  if (!Array.isArray(circuitLabels)) {
+    throw new Error('Pursuit coach requires circuit labels.');
+  }
+  if (!Number.isInteger(uniqueCircuitCount) || uniqueCircuitCount < 0) {
+    throw new Error('Pursuit coach requires a non-negative circuit count.');
+  }
+  const FuelNote = remainingBonusFuel === 0
+    ? ' Bonus fuel is spent — you can still launch.'
+    : '';
+  const StepNote = Number.isInteger(wardenDistance) && wardenDistance > 0
+    ? ` Each launch is one Warden step (${wardenDistance} left).`
+    : ' Each launch is one Warden step.';
+  const FirstCircuit = typeof circuitLabels[0] === 'string' ? circuitLabels[0] : '';
+  const SecondCircuit = typeof circuitLabels[1] === 'string' ? circuitLabels[1] : '';
+  const Guidance = typeof authoredGuidance === 'string' && authoredGuidance.trim() !== ''
+    ? authoredGuidance
+    : '';
+
+  if (commandAvailable === true) {
+    return {
+      title: 'The COMMAND WORLD route is open',
+      body: (allWorldsRestored === true
+        ? 'Land on the moving golden core.'
+        : 'Land on the moving Command World, or free another world first.') + FuelNote,
+    };
+  }
+  if (FirstCircuit && SecondCircuit) {
+    return {
+      title: `Close a loop via ${FirstCircuit} or ${SecondCircuit}`,
+      body: (Guidance || 'A loop is a return flight to a world that already talks. Two loops expose Command.')
+        + StepNote + FuelNote,
+    };
+  }
+  if (FirstCircuit) {
+    return {
+      title: `Close a loop via ${FirstCircuit}`,
+      body: (Guidance || (
+        expansionLabel
+          ? `Fly back to ${FirstCircuit} to close gold, or expand to ${expansionLabel}.`
+          : `Fly back to ${FirstCircuit}. Visiting new worlds is not enough.`
+      )) + StepNote + FuelNote,
+    };
+  }
+  if (allWorldsRestored === true) {
+    return {
+      title: 'Worlds are awake. Close a loop.',
+      body: `Fly back to a neighbour you already linked. ${uniqueCircuitCount} / ${circuitExposeCount} loops closed.`
+        + StepNote + FuelNote,
+    };
+  }
+  return {
+    title: 'Close a gold loop',
+    body: 'Land on a world that already talks to this one by another route. That landing is the turn.'
+      + StepNote + FuelNote,
+  };
+}
+
+/** Warden HUD copy: distance is remaining resolved flights, not a separate clock. */
+export function getWardenApproachCopy({
+  defeated = false,
+  exposed = false,
+  distance = 0,
+  targetLabel = '',
+  blocked = false,
+} = {}) {
+  if (defeated === true) {
+    return {
+      state: 'WARDEN DEFEATED',
+      distance: 'SIGNAL BROKEN',
+      target: 'WORLDS RESPONDING',
+    };
+  }
+  if (exposed === true) {
+    return {
+      state: 'COMMAND EXPOSED',
+      distance: 'LAND ON COMMAND',
+      target: 'COMMAND WORLD',
+    };
+  }
+  if (!Number.isInteger(distance) || distance < 0) {
+    throw new Error('Warden approach copy requires a non-negative flight distance.');
+  }
+  const Target = typeof targetLabel === 'string' && targetLabel.trim() !== ''
+    ? `NEXT: ${targetLabel.trim()}`
+    : (blocked === true ? 'NETWORK BLOCKED' : 'TARGET UNKNOWN');
+  return {
+    state: 'WARDEN INBOUND',
+    distance: distance === 0
+      ? 'ARRIVING THIS LANDING'
+      : `${distance} FLIGHT${distance === 1 ? '' : 'S'} AWAY`,
+    target: Target,
+  };
+}
+
 export const StoryBoardPortraitFiles = Object.freeze({
   warden: './assets/warden-portrait.jpg',
   runner: './assets/runner-portrait.jpg',
@@ -1099,6 +1225,46 @@ export const StoryBoardPortraitTones = Object.freeze({
   bastion: 'bastion',
   command: 'command',
 });
+
+const StoryPortraitWorldIdentifiers = Object.freeze({
+  haven: 'meadow',
+  ember: 'ember',
+  grove: 'grove',
+  tide: 'tide',
+  frost: 'frost',
+  bastion: 'bastion',
+  command: 'worldheart',
+});
+
+/** Chooses what a story board should look at without taking control of physics. */
+export function getStoryBoardCameraFocus({
+  boardId = '',
+  portrait = '',
+} = {}) {
+  if (typeof boardId !== 'string' || typeof portrait !== 'string') {
+    throw new Error('Story camera focus requires board and portrait ids.');
+  }
+  if (boardId === 'rangeUnlock' || boardId === 'neighbourhood') {
+    return { kind: 'neighbourhood', scale: 1 };
+  }
+  if (boardId === 'wardenArrival' || portrait === 'warden') {
+    return { kind: 'warden', scale: 0.82 };
+  }
+  if (boardId === 'commandExposed' || portrait === 'command') {
+    return { kind: 'command', scale: 0.78 };
+  }
+  if (portrait === 'runner' || portrait === 'orbitbreaker') {
+    return { kind: 'runner', scale: 0.55 };
+  }
+  const WorldId = StoryPortraitWorldIdentifiers[portrait];
+  if (WorldId) {
+    return { kind: 'world', worldId: WorldId, scale: 0.62 };
+  }
+  if (boardId === 'suppression' || boardId === 'recapture') {
+    return { kind: 'named', scale: 0.62 };
+  }
+  return { kind: 'runner', scale: 0.55 };
+}
 
 /** Fills authored {world} tokens without turning boards into a conversation graph. */
 export function formatStoryBoardCopy(text, tokens = {}) {
