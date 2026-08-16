@@ -190,7 +190,7 @@ test('prediction uses the same pass sampling contract as live fixed steps', () =
 test('prediction skips the pre-launch rest sample that live scoring never sees', () => {
   const Band = getSlingshotBand(TestBody);
   const TrajectoryPoints = [
-    positionAtClearance(Band.deepClearance * 0.8),
+    positionAtClearance(Band.razorClearance * 0.8),
     positionAtClearance(Band.outerClearance + 0.2),
     positionAtClearance(Band.deepClearance * 0.8),
     positionAtClearance(Band.outerClearance + 0.2),
@@ -215,10 +215,8 @@ test('prediction skips the pre-launch rest sample that live scoring never sees',
 
   assert.deepEqual(PredictedEvents, LiveEvents);
   assert.equal(PredictedEvents.length, 1);
+  assert.equal(PredictedEvents[0].tier, 'deep');
   assert.equal(NaiveEvents.length, 1);
-  assert.notEqual(
-    PredictedEvents[0].minimumClearance,
-    NaiveEvents[0].minimumClearance,
-  );
+  assert.equal(NaiveEvents[0].tier, 'razor');
 });
 
