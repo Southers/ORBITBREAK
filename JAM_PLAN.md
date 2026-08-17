@@ -1013,6 +1013,14 @@ flight score. Judge-style rescoring playtest after checkpoint 23 read
 Art 10, Creativity 10, Gameplay 9, Polish 9, Theme 10 with the drag-gesture
 discoverability named the top remaining gap — this checkpoint answers it.
 
+Checkpoint 25 — 17 August 2026: readable surface life. Inhabitants are no
+longer lathe blobs: walkers are helmeted toy people with visor, backpack and
+limbs; packs are four-legged beasts with a saddle load. Prosperity cottages,
+furnaces, canopy halls and jetties are merged toy buildings. Ground scatter
+is biome-true (grass, trees with brown trunks, cacti, ice spikes, reeds) at
+lower density so each silhouette can be read. Meadow cottages gained chimneys,
+doors and windows on every face; trees are trunk-plus-cone.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

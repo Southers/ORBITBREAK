@@ -503,7 +503,7 @@ export function shouldShowInhabitantSlot({
   return slotIndex < getLivingInhabitantSlotCount(prosperityStage);
 }
 
-/** Worker and child share the walker mesh; pack uses a second silhouette. */
+/** Worker and child share a helmeted walker; pack is a four-legged beast. */
 export function getInhabitantSilhouette(slotIndex) {
   if (!Number.isInteger(slotIndex) || slotIndex < 0) {
     throw new Error('Inhabitant silhouette requires a non-negative slot index.');
@@ -511,9 +511,9 @@ export function getInhabitantSilhouette(slotIndex) {
   const Variants = ['worker', 'child', 'pack'];
   const Kind = Variants[slotIndex % 3];
   const Scales = {
-    worker: { x: 1.06, y: 1.16, z: 1.04 },
-    child: { x: 0.7, y: 0.64, z: 0.7 },
-    pack: { x: 1.22, y: 0.9, z: 1.38 },
+    worker: { x: 1.28, y: 1.36, z: 1.22 },
+    child: { x: 0.88, y: 0.82, z: 0.86 },
+    pack: { x: 1.48, y: 1.12, z: 1.72 },
   };
   return { kind: Kind, scale: Scales[Kind] };
 }

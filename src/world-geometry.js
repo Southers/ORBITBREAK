@@ -168,6 +168,107 @@ export function createWorldVisuals(THREE, Scene, {
     return ScatterMesh;
   }
 
+  /** Merges primitive parts so one scatter instance can be a tree, cactus or lantern. */
+  function mergeScatterParts(Parts) {
+    const PositionValues = [];
+    const NormalValues = [];
+    const ColorValues = [];
+    const PartTransform = new THREE.Object3D();
+    const PartColor = new THREE.Color();
+    for (const Part of Parts) {
+      const SourceGeometry = Part.geometry.index
+        ? Part.geometry.toNonIndexed()
+        : Part.geometry.clone();
+      PartTransform.position.set(
+        Part.position?.[0] ?? 0,
+        Part.position?.[1] ?? 0,
+        Part.position?.[2] ?? 0,
+      );
+      PartTransform.rotation.set(0, 0, 0);
+      PartTransform.scale.set(
+        Part.scale?.[0] ?? 1,
+        Part.scale?.[1] ?? 1,
+        Part.scale?.[2] ?? 1,
+      );
+      PartTransform.updateMatrix();
+      SourceGeometry.applyMatrix4(PartTransform.matrix);
+      const Positions = SourceGeometry.getAttribute('position').array;
+      const Normals = SourceGeometry.getAttribute('normal')?.array;
+      PartColor.setHex(Part.color ?? 0xffffff);
+      for (let VertexIndex = 0; VertexIndex < Positions.length / 3; VertexIndex += 1) {
+        PositionValues.push(
+          Positions[VertexIndex * 3],
+          Positions[(VertexIndex * 3) + 1],
+          Positions[(VertexIndex * 3) + 2],
+        );
+        NormalValues.push(
+          Normals ? Normals[VertexIndex * 3] : 0,
+          Normals ? Normals[(VertexIndex * 3) + 1] : 0,
+          Normals ? Normals[(VertexIndex * 3) + 2] : 0,
+        );
+        ColorValues.push(PartColor.r, PartColor.g, PartColor.b);
+      }
+      SourceGeometry.dispose();
+      Part.geometry.dispose();
+    }
+    const MergedGeometry = new THREE.BufferGeometry();
+    MergedGeometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(PositionValues, 3),
+    );
+    MergedGeometry.setAttribute(
+      'normal',
+      new THREE.Float32BufferAttribute(NormalValues, 3),
+    );
+    MergedGeometry.setAttribute(
+      'color',
+      new THREE.Float32BufferAttribute(ColorValues, 3),
+    );
+    MergedGeometry.computeBoundingSphere();
+    return MergedGeometry;
+  }
+
+  function createScatterFloraGeometry(VisualKey) {
+    if (VisualKey === 'meadow' || VisualKey === 'bower') {
+      return mergeScatterParts([
+        { geometry: new THREE.ConeGeometry(0.04, 0.18, 4), position: [-0.04, 0.09, 0], color: 0x7bb85a },
+        { geometry: new THREE.ConeGeometry(0.035, 0.22, 4), position: [0.02, 0.11, 0.02], color: 0x8fd06a },
+        { geometry: new THREE.ConeGeometry(0.03, 0.14, 4), position: [0.05, 0.07, -0.03], color: 0x5e9a48 },
+      ]);
+    }
+    if (VisualKey === 'ember' || VisualKey === 'kiln' || VisualKey === 'lantern' || VisualKey === 'vault') {
+      return mergeScatterParts([
+        { geometry: new THREE.CylinderGeometry(0.045, 0.06, 0.32, 6), position: [0, 0.16, 0], color: 0x4a6a38 },
+        { geometry: new THREE.SphereGeometry(0.055, 6, 5), position: [0, 0.34, 0], color: 0x6f9a48 },
+        { geometry: new THREE.CylinderGeometry(0.028, 0.032, 0.16, 5), position: [0.09, 0.24, 0], color: 0x4a6a38 },
+      ]);
+    }
+    if (VisualKey === 'frost' || VisualKey === 'nest' || VisualKey === 'shard') {
+      return mergeScatterParts([
+        { geometry: new THREE.OctahedronGeometry(0.1, 0), position: [0, 0.18, 0], scale: [0.7, 2.2, 0.7], color: 0xd8f4ff },
+        { geometry: new THREE.OctahedronGeometry(0.06, 0), position: [0.06, 0.11, 0], scale: [0.55, 1.4, 0.55], color: 0xb7e4f2 },
+      ]);
+    }
+    if (VisualKey === 'tide' || VisualKey === 'drift' || VisualKey === 'dew') {
+      return mergeScatterParts([
+        { geometry: new THREE.ConeGeometry(0.032, 0.32, 4), position: [-0.04, 0.16, 0], color: 0x3f8a58 },
+        { geometry: new THREE.ConeGeometry(0.03, 0.4, 4), position: [0.02, 0.2, 0.02], color: 0x4ea05f },
+        { geometry: new THREE.ConeGeometry(0.026, 0.24, 4), position: [0.05, 0.12, -0.03], color: 0x36784c },
+      ]);
+    }
+    return mergeScatterParts([
+      { geometry: new THREE.CylinderGeometry(0.032, 0.048, 0.2, 5), position: [0, 0.1, 0], color: 0x6a4630 },
+      { geometry: new THREE.ConeGeometry(0.16, 0.32, 7), position: [0, 0.32, 0], color: 0x4f9a4a },
+    ]);
+  }
+
+  function createScatterLanternGeometry() {
+    return mergeScatterParts([
+      { geometry: new THREE.CylinderGeometry(0.018, 0.022, 0.12, 5), position: [0, 0.06, 0] },
+      { geometry: new THREE.SphereGeometry(0.045, 7, 6), position: [0, 0.14, 0] },
+    ]);
+  }
+
   /**
    * Dense instanced ground cover for every restorable world: flora sprouts in
    * the world's alive palette plus emissive settlement lights that bloom once
@@ -177,32 +278,34 @@ export function createWorldVisuals(THREE, Scene, {
     const ScatterGroup = new THREE.Group();
     const nextRandomValue = createSeededRandom(`${WorldDefinition.id}-life-scatter`);
     const SurfaceAreaScale = WorldDefinition.radius * WorldDefinition.radius;
-    const FloraCount = Math.round(THREE.MathUtils.clamp(SurfaceAreaScale * 30, 70, 260));
-    const GlowCount = Math.round(THREE.MathUtils.clamp(SurfaceAreaScale * 6, 14, 52));
+    const FloraCount = Math.round(THREE.MathUtils.clamp(SurfaceAreaScale * 6, 16, 42));
+    const GlowCount = Math.round(THREE.MathUtils.clamp(SurfaceAreaScale * 3, 8, 20));
 
-    const FloraGeometry = new THREE.ConeGeometry(0.052, 0.2, 5);
-    FloraGeometry.translate(0, 0.1, 0);
-    const FloraColor = (WorldDefinition.aliveColor ?? DeadWorldColor).clone();
-    FloraColor.offsetHSL(0.03, 0.06, 0.02);
+    const FloraGeometry = createScatterFloraGeometry(WorldDefinition.visualKey);
     const FloraMaterial = new THREE.MeshStandardMaterial({
-      color: FloraColor,
-      roughness: 0.86,
-      metalness: 0.02,
+      color: 0xffffff,
+      roughness: 0.82,
+      metalness: 0.04,
+      vertexColors: true,
     });
     applyScatterRestorationShader(
       FloraMaterial,
       RestorationUniforms,
-      'orbitbreak-life-scatter-flora-v1',
+      'orbitbreak-life-scatter-flora-v2',
     );
+    const IsGroundCover = WorldDefinition.visualKey === 'meadow'
+      || WorldDefinition.visualKey === 'bower'
+      || WorldDefinition.visualKey === 'tide'
+      || WorldDefinition.visualKey === 'drift'
+      || WorldDefinition.visualKey === 'dew';
     ScatterGroup.add(createScatterInstances(FloraGeometry, FloraMaterial, WorldDefinition, {
       count: FloraCount,
       nextRandomValue,
-      minimumScale: 0.65,
-      maximumScale: 1.45,
+      minimumScale: IsGroundCover ? 0.85 : 1.55,
+      maximumScale: IsGroundCover ? 1.45 : 2.4,
     }));
 
-    const GlowGeometry = new THREE.SphereGeometry(0.05, 6, 5);
-    GlowGeometry.translate(0, 0.055, 0);
+    const GlowGeometry = createScatterLanternGeometry();
     const GlowColor = (WorldDefinition.accentColor ?? WorldDefinition.aliveColor
       ?? DeadWorldColor).clone();
     const GlowMaterial = new THREE.MeshStandardMaterial({
@@ -220,8 +323,8 @@ export function createWorldVisuals(THREE, Scene, {
     ScatterGroup.add(createScatterInstances(GlowGeometry, GlowMaterial, WorldDefinition, {
       count: GlowCount,
       nextRandomValue,
-      minimumScale: 0.7,
-      maximumScale: 1.25,
+      minimumScale: 1.05,
+      maximumScale: 1.7,
     }));
 
     return ScatterGroup;
@@ -556,32 +659,50 @@ export function createWorldVisuals(THREE, Scene, {
   /** Creates a compact placeholder prop set for worlds awaiting their authored art pass. */
   function createPlaceholderSurfaceProps(WorldDefinition) {
     const SurfacePropGroup = new THREE.Group();
-    const MarkerGeometry = new THREE.ConeGeometry(0.16, 0.55, 5);
+    const WallColor = WorldDefinition.aliveColor.clone().offsetHSL(0, -0.12, 0.18);
+    const RoofColor = WorldDefinition.accentColor.clone();
+    const LeafColor = WorldDefinition.aliveColor.clone().offsetHSL(0.08, 0.1, 0.04);
 
-    for (let MarkerIndex = 0; MarkerIndex < 9; MarkerIndex += 1) {
-      const MarkerMaterial = new THREE.MeshStandardMaterial({
-        color: WorldDefinition.restored
-          ? WorldDefinition.aliveColor.clone().offsetHSL(0, 0, 0.16)
-          : DarkWorldColor,
-        roughness: 0.92,
-      });
-      const MarkerMesh = new THREE.Mesh(MarkerGeometry, MarkerMaterial);
-      const MarkerAngle = (MarkerIndex / 9) * Math.PI * 2;
-      const MarkerLatitudeOffset = Math.sin(MarkerIndex * 1.7) * 0.42;
+    for (let MarkerIndex = 0; MarkerIndex < 6; MarkerIndex += 1) {
+      const MarkerAngle = (MarkerIndex / 6) * Math.PI * 2;
+      const MarkerLatitudeOffset = Math.sin(MarkerIndex * 1.7) * 0.38;
       const SurfaceDirection = new THREE.Vector3(
         Math.cos(MarkerAngle) * Math.cos(MarkerLatitudeOffset),
         Math.sin(MarkerAngle) * Math.cos(MarkerLatitudeOffset),
         Math.sin(MarkerLatitudeOffset),
       );
-      const MarkerBaseScale = 0.9 + ((MarkerIndex % 3) * 0.2);
-
-      placeSurfaceProp(MarkerMesh, SurfaceDirection, WorldDefinition.radius + 0.22, MarkerBaseScale);
-      registerRestorableMaterial(
-        MarkerMesh,
-        MarkerMaterial,
-        WorldDefinition.aliveColor.clone().offsetHSL(0, 0, 0.16),
-      );
-      SurfacePropGroup.add(MarkerMesh);
+      if (MarkerIndex % 2 === 0) {
+        const House = new THREE.Group();
+        const WallMaterial = new THREE.MeshStandardMaterial({ color: WallColor, roughness: 0.88 });
+        const RoofMaterial = new THREE.MeshStandardMaterial({ color: RoofColor, roughness: 0.8 });
+        const Walls = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.32, 0.36), WallMaterial);
+        Walls.position.y = 0.18;
+        House.add(Walls);
+        const Roof = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.28, 4), RoofMaterial);
+        Roof.position.y = 0.46;
+        Roof.rotation.y = Math.PI * 0.25;
+        House.add(Roof);
+        placeSurfaceProp(House, SurfaceDirection, WorldDefinition.radius, 1.15 + ((MarkerIndex % 3) * 0.12), 0.02);
+        registerRestorableMaterial(House, WallMaterial);
+        registerRestorableMaterial(House, RoofMaterial);
+        House.userData.kind = 'cottage';
+        SurfacePropGroup.add(House);
+      } else {
+        const Tree = new THREE.Group();
+        const TrunkMaterial = new THREE.MeshStandardMaterial({ color: 0x6a4a36, roughness: 0.94 });
+        const LeafMaterial = new THREE.MeshStandardMaterial({ color: LeafColor, roughness: 0.86 });
+        const Trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.34, 5), TrunkMaterial);
+        Trunk.position.y = 0.17;
+        Tree.add(Trunk);
+        const Canopy = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.36, 6), LeafMaterial);
+        Canopy.position.y = 0.46;
+        Tree.add(Canopy);
+        placeSurfaceProp(Tree, SurfaceDirection, WorldDefinition.radius, 1.2, 0.02);
+        registerRestorableMaterial(Tree, TrunkMaterial);
+        registerRestorableMaterial(Tree, LeafMaterial);
+        Tree.userData.kind = 'tree';
+        SurfacePropGroup.add(Tree);
+      }
     }
 
     return SurfacePropGroup;
@@ -1420,25 +1541,45 @@ export function createWorldVisuals(THREE, Scene, {
       roughness: 0.4,
     });
 
-    const Walls = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.56, 0.62), WallMaterial);
-    Walls.position.y = 0.34;
+    const Walls = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.62, 0.72), WallMaterial);
+    Walls.position.y = 0.37;
     Cottage.add(Walls);
 
-    const Roof = new THREE.Mesh(new THREE.ConeGeometry(0.58, 0.48, 4), RoofMaterial);
-    Roof.position.y = 0.84;
+    const Roof = new THREE.Mesh(new THREE.ConeGeometry(0.72, 0.52, 4), RoofMaterial);
+    Roof.position.y = 0.92;
     Roof.rotation.y = Math.PI * 0.25;
     Cottage.add(Roof);
 
-    const Door = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.34, 0.04), DoorMaterial);
-    Door.position.set(0, 0.23, 0.33);
+    const Chimney = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.28, 0.14), DoorMaterial);
+    Chimney.position.set(0.22, 1.02, -0.08);
+    Cottage.add(Chimney);
+
+    const Door = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.38, 0.05), DoorMaterial);
+    Door.position.set(0, 0.24, 0.38);
     Cottage.add(Door);
 
-    const WindowGeometry = new THREE.BoxGeometry(0.16, 0.15, 0.035);
-    for (const WindowX of [-0.23, 0.23]) {
+    const WindowGeometry = new THREE.BoxGeometry(0.2, 0.18, 0.04);
+    const WindowPlacements = [
+      [-0.26, 0.46, 0.385],
+      [0.26, 0.46, 0.385],
+      [-0.26, 0.46, -0.385],
+      [0.26, 0.46, -0.385],
+    ];
+    for (const [WindowX, WindowY, WindowZ] of WindowPlacements) {
       const WindowMesh = new THREE.Mesh(WindowGeometry, WindowMaterial);
-      WindowMesh.position.set(WindowX, 0.42, 0.335);
+      WindowMesh.position.set(WindowX, WindowY, WindowZ);
       Cottage.add(WindowMesh);
     }
+    const SideWindowGeometry = new THREE.BoxGeometry(0.04, 0.18, 0.18);
+    for (const Side of [-1, 1]) {
+      const SideWindow = new THREE.Mesh(SideWindowGeometry, WindowMaterial);
+      SideWindow.position.set(Side * 0.45, 0.46, 0);
+      Cottage.add(SideWindow);
+    }
+
+    const Porch = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.06, 0.18), DoorMaterial);
+    Porch.position.set(0, 0.05, 0.42);
+    Cottage.add(Porch);
 
     placeSurfaceProp(Cottage, SurfaceDirection, WorldDefinition.radius, 1.12, 0.02);
     registerRestorableMaterial(Cottage, WallMaterial);
@@ -1455,21 +1596,16 @@ export function createWorldVisuals(THREE, Scene, {
     const Tree = new THREE.Group();
     const TrunkMaterial = new THREE.MeshStandardMaterial({ color: 0x765139, roughness: 0.96 });
     const LeafMaterial = new THREE.MeshStandardMaterial({ color: 0x76b85d, roughness: 0.88 });
-    const Trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.11, 0.58, 6), TrunkMaterial);
-    Trunk.position.y = 0.29;
+    const Trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.72, 6), TrunkMaterial);
+    Trunk.position.y = 0.36;
     Tree.add(Trunk);
 
-    const CanopyGeometry = new THREE.IcosahedronGeometry(0.32, 1);
-    const CanopyPositions = [
-      new THREE.Vector3(0, 0.69, 0),
-      new THREE.Vector3(-0.18, 0.61, 0.04),
-      new THREE.Vector3(0.17, 0.62, -0.03),
-    ];
-    for (const CanopyPosition of CanopyPositions) {
-      const Canopy = new THREE.Mesh(CanopyGeometry, LeafMaterial);
-      Canopy.position.copy(CanopyPosition);
-      Tree.add(Canopy);
-    }
+    const LowerCanopy = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.48, 7), LeafMaterial);
+    LowerCanopy.position.y = 0.78;
+    Tree.add(LowerCanopy);
+    const UpperCanopy = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.36, 7), LeafMaterial);
+    UpperCanopy.position.y = 1.08;
+    Tree.add(UpperCanopy);
 
     placeSurfaceProp(Tree, SurfaceDirection, WorldDefinition.radius, Scale, 0.02);
     registerRestorableMaterial(Tree, TrunkMaterial);

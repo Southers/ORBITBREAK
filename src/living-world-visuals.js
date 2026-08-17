@@ -57,7 +57,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   const SurfaceUp = new THREE.Vector3(0, 1, 0);
   const SurfaceNormal = new THREE.Vector3();
 
-  function applySphereInstance(Transform, Placement, ScaleX, ScaleY, ScaleZ) {
+  function applySphereInstance(Transform, Placement, ScaleX, ScaleY, ScaleZ, YawRadians = 0) {
     SurfaceNormal.set(Placement.directionX, Placement.directionY, Placement.directionZ);
     if (SurfaceNormal.lengthSq() < 1e-8) {
       SurfaceNormal.set(0, 0, 1);
@@ -66,8 +66,148 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     }
     Transform.position.set(Placement.x, Placement.y, Placement.z);
     Transform.quaternion.setFromUnitVectors(SurfaceUp, SurfaceNormal);
+    if (YawRadians !== 0) {
+      Transform.rotateY(YawRadians);
+    }
     Transform.scale.set(ScaleX, ScaleY, ScaleZ);
     Transform.updateMatrix();
+  }
+
+  /**
+   * Merges primitive parts into one instanced silhouette. Keeps draw count
+   * unchanged while giving people and buildings readable toy shapes.
+   */
+  function mergePrimitiveParts(Parts) {
+    const PositionValues = [];
+    const NormalValues = [];
+    const ColorValues = [];
+    const PartTransform = new THREE.Object3D();
+    const PartColor = new THREE.Color();
+    for (const Part of Parts) {
+      const SourceGeometry = Part.geometry.index
+        ? Part.geometry.toNonIndexed()
+        : Part.geometry.clone();
+      PartTransform.position.set(
+        Part.position?.[0] ?? 0,
+        Part.position?.[1] ?? 0,
+        Part.position?.[2] ?? 0,
+      );
+      PartTransform.rotation.set(
+        Part.rotation?.[0] ?? 0,
+        Part.rotation?.[1] ?? 0,
+        Part.rotation?.[2] ?? 0,
+      );
+      PartTransform.scale.set(
+        Part.scale?.[0] ?? 1,
+        Part.scale?.[1] ?? 1,
+        Part.scale?.[2] ?? 1,
+      );
+      PartTransform.updateMatrix();
+      SourceGeometry.applyMatrix4(PartTransform.matrix);
+      const Positions = SourceGeometry.getAttribute('position').array;
+      const Normals = SourceGeometry.getAttribute('normal')?.array;
+      PartColor.setHex(Part.color ?? 0xffffff);
+      for (let VertexIndex = 0; VertexIndex < Positions.length / 3; VertexIndex += 1) {
+        PositionValues.push(
+          Positions[VertexIndex * 3],
+          Positions[(VertexIndex * 3) + 1],
+          Positions[(VertexIndex * 3) + 2],
+        );
+        NormalValues.push(
+          Normals ? Normals[VertexIndex * 3] : 0,
+          Normals ? Normals[(VertexIndex * 3) + 1] : 0,
+          Normals ? Normals[(VertexIndex * 3) + 2] : 0,
+        );
+        ColorValues.push(PartColor.r, PartColor.g, PartColor.b);
+      }
+      SourceGeometry.dispose();
+      Part.geometry.dispose();
+    }
+    const MergedGeometry = new THREE.BufferGeometry();
+    MergedGeometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(PositionValues, 3),
+    );
+    MergedGeometry.setAttribute(
+      'normal',
+      new THREE.Float32BufferAttribute(NormalValues, 3),
+    );
+    MergedGeometry.setAttribute(
+      'color',
+      new THREE.Float32BufferAttribute(ColorValues, 3),
+    );
+    MergedGeometry.computeBoundingSphere();
+    return MergedGeometry;
+  }
+
+  /** Helmeted toy person: head, visor, torso, backpack, arms and legs. */
+  function createWalkerPersonGeometry() {
+    return mergePrimitiveParts([
+      { geometry: new THREE.CylinderGeometry(0.06, 0.07, 0.26, 6), position: [-0.09, 0.13, 0], color: 0xd7e6ea },
+      { geometry: new THREE.CylinderGeometry(0.06, 0.07, 0.26, 6), position: [0.09, 0.13, 0], color: 0xd7e6ea },
+      { geometry: new THREE.BoxGeometry(0.28, 0.3, 0.2), position: [0, 0.4, 0], color: 0xeef6f8 },
+      { geometry: new THREE.BoxGeometry(0.2, 0.18, 0.1), position: [0, 0.42, -0.14], color: 0x1d3c4a },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.055, 0.24, 6), position: [-0.2, 0.38, 0], rotation: [0, 0, 0.42], color: 0xd7e6ea },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.055, 0.24, 6), position: [0.2, 0.38, 0], rotation: [0, 0, -0.42], color: 0xd7e6ea },
+      { geometry: new THREE.SphereGeometry(0.16, 10, 8), position: [0, 0.68, 0], color: 0xf4fbff },
+      { geometry: new THREE.SphereGeometry(0.11, 8, 6), position: [0, 0.67, 0.12], scale: [1, 0.7, 0.4], color: 0xffb45a },
+    ]);
+  }
+
+  /** Four-legged pack beast with a saddle load so the second silhouette is an animal. */
+  function createPackBeastGeometry() {
+    return mergePrimitiveParts([
+      { geometry: new THREE.SphereGeometry(0.16, 8, 6), position: [0, 0.22, 0], scale: [0.85, 0.72, 1.45], color: 0xc48a58 },
+      { geometry: new THREE.CylinderGeometry(0.035, 0.045, 0.2, 5), position: [-0.08, 0.1, 0.12], color: 0x8a5a38 },
+      { geometry: new THREE.CylinderGeometry(0.035, 0.045, 0.2, 5), position: [0.08, 0.1, 0.12], color: 0x8a5a38 },
+      { geometry: new THREE.CylinderGeometry(0.035, 0.045, 0.2, 5), position: [-0.08, 0.1, -0.12], color: 0x8a5a38 },
+      { geometry: new THREE.CylinderGeometry(0.035, 0.045, 0.2, 5), position: [0.08, 0.1, -0.12], color: 0x8a5a38 },
+      { geometry: new THREE.SphereGeometry(0.09, 8, 6), position: [0, 0.3, 0.22], color: 0xd4a06a },
+      { geometry: new THREE.ConeGeometry(0.04, 0.1, 4), position: [-0.05, 0.4, 0.22], color: 0xc48a58 },
+      { geometry: new THREE.ConeGeometry(0.04, 0.1, 4), position: [0.05, 0.4, 0.22], color: 0xc48a58 },
+      { geometry: new THREE.BoxGeometry(0.16, 0.12, 0.14), position: [0, 0.36, -0.02], color: 0x3d5c48 },
+    ]);
+  }
+
+  /** Cottage: walls, pitched roof, chimney and a door that reads from orbit. */
+  function createCottageBuildingGeometry() {
+    return mergePrimitiveParts([
+      { geometry: new THREE.BoxGeometry(0.72, 0.42, 0.58), position: [0, 0.21, 0] },
+      { geometry: new THREE.ConeGeometry(0.58, 0.38, 4), position: [0, 0.58, 0], rotation: [0, Math.PI * 0.25, 0] },
+      { geometry: new THREE.BoxGeometry(0.12, 0.22, 0.12), position: [0.18, 0.7, -0.08] },
+      { geometry: new THREE.BoxGeometry(0.16, 0.26, 0.05), position: [0, 0.16, 0.3] },
+    ]);
+  }
+
+  /** Furnace: kiln body, stack and a mouth so workshops read as industry. */
+  function createFurnaceBuildingGeometry() {
+    return mergePrimitiveParts([
+      { geometry: new THREE.CylinderGeometry(0.22, 0.26, 0.38, 8), position: [0, 0.19, 0] },
+      { geometry: new THREE.CylinderGeometry(0.1, 0.12, 0.52, 6), position: [0, 0.62, 0] },
+      { geometry: new THREE.BoxGeometry(0.16, 0.14, 0.08), position: [0, 0.18, 0.24] },
+      { geometry: new THREE.BoxGeometry(0.36, 0.08, 0.36), position: [0, 0.04, 0] },
+    ]);
+  }
+
+  /** Canopy hall: trunk plus two leaf masses, a tree-building not a lathe blob. */
+  function createCanopyBuildingGeometry() {
+    return mergePrimitiveParts([
+      { geometry: new THREE.CylinderGeometry(0.08, 0.11, 0.36, 6), position: [0, 0.18, 0] },
+      { geometry: new THREE.SphereGeometry(0.28, 8, 6), position: [0, 0.42, 0] },
+      { geometry: new THREE.ConeGeometry(0.32, 0.34, 6), position: [0, 0.68, 0] },
+    ]);
+  }
+
+  /** Jetty: deck, pilings and a bollard so docks read as harbour, not a plank. */
+  function createJettyBuildingGeometry() {
+    return mergePrimitiveParts([
+      { geometry: new THREE.BoxGeometry(1.42, 0.1, 0.48), position: [0, 0.16, 0] },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, 0.16] },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, 0.16] },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, -0.16] },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, -0.16] },
+      { geometry: new THREE.CylinderGeometry(0.04, 0.05, 0.16, 6), position: [0.48, 0.26, 0] },
+    ]);
   }
 
   function hideInstance(Transform, Mesh, InstanceIndex) {
@@ -585,30 +725,10 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   }
 
   const ProsperityBuildingGeometries = {
-    cottage: new THREE.LatheGeometry([
-      new THREE.Vector2(0.18, 0),
-      new THREE.Vector2(0.22, 0.16),
-      new THREE.Vector2(0.08, 0.2),
-      new THREE.Vector2(0.26, 0.24),
-      new THREE.Vector2(0.04, 0.42),
-    ], 6),
-    furnace: new THREE.LatheGeometry([
-      new THREE.Vector2(0.12, 0),
-      new THREE.Vector2(0.16, 0.08),
-      new THREE.Vector2(0.1, 0.14),
-      new THREE.Vector2(0.14, 0.2),
-      new THREE.Vector2(0.07, 0.58),
-      new THREE.Vector2(0.12, 0.66),
-      new THREE.Vector2(0.04, 0.82),
-    ], 6),
-    canopy: new THREE.LatheGeometry([
-      new THREE.Vector2(0.07, 0),
-      new THREE.Vector2(0.09, 0.14),
-      new THREE.Vector2(0.3, 0.2),
-      new THREE.Vector2(0.34, 0.3),
-      new THREE.Vector2(0.04, 0.34),
-    ], 6),
-    jetty: new THREE.BoxGeometry(1.42, 0.2, 0.52),
+    cottage: createCottageBuildingGeometry(),
+    furnace: createFurnaceBuildingGeometry(),
+    canopy: createCanopyBuildingGeometry(),
+    jetty: createJettyBuildingGeometry(),
   };
   const ProsperityBuildingMaterial = new THREE.MeshStandardMaterial({
     color: 0xc9a078,
@@ -632,6 +752,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     FamilyMesh.count = FamilyCount;
     FamilyMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     FamilyMesh.frustumCulled = false;
+    FamilyMesh.castShadow = true;
     Scene.add(FamilyMesh);
     return FamilyMesh;
   }
@@ -916,7 +1037,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   }
 
 
-  /** Walkers and packs share two draws: guards and prisoners on tyrant worlds, free people once isolated or living. */
+  /** Walkers and packs share two draws: helmeted people and pack beasts. */
   const InhabitantProfiles = {
     meadow: { speed: 0.42, stride: 0.11 },
     ember: { speed: 0.72, stride: 0.075 },
@@ -980,24 +1101,8 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     vertexColors: true,
     toneMapped: false,
   });
-  const InhabitantGeometry = new THREE.LatheGeometry([
-    new THREE.Vector2(0.025, -0.22),
-    new THREE.Vector2(0.085, -0.17),
-    new THREE.Vector2(0.09, 0.1),
-    new THREE.Vector2(0.05, 0.16),
-    new THREE.Vector2(0.075, 0.2),
-    new THREE.Vector2(0.105, 0.27),
-    new THREE.Vector2(0.08, 0.34),
-    new THREE.Vector2(0.02, 0.38),
-  ], 6);
-  const InhabitantPackGeometry = new THREE.LatheGeometry([
-    new THREE.Vector2(0.04, -0.16),
-    new THREE.Vector2(0.14, -0.12),
-    new THREE.Vector2(0.16, 0.02),
-    new THREE.Vector2(0.09, 0.08),
-    new THREE.Vector2(0.12, 0.14),
-    new THREE.Vector2(0.04, 0.2),
-  ], 6);
+  const InhabitantGeometry = createWalkerPersonGeometry();
+  const InhabitantPackGeometry = createPackBeastGeometry();
   function createInhabitantFamilyMesh(Geometry, FamilyCount) {
     const FamilyMesh = new THREE.InstancedMesh(
       Geometry,
@@ -1007,6 +1112,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     FamilyMesh.count = FamilyCount;
     FamilyMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     FamilyMesh.frustumCulled = false;
+    FamilyMesh.castShadow = true;
     Scene.add(FamilyMesh);
     return FamilyMesh;
   }
@@ -1108,19 +1214,22 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       const HeightScale = THREE.MathUtils.lerp(HeldHeight, 1, Freedom) * BobScale;
       const Silhouette = getInhabitantSilhouette(Inhabitant.slotIndex);
       const SilhouetteMix = Freedom;
+      const FacingYaw = Inhabitant.phase + (WalkingOffset * 14);
       applySphereInstance(
         InhabitantTransform,
-        getWorldLifePlacement(Inhabitant.worldDefinition, SurfaceSite, 0.16),
+        getWorldLifePlacement(Inhabitant.worldDefinition, SurfaceSite, 0.02),
         Presence * THREE.MathUtils.lerp(1, Silhouette.scale.x, SilhouetteMix),
         Presence * HeightScale * THREE.MathUtils.lerp(1, Silhouette.scale.y, SilhouetteMix),
         Presence * THREE.MathUtils.lerp(1, Silhouette.scale.z, SilhouetteMix),
+        FacingYaw,
       );
       FamilyMesh.setMatrixAt(Inhabitant.familyIndex, InhabitantTransform.matrix);
-      InhabitantFreeColor.set(Inhabitant.worldDefinition.restoration.waveColor);
+      InhabitantFreeColor.setHex(0xffffff);
+      InhabitantFreeColor.lerp(Inhabitant.worldDefinition.restoration.waveColor, 0.22);
       if (Silhouette.kind === 'child') {
-        InhabitantFreeColor.lerp(InhabitantChildTintColor, 0.18);
+        InhabitantFreeColor.lerp(InhabitantChildTintColor, 0.08);
       } else if (Silhouette.kind === 'pack') {
-        InhabitantFreeColor.offsetHSL(0.04, 0.08, -0.08);
+        InhabitantFreeColor.offsetHSL(0.03, 0.06, -0.04);
       }
       const HeldColor = IsGuard ? InhabitantGuardColor : InhabitantPrisonerColor;
       FamilyMesh.setColorAt(
