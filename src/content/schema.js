@@ -388,6 +388,18 @@ export function validateAuthoredSystemDefinition(SystemDefinition) {
     ) {
       Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} has invalid hostile encounter data.`);
     }
+    if (WorldDefinition.relayPort !== undefined) {
+      const PortDefinition = WorldDefinition.relayPort;
+      if (
+        !PortDefinition
+        || !Number.isFinite(PortDefinition.angleRadians)
+        || !Number.isFinite(PortDefinition.halfWidthRadians)
+        || PortDefinition.halfWidthRadians <= 0
+        || PortDefinition.halfWidthRadians > Math.PI / 2
+      ) {
+        Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} has an invalid relay port arc.`);
+      }
+    }
     const RestorationDefinition = WorldDefinition.restoration;
     if (!RestorationDefinition || !isColorValue(RestorationDefinition.waveColor)) {
       Errors.push(`World ${WorldDefinition.id ?? '<unknown>'} requires restoration colour data.`);

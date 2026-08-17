@@ -82,6 +82,9 @@ export function createAuthoredSystemRuntime(
         clampOffsetsRadians: [...WorldDefinition.hostileEncounter.clampOffsetsRadians],
       }
       : undefined,
+    relayPort: WorldDefinition.relayPort
+      ? { ...WorldDefinition.relayPort }
+      : undefined,
     restored: WorldDefinition.initiallyRestored === true,
     isStartingWorld: WorldDefinition.id === SystemDefinition.startingWorldIdentifier,
     restoration: {

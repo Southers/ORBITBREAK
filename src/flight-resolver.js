@@ -48,6 +48,9 @@ import {
 import {
   DefaultLiberationValue,
   LaunchClearancePadding,
+  RelayPortBullseyeBonus,
+  RelayPortBullseyeFraction,
+  RelayPortCleanBonus,
   RunnerRadius,
   StardustCollectionRadiusSquared,
   SurfaceRestLift,
@@ -68,6 +71,49 @@ export function calculateSurfaceRestPosition(BodyDefinition, ImpactPosition, Bod
     BodyPosition.y + ((DifferenceY / Distance) * SurfaceDistance),
     0,
   );
+}
+
+/**
+ * Grades a landing against a world's authored relay-port arc.
+ *
+ * Worlds without an authored port keep land-anywhere liberation. Inside the
+ * arc, the inner third grades BULLSEYE for a larger deterministic bonus.
+ * Shared by live play, prediction feedback and replay validation.
+ */
+export function evaluateRelayPortLanding(WorldDefinition, RestPosition, WorldPosition) {
+  const Port = WorldDefinition.relayPort;
+  if (!Port) {
+    return {
+      hasPort: false,
+      insidePort: true,
+      precisionTier: null,
+      precisionBonus: 0,
+      angularErrorRadians: 0,
+    };
+  }
+  const LandingAngle = Math.atan2(
+    RestPosition.y - WorldPosition.y,
+    RestPosition.x - WorldPosition.x,
+  );
+  const RawDelta = LandingAngle - Port.angleRadians;
+  const AngularError = Math.abs(Math.atan2(Math.sin(RawDelta), Math.cos(RawDelta)));
+  if (AngularError > Port.halfWidthRadians) {
+    return {
+      hasPort: true,
+      insidePort: false,
+      precisionTier: null,
+      precisionBonus: 0,
+      angularErrorRadians: AngularError,
+    };
+  }
+  const IsBullseye = AngularError <= Port.halfWidthRadians * RelayPortBullseyeFraction;
+  return {
+    hasPort: true,
+    insidePort: true,
+    precisionTier: IsBullseye ? 'bullseye' : 'clean',
+    precisionBonus: IsBullseye ? RelayPortBullseyeBonus : RelayPortCleanBonus,
+    angularErrorRadians: AngularError,
+  };
 }
 
 /** Places the Runner on the starting world's opening-guide bearing. */
@@ -257,7 +303,13 @@ export function settleFailedFlight({
   };
 }
 
-/** Lands on a restorable world, banks the shot and maybe closes a relay circuit. */
+/**
+ * Lands on a restorable world, banks the shot and maybe closes a relay circuit.
+ *
+ * A landing always docks safely and links the relay, but a world with an
+ * authored relay-port arc only liberates (or re-liberates after suppression)
+ * when the Runner rests inside the arc; the Warden still advances either way.
+ */
 export function settleWorldLanding({
   runtime,
   networkState,
@@ -277,12 +329,16 @@ export function settleWorldLanding({
       world.id,
     )
     : null;
-  world.restored = true;
   const Position = calculateSurfaceRestPosition(world, impactPosition, world.position);
+  const PortLanding = evaluateRelayPortLanding(world, Position, world.position);
+  const Liberated = !WasRestored && PortLanding.insidePort;
+  if (Liberated) {
+    world.restored = true;
+  }
   bankFlightScore(scoreState, {
-    landingBonus: WasRestored || WasSuppressed
+    landingBonus: !Liberated || WasSuppressed
       ? 0
-      : (world.liberationValue ?? DefaultLiberationValue),
+      : (world.liberationValue ?? DefaultLiberationValue) + PortLanding.precisionBonus,
   });
   if (RelayConnection?.circuitClosed) {
     addCircuitBonus(scoreState, runtime.circuitBonusValue);
@@ -295,6 +351,9 @@ export function settleWorldLanding({
     relayConnection: RelayConnection,
     wasRestored: WasRestored,
     wasSuppressed: WasSuppressed,
+    liberated: Liberated,
+    dockedOutsidePort: !WasRestored && !PortLanding.insidePort,
+    portLanding: PortLanding,
   };
 }
 

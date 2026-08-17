@@ -161,6 +161,97 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   GravityWellMesh.visible = false;
   Scene.add(GravityWellMesh);
 
+  // Beacon-lit relay-port arcs: landing lights along each unliberated world's
+  // authored port band, with a pulsing beacon at the arc centre. Landing inside
+  // liberates; the brighter inner third grades BULLSEYE.
+  const RelayPortWorlds = WorldDefinitions.filter(
+    (WorldDefinition) => WorldDefinition.relayPort,
+  );
+  const RelayPortDotsPerWorld = 15;
+  const RelayPortDotMesh = new THREE.InstancedMesh(
+    new THREE.CircleGeometry(0.085, 10),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+    }),
+    Math.max(1, RelayPortWorlds.length * RelayPortDotsPerWorld),
+  );
+  const RelayPortBeaconMesh = new THREE.InstancedMesh(
+    new THREE.CircleGeometry(0.2, 14),
+    new THREE.MeshBasicMaterial({
+      color: 0xffd27a,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+    }),
+    Math.max(1, RelayPortWorlds.length),
+  );
+  const RelayPortTransform = new THREE.Object3D();
+  const RelayPortDotColor = new THREE.Color();
+  RelayPortDotMesh.frustumCulled = false;
+  RelayPortBeaconMesh.frustumCulled = false;
+  RelayPortDotMesh.renderOrder = 10;
+  RelayPortBeaconMesh.renderOrder = 11;
+  RelayPortDotMesh.visible = RelayPortWorlds.length > 0;
+  RelayPortBeaconMesh.visible = RelayPortWorlds.length > 0;
+  Scene.add(RelayPortDotMesh);
+  Scene.add(RelayPortBeaconMesh);
+
+  function updateRelayPortVisuals(ElapsedTimeSeconds) {
+    if (RelayPortWorlds.length === 0) {
+      return;
+    }
+    const Pulse = host.PrefersReducedMotion
+      ? 1
+      : 1 + (Math.sin(ElapsedTimeSeconds * 3.1) * 0.18);
+    for (let PortIndex = 0; PortIndex < RelayPortWorlds.length; PortIndex += 1) {
+      const WorldDefinition = RelayPortWorlds[PortIndex];
+      const Port = WorldDefinition.relayPort;
+      const IsTarget = !WorldDefinition.restored;
+      const ArcRadius = WorldDefinition.radius + 0.24;
+      for (let DotIndex = 0; DotIndex < RelayPortDotsPerWorld; DotIndex += 1) {
+        const InstanceIndex = (PortIndex * RelayPortDotsPerWorld) + DotIndex;
+        if (!IsTarget) {
+          hideInstance(RelayPortTransform, RelayPortDotMesh, InstanceIndex);
+          continue;
+        }
+        const ArcFraction = (DotIndex / (RelayPortDotsPerWorld - 1)) * 2 - 1;
+        const DotAngle = Port.angleRadians + (ArcFraction * Port.halfWidthRadians);
+        RelayPortTransform.position.set(
+          WorldDefinition.position.x + (Math.cos(DotAngle) * ArcRadius),
+          WorldDefinition.position.y + (Math.sin(DotAngle) * ArcRadius),
+          0.12,
+        );
+        RelayPortTransform.rotation.set(0, 0, 0);
+        RelayPortTransform.quaternion.identity();
+        RelayPortTransform.scale.setScalar(Math.abs(ArcFraction) <= 1 / 3 ? 0.95 : 0.7);
+        RelayPortTransform.updateMatrix();
+        RelayPortDotMesh.setMatrixAt(InstanceIndex, RelayPortTransform.matrix);
+        RelayPortDotColor.setHex(Math.abs(ArcFraction) <= 1 / 3 ? 0xffedbe : 0xd9a94f);
+        RelayPortDotMesh.setColorAt(InstanceIndex, RelayPortDotColor);
+      }
+      if (!IsTarget) {
+        hideInstance(RelayPortTransform, RelayPortBeaconMesh, PortIndex);
+        continue;
+      }
+      RelayPortTransform.position.set(
+        WorldDefinition.position.x + (Math.cos(Port.angleRadians) * (ArcRadius + 0.18)),
+        WorldDefinition.position.y + (Math.sin(Port.angleRadians) * (ArcRadius + 0.18)),
+        0.13,
+      );
+      RelayPortTransform.rotation.set(0, 0, 0);
+      RelayPortTransform.quaternion.identity();
+      RelayPortTransform.scale.setScalar(Pulse);
+      RelayPortTransform.updateMatrix();
+      RelayPortBeaconMesh.setMatrixAt(PortIndex, RelayPortTransform.matrix);
+    }
+    RelayPortDotMesh.instanceMatrix.needsUpdate = true;
+    RelayPortBeaconMesh.instanceMatrix.needsUpdate = true;
+    if (RelayPortDotMesh.instanceColor) RelayPortDotMesh.instanceColor.needsUpdate = true;
+  }
+
   function updateSlingshotBandVisuals(ElapsedTimeSeconds) {
     const {
       IsPointerAiming,
@@ -1377,10 +1468,12 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     updateInhabitantVisuals(ElapsedTimeSeconds);
     updateRelayNetworkVisuals(ElapsedTimeSeconds);
     updateSlingshotBandVisuals(ElapsedTimeSeconds);
+    updateRelayPortVisuals(ElapsedTimeSeconds);
   }
 
   return {
     updateSlingshotBandVisuals,
+    updateRelayPortVisuals,
     updateOccupationScarVisuals,
     updateExtractionFreighterVisuals,
     refreshDockedTradeState,

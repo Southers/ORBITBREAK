@@ -110,7 +110,7 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.equal(SpindleDefinition.visualKey, 'loom');
   assert.equal(QuarryDefinition.visualKey, 'kiln');
   assert.equal(MirageDefinition.visualKey, 'shard');
-  assert.equal(BreakerReachSystemDefinition.contentVersion, 'breaker-reach-8');
+  assert.equal(BreakerReachSystemDefinition.contentVersion, 'breaker-reach-9');
   assert.equal(BreakerReachSystemDefinition.launchBudget, 10);
   assert.deepEqual(
     BreakerReachSystemDefinition.routeSuggestions.meadow,

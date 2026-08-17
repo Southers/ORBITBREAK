@@ -3,7 +3,7 @@ import { FirstLightSystemDefinition } from './first-light.js';
 /** ORBITBREAK's first score-attack arena, spanning several camera views. */
 export const BreakerReachSystemDefinition = {
   id: 'breaker-reach',
-  contentVersion: 'breaker-reach-8',
+  contentVersion: 'breaker-reach-9',
   label: "BREAKER'S REACH",
   launchBudget: 10,
   circuitBonusValue: 1250,
@@ -415,6 +415,7 @@ export const BreakerReachSystemDefinition = {
     {
       ...FirstLightSystemDefinition.worlds[0],
       label: 'HAVEN', position: { x: -22, y: -8, z: 0 }, gravitationalParameter: 240,
+      relayPort: { angleRadians: -0.34, halfWidthRadians: 1 },
       occupationScarAngles: [-0.34, 2.8, 1.2],
       occupationSites: [
         { longitude: -0.34, latitude: 0.16 },
@@ -426,6 +427,7 @@ export const BreakerReachSystemDefinition = {
     {
       ...FirstLightSystemDefinition.worlds[1],
       position: { x: -8, y: -13, z: 0 }, radius: 3.2, gravitationalParameter: 340,
+      relayPort: { angleRadians: 2.8, halfWidthRadians: 1 },
       occupationScarAngles: [2.8, 0.57, -1.85, 1.5],
       occupationSites: [
         { longitude: 2.8, latitude: 0.14 },
@@ -443,6 +445,7 @@ export const BreakerReachSystemDefinition = {
     {
       ...FirstLightSystemDefinition.worlds[2],
       position: { x: 6, y: -4, z: 0 }, radius: 2.5, gravitationalParameter: 240,
+      relayPort: { angleRadians: -2.57, halfWidthRadians: 0.9 },
       occupationScarAngles: [-2.57, 0.62, -0.9],
       occupationSites: [
         { longitude: -2.57, latitude: 0.18 },
@@ -454,6 +457,7 @@ export const BreakerReachSystemDefinition = {
     {
       ...FirstLightSystemDefinition.worlds[4],
       position: { x: 24, y: 4, z: 0 }, radius: 2.8, gravitationalParameter: 260,
+      relayPort: { angleRadians: 1.47, halfWidthRadians: 0.8 },
       occupationScarAngles: [1.18, 1.37, 1.56, 1.75],
       occupationSites: [
         { longitude: 1.18, latitude: 0.18 },
@@ -467,6 +471,7 @@ export const BreakerReachSystemDefinition = {
       ...FirstLightSystemDefinition.worlds[3],
       position: { x: -8, y: 11, z: 0 }, radius: 4.2, gravitationalParameter: 320,
       slingshotValue: 1000, liberationValue: 1400,
+      relayPort: { angleRadians: -1.9, halfWidthRadians: 0.85 },
       occupationScarAngles: [-2.08, -1.9, -1.72],
       occupationSites: [
         { longitude: -2.08, latitude: 0.18 },
@@ -481,6 +486,7 @@ export const BreakerReachSystemDefinition = {
       slingshotValue: 650, liberationValue: 1500,
       aliveColor: 0x746fa8, atmosphereColor: 0xb7b7ff, accentColor: 0xf2c1ff,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true,
+      relayPort: { angleRadians: 0.28, halfWidthRadians: 0.75 },
       occupationScarAngles: [0.08, 0.28, 0.48],
       occupationSites: [
         { longitude: 0.08, latitude: 0.18 },
@@ -506,6 +512,7 @@ export const BreakerReachSystemDefinition = {
       slingshotValue: 550, liberationValue: 1200,
       aliveColor: 0x789a7c, atmosphereColor: 0xb9e2c5, accentColor: 0xcfe89a,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
+      relayPort: { angleRadians: -0.38, halfWidthRadians: 0.75 },
       occupationScarAngles: [2.05, 2.28, 2.51],
       occupationSites: [
         { longitude: 2.05, latitude: 0.18 },
@@ -525,6 +532,7 @@ export const BreakerReachSystemDefinition = {
       slingshotValue: 700, liberationValue: 1300,
       aliveColor: 0xb76545, atmosphereColor: 0xffad72, accentColor: 0xffcf76,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
+      relayPort: { angleRadians: 1.79, halfWidthRadians: 0.75 },
       occupationScarAngles: [-1.15, -0.92, -0.69],
       occupationSites: [
         { longitude: -1.15, latitude: 0.18 },
@@ -544,6 +552,7 @@ export const BreakerReachSystemDefinition = {
       slingshotValue: 900, liberationValue: 1600,
       aliveColor: 0x7085a8, atmosphereColor: 0xb9cdf9, accentColor: 0xd8e5ff,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
+      relayPort: { angleRadians: -2.5, halfWidthRadians: 0.75 },
       occupationScarAngles: [0.72, 0.94, 1.16, 1.38],
       occupationSites: [
         { longitude: 0.72, latitude: 0.18 },

@@ -34,7 +34,9 @@ import { createWardenPursuitState } from '../src/warden.js';
 import {
   advanceSimulatedFlightStep,
   applyFlightBreakerBurn,
+  calculateSurfaceRestPosition,
   createStartingPosition,
+  evaluateRelayPortLanding,
   getActiveTacticalBodies,
   resolveWardenAfterNonCommandFlight,
   settleCommandLanding,
@@ -142,6 +144,7 @@ function searchLeg({
   launchStepIndex,
   burnFlightSteps = [null],
   maximumSolutions = 24,
+  requirePortLanding = false,
 }) {
   const Origin = worlds.find((World) => World.id === originIdentifier);
   const SurfaceDistance = Origin.radius + RunnerRadius + SurfaceRestLift;
@@ -178,6 +181,23 @@ function searchLeg({
           if (Outcome.identifier !== targetIdentifier || Outcome.kind === 'trap') {
             continue;
           }
+          const TargetWorld = worlds.find((World) => World.id === targetIdentifier);
+          let PortLanding = null;
+          if (TargetWorld && Outcome.kind === 'world') {
+            const RestPosition = calculateSurfaceRestPosition(
+              TargetWorld,
+              Outcome.points[Outcome.points.length - 1],
+              TargetWorld.position,
+            );
+            PortLanding = evaluateRelayPortLanding(
+              TargetWorld,
+              RestPosition,
+              TargetWorld.position,
+            );
+            if (requirePortLanding && !PortLanding.insidePort) {
+              continue;
+            }
+          }
           const AssistEvents = predictSlingshotEvents(Outcome.points, worlds, {
             runnerRadius: RunnerRadius,
             ignoredBodyIdentifier: originIdentifier,
@@ -189,6 +209,8 @@ function searchLeg({
             speedFraction: SpeedFraction,
             burnFlightStep: BurnFlightStep,
             steps: Outcome.steps,
+            portTier: PortLanding?.precisionTier ?? null,
+            insidePort: PortLanding?.insidePort ?? null,
             assistPoints: AssistEvents.reduce((Total, Event) => Total + Event.points, 0),
             assistBodies: AssistEvents.map((Event) => `${Event.bodyIdentifier}:${Event.tier}`),
           });
@@ -373,6 +395,7 @@ function solveRoute(SectorIdentifier, RouteLegs, { verbose = true } = {}) {
       targetIdentifier: Leg.target,
       launchStepIndex: LaunchStepIndex,
       burnFlightSteps: Leg.burn ? [30, 60, 96, 150, 210] : [null],
+      requirePortLanding: Leg.liberate === true,
     });
     if (Solutions.length === 0) {
       throw new Error(`No launch found for ${State.currentNodeIdentifier} -> ${Leg.target}.`);
@@ -386,6 +409,7 @@ function solveRoute(SectorIdentifier, RouteLegs, { verbose = true } = {}) {
         + ` steps ${String(Solution.steps).padStart(5)}`
         + (Solution.burnFlightStep ? ` burn@${Solution.burnFlightStep}` : '')
         + (Result.circuitClosed ? ' CIRCUIT' : '')
+        + (Solution.portTier ? ` port:${Solution.portTier}` : '')
         + (Solution.assistBodies.length > 0 ? ` assists ${Solution.assistBodies.join(',')}` : ''),
       );
     }
@@ -415,6 +439,7 @@ function probe(SectorIdentifier, OriginIdentifier, TargetIdentifier, WithBurn) {
       + ` speed ${(Solution.speedFraction * MaximumLaunchSpeed).toFixed(2).padStart(6)}`
       + ` steps ${String(Solution.steps).padStart(5)}`
       + (Solution.burnFlightStep ? ` burn@${Solution.burnFlightStep}` : '')
+      + ` port:${Solution.portTier ?? (Solution.insidePort === false ? 'MISS' : 'n/a')}`
       + ` assists [${Solution.assistBodies.join(', ')}] (${Solution.assistPoints})`,
     );
   }
@@ -430,12 +455,12 @@ if (Arguments[0] === '--probe') {
   );
 } else {
   const GoldenRoute = [
-    { target: 'ember' },
-    { target: 'grove' },
+    { target: 'ember', liberate: true },
+    { target: 'grove', liberate: true },
     { target: 'meadow', burn: true },
-    { target: 'frost' },
+    { target: 'frost', liberate: true },
     { target: 'grove' },
-    { target: 'tide' },
+    { target: 'tide', liberate: true },
     { target: 'glasswing' },
     { target: 'worldheart' },
   ];

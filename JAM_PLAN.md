@@ -980,6 +980,18 @@ while aiming or flying. New offline tools (`tools/reachability-report.mjs`,
 replay fixtures; the completion fixture now derives 63,400 over eight launches.
 The physics step, launch cap and Burn contract are untouched.
 
+Checkpoint 22 — 16 August 2026: relay-port landings (`breaker-reach-9`). Every
+unrestored world authors a beacon-marked relay-port arc on its circumference.
+Landing inside the arc liberates the world and grades CLEAN (+200) or, inside
+the inner third, BULLSEYE (+500); landing elsewhere still docks safely and
+links the relay, but the cage holds until a later flight hits the arc. The
+Warden still advances once per resolved flight, so retries cost pursuit
+pressure rather than fuel. Unrestored ports render as pulsing gold beacon
+arcs, the aim preview names BULLSEYE/DOCK ONLY before release, and the landing
+toast explains a missed arc. Portless bodies (shards, Seedstone, Command)
+keep land-anywhere behaviour. Golden fixtures regenerated: the completion
+replay derives 53,300 over eight launches with every leg landed in-port.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.
