@@ -327,7 +327,7 @@ export function auditReleaseReadiness() {
     'Compact landscape labels must remain between the reflowed Warden and instruction HUD.',
   );
   requireCondition(
-    RoutePresentationSource.includes('minimumGap: IsShortLandscape ? 160 : 76')
+    RoutePresentationSource.includes('const RouteLabelMinimumGap = IsShortLandscape ? 160 : 76')
       && RoutePresentationSource.includes('horizontalClearance: IsShortLandscape ? 180 : 100')
       && RoutePresentationSource.includes('verticalClearance: IsShortLandscape ? 22 : 30')
       && RoutePresentationSource.includes('WorldheartDefinition.routeAvailable && !IsShortLandscape'),
