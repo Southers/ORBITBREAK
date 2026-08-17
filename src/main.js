@@ -42,6 +42,10 @@ import { createRoutePresentation } from './route-presentation.js?v=20260815-ob90
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
 import { createFrameVisuals } from './frame-visuals.js?v=20260816-ob93';
 import { createRestorationVisuals } from './restoration-visuals.js?v=20260816-ob92';
+import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
+import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
+import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=0.179.1';
+import { OutputPass } from '../vendor/postprocessing/OutputPass.js?v=0.179.1';
 
 import {
   DefaultAuthoredSystemIdentifier,
@@ -111,6 +115,7 @@ import {
   loadPersonalBest,
 } from './records.js?v=20260814-ob8';
 import {
+  getControlModePresentation,
   getExtractionFreighterTravelProgress,
   getCourierDockWorldRole,
   getInhabitantSilhouette,
@@ -134,6 +139,7 @@ import {
   getSlingshotBandVisualState,
   getSlingshotPreviewPresentation,
   getWardenApproachCopy,
+  getWardenTrackPips,
   shouldShowInhabitantSlot,
   getTradeHullColor,
   getTradeHullKind,
@@ -225,7 +231,11 @@ const SecondRelayAnswerLine = '“We thought we were alone.”';
  * of tiny planets floating in space.
  */
 
+const GameShellElement = document.querySelector('#GameShell');
 const GameCanvas = document.querySelector('#GameCanvas');
+const ModeChipElement = document.querySelector('#ModeChip');
+const ModeChipLabelElement = document.querySelector('#ModeChipLabel');
+const ModeChipHintElement = document.querySelector('#ModeChipHint');
 const LiberationFlashElement = document.querySelector('#LiberationFlash');
 const ScoreBurstElement = document.querySelector('#ScoreBurst');
 const CounterElement = document.querySelector('.counter');
@@ -248,6 +258,9 @@ const WardenPanelElement = document.querySelector('#WardenPanel');
 const WardenStateLabelElement = document.querySelector('#WardenStateLabel');
 const WardenDistanceElement = document.querySelector('#WardenDistance');
 const WardenTargetElement = document.querySelector('#WardenTarget');
+const WardenTrackElement = document.querySelector('#WardenTrack');
+const PullHintElement = document.querySelector('#PullHint');
+const PullHintChevronsElement = PullHintElement.querySelector('.pull-hint__chevrons');
 let ObjectivePipElements = [];
 const InstructionPanelElement = document.querySelector('#InstructionPanel');
 const InstructionTitleElement = document.querySelector('#InstructionTitle');
@@ -317,7 +330,9 @@ const MaximumDragDistance = 6.25;
 const LaunchVelocityPerDragUnit = MaximumLaunchSpeed / MaximumDragDistance;
 GameCanvas.dataset.maxLaunchSpeed = String(MaximumLaunchSpeed);
 const MinimumLaunchDragDistance = 0.22;
-const MaximumTrajectoryPredictionSteps = 720;
+// Long enough (~15s of flight) to reveal full slingshot arcs to the further
+// worlds, so gravity routes are learnable from the aim line alone.
+const MaximumTrajectoryPredictionSteps = 1800;
 const TrajectoryPreviewSampleStride = 5;
 GameCanvas.dataset.rankedPredictionSteps = String(MaximumTrajectoryPredictionSteps);
 const OutOfBoundsDistance = ActiveSystem.camera?.outOfBoundsDistance ?? 34;
@@ -383,6 +398,30 @@ Renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const Camera = new THREE.PerspectiveCamera(42, 1, 0.1, 480);
 Camera.position.set(0, 0, 42);
 Camera.lookAt(0, 0, 0);
+
+/**
+ * Post pipeline: bright emissive work (relays, the liberation wave, trajectory
+ * light, town windows, the Warden) blooms so everything the player connects
+ * visibly glows against the dark sector. Devices that fall to the degraded
+ * presentation tier render directly without the composer.
+ */
+const Composer = new EffectComposer(Renderer);
+const ScenePass = new RenderPass(Scene, Camera);
+const BloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5, 0.55, 0.82);
+const CompositeOutputPass = new OutputPass();
+Composer.addPass(ScenePass);
+Composer.addPass(BloomPass);
+Composer.addPass(CompositeOutputPass);
+let IsBloomPipelineEnabled = true;
+
+/** Renders through the bloom composer unless the adaptive tier disabled it. */
+function renderScene() {
+  if (IsBloomPipelineEnabled) {
+    Composer.render();
+  } else {
+    Renderer.render(Scene, Camera);
+  }
+}
 
 const Clock = new THREE.Clock();
 const PointerRaycaster = new THREE.Raycaster();
@@ -622,6 +661,7 @@ function configureSystemInterface() {
 
 const EnvironmentLights = addEnvironment(THREE, Scene, ActiveSystem.environment);
 const KeyLight = EnvironmentLights.keyLight;
+const updateEnvironmentBackdrop = EnvironmentLights.updateBackdrop;
 
 const WorldVisuals = createWorldVisuals(THREE, Scene, {
   worldDefinitions: WorldDefinitions,
@@ -769,6 +809,22 @@ function publishWardenState() {
   WardenStateLabelElement.textContent = ApproachCopy.state;
   WardenDistanceElement.textContent = ApproachCopy.distance;
   WardenTargetElement.textContent = ApproachCopy.target;
+  const TrackPips = getWardenTrackPips({
+    distance: WardenPursuitState.distance,
+    maximumDistance: WardenPursuitState.maximumDistance,
+    visible: IsVisible && !IsCommandExposed && !IsCommandDefeated,
+  });
+  WardenTrackElement.hidden = TrackPips.length < 1;
+  if (TrackPips.length !== WardenTrackElement.childElementCount) {
+    WardenTrackElement.replaceChildren(
+      ...TrackPips.map(() => document.createElement('span')),
+    );
+  }
+  for (let PipIndex = 0; PipIndex < TrackPips.length; PipIndex += 1) {
+    WardenTrackElement.children[PipIndex].className = TrackPips[PipIndex] === 'taken'
+      ? 'is-taken'
+      : '';
+  }
   GameCanvas.dataset.wardenStatus = PublishedWardenState.status;
   GameCanvas.dataset.wardenDistance = String(WardenPursuitState.distance);
   GameCanvas.dataset.wardenTarget = WardenPursuitState.targetWorldIdentifier ?? '';
@@ -777,6 +833,53 @@ function publishWardenState() {
   GameCanvas.dataset.wardenShieldLayers = String(WardenPursuitState.shieldLayers);
   GameCanvas.dataset.wardenLandmark = PublishedWardenState.landmark;
   publishRunUnlockState();
+}
+
+const PullHintShipProjection = new THREE.Vector3();
+const PullHintPullProjection = new THREE.Vector3();
+
+/** Animated first-launch coach: chevrons marching along the pull direction from the ship. */
+function updatePullHint() {
+  const ShouldShow = GamePhase === 'attached'
+    && !HasLaunchedOnce
+    && !IsPointerAiming
+    && !IsKeyboardAiming
+    && !IsOpeningBriefingActive
+    && !IsScoutMode
+    && ReplayPlaybackState === null
+    && ActiveHostileEncounterState === null
+    && RunState.status === 'active';
+  if (!ShouldShow) {
+    PullHintElement.hidden = true;
+    return;
+  }
+  const SuggestedTarget = getCurrentRouteChoices(1)[0];
+  if (!SuggestedTarget) {
+    PullHintElement.hidden = true;
+    return;
+  }
+  PullHintShipProjection.copy(SeedGroup.position).project(Camera);
+  PullHintPullProjection.set(
+    SeedGroup.position.x - (SuggestedTarget.position.x - SeedGroup.position.x),
+    SeedGroup.position.y - (SuggestedTarget.position.y - SeedGroup.position.y),
+    SeedGroup.position.z,
+  ).project(Camera);
+  const ShipScreenX = (PullHintShipProjection.x * 0.5 + 0.5) * window.innerWidth;
+  const ShipScreenY = (-PullHintShipProjection.y * 0.5 + 0.5) * window.innerHeight;
+  const PullScreenX = (PullHintPullProjection.x * 0.5 + 0.5) * window.innerWidth;
+  const PullScreenY = (-PullHintPullProjection.y * 0.5 + 0.5) * window.innerHeight;
+  const DirectionLength = Math.hypot(PullScreenX - ShipScreenX, PullScreenY - ShipScreenY);
+  if (!Number.isFinite(DirectionLength) || DirectionLength < 0.001) {
+    PullHintElement.hidden = true;
+    return;
+  }
+  const DirectionX = (PullScreenX - ShipScreenX) / DirectionLength;
+  const DirectionY = (PullScreenY - ShipScreenY) / DirectionLength;
+  const HintScreenX = ShipScreenX + (DirectionX * 74);
+  const HintScreenY = ShipScreenY + (DirectionY * 74);
+  PullHintElement.hidden = false;
+  PullHintElement.style.transform = `translate(${Math.round(HintScreenX)}px, ${Math.round(HintScreenY)}px) translate(-50%, -50%)`;
+  PullHintChevronsElement.style.transform = `rotate(${Math.atan2(DirectionY, DirectionX)}rad)`;
 }
 
 function listLiveWorldIdentifiers() {
@@ -960,9 +1063,16 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
       showStatusToast(ActiveSystem.wardenArrivalBroadcast, 3600, 'warden');
     }
   } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.advanced) {
+    WorldseedSound.wardenStep();
+    WardenPanelElement.classList.remove('is-step');
+    void WardenPanelElement.offsetWidth;
+    WardenPanelElement.classList.add('is-step');
     showStatusToast(
-      `WARDEN → ${TargetWorld?.label ?? 'FRONTIER'} · ${WardenPursuitState.distance} FLIGHTS AWAY`,
+      WardenPursuitState.distance <= 1
+        ? `WARDEN AT ${TargetWorld?.label ?? 'THE FRONTIER'} NEXT LANDING`
+        : `WARDEN → ${TargetWorld?.label ?? 'FRONTIER'} · ${WardenPursuitState.distance} FLIGHTS AWAY`,
       1250,
+      'warden',
     );
   } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.retreated) {
     const CircuitWorldLabels = circuit?.worldIdentifiers
@@ -2840,6 +2950,7 @@ function resizeRenderer() {
   AdaptivePixelRatioCap = Math.min(AdaptivePixelRatioCap, DevicePixelRatioCap);
   applyAdaptivePixelRatio();
   Renderer.setSize(ViewportWidth, ViewportHeight, false);
+  Composer.setSize(ViewportWidth, ViewportHeight);
   refreshInstructionPanelBounds();
   GameCanvas.dataset.viewport = `${ViewportWidth}x${ViewportHeight}`;
   GameCanvas.dataset.orientation = ViewportWidth >= ViewportHeight ? 'landscape' : 'portrait';
@@ -2863,6 +2974,7 @@ function resizeRenderer() {
 function applyAdaptivePixelRatio() {
   const RenderedPixelRatio = Math.min(window.devicePixelRatio, AdaptivePixelRatioCap);
   Renderer.setPixelRatio(RenderedPixelRatio);
+  Composer.setPixelRatio(RenderedPixelRatio);
   GameCanvas.dataset.pixelRatioCap = AdaptivePixelRatioCap.toFixed(2);
   GameCanvas.dataset.pixelRatio = RenderedPixelRatio.toFixed(2);
 }
@@ -2880,6 +2992,8 @@ function applyAdaptiveQualityState(QualityState) {
     KeyLight.castShadow = ShadowsEnabled;
     Renderer.shadowMap.enabled = ShadowsEnabled;
   }
+  IsBloomPipelineEnabled = PresentationQualityTier !== 'degraded';
+  GameCanvas.dataset.bloomPipeline = String(IsBloomPipelineEnabled);
   GameCanvas.dataset.adaptiveQuality = QualityState.action;
   GameCanvas.dataset.presentationTier = PresentationQualityTier;
   GameCanvas.dataset.smoothPerformanceSamples = String(SmoothPerformanceSampleCount);
@@ -3127,11 +3241,7 @@ function resetGame() {
   SeedGroup.position.set(StartingSeedPosition.x, StartingSeedPosition.y, 0);
   CurrentWorldIdentifier = StartingWorldIdentifier;
   if (ActiveSystem.camera?.followPlayer === true) {
-    CameraLookTarget.set(StartingSeedPosition.x, StartingSeedPosition.y, 0);
-    DesiredCameraLookTarget.copy(CameraLookTarget);
-    Camera.position.x = StartingSeedPosition.x;
-    Camera.position.y = StartingSeedPosition.y;
-    Camera.lookAt(CameraLookTarget);
+    centerLandedCamera({ snap: true });
   }
   publishAttachedSeedState(CurrentWorldIdentifier, StartingSeedPosition);
   LastSafeWorldIdentifier = StartingWorldIdentifier;
@@ -3241,6 +3351,33 @@ function continueCampaignOrReplay() {
   window.location.assign(NextSystemUrl);
 }
 
+let LastControlModeKey = '';
+
+/** Keeps the EXPLORE / LAUNCH / FLIGHT chip and shell mode attribute current. */
+function updateControlModeInterface() {
+  const Presentation = getControlModePresentation({
+    gamePhase: GamePhase,
+    isAiming: IsPointerAiming || IsKeyboardAiming,
+    isWalking: IsPointerWalking,
+    isScoutMode: IsScoutMode,
+    isBurnAiming: IsBurnAiming,
+    isBreakAvailable: IsBreakerBurnAvailable,
+    replayActive: ReplayPlaybackState !== null,
+    briefingActive: IsOpeningBriefingActive,
+  });
+  const ControlModeKey = `${Presentation.mode}|${Presentation.hint}`;
+  if (ControlModeKey === LastControlModeKey) {
+    return;
+  }
+  LastControlModeKey = ControlModeKey;
+  GameShellElement.dataset.controlMode = Presentation.mode;
+  ModeChipElement.classList.toggle('is-hidden', !Presentation.visible);
+  if (Presentation.visible) {
+    ModeChipLabelElement.textContent = Presentation.label;
+    ModeChipHintElement.textContent = Presentation.hint;
+  }
+}
+
 /** Main frame loop. */
 function renderFrame() {
   window.requestAnimationFrame(renderFrame);
@@ -3251,7 +3388,9 @@ function renderFrame() {
   if (IsOpeningBriefingActive) {
     const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
     updateCamera(DeltaTimeSeconds);
-    Renderer.render(Scene, Camera);
+    updateControlModeInterface();
+    updateEnvironmentBackdrop(DeltaTimeSeconds);
+    renderScene();
     return;
   }
 
@@ -3291,14 +3430,17 @@ function renderFrame() {
     flushQueuedStoryBoardsIfReady();
   }
   updateCamera(DeltaTimeSeconds);
+  updateControlModeInterface();
   updateTacticalBodies(ElapsedTimeSeconds, CachedInstructionPanelTop);
   updateStardustVisuals(ElapsedTimeSeconds);
   updateRouteLabels(CachedInstructionPanelTop);
+  updatePullHint();
   updateFlightAudio();
   updateWorldLifeAudio();
   updatePersonalBestGhostVisibility();
+  updateEnvironmentBackdrop(DeltaTimeSeconds);
 
-  Renderer.render(Scene, Camera);
+  renderScene();
   updatePerformanceBudget(DeltaTimeSeconds);
 }
 

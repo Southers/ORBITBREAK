@@ -2,6 +2,8 @@
  * Launch aim preview. Must keep running inside the fixed physics step while aiming.
  */
 
+import { evaluateRelayPortLanding } from './flight-resolver.js';
+
 export function createAimPreview(THREE, host) {
   /**
    * Updates launch strength and trajectory from the current pointer position.
@@ -147,19 +149,39 @@ export function createAimPreview(THREE, host) {
     } else if (IsOutcomeVisible && TrajectoryPrediction.collisionWorldIdentifier) {
       const LandingWorldDefinition = host.getWorldDefinition(TrajectoryPrediction.collisionWorldIdentifier);
       const IsNewWorldLanding = !LandingWorldDefinition.restored;
-      host.TrajectoryMaterial.color.set(IsNewWorldLanding ? 0xffd98a : 0xbceca8);
+      const PortLanding = IsNewWorldLanding
+        ? evaluateRelayPortLanding(
+          LandingWorldDefinition,
+          FinalPredictionPoint,
+          LandingWorldDefinition.position,
+        )
+        : null;
+      const MissesPort = PortLanding !== null && !PortLanding.insidePort;
+      const IsBullseye = PortLanding?.precisionTier === 'bullseye';
+      const PreviewColor = MissesPort ? 0x8fb7d9 : (IsNewWorldLanding ? 0xffd98a : 0xbceca8);
+      host.TrajectoryMaterial.color.set(PreviewColor);
       host.TrajectoryMaterial.opacity = 0.82;
-      host.LandingMarkerMaterial.color.set(IsNewWorldLanding ? 0xffd98a : 0xbceca8);
+      host.LandingMarkerMaterial.color.set(IsBullseye ? 0xfff3cd : PreviewColor);
       host.AimPanelElement.classList.add('is-locked');
-      host.AimLabelElement.textContent = host.getWorldLandingAimLabel(
-        LandingWorldDefinition.label,
-        IsNewWorldLanding,
-      );
+      host.AimLabelElement.textContent = MissesPort
+        ? `${LandingWorldDefinition.label} DOCK ONLY`
+        : IsBullseye
+        ? `${LandingWorldDefinition.label} BULLSEYE`
+        : host.getWorldLandingAimLabel(
+          LandingWorldDefinition.label,
+          IsNewWorldLanding,
+        );
       host.showInstruction(
-        (IsNewWorldLanding ? 'Release to awaken ' : 'Release to land on ')
-          + LandingWorldDefinition.label,
-        IsNewWorldLanding
-          ? 'Gold means a new world. This landing becomes your next launch point.'
+        MissesPort
+          ? `Release to dock at ${LandingWorldDefinition.label}`
+          : (IsNewWorldLanding ? 'Release to awaken ' : 'Release to land on ')
+            + LandingWorldDefinition.label,
+        MissesPort
+          ? 'This landing links the relay but misses the gold beacon arc — the cage will hold until you land inside it.'
+          : IsNewWorldLanding
+          ? IsBullseye
+            ? 'Dead centre of the beacon arc. Release for the BULLSEYE liberation bonus.'
+            : 'Gold means the beacon arc. Landing inside it liberates the world.'
           : 'Green means a restored safe landing.',
       );
       const LandingDirection = host.TemporaryThreeVector.set(

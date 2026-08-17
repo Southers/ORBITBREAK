@@ -127,7 +127,7 @@ export function auditReleaseReadiness() {
     PresentationSource.includes('export function getSectorPlanningCamera(')
       && PresentationSource.includes('export function getPlanningFocusWorldIdentifiers(')
       && PresentationSource.includes('export function getPlanningAtmosphere(')
-      && MainSource.includes('MaximumTrajectoryPredictionSteps = 720')
+      && MainSource.includes('MaximumTrajectoryPredictionSteps = 1800')
       && MainSource.includes('applySectorPlanningCamera(')
       && CameraSource.includes('snapLiveCameraToPlanningView(')
       && CameraSource.includes('host.PlanningCameraScale * host.AimZoomScale')
@@ -157,7 +157,8 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     Array.isArray(AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]?.openingBriefing)
-      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier].openingBriefing.length >= 4
+      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier].openingBriefing.length >= 2
+      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier].openingBriefing.length <= 3
       && /id="OpeningBriefing"/.test(IndexHtml)
       && /id="BriefingContinueButton"/.test(IndexHtml)
       && /\.opening-briefing__actions button\s*\{[^}]*min-height:\s*44px;/s.test(StyleSheet)
@@ -326,7 +327,7 @@ export function auditReleaseReadiness() {
     'Compact landscape labels must remain between the reflowed Warden and instruction HUD.',
   );
   requireCondition(
-    RoutePresentationSource.includes('minimumGap: IsShortLandscape ? 160 : 76')
+    RoutePresentationSource.includes('const RouteLabelMinimumGap = IsShortLandscape ? 160 : 76')
       && RoutePresentationSource.includes('horizontalClearance: IsShortLandscape ? 180 : 100')
       && RoutePresentationSource.includes('verticalClearance: IsShortLandscape ? 22 : 30')
       && RoutePresentationSource.includes('WorldheartDefinition.routeAvailable && !IsShortLandscape'),
@@ -338,8 +339,8 @@ export function auditReleaseReadiness() {
     'Narrow-landscape Command aim and result actions must remain separated and compact.',
   );
   requireCondition(
-    /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.aim-panel\s*,\s*\.burn-button\.is-pulse\s*\{[^}]*bottom:\s*max\(156px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*150px\)\);/s.test(StyleSheet)
-      && /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*340px\)\s*\{[\s\S]*?\.aim-panel\s*,\s*\.burn-button\.is-pulse\s*\{[^}]*bottom:\s*max\(206px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*200px\)\);/s.test(StyleSheet)
+    /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.aim-panel\s*,\s*\.burn-button\s*\{[^}]*bottom:\s*max\(156px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*150px\)\);/s.test(StyleSheet)
+      && /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*340px\)\s*\{[\s\S]*?\.aim-panel\s*,\s*\.burn-button\s*\{[^}]*bottom:\s*max\(206px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*200px\)\);/s.test(StyleSheet)
       && InputControllerSource.includes("BurnButtonElement.classList.toggle('is-pulse', IsHostileCut)"),
     'Portrait aim and Destroy controls must clear the coach at ordinary and wrapped-footer widths.',
   );

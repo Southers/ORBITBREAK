@@ -16,3 +16,11 @@ export const StardustCollectionRadiusSquared = StardustCollectionRadius ** 2;
 export const SurfaceOriginTolerance = 0.015;
 export const DefaultLiberationValue = 1000;
 export const MaximumValidatedFlightSteps = 15000;
+
+/**
+ * Relay-port precision landing bonuses. A landing inside the authored port arc
+ * liberates the world; the inner third of the arc grades BULLSEYE.
+ */
+export const RelayPortBullseyeBonus = 500;
+export const RelayPortCleanBonus = 200;
+export const RelayPortBullseyeFraction = 1 / 3;

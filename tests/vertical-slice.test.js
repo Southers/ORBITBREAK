@@ -15,11 +15,13 @@ import {
   predictTrajectory,
   simulatePhysicsStep,
 } from '../src/physics.js';
+import { validateSerializedReplay } from '../src/replay-validator.js';
 import { predictSlingshotEvents } from '../src/scoring.js';
+import { loadReplayFixture, loadSerializedReplayFixture } from './fixtures/load-fixture.js';
 
 const SeedRadius = 0.46;
 const FixedStepSeconds = 1 / 120;
-const MaximumTrajectoryPredictionSteps = 720;
+const MaximumTrajectoryPredictionSteps = 7200;
 
 function createOpeningPosition(WorldDefinitions) {
   const Haven = WorldDefinitions.find((WorldDefinition) => WorldDefinition.id === 'meadow');
@@ -118,104 +120,105 @@ function simulateOpeningBurnRoute(Runtime, {
   };
 }
 
-function predictOpeningRoute(WorldDefinitions, TacticalBodyDefinitions, AngleDegrees, Speed) {
+function predictLaunch(Runtime, StartPosition, AngleDegrees, Speed, {
+  includeWorldheart = false,
+} = {}) {
   const AngleRadians = AngleDegrees * (Math.PI / 180);
   return predictTrajectory(
-    createOpeningPosition(WorldDefinitions),
+    StartPosition,
     createVector(
       Math.cos(AngleRadians) * Speed,
       Math.sin(AngleRadians) * Speed,
       0,
     ),
-    WorldDefinitions,
+    Runtime.worlds,
     {
       seedRadius: SeedRadius,
       fixedStepSeconds: FixedStepSeconds,
       maximumSteps: MaximumTrajectoryPredictionSteps,
       ignoredWorldIdentifier: 'meadow',
-      collisionBodyDefinitions: TacticalBodyDefinitions.filter(
-        (BodyDefinition) => BodyDefinition.kind !== 'worldheart',
+      collisionBodyDefinitions: Runtime.tacticalBodies.filter(
+        (BodyDefinition) => BodyDefinition.kind !== 'worldheart' || includeWorldheart,
       ),
       startTimeSeconds: 0,
     },
   );
 }
 
-function calculateRestPosition(BodyDefinition, ImpactPosition) {
-  const DeltaX = ImpactPosition.x - BodyDefinition.position.x;
-  const DeltaY = ImpactPosition.y - BodyDefinition.position.y;
-  const Distance = Math.hypot(DeltaX, DeltaY) || 1;
-  const SurfaceDistance = BodyDefinition.radius + SeedRadius + 0.03;
-  return createVector(
-    BodyDefinition.position.x + ((DeltaX / Distance) * SurfaceDistance),
-    BodyDefinition.position.y + ((DeltaY / Distance) * SurfaceDistance),
-    0,
-  );
+function calculateRadialAngleDegrees(Origin, Target) {
+  return Math.atan2(
+    Target.position.y - Origin.position.y,
+    Target.position.x - Origin.position.x,
+  ) * (180 / Math.PI);
 }
 
-test("Breaker\'s Reach offers a readable safe hop and a visible multi-world chain", () => {
+test("Breaker\'s Reach offers a readable safe hop and a gravity-bent chain to Tide", () => {
   const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition, { createVector });
-  const SafeRoute = predictOpeningRoute(Runtime.worlds, Runtime.tacticalBodies, 0, 6);
-  const HighScoreRoute = predictOpeningRoute(
-    Runtime.worlds,
-    Runtime.tacticalBodies,
-    16.5,
-    MaximumLaunchSpeed,
-  );
-  const TripleChain = predictOpeningRoute(
-    Runtime.worlds,
-    Runtime.tacticalBodies,
-    16,
-    MaximumLaunchSpeed,
-  );
+  const Haven = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'meadow');
+  const Ember = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'ember');
 
+  // The opening hop is a quick, readable radial shot.
+  const SafeRoute = predictLaunch(
+    Runtime,
+    createOpeningPosition(Runtime.worlds),
+    calculateRadialAngleDegrees(Haven, Ember),
+    9,
+  );
   assert.equal(SafeRoute.collisionWorldIdentifier, 'ember');
-  assert.ok(SafeRoute.points.length - 1 <= MaximumTrajectoryPredictionSteps);
-  assert.equal(HighScoreRoute.collisionWorldIdentifier, 'tide');
-  assert.ok(HighScoreRoute.collisionKind !== null);
+  assert.ok(SafeRoute.points.length - 1 <= 300);
 
-  const AssistEvents = predictSlingshotEvents(HighScoreRoute.points, Runtime.worlds, {
-    runnerRadius: SeedRadius,
-    ignoredBodyIdentifier: 'meadow',
-  });
-  assert.deepEqual(
-    AssistEvents.map((Event) => [Event.bodyIdentifier, Event.tier]),
-    [['ember', 'assist'], ['grove', 'assist']],
-  );
-  assert.equal(
-    AssistEvents.reduce((Total, Event) => Total + Event.points, 0),
-    1050,
-  );
-
-  const TripleEvents = predictSlingshotEvents(TripleChain.points, Runtime.worlds, {
-    runnerRadius: SeedRadius,
-    ignoredBodyIdentifier: 'meadow',
-  });
-  assert.deepEqual(
-    TripleEvents.map((Event) => Event.bodyIdentifier),
-    ['ember', 'grove', 'tide'],
-  );
-});
-
-test("Breaker\'s Reach near-max opening shot can chain Ember and Grove into Tide", () => {
-  const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition, { createVector });
-  const ChainRoute = predictOpeningRoute(
-    Runtime.worlds,
-    Runtime.tacticalBodies,
-    16.5,
+  // Tide only falls to a full-power shot that bends through Frost and Bastion.
+  const ChainRoute = predictLaunch(
+    Runtime,
+    createSurfacePosition(Haven, 12),
+    42.1,
     MaximumLaunchSpeed,
   );
-
   assert.equal(ChainRoute.collisionWorldIdentifier, 'tide');
+
   const AssistEvents = predictSlingshotEvents(ChainRoute.points, Runtime.worlds, {
     runnerRadius: SeedRadius,
     ignoredBodyIdentifier: 'meadow',
   });
   assert.deepEqual(
     AssistEvents.map((Event) => Event.bodyIdentifier),
-    ['ember', 'grove'],
+    ['frost', 'bastion'],
   );
-  assert.ok(AssistEvents.length >= 2);
+  assert.ok(AssistEvents.reduce((Total, Event) => Total + Event.points, 0) > 0);
+});
+
+test("Breaker\'s Reach further-reach worlds refuse direct max-power shots from Haven", () => {
+  const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition, { createVector });
+  const Haven = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'meadow');
+  const Worldheart = Runtime.tacticalBodies.find(
+    (BodyDefinition) => BodyDefinition.kind === 'worldheart',
+  );
+  const FarTargets = [
+    ...['tide', 'spindle', 'quarry', 'mirage'].map(
+      (Identifier) => Runtime.worlds.find(
+        (WorldDefinition) => WorldDefinition.id === Identifier,
+      ),
+    ),
+    Worldheart,
+  ];
+
+  for (const Target of FarTargets) {
+    const RadialAngleDegrees = calculateRadialAngleDegrees(Haven, Target);
+    const DirectShot = predictLaunch(
+      Runtime,
+      createSurfacePosition(Haven, RadialAngleDegrees),
+      RadialAngleDegrees,
+      MaximumLaunchSpeed,
+      { includeWorldheart: true },
+    );
+    const LandedIdentifier = DirectShot.collisionWorldIdentifier
+      ?? DirectShot.collisionBodyIdentifier;
+    assert.notEqual(
+      LandedIdentifier,
+      Target.id,
+      `A direct max-power shot must not reach ${Target.id}; gravity assists are mandatory.`,
+    );
+  }
 });
 
 test("Breaker\'s Reach dark-rim route requires repositioning and a timed Burn", () => {
@@ -227,9 +230,9 @@ test("Breaker\'s Reach dark-rim route requires repositioning and a timed Burn", 
     Ember.position.x - Haven.position.x,
   ) * (180 / Math.PI);
   const RouteInput = {
-    surfaceAngleDegrees: -140,
-    launchAngleDegrees: 90,
-    speed: 7.5,
+    surfaceAngleDegrees: 54,
+    launchAngleDegrees: 42,
+    speed: 11.5,
     burnStepIndex: 30,
   };
   const BurnRoute = simulateOpeningBurnRoute(Runtime, RouteInput);
@@ -242,61 +245,26 @@ test("Breaker\'s Reach dark-rim route requires repositioning and a timed Burn", 
     surfaceAngleDegrees: OpeningSurfaceAngleDegrees,
   });
 
-  assert.equal(BurnRoute.collisionIdentifier, 'frost');
-  assert.equal(BurnRoute.collisionStepIndex, 271);
-  assert.equal(NoBurnRoute.collisionIdentifier, null);
-  assert.equal(DefaultSurfaceRoute.collisionIdentifier, null);
+  assert.equal(BurnRoute.collisionIdentifier, 'quarry');
+  assert.equal(BurnRoute.collisionStepIndex, 2820);
+  assert.notEqual(NoBurnRoute.collisionIdentifier, 'quarry');
+  assert.notEqual(DefaultSurfaceRoute.collisionIdentifier, 'quarry');
 
-  const Frost = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'frost');
-  assert.ok(Frost.liberationValue > Ember.liberationValue);
+  const Quarry = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'quarry');
+  assert.ok(Quarry.liberationValue > Ember.liberationValue);
 });
 
-test("Breaker\'s Reach has a deterministic four-launch completion route", () => {
-  const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition, { createVector });
-  const Route = [
-    { source: 'meadow', target: 'ember', angle: 0 },
-    { source: 'ember', target: 'grove', angle: 48 },
-    { source: 'grove', target: 'tide', angle: 36 },
-    { source: 'tide', target: 'worldheart', angle: -10 },
-  ];
-  let Position = createOpeningPosition(Runtime.worlds);
-  let SimulationTimeSeconds = 0;
+test("Breaker\'s Reach has a deterministic slingshot completion route within budget", () => {
+  const GoldenReplay = loadSerializedReplayFixture('breaker-reach-complete.v2.json');
+  const ExpectedResult = loadReplayFixture('breaker-reach-complete.v2.result.json');
+  const Validation = validateSerializedReplay(GoldenReplay);
 
-  for (const RouteStep of Route) {
-    const AngleRadians = RouteStep.angle * (Math.PI / 180);
-    const IsCommandStep = RouteStep.target === 'worldheart';
-    const Prediction = predictTrajectory(
-      Position,
-      createVector(
-        Math.cos(AngleRadians) * MaximumLaunchSpeed,
-        Math.sin(AngleRadians) * MaximumLaunchSpeed,
-        0,
-      ),
-      Runtime.worlds,
-      {
-        seedRadius: SeedRadius,
-        fixedStepSeconds: FixedStepSeconds,
-        maximumSteps: MaximumTrajectoryPredictionSteps,
-        ignoredWorldIdentifier: RouteStep.source,
-        collisionBodyDefinitions: Runtime.tacticalBodies.filter(
-          (BodyDefinition) => BodyDefinition.kind !== 'worldheart' || IsCommandStep,
-        ),
-        startTimeSeconds: SimulationTimeSeconds,
-      },
-    );
-    assert.equal(
-      IsCommandStep
-        ? Prediction.collisionBodyIdentifier
-        : Prediction.collisionWorldIdentifier,
-      RouteStep.target,
-    );
-    SimulationTimeSeconds += (Prediction.points.length - 1) * FixedStepSeconds;
-    const TargetDefinition = IsCommandStep
-      ? Runtime.tacticalBodies.find((BodyDefinition) => BodyDefinition.id === RouteStep.target)
-      : Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === RouteStep.target);
-    Position = calculateRestPosition(TargetDefinition, Prediction.points.at(-1));
-  }
-
-  assert.equal(Route.length, 4);
-  assert.ok(Route.length < BreakerReachSystemDefinition.launchBudget);
+  assert.equal(Validation.valid, true);
+  assert.deepEqual(Validation.result, ExpectedResult);
+  assert.equal(Validation.result.contentVersion, BreakerReachSystemDefinition.contentVersion);
+  // Completion is possible inside the launch budget, but never as a short
+  // direct sprint: the route must weave the sector's gravity wells.
+  assert.ok(Validation.result.launchesUsed <= BreakerReachSystemDefinition.launchBudget);
+  assert.ok(Validation.result.launchesUsed >= 6);
+  assert.ok(Validation.result.slingshotScore > 0);
 });

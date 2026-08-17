@@ -1012,6 +1012,7 @@ export function getSlingshotBandVisualState({
     visible: Visible,
     assistOpacity: Visible ? 0.22 : 0,
     razorOpacity: Visible ? 0.3 : 0,
+    wellOpacity: Visible ? 0.14 : 0,
   };
 }
 
@@ -1389,7 +1390,7 @@ export function getHiddenWardenRouteCoach({
   if (liveRelayCount >= 2) {
     return {
       title: Title,
-      body: 'Land on another world. Watch it wake.',
+      body: 'The next world hides behind gravity. Bend the aim line through a gold slingshot ring to reach it.',
     };
   }
   return {
@@ -1508,6 +1509,31 @@ export function getWardenApproachCopy({
       : `${distance} FLIGHT${distance === 1 ? '' : 'S'} AWAY`,
     target: Target,
   };
+}
+
+/**
+ * Pursuit-track pips between the Warden and the Runner.
+ *
+ * Returns one entry per flight of maximum pursuit range: 'taken' pips are the
+ * ground the Warden has already covered, 'remaining' pips are the flights left
+ * before it arrives. An empty array hides the track (defeated/exposed states).
+ */
+export function getWardenTrackPips({ distance = 0, maximumDistance = 0, visible = true } = {}) {
+  if (
+    visible !== true
+    || !Number.isInteger(distance)
+    || !Number.isInteger(maximumDistance)
+    || maximumDistance < 1
+    || distance < 0
+    || distance > maximumDistance
+  ) {
+    return [];
+  }
+  const Pips = [];
+  for (let PipIndex = 0; PipIndex < maximumDistance; PipIndex += 1) {
+    Pips.push(PipIndex < maximumDistance - distance ? 'taken' : 'remaining');
+  }
+  return Pips;
 }
 
 export const StoryBoardPortraitFiles = Object.freeze({
@@ -1740,6 +1766,88 @@ export function shouldHoldCommittedPrediction({
     liveRelayCount,
     prefersReducedMotion,
   });
+}
+
+/**
+ * One always-visible chip that says which control mode the Runner is in, so a
+ * new player never has to guess whether a drag will walk, aim or scout.
+ */
+export function getControlModePresentation({
+  gamePhase = 'attached',
+  isAiming = false,
+  isWalking = false,
+  isScoutMode = false,
+  isBurnAiming = false,
+  isBreakAvailable = false,
+  replayActive = false,
+  briefingActive = false,
+} = {}) {
+  if (typeof gamePhase !== 'string' || gamePhase.length === 0) {
+    throw new Error('Control mode presentation requires a game phase.');
+  }
+  const Hidden = { mode: 'hidden', label: '', hint: '', visible: false };
+  if (replayActive || briefingActive) {
+    return Hidden;
+  }
+  if (gamePhase === 'victory' || gamePhase === 'victoryPending' || gamePhase === 'runFailed') {
+    return Hidden;
+  }
+  if (gamePhase === 'recovering') {
+    return {
+      mode: 'recover',
+      label: 'RECOVERY',
+      hint: 'Returning to your last safe world',
+      visible: true,
+    };
+  }
+  if (gamePhase === 'flying') {
+    if (isBurnAiming) {
+      return {
+        mode: 'flight',
+        label: 'BREAK',
+        hint: 'Release to bend your line',
+        visible: true,
+      };
+    }
+    return {
+      mode: 'flight',
+      label: 'FLIGHT',
+      hint: isBreakAvailable
+        ? 'Riding gravity · tap once to Break your line'
+        : 'Riding gravity to the landing',
+      visible: true,
+    };
+  }
+  if (isScoutMode) {
+    return {
+      mode: 'scout',
+      label: 'SCOUT',
+      hint: 'Drag to survey the sector · Scout again to return',
+      visible: true,
+    };
+  }
+  if (isAiming) {
+    return {
+      mode: 'launch',
+      label: 'LAUNCH',
+      hint: 'Release to fly · drag back to the ship to cancel',
+      visible: true,
+    };
+  }
+  if (isWalking) {
+    return {
+      mode: 'walk',
+      label: 'WALK',
+      hint: 'Trace the globe · release to stand and face your route',
+      visible: true,
+    };
+  }
+  return {
+    mode: 'explore',
+    label: 'EXPLORE',
+    hint: 'Trace the globe to walk · pull the ship to launch',
+    visible: true,
+  };
 }
 
 /** Keyboard intercept lead is the finale gift, not an early Command snipe. */

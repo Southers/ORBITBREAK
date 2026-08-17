@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  getControlModePresentation,
   getLiberationFlashOpacity,
   getLeaderboardActionLabel,
   getPersonalBestStatus,
@@ -61,6 +62,7 @@ import {
   getHiddenWardenRouteCoach,
   getPursuitRouteCoach,
   getWardenApproachCopy,
+  getWardenTrackPips,
   getStoryBoardCameraFocus,
   getOpeningBriefingPresentation,
   getStoryBoardPresentation,
@@ -452,7 +454,7 @@ test('hidden Warden coach teaches purpose, then waking, then range', () => {
     routeLabels: ['GROVE', 'FROST'],
   }), {
     title: 'Choose GROVE or FROST',
-    body: 'Land on another world. Watch it wake.',
+    body: 'The next world hides behind gravity. Bend the aim line through a gold slingshot ring to reach it.',
   });
   assert.deepEqual(getHiddenWardenRouteCoach({
     liveRelayCount: 3,
@@ -755,6 +757,7 @@ test('slingshot rings appear only while the shot can still change', () => {
     visible: true,
     assistOpacity: 0.22,
     razorOpacity: 0.3,
+    wellOpacity: 0.14,
   });
   assert.equal(getSlingshotBandVisualState({ isFlying: true }).visible, true);
   assert.equal(getSlingshotBandVisualState({}).visible, false);
@@ -1124,6 +1127,24 @@ test('Warden HUD counts remaining flights, not a separate clock', () => {
   assert.equal(getWardenApproachCopy({ defeated: true }).state, 'WARDEN DEFEATED');
 });
 
+test('Warden pursuit track fills taken ground and hides when out of range', () => {
+  assert.deepEqual(
+    getWardenTrackPips({ distance: 4, maximumDistance: 4 }),
+    ['remaining', 'remaining', 'remaining', 'remaining'],
+  );
+  assert.deepEqual(
+    getWardenTrackPips({ distance: 2, maximumDistance: 4 }),
+    ['taken', 'taken', 'remaining', 'remaining'],
+  );
+  assert.deepEqual(
+    getWardenTrackPips({ distance: 0, maximumDistance: 4 }),
+    ['taken', 'taken', 'taken', 'taken'],
+  );
+  assert.deepEqual(getWardenTrackPips({ distance: 2, maximumDistance: 4, visible: false }), []);
+  assert.deepEqual(getWardenTrackPips({ distance: 5, maximumDistance: 4 }), []);
+  assert.deepEqual(getWardenTrackPips({ distance: 1, maximumDistance: 0 }), []);
+});
+
 test('story boards look at the speaker, the Warden, or the neighbourhood', () => {
   assert.deepEqual(getStoryBoardCameraFocus({
     boardId: 'firstAnswer',
@@ -1153,4 +1174,34 @@ test('liberation flash remains bounded and reaches zero', () => {
   assert.equal(getLiberationFlashOpacity(-1), 0);
   assert.ok(getLiberationFlashOpacity(0.36) > 0);
   assert.ok(getLiberationFlashOpacity(0.72) <= 1);
+});
+
+test('control mode chip names the active gesture mode without guessing', () => {
+  assert.deepEqual(
+    getControlModePresentation({ gamePhase: 'attached' }),
+    {
+      mode: 'explore',
+      label: 'EXPLORE',
+      hint: 'Trace the globe to walk · pull the ship to launch',
+      visible: true,
+    },
+  );
+  assert.equal(getControlModePresentation({ gamePhase: 'attached', isAiming: true }).mode, 'launch');
+  assert.equal(getControlModePresentation({ gamePhase: 'attached', isWalking: true }).mode, 'walk');
+  assert.equal(getControlModePresentation({ gamePhase: 'attached', isScoutMode: true }).mode, 'scout');
+  assert.equal(getControlModePresentation({ gamePhase: 'restoring' }).mode, 'explore');
+  assert.equal(getControlModePresentation({ gamePhase: 'recovering' }).mode, 'recover');
+});
+
+test('control mode chip explains the Break during flight and hides in menus', () => {
+  const BreakReady = getControlModePresentation({ gamePhase: 'flying', isBreakAvailable: true });
+  assert.equal(BreakReady.mode, 'flight');
+  assert.match(BreakReady.hint, /Break/);
+  const BreakSpent = getControlModePresentation({ gamePhase: 'flying', isBreakAvailable: false });
+  assert.doesNotMatch(BreakSpent.hint, /Break/);
+  assert.equal(getControlModePresentation({ gamePhase: 'flying', isBurnAiming: true }).label, 'BREAK');
+  assert.equal(getControlModePresentation({ gamePhase: 'victory' }).visible, false);
+  assert.equal(getControlModePresentation({ gamePhase: 'attached', replayActive: true }).visible, false);
+  assert.equal(getControlModePresentation({ gamePhase: 'attached', briefingActive: true }).visible, false);
+  assert.throws(() => getControlModePresentation({ gamePhase: '' }));
 });

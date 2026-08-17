@@ -550,6 +550,58 @@ button[aria-disabled='true'] {
   color: #dff5a7;
 }
 
+.warden-panel__track {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0 5px;
+}
+
+.warden-panel__track[hidden] {
+  display: none;
+}
+
+.warden-panel__track span {
+  display: block;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 124, 115, 0.18);
+  border: 1px solid rgba(255, 124, 115, 0.3);
+}
+
+.warden-panel__track span.is-taken {
+  background: #ff5148;
+  border-color: #ff887f;
+  box-shadow: 0 0 6px rgba(255, 81, 72, 0.75);
+}
+
+.warden-panel.is-step {
+  animation: warden-step-pulse 0.9s ease-out 1;
+}
+
+@keyframes warden-step-pulse {
+  0% {
+    box-shadow: 0 0 24px rgba(255, 64, 54, 0.12);
+    transform: scale(1);
+  }
+
+  22% {
+    box-shadow: 0 0 34px rgba(255, 64, 54, 0.55);
+    transform: scale(1.05);
+  }
+
+  100% {
+    box-shadow: 0 0 24px rgba(255, 64, 54, 0.12);
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .warden-panel.is-step {
+    animation: none;
+  }
+}
+
 .burn-button {
   position: absolute;
   z-index: 7;
@@ -1274,6 +1326,163 @@ button[aria-disabled='true'] {
   gap: 8px;
 }
 
+.hud--bottom {
+  justify-content: flex-end;
+}
+
+.pull-hint {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.pull-hint[hidden] {
+  display: none;
+}
+
+.pull-hint__chevrons {
+  display: flex;
+  gap: 5px;
+}
+
+.pull-hint__chevrons i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-top: 2.5px solid #ffe9ad;
+  border-right: 2.5px solid #ffe9ad;
+  transform: rotate(45deg);
+  filter: drop-shadow(0 0 5px rgba(255, 214, 120, 0.85));
+  animation: pull-hint-march 1.15s ease-out infinite;
+}
+
+.pull-hint__chevrons i:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.pull-hint__chevrons i:nth-child(3) {
+  animation-delay: 0.28s;
+}
+
+.pull-hint__label {
+  color: #ffe9ad;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 8px rgba(4, 8, 14, 0.9), 0 0 14px rgba(255, 214, 120, 0.5);
+  white-space: nowrap;
+}
+
+@keyframes pull-hint-march {
+  0% {
+    opacity: 0.15;
+    transform: rotate(45deg) translate(-3px, 3px);
+  }
+
+  40% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.1;
+    transform: rotate(45deg) translate(3px, -3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pull-hint__chevrons i {
+    animation: none;
+    opacity: 0.9;
+  }
+}
+
+.mode-chip {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  max-width: 92vw;
+  padding: 5px 14px;
+  border: 1px solid rgba(140, 200, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(6, 13, 20, 0.62);
+  pointer-events: none;
+  transition: border-color 240ms ease, box-shadow 240ms ease, opacity 240ms ease;
+}
+
+.mode-chip strong {
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+  color: rgba(180, 224, 255, 0.92);
+}
+
+.mode-chip span {
+  overflow: hidden;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(226, 235, 241, 0.7);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mode-chip.is-hidden {
+  opacity: 0;
+}
+
+#GameShell[data-control-mode='launch'] .mode-chip {
+  border-color: rgba(190, 246, 163, 0.45);
+  box-shadow: 0 0 18px rgba(141, 204, 112, 0.18);
+}
+
+#GameShell[data-control-mode='launch'] .mode-chip strong {
+  color: #dffbd2;
+}
+
+#GameShell[data-control-mode='flight'] .mode-chip {
+  border-color: rgba(255, 214, 140, 0.4);
+}
+
+#GameShell[data-control-mode='flight'] .mode-chip strong {
+  color: #ffe4a0;
+}
+
+#GameShell[data-control-mode='walk'] .mode-chip {
+  border-color: rgba(140, 200, 255, 0.42);
+}
+
+#GameShell[data-control-mode='scout'] .mode-chip {
+  border-color: rgba(200, 180, 255, 0.42);
+}
+
+.aim-vignette {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(2, 6, 12, 0) 46%, rgba(2, 6, 12, 0.5) 100%);
+  transition: opacity 300ms ease;
+}
+
+#GameShell[data-control-mode='launch'] .aim-vignette {
+  opacity: 1;
+}
+
+#GameShell[data-control-mode='explore'] #GameCanvas {
+  cursor: grab;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1288,8 +1497,18 @@ button[aria-disabled='true'] {
 }
 
 @media (max-width: 640px) {
-  .brand__subtitle,
-  .hud--bottom > span {
+  .brand__subtitle {
+    display: none;
+  }
+
+  .mode-chip {
+    top: 110px;
+    bottom: auto;
+    padding: 4px 12px;
+  }
+
+  /* The scanner and flight-score flank this row; the mode word alone fits between them. */
+  .mode-chip span {
     display: none;
   }
 
@@ -1427,14 +1646,14 @@ button[aria-disabled='true'] {
 
 @media (orientation: portrait) and (max-width: 640px) {
   .aim-panel,
-  .burn-button.is-pulse {
+  .burn-button {
     bottom: max(156px, calc(env(safe-area-inset-bottom) + 150px));
   }
 }
 
 @media (orientation: portrait) and (max-width: 340px) {
   .aim-panel,
-  .burn-button.is-pulse {
+  .burn-button {
     bottom: max(206px, calc(env(safe-area-inset-bottom) + 200px));
   }
 }

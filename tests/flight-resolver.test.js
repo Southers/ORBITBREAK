@@ -9,9 +9,15 @@ import { validateSerializedReplay } from '../src/replay-validator.js';
 import {
   calculateSurfaceRestPosition,
   createStartingPosition,
+  evaluateRelayPortLanding,
   resolveWardenAfterNonCommandFlight,
 } from '../src/flight-resolver.js';
-import { RunnerRadius, SurfaceRestLift } from '../src/sim-constants.js';
+import {
+  RelayPortBullseyeBonus,
+  RelayPortCleanBonus,
+  RunnerRadius,
+  SurfaceRestLift,
+} from '../src/sim-constants.js';
 import {
   loadReplayFixture,
   loadSerializedReplayFixture,
@@ -35,6 +41,62 @@ test('Breaker\'s Reach starting position sits on Haven facing Ember', () => {
   const Haven = Runtime.worlds.find((World) => World.id === 'meadow');
   const Distance = Math.hypot(Start.x - Haven.position.x, Start.y - Haven.position.y);
   assert.ok(Math.abs(Distance - (Haven.radius + RunnerRadius + SurfaceRestLift)) < 1e-9);
+});
+
+test('relay-port grading covers bullseye, clean, miss and portless worlds', () => {
+  const WorldPosition = createVector(0, 0, 0);
+  const PortWorld = {
+    radius: 3,
+    relayPort: { angleRadians: 0, halfWidthRadians: 0.9 },
+  };
+  const restAtAngle = (AngleRadians) => createVector(
+    Math.cos(AngleRadians) * 3.4,
+    Math.sin(AngleRadians) * 3.4,
+    0,
+  );
+
+  const Bullseye = evaluateRelayPortLanding(PortWorld, restAtAngle(0.1), WorldPosition);
+  assert.equal(Bullseye.insidePort, true);
+  assert.equal(Bullseye.precisionTier, 'bullseye');
+  assert.equal(Bullseye.precisionBonus, RelayPortBullseyeBonus);
+
+  const Clean = evaluateRelayPortLanding(PortWorld, restAtAngle(0.6), WorldPosition);
+  assert.equal(Clean.insidePort, true);
+  assert.equal(Clean.precisionTier, 'clean');
+  assert.equal(Clean.precisionBonus, RelayPortCleanBonus);
+
+  const Miss = evaluateRelayPortLanding(PortWorld, restAtAngle(2.4), WorldPosition);
+  assert.equal(Miss.hasPort, true);
+  assert.equal(Miss.insidePort, false);
+  assert.equal(Miss.precisionTier, null);
+  assert.equal(Miss.precisionBonus, 0);
+
+  const WrapMiss = evaluateRelayPortLanding(
+    { radius: 3, relayPort: { angleRadians: Math.PI - 0.1, halfWidthRadians: 0.5 } },
+    restAtAngle(-Math.PI + 0.2),
+    WorldPosition,
+  );
+  assert.equal(WrapMiss.insidePort, true);
+
+  const Portless = evaluateRelayPortLanding({ radius: 3 }, restAtAngle(2.4), WorldPosition);
+  assert.equal(Portless.hasPort, false);
+  assert.equal(Portless.insidePort, true);
+  assert.equal(Portless.precisionBonus, 0);
+});
+
+test('every unrestored Breaker\'s Reach world authors a relay port', () => {
+  const Definition = getAuthoredSystemDefinition('breaker-reach');
+  for (const World of Definition.worlds) {
+    if (World.initiallyRestored) {
+      continue;
+    }
+    assert.ok(World.relayPort, `${World.id} must author a relay port`);
+    assert.ok(Number.isFinite(World.relayPort.angleRadians));
+    assert.ok(
+      World.relayPort.halfWidthRadians > 0.3,
+      `${World.id} port must stay generous`,
+    );
+  }
 });
 
 test('shared resolver derives the golden completed Breaker\'s Reach result', () => {

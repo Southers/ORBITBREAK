@@ -129,6 +129,129 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   Scene.add(SlingshotAssistMesh);
   Scene.add(SlingshotRazorMesh);
 
+  // A soft additive glow sized by each body's gravitational parameter, so the
+  // heavy anchor worlds visibly read as deeper wells than the asteroid shards.
+  const WellGlowCanvas = document.createElement('canvas');
+  WellGlowCanvas.width = 128;
+  WellGlowCanvas.height = 128;
+  const WellGlowContext = WellGlowCanvas.getContext('2d');
+  const WellGlowGradient = WellGlowContext.createRadialGradient(64, 64, 8, 64, 64, 64);
+  WellGlowGradient.addColorStop(0, 'rgba(255,255,255,0.75)');
+  WellGlowGradient.addColorStop(0.45, 'rgba(255,255,255,0.24)');
+  WellGlowGradient.addColorStop(1, 'rgba(255,255,255,0)');
+  WellGlowContext.fillStyle = WellGlowGradient;
+  WellGlowContext.fillRect(0, 0, 128, 128);
+  const GravityWellTexture = new THREE.CanvasTexture(WellGlowCanvas);
+  const GravityWellMaterial = new THREE.MeshBasicMaterial({
+    map: GravityWellTexture,
+    color: 0x3f7fb4,
+    transparent: true,
+    opacity: 0.14,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const GravityWellMesh = new THREE.InstancedMesh(
+    new THREE.PlaneGeometry(2, 2),
+    GravityWellMaterial,
+    WorldDefinitions.length,
+  );
+  const GravityWellColor = new THREE.Color();
+  GravityWellMesh.frustumCulled = false;
+  GravityWellMesh.renderOrder = 7;
+  GravityWellMesh.visible = false;
+  Scene.add(GravityWellMesh);
+
+  // Beacon-lit relay-port arcs: landing lights along each unliberated world's
+  // authored port band, with a pulsing beacon at the arc centre. Landing inside
+  // liberates; the brighter inner third grades BULLSEYE.
+  const RelayPortWorlds = WorldDefinitions.filter(
+    (WorldDefinition) => WorldDefinition.relayPort,
+  );
+  const RelayPortDotsPerWorld = 15;
+  const RelayPortDotMesh = new THREE.InstancedMesh(
+    new THREE.CircleGeometry(0.085, 10),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+    }),
+    Math.max(1, RelayPortWorlds.length * RelayPortDotsPerWorld),
+  );
+  const RelayPortBeaconMesh = new THREE.InstancedMesh(
+    new THREE.CircleGeometry(0.2, 14),
+    new THREE.MeshBasicMaterial({
+      color: 0xffd27a,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+    }),
+    Math.max(1, RelayPortWorlds.length),
+  );
+  const RelayPortTransform = new THREE.Object3D();
+  const RelayPortDotColor = new THREE.Color();
+  RelayPortDotMesh.frustumCulled = false;
+  RelayPortBeaconMesh.frustumCulled = false;
+  RelayPortDotMesh.renderOrder = 10;
+  RelayPortBeaconMesh.renderOrder = 11;
+  RelayPortDotMesh.visible = RelayPortWorlds.length > 0;
+  RelayPortBeaconMesh.visible = RelayPortWorlds.length > 0;
+  Scene.add(RelayPortDotMesh);
+  Scene.add(RelayPortBeaconMesh);
+
+  function updateRelayPortVisuals(ElapsedTimeSeconds) {
+    if (RelayPortWorlds.length === 0) {
+      return;
+    }
+    const Pulse = host.PrefersReducedMotion
+      ? 1
+      : 1 + (Math.sin(ElapsedTimeSeconds * 3.1) * 0.18);
+    for (let PortIndex = 0; PortIndex < RelayPortWorlds.length; PortIndex += 1) {
+      const WorldDefinition = RelayPortWorlds[PortIndex];
+      const Port = WorldDefinition.relayPort;
+      const IsTarget = !WorldDefinition.restored;
+      const ArcRadius = WorldDefinition.radius + 0.24;
+      for (let DotIndex = 0; DotIndex < RelayPortDotsPerWorld; DotIndex += 1) {
+        const InstanceIndex = (PortIndex * RelayPortDotsPerWorld) + DotIndex;
+        if (!IsTarget) {
+          hideInstance(RelayPortTransform, RelayPortDotMesh, InstanceIndex);
+          continue;
+        }
+        const ArcFraction = (DotIndex / (RelayPortDotsPerWorld - 1)) * 2 - 1;
+        const DotAngle = Port.angleRadians + (ArcFraction * Port.halfWidthRadians);
+        RelayPortTransform.position.set(
+          WorldDefinition.position.x + (Math.cos(DotAngle) * ArcRadius),
+          WorldDefinition.position.y + (Math.sin(DotAngle) * ArcRadius),
+          0.12,
+        );
+        RelayPortTransform.rotation.set(0, 0, 0);
+        RelayPortTransform.quaternion.identity();
+        RelayPortTransform.scale.setScalar(Math.abs(ArcFraction) <= 1 / 3 ? 0.95 : 0.7);
+        RelayPortTransform.updateMatrix();
+        RelayPortDotMesh.setMatrixAt(InstanceIndex, RelayPortTransform.matrix);
+        RelayPortDotColor.setHex(Math.abs(ArcFraction) <= 1 / 3 ? 0xffedbe : 0xd9a94f);
+        RelayPortDotMesh.setColorAt(InstanceIndex, RelayPortDotColor);
+      }
+      if (!IsTarget) {
+        hideInstance(RelayPortTransform, RelayPortBeaconMesh, PortIndex);
+        continue;
+      }
+      RelayPortTransform.position.set(
+        WorldDefinition.position.x + (Math.cos(Port.angleRadians) * (ArcRadius + 0.18)),
+        WorldDefinition.position.y + (Math.sin(Port.angleRadians) * (ArcRadius + 0.18)),
+        0.13,
+      );
+      RelayPortTransform.rotation.set(0, 0, 0);
+      RelayPortTransform.quaternion.identity();
+      RelayPortTransform.scale.setScalar(Pulse);
+      RelayPortTransform.updateMatrix();
+      RelayPortBeaconMesh.setMatrixAt(PortIndex, RelayPortTransform.matrix);
+    }
+    RelayPortDotMesh.instanceMatrix.needsUpdate = true;
+    RelayPortBeaconMesh.instanceMatrix.needsUpdate = true;
+    if (RelayPortDotMesh.instanceColor) RelayPortDotMesh.instanceColor.needsUpdate = true;
+  }
+
   function updateSlingshotBandVisuals(ElapsedTimeSeconds) {
     const {
       IsPointerAiming,
@@ -148,12 +271,14 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     });
     SlingshotAssistMesh.visible = VisualState.visible;
     SlingshotRazorMesh.visible = VisualState.visible;
+    GravityWellMesh.visible = VisualState.visible;
     if (!VisualState.visible) {
       return;
     }
 
     SlingshotAssistMaterial.opacity = VisualState.assistOpacity;
     SlingshotRazorMaterial.opacity = VisualState.razorOpacity;
+    GravityWellMaterial.opacity = VisualState.wellOpacity;
     const BandRotation = PrefersReducedMotion ? 0 : ElapsedTimeSeconds * 0.14;
     for (let WorldIndex = 0; WorldIndex < WorldDefinitions.length; WorldIndex += 1) {
       const WorldDefinition = WorldDefinitions[WorldIndex];
@@ -173,11 +298,27 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       SlingshotRazorMesh.setMatrixAt(WorldIndex, SlingshotBandTransform.matrix);
       SlingshotRazorColor.setHex(IsActive || IsPredicted ? 0xfff1c2 : 0xc9a45a);
       SlingshotRazorMesh.setColorAt(WorldIndex, SlingshotRazorColor);
+
+      const WellRadius = WorldDefinition.radius
+        + (Math.sqrt(WorldDefinition.gravitationalParameter) * 0.34);
+      SlingshotBandTransform.rotation.set(0, 0, 0);
+      SlingshotBandTransform.position.set(
+        WorldDefinition.position.x,
+        WorldDefinition.position.y,
+        0.05,
+      );
+      SlingshotBandTransform.scale.set(WellRadius, WellRadius, 1);
+      SlingshotBandTransform.updateMatrix();
+      GravityWellMesh.setMatrixAt(WorldIndex, SlingshotBandTransform.matrix);
+      GravityWellColor.setHex(IsActive || IsPredicted ? 0x9fd8ff : 0x39678f);
+      GravityWellMesh.setColorAt(WorldIndex, GravityWellColor);
     }
     SlingshotAssistMesh.instanceMatrix.needsUpdate = true;
     SlingshotRazorMesh.instanceMatrix.needsUpdate = true;
+    GravityWellMesh.instanceMatrix.needsUpdate = true;
     if (SlingshotAssistMesh.instanceColor) SlingshotAssistMesh.instanceColor.needsUpdate = true;
     if (SlingshotRazorMesh.instanceColor) SlingshotRazorMesh.instanceColor.needsUpdate = true;
+    if (GravityWellMesh.instanceColor) GravityWellMesh.instanceColor.needsUpdate = true;
   }
 
   /** Instanced mines, clamps, fumes and haulers make Warden-owned worlds look eaten, not merely clamped. */
@@ -759,8 +900,8 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     ProsperityWindowMesh.count = OccupationScarInstances.length * 3;
     const HasLiveCircuit = getFrameLiveRelayCircuits().length > 0;
     const WindowPulse = PrefersReducedMotion
-      ? 0.38
-      : 0.28 + (Math.sin(ElapsedTimeSeconds * (HasLiveCircuit ? 4.2 : 2.4)) * 0.16);
+      ? 0.68
+      : 0.58 + (Math.sin(ElapsedTimeSeconds * (HasLiveCircuit ? 4.2 : 2.4)) * 0.28);
     ProsperityBuildingMaterial.emissiveIntensity = WindowPulse;
     ProsperityWindowMaterial.opacity = PrefersReducedMotion
       ? 0.72
@@ -1017,7 +1158,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   RelayLinkGeometry.setAttribute('position', RelayLinkPositionAttribute);
   RelayLinkGeometry.setDrawRange(0, 0);
   const RelayLinkMaterial = new THREE.LineBasicMaterial({
-    color: 0x72e8ff,
+    color: new THREE.Color(0x72e8ff).multiplyScalar(1.55),
     transparent: true,
     opacity: 0.8,
     depthWrite: false,
@@ -1327,10 +1468,12 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     updateInhabitantVisuals(ElapsedTimeSeconds);
     updateRelayNetworkVisuals(ElapsedTimeSeconds);
     updateSlingshotBandVisuals(ElapsedTimeSeconds);
+    updateRelayPortVisuals(ElapsedTimeSeconds);
   }
 
   return {
     updateSlingshotBandVisuals,
+    updateRelayPortVisuals,
     updateOccupationScarVisuals,
     updateExtractionFreighterVisuals,
     refreshDockedTradeState,

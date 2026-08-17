@@ -31,7 +31,13 @@ test('First Light satisfies the authored-system content contract', () => {
 
 test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.deepEqual(validateAuthoredSystemDefinition(BreakerReachSystemDefinition), []);
-  assert.equal(BreakerReachSystemDefinition.worlds.length, 9);
+  assert.equal(BreakerReachSystemDefinition.worlds.length, 12);
+  assert.equal(
+    BreakerReachSystemDefinition.worlds.filter(
+      (WorldDefinition) => WorldDefinition.countsTowardRestoration === false,
+    ).length,
+    3,
+  );
   assert.deepEqual(
     BreakerReachSystemDefinition.innerClusterWorldIdentifiers,
     ['meadow', 'ember', 'grove'],
@@ -45,9 +51,9 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
     BreakerReachSystemDefinition.openingBroadcast,
     'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
   );
-  assert.equal(BreakerReachSystemDefinition.openingBriefing.length, 4);
+  assert.equal(BreakerReachSystemDefinition.openingBriefing.length, 2);
   assert.equal(BreakerReachSystemDefinition.openingBriefing[0].speaker, 'THE WARDEN');
-  assert.equal(BreakerReachSystemDefinition.openingBriefing[3].title, 'Wake the neighbourhood.');
+  assert.equal(BreakerReachSystemDefinition.openingBriefing[1].title, 'I stole the last ship.');
   assert.equal(
     BreakerReachSystemDefinition.storyBoards.wardenArrival.pages[0].title,
     'Unauthorised network detected.',
@@ -104,11 +110,11 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.equal(SpindleDefinition.visualKey, 'loom');
   assert.equal(QuarryDefinition.visualKey, 'kiln');
   assert.equal(MirageDefinition.visualKey, 'shard');
-  assert.equal(BreakerReachSystemDefinition.contentVersion, 'breaker-reach-7');
+  assert.equal(BreakerReachSystemDefinition.contentVersion, 'breaker-reach-9');
   assert.equal(BreakerReachSystemDefinition.launchBudget, 10);
   assert.deepEqual(
     BreakerReachSystemDefinition.routeSuggestions.meadow,
-    ['ember', 'frost', 'spindle'],
+    ['ember', 'frost', 'ledge'],
   );
   const EmberDefinition = BreakerReachSystemDefinition.worlds.find(
     (WorldDefinition) => WorldDefinition.id === 'ember',
@@ -134,10 +140,12 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.equal(BreakerReachSystemDefinition.completion.continueToNextSystem, true);
   assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
   assert.ok(CommandDefinition.hostileEncounter.clampOffsetsRadians.length >= 3);
-  assert.ok(BreakerReachSystemDefinition.worlds.every(
-    (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2
-      && WorldDefinition.occupationSites.length >= 2,
-  ));
+  assert.ok(BreakerReachSystemDefinition.worlds
+    .filter((WorldDefinition) => WorldDefinition.countsTowardRestoration !== false)
+    .every(
+      (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2
+        && WorldDefinition.occupationSites.length >= 2,
+    ));
   const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition);
   assert.notEqual(
     Runtime.worlds[0].occupationScarAngles,
@@ -204,7 +212,7 @@ test('authored continuation policy fails closed when it is not boolean', () => {
 
 test('story page focusWorldId fails closed when empty or unknown', () => {
   const EmptyFocusDefinition = structuredClone(BreakerReachSystemDefinition);
-  EmptyFocusDefinition.openingBriefing[2].focusWorldId = '   ';
+  EmptyFocusDefinition.openingBriefing[1].focusWorldId = '   ';
   assert.ok(validateAuthoredSystemDefinition(EmptyFocusDefinition).some(
     (ErrorText) => ErrorText.includes('requires a non-empty focusWorldId when present'),
   ));

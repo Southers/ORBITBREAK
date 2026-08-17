@@ -968,6 +968,51 @@ stale watch/submit results after reset. Slingshot prediction skips the
 pre-launch rest sample so it matches live fixed-step scoring. Runtime JS/CSS
 cannot load remote URLs. Restoration-vs-validator honesty stays deferred.
 
+Checkpoint 21 — 16 August 2026: gravity becomes the game (`breaker-reach-8`).
+Anchor wells deepened and far worlds respaced so no full-power direct shot
+reaches Tide, Spindle, Quarry, Mirage or the Command World — every outer leg
+bends through an intermediate well. Ledge, Cinder and Glasswing join as pre-lit
+relay-shard waypoints that never count toward restoration. The aim line now
+predicts 1800 fixed steps so a whole assisted arc is visible before release,
+and each body shows an additive well glow sized by its gravitational parameter
+while aiming or flying. New offline tools (`tools/reachability-report.mjs`,
+`tools/golden-run.mjs`) prove route reachability and regenerate the golden
+replay fixtures; the completion fixture now derives 63,400 over eight launches.
+The physics step, launch cap and Burn contract are untouched.
+
+Checkpoint 22 — 16 August 2026: relay-port landings (`breaker-reach-9`). Every
+unrestored world authors a beacon-marked relay-port arc on its circumference.
+Landing inside the arc liberates the world and grades CLEAN (+200) or, inside
+the inner third, BULLSEYE (+500); landing elsewhere still docks safely and
+links the relay, but the cage holds until a later flight hits the arc. The
+Warden still advances once per resolved flight, so retries cost pursuit
+pressure rather than fuel. Unrestored ports render as pulsing gold beacon
+arcs, the aim preview names BULLSEYE/DOCK ONLY before release, and the landing
+toast explains a missed arc. Portless bodies (shards, Seedstone, Command)
+keep land-anywhere behaviour. Golden fixtures regenerated: the completion
+replay derives 53,300 over eight launches with every leg landed in-port.
+
+Checkpoint 23 — 16 August 2026: onboarding and felt pursuit. The opening stack
+is two cards (Warden broadcast, then the Runner's charge); everything else is
+taught in-world at the moment of need. The first launch names Break as the one
+free correction; Break now sounds and confirms "COURSE CHANGED"; Destroy toasts
+the remaining clamp count. The Warden panel gains a pursuit-track pip row that
+fills as ground is taken, and every advance plays a low two-note step with a
+panel pulse and a warden-toned toast ("WARDEN AT ⟨world⟩ NEXT LANDING" at one
+flight). The post-first-liberation coach teaches the mandatory slingshot. On
+portrait the mode chip drops below the objective panel and the flight Break
+button rises with the aim panel so nothing covers the coach. Physics and
+`breaker-reach-9` are unchanged.
+
+Checkpoint 24 — 16 August 2026: first-launch pull hint. Before the first
+launch, animated gold chevrons march away from the ship along the suggested
+pull direction with a "PULL THE SHIP" label; the hint hides the moment any
+aim begins and never returns after the first launch. On compact widths the
+mode chip shows the mode word alone so it fits between the scanner and the
+flight score. Judge-style rescoring playtest after checkpoint 23 read
+Art 10, Creativity 10, Gameplay 9, Polish 9, Theme 10 with the drag-gesture
+discoverability named the top remaining gap — this checkpoint answers it.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

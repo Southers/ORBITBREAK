@@ -4,6 +4,7 @@ import { validateSerializedReplay } from '../src/replay-validator.js';
 import { loadReplayFixture } from '../tests/fixtures/load-fixture.js';
 
 const ReferenceReplay = JSON.stringify(loadReplayFixture('breaker-reach-complete.v2.json'));
+const ExpectedResult = loadReplayFixture('breaker-reach-complete.v2.result.json');
 const WarmupRuns = 20;
 const MeasuredRuns = 200;
 const Samples = [];
@@ -12,8 +13,11 @@ for (let RunIndex = 0; RunIndex < WarmupRuns + MeasuredRuns; RunIndex += 1) {
   const StartedAt = performance.now();
   const Validation = validateSerializedReplay(ReferenceReplay);
   const ElapsedMilliseconds = performance.now() - StartedAt;
-  if (!Validation.valid || Validation.result.score !== 10900) {
-    throw new Error(Validation.reason ?? 'Reference replay did not derive 10,900 points.');
+  if (!Validation.valid || Validation.result.score !== ExpectedResult.score) {
+    throw new Error(
+      Validation.reason
+        ?? `Reference replay did not derive ${ExpectedResult.score.toLocaleString('en-GB')} points.`,
+    );
   }
   if (RunIndex >= WarmupRuns) {
     Samples.push(ElapsedMilliseconds);

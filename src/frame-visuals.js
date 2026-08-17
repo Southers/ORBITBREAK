@@ -338,13 +338,20 @@ export function createFrameVisuals(THREE, host) {
         }
       }
     }
-    SeedHaloMesh.scale.setScalar(1 + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.08));
-    SeedHaloMaterial.color.setHex(
-      RunnerAnimationState === 'recovering' ? 0xff766d : 0x6de8ff,
+    const IsChargingLaunch = host.IsPointerAiming || host.IsKeyboardAiming;
+    SeedHaloMesh.scale.setScalar(
+      1
+      + (IsChargingLaunch ? 0.24 : 0)
+      + (Math.sin(ElapsedTimeSeconds * (IsChargingLaunch ? 7.4 : 4.2)) * 0.08),
     );
-    SeedHaloMaterial.opacity = (
-      RunnerAnimationState === 'liberating' ? 0.2 : 0.105
-    ) + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.025);
+    if (RunnerAnimationState === 'recovering') {
+      SeedHaloMaterial.color.setHex(0xff766d);
+    } else {
+      SeedHaloMaterial.color.setHex(IsChargingLaunch ? 0xc4f7a6 : 0x6de8ff);
+    }
+    const HaloRestOpacity = RunnerAnimationState === 'liberating' ? 0.2 : 0.105;
+    SeedHaloMaterial.opacity = (IsChargingLaunch ? 0.34 : HaloRestOpacity)
+      + (Math.sin(ElapsedTimeSeconds * 4.2) * (IsChargingLaunch ? 0.06 : 0.025));
 
     if (host.LiberationFlashLifeSeconds > 0) {
       host.LiberationFlashLifeSeconds = Math.max(
