@@ -259,6 +259,8 @@ const WardenStateLabelElement = document.querySelector('#WardenStateLabel');
 const WardenDistanceElement = document.querySelector('#WardenDistance');
 const WardenTargetElement = document.querySelector('#WardenTarget');
 const WardenTrackElement = document.querySelector('#WardenTrack');
+const PullHintElement = document.querySelector('#PullHint');
+const PullHintChevronsElement = PullHintElement.querySelector('.pull-hint__chevrons');
 let ObjectivePipElements = [];
 const InstructionPanelElement = document.querySelector('#InstructionPanel');
 const InstructionTitleElement = document.querySelector('#InstructionTitle');
@@ -831,6 +833,53 @@ function publishWardenState() {
   GameCanvas.dataset.wardenShieldLayers = String(WardenPursuitState.shieldLayers);
   GameCanvas.dataset.wardenLandmark = PublishedWardenState.landmark;
   publishRunUnlockState();
+}
+
+const PullHintShipProjection = new THREE.Vector3();
+const PullHintPullProjection = new THREE.Vector3();
+
+/** Animated first-launch coach: chevrons marching along the pull direction from the ship. */
+function updatePullHint() {
+  const ShouldShow = GamePhase === 'attached'
+    && !HasLaunchedOnce
+    && !IsPointerAiming
+    && !IsKeyboardAiming
+    && !IsOpeningBriefingActive
+    && !IsScoutMode
+    && ReplayPlaybackState === null
+    && ActiveHostileEncounterState === null
+    && RunState.status === 'active';
+  if (!ShouldShow) {
+    PullHintElement.hidden = true;
+    return;
+  }
+  const SuggestedTarget = getCurrentRouteChoices(1)[0];
+  if (!SuggestedTarget) {
+    PullHintElement.hidden = true;
+    return;
+  }
+  PullHintShipProjection.copy(SeedGroup.position).project(Camera);
+  PullHintPullProjection.set(
+    SeedGroup.position.x - (SuggestedTarget.position.x - SeedGroup.position.x),
+    SeedGroup.position.y - (SuggestedTarget.position.y - SeedGroup.position.y),
+    SeedGroup.position.z,
+  ).project(Camera);
+  const ShipScreenX = (PullHintShipProjection.x * 0.5 + 0.5) * window.innerWidth;
+  const ShipScreenY = (-PullHintShipProjection.y * 0.5 + 0.5) * window.innerHeight;
+  const PullScreenX = (PullHintPullProjection.x * 0.5 + 0.5) * window.innerWidth;
+  const PullScreenY = (-PullHintPullProjection.y * 0.5 + 0.5) * window.innerHeight;
+  const DirectionLength = Math.hypot(PullScreenX - ShipScreenX, PullScreenY - ShipScreenY);
+  if (!Number.isFinite(DirectionLength) || DirectionLength < 0.001) {
+    PullHintElement.hidden = true;
+    return;
+  }
+  const DirectionX = (PullScreenX - ShipScreenX) / DirectionLength;
+  const DirectionY = (PullScreenY - ShipScreenY) / DirectionLength;
+  const HintScreenX = ShipScreenX + (DirectionX * 74);
+  const HintScreenY = ShipScreenY + (DirectionY * 74);
+  PullHintElement.hidden = false;
+  PullHintElement.style.transform = `translate(${Math.round(HintScreenX)}px, ${Math.round(HintScreenY)}px) translate(-50%, -50%)`;
+  PullHintChevronsElement.style.transform = `rotate(${Math.atan2(DirectionY, DirectionX)}rad)`;
 }
 
 function listLiveWorldIdentifiers() {
@@ -3385,6 +3434,7 @@ function renderFrame() {
   updateTacticalBodies(ElapsedTimeSeconds, CachedInstructionPanelTop);
   updateStardustVisuals(ElapsedTimeSeconds);
   updateRouteLabels(CachedInstructionPanelTop);
+  updatePullHint();
   updateFlightAudio();
   updateWorldLifeAudio();
   updatePersonalBestGhostVisibility();

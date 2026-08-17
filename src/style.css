@@ -1330,6 +1330,78 @@ button[aria-disabled='true'] {
   justify-content: flex-end;
 }
 
+.pull-hint {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.pull-hint[hidden] {
+  display: none;
+}
+
+.pull-hint__chevrons {
+  display: flex;
+  gap: 5px;
+}
+
+.pull-hint__chevrons i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-top: 2.5px solid #ffe9ad;
+  border-right: 2.5px solid #ffe9ad;
+  transform: rotate(45deg);
+  filter: drop-shadow(0 0 5px rgba(255, 214, 120, 0.85));
+  animation: pull-hint-march 1.15s ease-out infinite;
+}
+
+.pull-hint__chevrons i:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.pull-hint__chevrons i:nth-child(3) {
+  animation-delay: 0.28s;
+}
+
+.pull-hint__label {
+  color: #ffe9ad;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 8px rgba(4, 8, 14, 0.9), 0 0 14px rgba(255, 214, 120, 0.5);
+  white-space: nowrap;
+}
+
+@keyframes pull-hint-march {
+  0% {
+    opacity: 0.15;
+    transform: rotate(45deg) translate(-3px, 3px);
+  }
+
+  40% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.1;
+    transform: rotate(45deg) translate(3px, -3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pull-hint__chevrons i {
+    animation: none;
+    opacity: 0.9;
+  }
+}
+
 .mode-chip {
   position: absolute;
   z-index: 4;
@@ -1435,8 +1507,9 @@ button[aria-disabled='true'] {
     padding: 4px 12px;
   }
 
+  /* The scanner and flight-score flank this row; the mode word alone fits between them. */
   .mode-chip span {
-    font-size: 10px;
+    display: none;
   }
 
   .hud__actions {

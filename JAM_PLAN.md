@@ -1004,6 +1004,15 @@ portrait the mode chip drops below the objective panel and the flight Break
 button rises with the aim panel so nothing covers the coach. Physics and
 `breaker-reach-9` are unchanged.
 
+Checkpoint 24 — 16 August 2026: first-launch pull hint. Before the first
+launch, animated gold chevrons march away from the ship along the suggested
+pull direction with a "PULL THE SHIP" label; the hint hides the moment any
+aim begins and never returns after the first launch. On compact widths the
+mode chip shows the mode word alone so it fits between the scanner and the
+flight score. Judge-style rescoring playtest after checkpoint 23 read
+Art 10, Creativity 10, Gameplay 9, Polish 9, Theme 10 with the drag-gesture
+discoverability named the top remaining gap — this checkpoint answers it.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.
