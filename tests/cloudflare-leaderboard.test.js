@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 
 import { createD1LeaderboardStore } from '../server/cloudflare/d1-store.js';
 import Worker from '../server/cloudflare/worker.js';
-import { loadSerializedReplayFixture } from './fixtures/load-fixture.js';
+import { loadReplayFixture, loadSerializedReplayFixture } from './fixtures/load-fixture.js';
 
 const VerifiedReplay = loadSerializedReplayFixture('breaker-reach-complete.v2.json');
+const VerifiedResult = loadReplayFixture('breaker-reach-complete.v2.result.json');
 
 class FakeD1Statement {
   constructor(Database, Sql) {
@@ -176,8 +177,8 @@ test('Worker accepts a valid replay through the D1 service boundary', async () =
 
   assert.equal(ResponseData.status, 201);
   const Result = await ResponseData.json();
-  assert.equal(Result.entry.score, 10900);
-  assert.equal(Result.entry.launchesUsed, 7);
+  assert.equal(Result.entry.score, VerifiedResult.score);
+  assert.equal(Result.entry.launchesUsed, VerifiedResult.launchesUsed);
   assert.equal(Result.entry.replay, undefined);
   assert.equal(Database.records.length, 1);
   assert.equal(Database.records[0].callsign, 'ACE');

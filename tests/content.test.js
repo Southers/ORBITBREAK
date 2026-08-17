@@ -31,7 +31,13 @@ test('First Light satisfies the authored-system content contract', () => {
 
 test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.deepEqual(validateAuthoredSystemDefinition(BreakerReachSystemDefinition), []);
-  assert.equal(BreakerReachSystemDefinition.worlds.length, 9);
+  assert.equal(BreakerReachSystemDefinition.worlds.length, 12);
+  assert.equal(
+    BreakerReachSystemDefinition.worlds.filter(
+      (WorldDefinition) => WorldDefinition.countsTowardRestoration === false,
+    ).length,
+    3,
+  );
   assert.deepEqual(
     BreakerReachSystemDefinition.innerClusterWorldIdentifiers,
     ['meadow', 'ember', 'grove'],
@@ -104,11 +110,11 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.equal(SpindleDefinition.visualKey, 'loom');
   assert.equal(QuarryDefinition.visualKey, 'kiln');
   assert.equal(MirageDefinition.visualKey, 'shard');
-  assert.equal(BreakerReachSystemDefinition.contentVersion, 'breaker-reach-7');
+  assert.equal(BreakerReachSystemDefinition.contentVersion, 'breaker-reach-8');
   assert.equal(BreakerReachSystemDefinition.launchBudget, 10);
   assert.deepEqual(
     BreakerReachSystemDefinition.routeSuggestions.meadow,
-    ['ember', 'frost', 'spindle'],
+    ['ember', 'frost', 'ledge'],
   );
   const EmberDefinition = BreakerReachSystemDefinition.worlds.find(
     (WorldDefinition) => WorldDefinition.id === 'ember',
@@ -134,10 +140,12 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.equal(BreakerReachSystemDefinition.completion.continueToNextSystem, true);
   assert.ok(CommandDefinition.orbit.angularSpeedRadiansPerSecond > 0);
   assert.ok(CommandDefinition.hostileEncounter.clampOffsetsRadians.length >= 3);
-  assert.ok(BreakerReachSystemDefinition.worlds.every(
-    (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2
-      && WorldDefinition.occupationSites.length >= 2,
-  ));
+  assert.ok(BreakerReachSystemDefinition.worlds
+    .filter((WorldDefinition) => WorldDefinition.countsTowardRestoration !== false)
+    .every(
+      (WorldDefinition) => WorldDefinition.occupationScarAngles.length >= 2
+        && WorldDefinition.occupationSites.length >= 2,
+    ));
   const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition);
   assert.notEqual(
     Runtime.worlds[0].occupationScarAngles,

@@ -1,14 +1,14 @@
 {
   "systemIdentifier": "breaker-reach",
-  "contentVersion": "breaker-reach-7",
-  "score": 10900,
-  "launchesUsed": 7,
-  "flightTimeMilliseconds": 20917,
-  "slingshotScore": 0,
+  "contentVersion": "breaker-reach-8",
+  "score": 63400,
+  "launchesUsed": 8,
+  "flightTimeMilliseconds": 208250,
+  "slingshotScore": 52500,
   "networkScore": 6900,
   "liberationScore": 4400,
   "circuitScore": 2500,
   "victoryScore": 4000,
   "completionBonus": 4000,
-  "collectedStardustCount": 0
+  "collectedStardustCount": 1
 }

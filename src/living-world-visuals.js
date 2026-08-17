@@ -129,6 +129,38 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   Scene.add(SlingshotAssistMesh);
   Scene.add(SlingshotRazorMesh);
 
+  // A soft additive glow sized by each body's gravitational parameter, so the
+  // heavy anchor worlds visibly read as deeper wells than the asteroid shards.
+  const WellGlowCanvas = document.createElement('canvas');
+  WellGlowCanvas.width = 128;
+  WellGlowCanvas.height = 128;
+  const WellGlowContext = WellGlowCanvas.getContext('2d');
+  const WellGlowGradient = WellGlowContext.createRadialGradient(64, 64, 8, 64, 64, 64);
+  WellGlowGradient.addColorStop(0, 'rgba(255,255,255,0.75)');
+  WellGlowGradient.addColorStop(0.45, 'rgba(255,255,255,0.24)');
+  WellGlowGradient.addColorStop(1, 'rgba(255,255,255,0)');
+  WellGlowContext.fillStyle = WellGlowGradient;
+  WellGlowContext.fillRect(0, 0, 128, 128);
+  const GravityWellTexture = new THREE.CanvasTexture(WellGlowCanvas);
+  const GravityWellMaterial = new THREE.MeshBasicMaterial({
+    map: GravityWellTexture,
+    color: 0x3f7fb4,
+    transparent: true,
+    opacity: 0.14,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const GravityWellMesh = new THREE.InstancedMesh(
+    new THREE.PlaneGeometry(2, 2),
+    GravityWellMaterial,
+    WorldDefinitions.length,
+  );
+  const GravityWellColor = new THREE.Color();
+  GravityWellMesh.frustumCulled = false;
+  GravityWellMesh.renderOrder = 7;
+  GravityWellMesh.visible = false;
+  Scene.add(GravityWellMesh);
+
   function updateSlingshotBandVisuals(ElapsedTimeSeconds) {
     const {
       IsPointerAiming,
@@ -148,12 +180,14 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     });
     SlingshotAssistMesh.visible = VisualState.visible;
     SlingshotRazorMesh.visible = VisualState.visible;
+    GravityWellMesh.visible = VisualState.visible;
     if (!VisualState.visible) {
       return;
     }
 
     SlingshotAssistMaterial.opacity = VisualState.assistOpacity;
     SlingshotRazorMaterial.opacity = VisualState.razorOpacity;
+    GravityWellMaterial.opacity = VisualState.wellOpacity;
     const BandRotation = PrefersReducedMotion ? 0 : ElapsedTimeSeconds * 0.14;
     for (let WorldIndex = 0; WorldIndex < WorldDefinitions.length; WorldIndex += 1) {
       const WorldDefinition = WorldDefinitions[WorldIndex];
@@ -173,11 +207,27 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       SlingshotRazorMesh.setMatrixAt(WorldIndex, SlingshotBandTransform.matrix);
       SlingshotRazorColor.setHex(IsActive || IsPredicted ? 0xfff1c2 : 0xc9a45a);
       SlingshotRazorMesh.setColorAt(WorldIndex, SlingshotRazorColor);
+
+      const WellRadius = WorldDefinition.radius
+        + (Math.sqrt(WorldDefinition.gravitationalParameter) * 0.34);
+      SlingshotBandTransform.rotation.set(0, 0, 0);
+      SlingshotBandTransform.position.set(
+        WorldDefinition.position.x,
+        WorldDefinition.position.y,
+        0.05,
+      );
+      SlingshotBandTransform.scale.set(WellRadius, WellRadius, 1);
+      SlingshotBandTransform.updateMatrix();
+      GravityWellMesh.setMatrixAt(WorldIndex, SlingshotBandTransform.matrix);
+      GravityWellColor.setHex(IsActive || IsPredicted ? 0x9fd8ff : 0x39678f);
+      GravityWellMesh.setColorAt(WorldIndex, GravityWellColor);
     }
     SlingshotAssistMesh.instanceMatrix.needsUpdate = true;
     SlingshotRazorMesh.instanceMatrix.needsUpdate = true;
+    GravityWellMesh.instanceMatrix.needsUpdate = true;
     if (SlingshotAssistMesh.instanceColor) SlingshotAssistMesh.instanceColor.needsUpdate = true;
     if (SlingshotRazorMesh.instanceColor) SlingshotRazorMesh.instanceColor.needsUpdate = true;
+    if (GravityWellMesh.instanceColor) GravityWellMesh.instanceColor.needsUpdate = true;
   }
 
   /** Instanced mines, clamps, fumes and haulers make Warden-owned worlds look eaten, not merely clamped. */

@@ -3,7 +3,7 @@ import { FirstLightSystemDefinition } from './first-light.js';
 /** ORBITBREAK's first score-attack arena, spanning several camera views. */
 export const BreakerReachSystemDefinition = {
   id: 'breaker-reach',
-  contentVersion: 'breaker-reach-7',
+  contentVersion: 'breaker-reach-8',
   label: "BREAKER'S REACH",
   launchBudget: 10,
   circuitBonusValue: 1250,
@@ -340,7 +340,7 @@ export const BreakerReachSystemDefinition = {
     followPlayer: true,
     viewportWorldHeight: 24,
     viewportWorldWidth: 20,
-    outOfBoundsDistance: 88,
+    outOfBoundsDistance: 96,
   },
   completion: {
     eyebrow: "BREAKER'S REACH LIBERATED",
@@ -365,18 +365,21 @@ export const BreakerReachSystemDefinition = {
       { id: 'tide', label: 'Tide', x: 154, y: 46 },
       { id: 'frost', label: 'Frost', x: 70, y: 28 },
       { id: 'bastion', label: 'Bastion', x: 128, y: 20 },
-      { id: 'spindle', label: 'Spindle', x: 12, y: 40 },
-      { id: 'quarry', label: 'Quarry', x: 108, y: 92 },
-      { id: 'mirage', label: 'Mirage', x: 176, y: 16 },
-      { id: 'worldheart', label: 'Command', x: 218, y: 30, isHeart: true },
+      { id: 'spindle', label: 'Spindle', x: 8, y: 34 },
+      { id: 'quarry', label: 'Quarry', x: 110, y: 96 },
+      { id: 'mirage', label: 'Mirage', x: 182, y: 14 },
+      { id: 'ledge', label: 'Ledge', x: 22, y: 48 },
+      { id: 'cinder', label: 'Cinder', x: 92, y: 86 },
+      { id: 'glasswing', label: 'Glasswing', x: 158, y: 28 },
+      { id: 'worldheart', label: 'Command', x: 214, y: 34, isHeart: true },
     ],
     edges: [
       ['meadow', 'ember'], ['ember', 'grove'], ['grove', 'tide'],
       ['meadow', 'frost'], ['frost', 'bastion'], ['bastion', 'tide'],
-      ['meadow', 'spindle'], ['spindle', 'frost'],
-      ['ember', 'quarry'], ['quarry', 'tide'],
-      ['bastion', 'mirage'], ['tide', 'mirage'],
-      ['tide', 'worldheart'], ['bastion', 'worldheart'], ['mirage', 'worldheart'],
+      ['meadow', 'ledge'], ['ledge', 'spindle'], ['spindle', 'frost'],
+      ['ember', 'cinder'], ['cinder', 'quarry'], ['quarry', 'tide'],
+      ['bastion', 'glasswing'], ['glasswing', 'mirage'], ['tide', 'glasswing'],
+      ['glasswing', 'worldheart'], ['mirage', 'worldheart'],
     ],
   },
   startingWorldIdentifier: 'meadow',
@@ -386,15 +389,18 @@ export const BreakerReachSystemDefinition = {
   worldheartUnlockThreshold: 3,
   commandWorldRequiresShieldBreaks: true,
   routeSuggestions: {
-    meadow: ['ember', 'frost', 'spindle'],
-    ember: ['grove', 'quarry'],
-    grove: ['tide', 'bastion'],
-    frost: ['bastion', 'spindle'],
-    bastion: ['worldheart', 'mirage'],
-    tide: ['worldheart', 'quarry'],
-    spindle: ['frost', 'meadow'],
-    quarry: ['ember', 'tide'],
-    mirage: ['worldheart', 'bastion'],
+    meadow: ['ember', 'frost', 'ledge'],
+    ember: ['grove', 'cinder'],
+    grove: ['tide', 'frost'],
+    frost: ['bastion', 'ledge'],
+    bastion: ['glasswing', 'tide'],
+    tide: ['glasswing', 'cinder'],
+    spindle: ['ledge', 'frost'],
+    quarry: ['cinder', 'tide'],
+    mirage: ['worldheart', 'glasswing'],
+    ledge: ['spindle', 'meadow'],
+    cinder: ['quarry', 'ember'],
+    glasswing: ['worldheart', 'mirage'],
     seedstone: ['bastion', 'grove'],
   },
   routeGuidance: {
@@ -408,7 +414,7 @@ export const BreakerReachSystemDefinition = {
   worlds: [
     {
       ...FirstLightSystemDefinition.worlds[0],
-      label: 'HAVEN', position: { x: -22, y: -8, z: 0 }, gravitationalParameter: 105,
+      label: 'HAVEN', position: { x: -22, y: -8, z: 0 }, gravitationalParameter: 240,
       occupationScarAngles: [-0.34, 2.8, 1.2],
       occupationSites: [
         { longitude: -0.34, latitude: 0.16 },
@@ -436,7 +442,7 @@ export const BreakerReachSystemDefinition = {
     },
     {
       ...FirstLightSystemDefinition.worlds[2],
-      position: { x: 6, y: -4, z: 0 }, radius: 2.5, gravitationalParameter: 220,
+      position: { x: 6, y: -4, z: 0 }, radius: 2.5, gravitationalParameter: 240,
       occupationScarAngles: [-2.57, 0.62, -0.9],
       occupationSites: [
         { longitude: -2.57, latitude: 0.18 },
@@ -447,7 +453,7 @@ export const BreakerReachSystemDefinition = {
     },
     {
       ...FirstLightSystemDefinition.worlds[4],
-      position: { x: 18, y: 2, z: 0 }, radius: 2.8, gravitationalParameter: 240,
+      position: { x: 24, y: 4, z: 0 }, radius: 2.8, gravitationalParameter: 260,
       occupationScarAngles: [1.18, 1.37, 1.56, 1.75],
       occupationSites: [
         { longitude: 1.18, latitude: 0.18 },
@@ -459,7 +465,7 @@ export const BreakerReachSystemDefinition = {
     },
     {
       ...FirstLightSystemDefinition.worlds[3],
-      position: { x: -8, y: 11, z: 0 }, radius: 4.2, gravitationalParameter: 220,
+      position: { x: -8, y: 11, z: 0 }, radius: 4.2, gravitationalParameter: 320,
       slingshotValue: 1000, liberationValue: 1400,
       occupationScarAngles: [-2.08, -1.9, -1.72],
       occupationSites: [
@@ -471,7 +477,7 @@ export const BreakerReachSystemDefinition = {
     },
     {
       id: 'bastion', label: 'BASTION', visualKey: 'vault',
-      position: { x: 12, y: 14, z: 0 }, radius: 2.8, gravitationalParameter: 200,
+      position: { x: 14, y: 18, z: 0 }, radius: 2.8, gravitationalParameter: 250,
       slingshotValue: 650, liberationValue: 1500,
       aliveColor: 0x746fa8, atmosphereColor: 0xb7b7ff, accentColor: 0xf2c1ff,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true,
@@ -496,7 +502,7 @@ export const BreakerReachSystemDefinition = {
     },
     {
       id: 'spindle', label: 'SPINDLE', visualKey: 'loom',
-      position: { x: -48, y: 18, z: 0 }, radius: 2.35, gravitationalParameter: 55,
+      position: { x: -58, y: 23, z: 0 }, radius: 2.35, gravitationalParameter: 46,
       slingshotValue: 550, liberationValue: 1200,
       aliveColor: 0x789a7c, atmosphereColor: 0xb9e2c5, accentColor: 0xcfe89a,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 1,
@@ -515,7 +521,7 @@ export const BreakerReachSystemDefinition = {
     },
     {
       id: 'quarry', label: 'QUARRY', visualKey: 'kiln',
-      position: { x: 8, y: -38, z: 0 }, radius: 2.7, gravitationalParameter: 68,
+      position: { x: 11, y: -50, z: 0 }, radius: 2.7, gravitationalParameter: 54,
       slingshotValue: 700, liberationValue: 1300,
       aliveColor: 0xb76545, atmosphereColor: 0xffad72, accentColor: 0xffcf76,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
@@ -534,7 +540,7 @@ export const BreakerReachSystemDefinition = {
     },
     {
       id: 'mirage', label: 'MIRAGE', visualKey: 'shard',
-      position: { x: 48, y: 34, z: 0 }, radius: 3.1, gravitationalParameter: 84,
+      position: { x: 58, y: 43, z: 0 }, radius: 3.1, gravitationalParameter: 66,
       slingshotValue: 900, liberationValue: 1600,
       aliveColor: 0x7085a8, atmosphereColor: 0xb9cdf9, accentColor: 0xd8e5ff,
       initiallyRestored: false, usesMergedSurfaceLandmarks: true, biomeStyle: 2,
@@ -552,6 +558,45 @@ export const BreakerReachSystemDefinition = {
         surfaceVariation: 0.04,
       },
     },
+    {
+      id: 'ledge', label: 'LEDGE', visualKey: 'outpost',
+      position: { x: -37, y: 8, z: 0 }, radius: 1.15, gravitationalParameter: 26,
+      slingshotValue: 250, liberationValue: 300,
+      aliveColor: 0x8d8f9f, atmosphereColor: 0xcdd4e6, accentColor: 0xffe2a8,
+      initiallyRestored: true, countsTowardRestoration: false, biomeStyle: 2,
+      memory: 'A courier shelf carved for ships that were never allowed to come.',
+      restoration: {
+        durationSeconds: 1.2, waveWidth: 0.06, growthTrailWidth: 0.2,
+        waveColor: 0xf3ecd2, atmosphereOpacity: 0, rotationSpeed: 0.0011,
+        surfaceVariation: 0.12,
+      },
+    },
+    {
+      id: 'cinder', label: 'CINDER', visualKey: 'outpost',
+      position: { x: 0, y: -24, z: 0 }, radius: 1.1, gravitationalParameter: 24,
+      slingshotValue: 250, liberationValue: 300,
+      aliveColor: 0x9d7f72, atmosphereColor: 0xe8c9b4, accentColor: 0xffc790,
+      initiallyRestored: true, countsTowardRestoration: false, biomeStyle: 2,
+      memory: 'A cooled slag rock where the haul barges once caught their breath.',
+      restoration: {
+        durationSeconds: 1.2, waveWidth: 0.06, growthTrailWidth: 0.2,
+        waveColor: 0xffe1c2, atmosphereOpacity: 0, rotationSpeed: 0.0013,
+        surfaceVariation: 0.12,
+      },
+    },
+    {
+      id: 'glasswing', label: 'GLASSWING', visualKey: 'outpost',
+      position: { x: 34, y: 24, z: 0 }, radius: 1.15, gravitationalParameter: 26,
+      slingshotValue: 250, liberationValue: 300,
+      aliveColor: 0x7f93ad, atmosphereColor: 0xc9dcf7, accentColor: 0xbde4ff,
+      initiallyRestored: true, countsTowardRestoration: false, biomeStyle: 2,
+      memory: 'A splinter of mirror rock that remembers every forbidden route.',
+      restoration: {
+        durationSeconds: 1.2, waveWidth: 0.06, growthTrailWidth: 0.2,
+        waveColor: 0xe4f1ff, atmosphereOpacity: 0, rotationSpeed: 0.0009,
+        surfaceVariation: 0.12,
+      },
+    },
   ],
   tacticalBodies: [
     {
@@ -561,15 +606,15 @@ export const BreakerReachSystemDefinition = {
     {
       ...FirstLightSystemDefinition.tacticalBodies[1],
       orbit: {
-        centre: { x: 18, y: 2, z: 0 }, radius: 7,
+        centre: { x: 24, y: 4, z: 0 }, radius: 7,
         phaseRadians: -1.05, angularSpeedRadiansPerSecond: 0.28,
       },
     },
     {
       ...FirstLightSystemDefinition.tacticalBodies[2],
-      position: { x: 28, y: 8, z: 0 },
+      position: { x: 44.5, y: 18, z: 0 },
       orbit: {
-        centre: { x: 24, y: 8, z: 0 }, radius: 4,
+        centre: { x: 40, y: 18, z: 0 }, radius: 4.5,
         phaseRadians: 0, angularSpeedRadiansPerSecond: 0.08,
       },
       hostileEncounter: {

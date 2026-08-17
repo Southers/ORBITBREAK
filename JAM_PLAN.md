@@ -968,6 +968,18 @@ stale watch/submit results after reset. Slingshot prediction skips the
 pre-launch rest sample so it matches live fixed-step scoring. Runtime JS/CSS
 cannot load remote URLs. Restoration-vs-validator honesty stays deferred.
 
+Checkpoint 21 — 16 August 2026: gravity becomes the game (`breaker-reach-8`).
+Anchor wells deepened and far worlds respaced so no full-power direct shot
+reaches Tide, Spindle, Quarry, Mirage or the Command World — every outer leg
+bends through an intermediate well. Ledge, Cinder and Glasswing join as pre-lit
+relay-shard waypoints that never count toward restoration. The aim line now
+predicts 1800 fixed steps so a whole assisted arc is visible before release,
+and each body shows an additive well glow sized by its gravitational parameter
+while aiming or flying. New offline tools (`tools/reachability-report.mjs`,
+`tools/golden-run.mjs`) prove route reachability and regenerate the golden
+replay fixtures; the completion fixture now derives 63,400 over eight launches.
+The physics step, launch cap and Burn contract are untouched.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

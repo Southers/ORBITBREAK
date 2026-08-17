@@ -326,7 +326,9 @@ const MaximumDragDistance = 6.25;
 const LaunchVelocityPerDragUnit = MaximumLaunchSpeed / MaximumDragDistance;
 GameCanvas.dataset.maxLaunchSpeed = String(MaximumLaunchSpeed);
 const MinimumLaunchDragDistance = 0.22;
-const MaximumTrajectoryPredictionSteps = 720;
+// Long enough (~15s of flight) to reveal full slingshot arcs to the further
+// worlds, so gravity routes are learnable from the aim line alone.
+const MaximumTrajectoryPredictionSteps = 1800;
 const TrajectoryPreviewSampleStride = 5;
 GameCanvas.dataset.rankedPredictionSteps = String(MaximumTrajectoryPredictionSteps);
 const OutOfBoundsDistance = ActiveSystem.camera?.outOfBoundsDistance ?? 34;

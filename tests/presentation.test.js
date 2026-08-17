@@ -756,6 +756,7 @@ test('slingshot rings appear only while the shot can still change', () => {
     visible: true,
     assistOpacity: 0.22,
     razorOpacity: 0.3,
+    wellOpacity: 0.14,
   });
   assert.equal(getSlingshotBandVisualState({ isFlying: true }).visible, true);
   assert.equal(getSlingshotBandVisualState({}).visible, false);

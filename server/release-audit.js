@@ -127,7 +127,7 @@ export function auditReleaseReadiness() {
     PresentationSource.includes('export function getSectorPlanningCamera(')
       && PresentationSource.includes('export function getPlanningFocusWorldIdentifiers(')
       && PresentationSource.includes('export function getPlanningAtmosphere(')
-      && MainSource.includes('MaximumTrajectoryPredictionSteps = 720')
+      && MainSource.includes('MaximumTrajectoryPredictionSteps = 1800')
       && MainSource.includes('applySectorPlanningCamera(')
       && CameraSource.includes('snapLiveCameraToPlanningView(')
       && CameraSource.includes('host.PlanningCameraScale * host.AimZoomScale')

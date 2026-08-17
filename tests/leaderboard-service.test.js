@@ -8,9 +8,10 @@ import {
   createLeaderboardService,
   normalizeCallsign,
 } from '../server/leaderboard-service.js';
-import { loadSerializedReplayFixture } from './fixtures/load-fixture.js';
+import { loadReplayFixture, loadSerializedReplayFixture } from './fixtures/load-fixture.js';
 
 const VerifiedReplay = loadSerializedReplayFixture('breaker-reach-complete.v2.json');
+const VerifiedResult = loadReplayFixture('breaker-reach-complete.v2.result.json');
 
 function createService() {
   let Identifier = 0;
@@ -31,7 +32,7 @@ test('service accepts a verified replay and stores only its derived result', asy
 
   assert.equal(Submission.accepted, true);
   assert.equal(Submission.entry.callsign, 'RUNNER_7');
-  assert.equal(Submission.entry.score, 10900);
+  assert.equal(Submission.entry.score, VerifiedResult.score);
   assert.equal(Submission.entry.replay, undefined);
   assert.equal(Submission.rank, 1);
   assert.equal((await Service.getReplay(Submission.entry.id)).replay, VerifiedReplay);
@@ -83,9 +84,9 @@ test('HTTP contract supports submit, ranked list, replay fetch and CORS', async 
   assert.equal(SubmitResponse.headers.get('access-control-allow-origin'), 'https://southers.github.io');
 
   const ListResponse = await Handler(new Request(
-    'https://scores.example/api/leaderboard?system=breaker-reach&content=breaker-reach-7',
+    `https://scores.example/api/leaderboard?system=breaker-reach&content=${VerifiedResult.contentVersion}`,
   ));
-  assert.equal((await ListResponse.json()).entries[0].score, 10900);
+  assert.equal((await ListResponse.json()).entries[0].score, VerifiedResult.score);
 
   const ReplayResponse = await Handler(new Request(
     `https://scores.example/api/replays/${Submission.entry.id}`,

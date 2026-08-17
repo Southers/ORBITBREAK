@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { getAuthoredSystemDefinition } from '../src/content.js';
 import { validateSerializedReplay } from '../src/replay-validator.js';
 import {
   loadReplayFixture,
@@ -64,7 +65,7 @@ test('validator ignores a forged claimed total and returns the derived score', (
   const Validation = validateSerializedReplay(JSON.stringify(ForgedReplay));
 
   assert.equal(Validation.valid, true);
-  assert.equal(Validation.result.score, 10900);
+  assert.equal(Validation.result.score, ExpectedCompletedResult.score);
 });
 
 test('validator rejects the former direct Command route without two unique circuits', () => {
@@ -81,14 +82,25 @@ test('schema-v2 validator derives the repositioned route and its fixed-step Burn
 });
 
 test('schema-v2 validator rejects forged surface origins and Burns outside a flight', () => {
+  // Push the recorded origin radially off the surface so the forgery is caught
+  // regardless of which surface angle the golden fixture launches from.
   const ForgedSurfaceReplay = JSON.parse(CompletedSchemaV2BurnRouteReplay);
-  ForgedSurfaceReplay.l[0][2] += 0.2;
+  const Definition = getAuthoredSystemDefinition(ForgedSurfaceReplay.s);
+  const OriginWorld = Definition.worlds.find(
+    (World) => World.id === ForgedSurfaceReplay.l[0][1],
+  );
+  const OffsetX = ForgedSurfaceReplay.l[0][2] - OriginWorld.position.x;
+  const OffsetY = ForgedSurfaceReplay.l[0][3] - OriginWorld.position.y;
+  const SurfaceDistance = Math.hypot(OffsetX, OffsetY);
+  const RadialScale = (SurfaceDistance + 0.2) / SurfaceDistance;
+  ForgedSurfaceReplay.l[0][2] = OriginWorld.position.x + (OffsetX * RadialScale);
+  ForgedSurfaceReplay.l[0][3] = OriginWorld.position.y + (OffsetY * RadialScale);
   const SurfaceValidation = validateSerializedReplay(JSON.stringify(ForgedSurfaceReplay));
   assert.equal(SurfaceValidation.valid, false);
   assert.match(SurfaceValidation.reason, /outside its recorded surface/);
 
   const LateBurnReplay = JSON.parse(CompletedSchemaV2BurnRouteReplay);
-  LateBurnReplay.l[6][6] = 5000;
+  LateBurnReplay.l[6][6] = LateBurnReplay.l[6][0] + 100000;
   const BurnValidation = validateSerializedReplay(JSON.stringify(LateBurnReplay));
   assert.equal(BurnValidation.valid, false);
   assert.match(BurnValidation.reason, /Burn outside its flight/);

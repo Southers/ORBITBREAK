@@ -1012,6 +1012,7 @@ export function getSlingshotBandVisualState({
     visible: Visible,
     assistOpacity: Visible ? 0.22 : 0,
     razorOpacity: Visible ? 0.3 : 0,
+    wellOpacity: Visible ? 0.14 : 0,
   };
 }
 
