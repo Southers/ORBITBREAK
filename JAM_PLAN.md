@@ -11,9 +11,11 @@ Keep and reuse what already works:
 - slingshot bands, chain scoring, safe-landing banking and anti-farming;
 - authored content validation and five systems of reusable world material;
 - procedural Runner, occupation cages and planet-wrapping liberation;
-- camera tracking, scanner, results, local bests and verified replay playback;
+- camera tracking, Scout, results, local bests and verified replay playback;
 - optional provider-neutral leaderboard code, not deployed;
 - adaptive performance, accessibility and desktop/mobile test coverage.
+
+The play screen is diegetic: menus are briefing, pause and results. Fuel lives on the ship, Warden telegraph lives on the vessel and target world, and first-run captions then go silent.
 
 The fixed eight-launch campaign and inherited five-chapter structure are no longer design constraints.
 

@@ -1,5 +1,5 @@
 /**
- * HUD counters, toasts, instructions and loop-objective copy.
+ * Diegetic play chrome: fuel lights, first-run captions, toasts and live region.
  * GameCanvas.dataset diagnostic writes stay on the same canvas contract.
  */
 
@@ -7,24 +7,46 @@ import { countRestoredWorlds } from './campaign.js';
 import { countLiveRelayWorlds, listRelayCircuits } from './network.js';
 import { getLoopObjectivePresentation } from './presentation.js';
 
+const TaughtCaptionStorageKey = 'orbitbreak.taughtCaptions';
+const FirstRunCaptionKinds = new Set(['walk', 'aim', 'break', 'missed-port']);
+
+function loadTaughtCaptions() {
+  try {
+    const Stored = JSON.parse(window.localStorage.getItem(TaughtCaptionStorageKey));
+    if (Stored && typeof Stored === 'object') {
+      return {
+        walk: Stored.walk === true,
+        aim: Stored.aim === true,
+        break: Stored.break === true,
+        'missed-port': Stored['missed-port'] === true,
+      };
+    }
+  } catch {
+    // Ignore quota / private-mode failures and start untaught.
+  }
+  return {
+    walk: false,
+    aim: false,
+    break: false,
+    'missed-port': false,
+  };
+}
+
+function persistTaughtCaptions(TaughtCaptions) {
+  try {
+    window.localStorage.setItem(TaughtCaptionStorageKey, JSON.stringify(TaughtCaptions));
+  } catch {
+    // Caption memory is presentation-only.
+  }
+}
+
 export function createHud(host) {
   const {
-    InstructionPanelElement,
-    InstructionTitleElement,
-    InstructionBodyElement,
-    WorldCounterElement,
-    LaunchCounterElement,
-    CounterElement,
-    ScoreCounterElement,
-    FlightScoreValueElement,
-    ChainValueElement,
-    FlightScoreElement,
+    PlayCaptionElement,
+    PlayCaptionTitleElement,
+    PlayCaptionBodyElement,
+    PlayLiveRegionElement,
     StatusToastElement,
-    StardustCounterElement,
-    ObjectiveLabelElement,
-    ObjectiveStateElement,
-    ObjectivePanelElement,
-    ObjectivePipsElement,
     ScoreBurstElement,
     Camera,
     ScoreBurstProjection,
@@ -34,24 +56,34 @@ export function createHud(host) {
     StardustDefinitions,
     WorldheartDefinition,
   } = host;
-  const ObjectivePipElements = host.ObjectivePipElements;
-  let LastCelebratedBankedScore = 0;
+  const TaughtCaptions = loadTaughtCaptions();
+  let LastLiveRegionText = '';
+  let LastObjectiveAnnouncement = '';
+  let PlayCaptionTimeoutIdentifier = null;
 
-
-  function refreshInstructionPanelBounds() {
-    host.CachedInstructionPanelTop = InstructionPanelElement.getBoundingClientRect().top;
+  function announceLive(Message) {
+    if (!PlayLiveRegionElement || !Message) {
+      return;
+    }
+    if (Message === LastLiveRegionText) {
+      return;
+    }
+    LastLiveRegionText = Message;
+    PlayLiveRegionElement.textContent = Message;
   }
+
+  function refreshPlayfieldLabelBounds() {
+    host.CachedInstructionPanelTop = window.innerHeight;
+  }
+
   /** Updates the optional Arc mastery counter. */
   function updateStardustCounter() {
     const CollectedStardustCount = StardustDefinitions.filter(
       (StardustDefinition) => StardustDefinition.collected,
     ).length;
-    StardustCounterElement.textContent = `${CollectedStardustCount} / ${StardustDefinitions.length}`;
-    StardustCounterElement.closest('.counter__mastery')?.classList.toggle(
-      'is-complete',
-      CollectedStardustCount === StardustDefinitions.length,
-    );
+    GameCanvas.dataset.stardustCollected = String(CollectedStardustCount);
   }
+
   /** Keeps the live loop objective on relays, then circuits, then Command. */
   function updateWorldheartObjective() {
     const Presentation = getLoopObjectivePresentation({
@@ -62,36 +94,35 @@ export function createHud(host) {
         && Boolean(host.ActiveHostileEncounterState),
       isCommandLiberated: WorldheartDefinition.restored,
     });
-    ObjectiveLabelElement.textContent = Presentation.label;
-    ObjectiveStateElement.textContent = Presentation.state;
-    ObjectivePanelElement.classList.toggle('is-open', Presentation.open);
-    ObjectivePipsElement.classList.toggle('is-binary', Presentation.pipCount === 2);
-    for (let PipIndex = 0; PipIndex < ObjectivePipElements.length; PipIndex += 1) {
-      const PipElement = ObjectivePipElements[PipIndex];
-      PipElement.hidden = PipIndex >= Presentation.pipCount;
-      PipElement.classList.toggle('is-filled', PipIndex < Presentation.filledPips);
+    GameCanvas.dataset.objectiveLabel = Presentation.label;
+    GameCanvas.dataset.objectiveState = Presentation.state;
+    const Announcement = `${Presentation.label}. ${Presentation.state}`;
+    if (Announcement !== LastObjectiveAnnouncement) {
+      LastObjectiveAnnouncement = Announcement;
+      announceLive(Announcement);
     }
   }
+
   /**
-   * Updates the HUD counter using only restorable worlds. The starting world is already alive
+   * Updates restorable-world progress for diagnostics. The starting world is already alive
    * so it acts as the player's launch platform rather than as an objective.
    */
   function updateWorldCounter() {
     const RestoredWorldCount = countRestoredWorlds(WorldDefinitions);
-    WorldCounterElement.textContent = `${RestoredWorldCount} / ${RestorableWorldCount}`;
+    GameCanvas.dataset.worldsRestored = String(RestoredWorldCount);
+    GameCanvas.dataset.worldsRestorable = String(RestorableWorldCount);
   }
-  /** Keeps the optional remaining-launch victory bonus visible and machine-readable. */
-  function updateLaunchCounter() {
-    LaunchCounterElement.textContent = `${host.RunState.remainingLaunches} / ${host.RunState.maximumLaunches}`;
-    CounterElement.classList.toggle(
-      'is-low',
-      host.RunState.remainingLaunches > 0 && host.RunState.remainingLaunches <= 2,
-    );
-    CounterElement.classList.toggle('is-empty', host.RunState.remainingLaunches === 0);
-    GameCanvas.dataset.launchesRemaining = String(host.RunState.remainingLaunches);
+
+  /** Keeps remaining launches on the ship lights and the canvas diagnostic contract. */
+  function updateFuelLights() {
+    const Remaining = host.RunState.remainingLaunches;
+    const Maximum = host.RunState.maximumLaunches;
+    GameCanvas.dataset.launchesRemaining = String(Remaining);
     GameCanvas.dataset.launchesUsed = String(host.RunState.launchesUsed);
     GameCanvas.dataset.runStatus = host.RunState.status;
+    host.updateFuelLightVisuals?.(Remaining, Maximum);
   }
+
   /**
    * Celebrates points at the world-space position where they were earned.
    *
@@ -119,27 +150,16 @@ export function createHud(host) {
     void ScoreBurstElement.offsetWidth;
     ScoreBurstElement.classList.add('is-live');
   }
-  /** Keeps banked points and the current at-risk chain visible throughout a run. */
+
+  /** Keeps banked points machine-readable. The visible number lives on the victory card. */
   function updateScoreInterface() {
-    ScoreCounterElement.textContent = host.ScoreState.bankedScore.toLocaleString('en-GB');
-    if (host.ScoreState.bankedScore > LastCelebratedBankedScore && !host.PrefersReducedMotion) {
-      const MasteryElement = ScoreCounterElement.closest('.counter__mastery');
-      if (MasteryElement) {
-        MasteryElement.classList.remove('is-banking');
-        void MasteryElement.offsetWidth;
-        MasteryElement.classList.add('is-banking');
-      }
-    }
-    LastCelebratedBankedScore = host.ScoreState.bankedScore;
-    FlightScoreValueElement.textContent = `+${host.ScoreState.flightScore.toLocaleString('en-GB')}`;
-    ChainValueElement.textContent = `CHAIN ×${Math.max(1, Math.min(host.ScoreState.chainCount, 4))}`;
-    FlightScoreElement.hidden = host.ScoreState.flightScore === 0;
     GameCanvas.dataset.score = String(host.ScoreState.bankedScore);
     GameCanvas.dataset.flightScore = String(host.ScoreState.flightScore);
     GameCanvas.dataset.chainCount = String(host.ScoreState.chainCount);
     GameCanvas.dataset.networkScore = String(host.ScoreState.networkScore);
     GameCanvas.dataset.victoryScore = String(host.ScoreState.victoryScore);
   }
+
   /**
    * Displays a short centre-screen status message without queueing old messages.
    *
@@ -155,30 +175,61 @@ export function createHud(host) {
     StatusToastElement.classList.toggle('is-memory', Tone === 'memory');
     StatusToastElement.classList.toggle('is-warden', Tone === 'warden');
     StatusToastElement.classList.add('is-visible');
+    announceLive(Message);
 
     host.StatusToastTimeoutIdentifier = host.setTimeout(() => {
       StatusToastElement.classList.remove('is-visible');
       host.StatusToastTimeoutIdentifier = null;
     }, VisibleDurationMilliseconds);
   }
+
+  function hideInstruction() {
+    if (PlayCaptionTimeoutIdentifier !== null) {
+      host.clearTimeout(PlayCaptionTimeoutIdentifier);
+      PlayCaptionTimeoutIdentifier = null;
+    }
+    PlayCaptionElement.hidden = true;
+    PlayCaptionElement.classList.remove('is-fading');
+    PlayCaptionTitleElement.textContent = '';
+    PlayCaptionBodyElement.textContent = '';
+  }
+
   /**
-   * Sets instruction copy and reveals the helper panel.
+   * First-run fading captions only. Later play calls no-op; toasts still fire separately.
    *
    * @param {string} Title - Strong instruction line.
    * @param {string} Body - Supporting instruction line.
+   * @param {string} [CaptionKind] - One of walk, aim, break, missed-port.
    */
-  function showInstruction(Title, Body) {
-    InstructionTitleElement.textContent = Title;
-    InstructionBodyElement.textContent = Body;
-    InstructionPanelElement.classList.remove('is-hidden');
-    InstructionPanelElement.setAttribute('aria-hidden', 'false');
-    refreshInstructionPanelBounds();
+  function showInstruction(Title, Body, CaptionKind = '') {
+    const Kind = FirstRunCaptionKinds.has(CaptionKind) ? CaptionKind : '';
+    if (!Kind || TaughtCaptions[Kind]) {
+      return;
+    }
+    TaughtCaptions[Kind] = true;
+    persistTaughtCaptions(TaughtCaptions);
+    PlayCaptionTitleElement.textContent = Title;
+    PlayCaptionBodyElement.textContent = Body;
+    PlayCaptionElement.hidden = false;
+    PlayCaptionElement.classList.remove('is-fading');
+    void PlayCaptionElement.offsetWidth;
+    if (!host.PrefersReducedMotion) {
+      PlayCaptionElement.classList.add('is-fading');
+    }
+    announceLive(`${Title}. ${Body}`);
+    if (PlayCaptionTimeoutIdentifier !== null) {
+      host.clearTimeout(PlayCaptionTimeoutIdentifier);
+    }
+    PlayCaptionTimeoutIdentifier = host.setTimeout(() => {
+      PlayCaptionTimeoutIdentifier = null;
+      hideInstruction();
+    }, host.PrefersReducedMotion ? 4200 : 3200);
   }
-  /** Hides the helper once a launch is in progress. */
-  function hideInstruction() {
-    InstructionPanelElement.classList.add('is-hidden');
-    InstructionPanelElement.setAttribute('aria-hidden', 'true');
-    refreshInstructionPanelBounds();
+
+  function announceWarden(Message) {
+    if (Message) {
+      announceLive(Message);
+    }
   }
 
   function resetHud() {
@@ -189,20 +240,24 @@ export function createHud(host) {
     StatusToastElement.classList.remove('is-visible');
     ScoreBurstElement.classList.remove('is-live');
     ScoreBurstElement.hidden = true;
-    LastCelebratedBankedScore = 0;
+    LastObjectiveAnnouncement = '';
+    hideInstruction();
   }
 
   return {
-    refreshInstructionPanelBounds,
+    refreshPlayfieldLabelBounds,
+    refreshInstructionPanelBounds: refreshPlayfieldLabelBounds,
     updateStardustCounter,
     updateWorldheartObjective,
     updateWorldCounter,
-    updateLaunchCounter,
+    updateFuelLights,
+    updateLaunchCounter: updateFuelLights,
     updateScoreInterface,
     showScoreBurst,
     showStatusToast,
     showInstruction,
     hideInstruction,
+    announceWarden,
     resetHud,
   };
 }

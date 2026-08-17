@@ -1218,7 +1218,7 @@ export function getScannerAccessibleLabel({
     + ` relay worlds active. ${WardenDescription} Moving bodies tracked.`;
 }
 
-/** Reserves the upper HUD band once the Warden forecast appears. */
+/** Keeps aim/scout labels below the pause control and above the caption band. */
 export function getPlayfieldLabelTopMargin({
   isCompact,
   isShortLandscape = false,
@@ -1233,13 +1233,12 @@ export function getPlayfieldLabelTopMargin({
   ) {
     throw new Error('Playfield label margin requires boolean layout state.');
   }
-  if (wardenVisible && isShortLandscape) return 140;
-  if (wardenVisible) return isCompact ? (isTactical ? 246 : 244) : 212;
-  if (isCompact) return isTactical ? 116 : 172;
-  return isTactical ? 70 : 78;
+  if (isShortLandscape) return 56;
+  if (isCompact) return isTactical ? 64 : 72;
+  return isTactical ? 56 : 64;
 }
 
-/** Keeps projected chips inside the real HUD corridor on short landscape screens. */
+/** Keeps projected chips inside the playfield when HTML labels are active. */
 export function getPlayfieldLabelVerticalBounds({
   viewportHeight,
   instructionTop,
@@ -1261,7 +1260,7 @@ export function getPlayfieldLabelVerticalBounds({
     wardenVisible,
     isTactical,
   });
-  const BaseMaximumY = viewportHeight - (isCompact ? 112 : 82);
+  const BaseMaximumY = viewportHeight - (isCompact ? 48 : 40);
   const MaximumY = Math.max(
     0,
     isShortLandscape

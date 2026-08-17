@@ -8,11 +8,8 @@ export function createWardenVisuals(THREE, Scene, host) {
     WorldheartDefinition,
     GameCanvas,
     getWorldDefinition,
-    projectScannerPosition,
   } = host;
   const TemporaryThreeVector = new THREE.Vector3();
-  const ScannerWardenElement = host.ScannerWardenElement;
-  const getScannerProjection = () => host.ScannerProjection;
 
   /** Spread clamps on a hostile rim. Drag through them to tear the cage. */
   const HostilePylonGroup = new THREE.Group();
@@ -211,6 +208,60 @@ export function createWardenVisuals(THREE, Scene, host) {
     GameCanvas.dataset.wardenVisualBeat = Beat;
   }
 
+  function clearWardenTargetTelegraph() {
+    if (TelegraphTargetWorldIdentifier) {
+      const PreviousRuntime = host.WorldRuntimeByIdentifier?.get(TelegraphTargetWorldIdentifier);
+      if (PreviousRuntime?.stillnessCageMaterial) {
+        PreviousRuntime.stillnessCageMaterial.color.setHex(0x82a8b4);
+        PreviousRuntime.stillnessCageMaterial.opacity = TelegraphCageBaseOpacity;
+      }
+      if (PreviousRuntime?.atmosphereMaterial) {
+        PreviousRuntime.atmosphereMaterial.opacity = TelegraphAtmosphereBaseOpacity;
+      }
+    }
+    TelegraphTargetWorldIdentifier = '';
+    WardenTargetRimMesh.visible = false;
+    WardenTargetRimMaterial.opacity = 0;
+  }
+
+  function updateWardenTargetTelegraph(ElapsedTimeSeconds) {
+    const { WardenPursuitState, PrefersReducedMotion } = host;
+    const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
+    const ShouldTelegraph = WardenPursuitState.status === 'pursuing' && Boolean(TargetWorld);
+    if (!ShouldTelegraph) {
+      clearWardenTargetTelegraph();
+      return;
+    }
+    if (TelegraphTargetWorldIdentifier !== TargetWorld.id) {
+      clearWardenTargetTelegraph();
+      const WorldRuntime = host.WorldRuntimeByIdentifier?.get(TargetWorld.id);
+      TelegraphTargetWorldIdentifier = TargetWorld.id;
+      TelegraphCageBaseOpacity = WorldRuntime?.stillnessCageMaterial?.opacity ?? 0.22;
+      TelegraphAtmosphereBaseOpacity = WorldRuntime?.atmosphereMaterial?.opacity ?? 0.11;
+    }
+    const Pulse = PrefersReducedMotion
+      ? 1
+      : 0.62 + ((Math.sin(ElapsedTimeSeconds * 5.4) * 0.5 + 0.5) * 0.38);
+    const WorldRuntime = host.WorldRuntimeByIdentifier?.get(TargetWorld.id);
+    if (WorldRuntime?.stillnessCageMaterial) {
+      WorldRuntime.stillnessCageMaterial.color.setHex(0xff5148);
+      WorldRuntime.stillnessCageMaterial.opacity = Math.min(
+        0.82,
+        TelegraphCageBaseOpacity + (0.28 * Pulse),
+      );
+    }
+    if (WorldRuntime?.atmosphereMaterial) {
+      WorldRuntime.atmosphereMaterial.opacity = Math.min(
+        0.42,
+        TelegraphAtmosphereBaseOpacity + (0.16 * Pulse),
+      );
+    }
+    WardenTargetRimMesh.position.set(TargetWorld.position.x, TargetWorld.position.y, 0.22);
+    WardenTargetRimMesh.scale.setScalar(TargetWorld.radius * 1.22);
+    WardenTargetRimMaterial.opacity = 0.22 + (Pulse * 0.5);
+    WardenTargetRimMesh.visible = true;
+  }
+
   const WardenForecastPositions = new Float32Array(6);
   const WardenForecastGeometry = new THREE.BufferGeometry();
   const WardenForecastAttribute = new THREE.BufferAttribute(WardenForecastPositions, 3);
@@ -228,6 +279,25 @@ export function createWardenVisuals(THREE, Scene, host) {
   WardenForecastLine.visible = false;
   WardenForecastLine.frustumCulled = false;
   Scene.add(WardenForecastLine);
+
+  const WardenTargetRimMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff5148,
+    transparent: true,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const WardenTargetRimMesh = new THREE.Mesh(
+    new THREE.TorusGeometry(1, 0.045, 8, 64),
+    WardenTargetRimMaterial,
+  );
+  WardenTargetRimMesh.rotation.x = Math.PI * 0.5;
+  WardenTargetRimMesh.visible = false;
+  Scene.add(WardenTargetRimMesh);
+  let TelegraphTargetWorldIdentifier = '';
+  let TelegraphCageBaseOpacity = 0.22;
+  let TelegraphAtmosphereBaseOpacity = 0.11;
   const WardenEntryPosition = new THREE.Vector3(
     WorldheartDefinition.position.x + 8,
     WorldheartDefinition.position.y + 6,
@@ -268,6 +338,7 @@ export function createWardenVisuals(THREE, Scene, host) {
       GameElapsedTimeSeconds,
     } = host;
     updateWardenEventPulse(ElapsedTimeSeconds);
+    updateWardenTargetTelegraph(ElapsedTimeSeconds);
     if (WardenPursuitState.status === 'hidden') return;
     const TargetWorld = getWorldDefinition(WardenPursuitState.targetWorldIdentifier);
     const IsCommandExposed = WardenPursuitState.status === 'exposed';
@@ -378,11 +449,6 @@ export function createWardenVisuals(THREE, Scene, host) {
       WardenForecastAttribute.needsUpdate = true;
       WardenForecastLine.computeLineDistances();
     }
-    if (getScannerProjection()) {
-      const Marker = projectScannerPosition(WardenVisualGroup.position);
-      ScannerWardenElement.setAttribute('cx', String(Marker.x));
-      ScannerWardenElement.setAttribute('cy', String(Marker.y));
-    }
   }
 
   function beginCommandDefeat(ElapsedTimeSeconds) {
@@ -404,6 +470,7 @@ export function createWardenVisuals(THREE, Scene, host) {
     });
     WardenApproachStartPosition.copy(WardenEntryPosition);
     HostilePylonGroup.visible = false;
+    clearWardenTargetTelegraph();
   }
 
   return {
@@ -419,6 +486,7 @@ export function createWardenVisuals(THREE, Scene, host) {
     WardenExposureLatticeGroup,
     WardenExposureLatticeMaterial,
     WardenForecastLine,
+    WardenTargetRimMesh,
     WardenEntryPosition,
     WardenApproachStartPosition,
     WardenEventPulseMesh,

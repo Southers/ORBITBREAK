@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
   <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260814-ob13" />
-  <link rel="stylesheet" href="./src/style.css?v=20260816-ob98" />
+  <link rel="stylesheet" href="./src/style.css?v=20260817-ob99" />
 
   <!--
     Buildless release import map. Three.js is pinned and vendored so startup
@@ -40,8 +40,8 @@
       id="GameCanvas"
       tabindex="0"
       aria-label="ORBITBREAK gravity game. Drag the ship to launch, drag a world to walk, drag empty space to pan, pinch or wheel to zoom, break once during flight, and cut clamps by dragging through them."
-      aria-describedby="InstructionPanel KeyboardHelp"
-      aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Enter Space A D W S Q E C G + -"
+      aria-describedby="KeyboardHelp"
+      aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Enter Space Escape A D W S Q E C G + -"
     ></canvas>
     <p id="KeyboardHelp" class="visually-hidden">
       Keyboard controls: focus the game, use left and right or A and D to steer, use up and
@@ -50,6 +50,7 @@
       Drag the globe to walk; pull the ship to aim. Drag back onto the ship or press Escape to cancel.
       During flight, drag from the ship to break your line, or press Space to break along your heading.
       On a caged world, drag from the ship through a clamp to cut it.
+      Press Escape when not aiming to pause. Keyboard shortcuts C, plus, minus, G, P, M and R stay live during play.
     </p>
     <div id="LiberationFlash" class="liberation-flash" aria-hidden="true"></div>
     <div id="AimVignette" class="aim-vignette" aria-hidden="true"></div>
@@ -86,73 +87,14 @@
       </div>
     </section>
 
-    <header class="hud hud--top">
-      <div class="brand">
-        <span class="brand__title">ORBITBREAK</span>
-        <span class="brand__subtitle">connect the tiny worlds</span>
-      </div>
+    <p id="PlayLiveRegion" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div id="PlayCaption" class="play-caption" hidden>
+      <strong id="PlayCaptionTitle"></strong>
+      <span id="PlayCaptionBody"></span>
+    </div>
 
-      <div class="counter" aria-live="polite">
-        <span class="counter__label">BONUS FUEL</span>
-        <span id="LaunchCounter" class="counter__value">10 / 10</span>
-        <span class="counter__divider" aria-hidden="true"></span>
-        <span class="counter__mastery">
-          <span class="counter__label">SCORE</span>
-          <span id="ScoreCounter" class="counter__value">0</span>
-        </span>
-        <span id="WorldCounter" hidden>0 / 4</span>
-        <span id="StardustCounter" hidden>0 / 3</span>
-      </div>
-    </header>
-
-    <section id="FlightScore" class="flight-score" role="status" aria-live="polite" aria-atomic="true" hidden>
-      <span>UNBANKED</span>
-      <strong id="FlightScoreValue">+0</strong>
-      <small id="ChainValue">CHAIN ×1</small>
-    </section>
-
-    <section id="ScannerPanel" class="scanner-panel" role="img" aria-label="System scanner" hidden>
-      <span>SCANNER</span>
-      <svg id="ScannerMap" viewBox="0 0 160 90" aria-hidden="true">
-        <g id="ScannerBodyLayer"></g>
-        <circle id="ScannerWarden" class="scanner-warden" r="4" hidden></circle>
-        <circle id="ScannerRunner" class="scanner-runner" r="3"></circle>
-      </svg>
-    </section>
-
-    <section id="WardenPanel" class="warden-panel" aria-live="polite" aria-atomic="true" hidden>
-      <span id="WardenStateLabel">WARDEN INBOUND</span>
-      <strong id="WardenDistance">4 FLIGHTS AWAY</strong>
-      <span id="WardenTrack" class="warden-panel__track" aria-hidden="true" hidden></span>
-      <small id="WardenTarget">TARGET UNKNOWN</small>
-    </section>
-
-    <section id="ObjectivePanel" class="objective-panel" role="status" aria-live="polite" aria-atomic="true">
-      <span id="ObjectiveLabel" class="objective-panel__label">NEIGHBOURHOOD</span>
-      <span id="ObjectiveState" class="objective-panel__state">QUIET</span>
-      <span id="ObjectivePips" class="objective-panel__pips" aria-hidden="true">
-        <span></span><span></span><span></span>
-      </span>
-    </section>
-
-    <section id="InstructionPanel" class="instruction-panel" aria-live="polite" aria-atomic="true">
-      <strong id="InstructionTitle">Choose EMBER or FROST</strong>
-      <span id="InstructionBody">They are still out there. Carry the first word.</span>
-    </section>
-
-    <section id="AimPanel" class="aim-panel" role="group" aria-label="Aim preview" hidden>
-      <span id="AimLabel">PULL</span>
-      <span class="aim-panel__meter" aria-hidden="true">
-        <span id="AimPowerFill" class="aim-panel__fill"></span>
-      </span>
-      <span id="AimPowerValue">0%</span>
-    </section>
-
-    <section id="StatusToast" class="status-toast" role="status" aria-live="polite" aria-atomic="true"></section>
-    <button id="BurnButton" class="burn-button" type="button" aria-keyshortcuts="Space" hidden>
-      <span>BREAK</span><strong>READY</strong>
-    </button>
-    <div id="ReplayIndicator" class="replay-indicator" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <section id="StatusToast" class="status-toast" aria-hidden="true"></section>
+    <div id="ReplayIndicator" class="replay-indicator" hidden>
       WATCHING VERIFIED REPLAY
     </div>
 
@@ -238,25 +180,44 @@
       <button id="CloseLeaderboardButton" class="is-secondary" type="button">Back to results</button>
     </section>
 
-    <section id="ModeChip" class="mode-chip" role="status" aria-live="polite" aria-atomic="true">
-      <strong id="ModeChipLabel">EXPLORE</strong>
-      <span id="ModeChipHint">Trace the globe to walk · pull the ship to launch</span>
-    </section>
+    <button
+      id="PauseButton"
+      class="pause-button"
+      type="button"
+      aria-label="Pause"
+      aria-haspopup="dialog"
+      aria-controls="PauseSheet"
+      aria-expanded="false"
+      aria-keyshortcuts="Escape"
+    >
+      <span class="pause-button__icon" aria-hidden="true"></span>
+    </button>
 
-    <footer class="hud hud--bottom">
-      <div class="hud__actions">
-        <button id="ScoutButton" type="button" aria-pressed="false" aria-controls="GameCanvas" aria-keyshortcuts="C">Scout [C]</button>
-        <button id="ScoutZoomOutButton" class="scout-zoom-button" type="button" aria-label="Scout zoom out, currently 100%" aria-controls="GameCanvas" aria-keyshortcuts="-" aria-disabled="false" hidden>−</button>
-        <button id="ScoutZoomInButton" class="scout-zoom-button" type="button" aria-label="Scout zoom in, currently 100%" aria-controls="GameCanvas" aria-keyshortcuts="+" aria-disabled="false" hidden>+</button>
-        <span id="ScoutZoomStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
-        <button id="GhostButton" type="button" aria-pressed="false" aria-label="Personal-best route ghost off" aria-keyshortcuts="G" hidden>Ghost [G]</button>
-        <button id="MotionButton" type="button" aria-pressed="mixed" aria-keyshortcuts="P">Motion system [P]</button>
-        <button id="AudioButton" type="button" aria-pressed="false" aria-keyshortcuts="M">Audio on [M]</button>
-        <button id="ResetButton" type="button" aria-keyshortcuts="R">Reset [R]</button>
+    <section
+      id="PauseSheet"
+      class="pause-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="PauseSheetTitle"
+      hidden
+    >
+      <div class="pause-sheet__board">
+        <h2 id="PauseSheetTitle">Paused</h2>
+        <div class="pause-sheet__actions">
+          <button id="ScoutButton" type="button" aria-pressed="false" aria-controls="GameCanvas" aria-keyshortcuts="C">Scout [C]</button>
+          <button id="ScoutZoomOutButton" class="scout-zoom-button" type="button" aria-label="Scout zoom out, currently 100%" aria-controls="GameCanvas" aria-keyshortcuts="-" aria-disabled="false" hidden>−</button>
+          <button id="ScoutZoomInButton" class="scout-zoom-button" type="button" aria-label="Scout zoom in, currently 100%" aria-controls="GameCanvas" aria-keyshortcuts="+" aria-disabled="false" hidden>+</button>
+          <span id="ScoutZoomStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
+          <button id="GhostButton" type="button" aria-pressed="false" aria-label="Personal-best route ghost off" aria-keyshortcuts="G" hidden>Ghost [G]</button>
+          <button id="MotionButton" type="button" aria-pressed="mixed" aria-keyshortcuts="P">Motion system [P]</button>
+          <button id="AudioButton" type="button" aria-pressed="false" aria-keyshortcuts="M">Audio on [M]</button>
+          <button id="ResetButton" type="button" aria-keyshortcuts="R">Reset [R]</button>
+        </div>
+        <button id="PauseResumeButton" type="button">Resume</button>
       </div>
-    </footer>
+    </section>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260816-ob98"></script>
+  <script type="module" src="./src/main.js?v=20260817-ob99"></script>
 </body>
 </html>

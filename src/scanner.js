@@ -1,7 +1,7 @@
 /**
- * Compact spatial scanner for systems that intentionally span several views.
- * Owns the SVG marker elements and the world-to-scanner projection; the
- * Warden marker is positioned by warden-visuals via the shared projection.
+ * Compact spatial projection for systems that span several views.
+ * The visual scanner HUD is gone; this still writes diagnostic datasets
+ * used by tests and keeps a projection for optional tooling.
  */
 
 import { calculateBodyPositionAtTime } from './physics.js';
@@ -14,9 +14,6 @@ import {
 export function createScanner(host) {
   const {
     GameCanvas,
-    ScannerPanelElement,
-    ScannerBodyLayerElement,
-    ScannerRunnerElement,
     ActiveSystem,
     WorldDefinitions,
     WorldheartDefinition,
@@ -24,9 +21,6 @@ export function createScanner(host) {
     getWorldDefinition,
   } = host;
 
-  const ScannerWorldElements = new Map();
-  let ScannerHazardElement = null;
-  let ScannerCommandElement = null;
   let ScannerProjection = null;
   let LastScannerAccessibleLabel = '';
 
@@ -42,9 +36,9 @@ export function createScanner(host) {
   /** Builds a compact spatial map only for systems that intentionally span several views. */
   function configureScannerInterface() {
     const UsesExplorationCamera = ActiveSystem.camera?.followPlayer === true;
-    ScannerPanelElement.hidden = !UsesExplorationCamera;
     GameCanvas.dataset.scannerAvailable = String(UsesExplorationCamera);
     if (!UsesExplorationCamera) {
+      ScannerProjection = null;
       return;
     }
 
@@ -77,35 +71,6 @@ export function createScanner(host) {
       width: MaximumX - MinimumX,
       height: MaximumY - MinimumY,
     };
-
-    const SvgNamespace = 'http://www.w3.org/2000/svg';
-    ScannerBodyLayerElement.replaceChildren();
-    ScannerWorldElements.clear();
-    for (const WorldDefinition of WorldDefinitions) {
-      const Marker = document.createElementNS(SvgNamespace, 'circle');
-      const MarkerPosition = projectScannerPosition(WorldDefinition.position);
-      Marker.setAttribute('cx', String(MarkerPosition.x));
-      Marker.setAttribute('cy', String(MarkerPosition.y));
-      Marker.setAttribute('r', String(Math.max(2.2, WorldDefinition.radius * 0.85)));
-      Marker.classList.add('scanner-world');
-      Marker.dataset.bodyIdentifier = WorldDefinition.id;
-      ScannerBodyLayerElement.append(Marker);
-      ScannerWorldElements.set(WorldDefinition.id, Marker);
-    }
-
-    const CommandMarker = document.createElementNS(SvgNamespace, 'circle');
-    const CommandPosition = projectScannerPosition(WorldheartDefinition.position);
-    CommandMarker.setAttribute('cx', String(CommandPosition.x));
-    CommandMarker.setAttribute('cy', String(CommandPosition.y));
-    CommandMarker.setAttribute('r', '4');
-    CommandMarker.classList.add('scanner-command');
-    ScannerBodyLayerElement.append(CommandMarker);
-    ScannerCommandElement = CommandMarker;
-
-    ScannerHazardElement = document.createElementNS(SvgNamespace, 'circle');
-    ScannerHazardElement.setAttribute('r', '2');
-    ScannerHazardElement.classList.add('scanner-hazard');
-    ScannerBodyLayerElement.append(ScannerHazardElement);
   }
 
   function updateScannerInterface() {
@@ -113,23 +78,8 @@ export function createScanner(host) {
       return;
     }
     const RunnerPosition = projectScannerPosition(host.SeedPhysicsState.position);
-    ScannerRunnerElement.setAttribute('cx', String(RunnerPosition.x));
-    ScannerRunnerElement.setAttribute('cy', String(RunnerPosition.y));
-    for (const WorldDefinition of WorldDefinitions) {
-      ScannerWorldElements.get(WorldDefinition.id)?.classList.toggle(
-        'is-restored',
-        WorldDefinition.restored,
-      );
-    }
-    const HazardPosition = projectScannerPosition(calculateBodyPositionAtTime(
-      AsteroidDefinition,
-      host.PhysicsElapsedTimeSeconds,
-    ));
-    ScannerHazardElement.setAttribute('cx', String(HazardPosition.x));
-    ScannerHazardElement.setAttribute('cy', String(HazardPosition.y));
-    const CommandPosition = projectScannerPosition(WorldheartDefinition.position);
-    ScannerCommandElement?.setAttribute('cx', String(CommandPosition.x));
-    ScannerCommandElement?.setAttribute('cy', String(CommandPosition.y));
+    GameCanvas.dataset.scannerRunnerX = RunnerPosition.x.toFixed(1);
+    GameCanvas.dataset.scannerRunnerY = RunnerPosition.y.toFixed(1);
     const CurrentWorld = getWorldDefinition(host.CurrentWorldIdentifier);
     const PublishedWardenState = getPublishedWardenState(
       host.WardenPursuitState.status,
@@ -147,11 +97,9 @@ export function createScanner(host) {
       wardenTargetLabel: WardenTarget?.label ?? '',
     });
     if (ScannerAccessibleLabel !== LastScannerAccessibleLabel) {
-      ScannerPanelElement.setAttribute('aria-label', ScannerAccessibleLabel);
       LastScannerAccessibleLabel = ScannerAccessibleLabel;
+      GameCanvas.dataset.scannerLabel = ScannerAccessibleLabel;
     }
-    GameCanvas.dataset.scannerRunnerX = RunnerPosition.x.toFixed(1);
-    GameCanvas.dataset.scannerRunnerY = RunnerPosition.y.toFixed(1);
   }
 
   return {

@@ -506,23 +506,23 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
     isCompact: true,
     wardenVisible: false,
     isTactical: false,
-  }), 172);
+  }), 72);
   assert.equal(getPlayfieldLabelTopMargin({
     isCompact: true,
     wardenVisible: true,
     isTactical: true,
-  }), 246);
+  }), 64);
   assert.equal(getPlayfieldLabelTopMargin({
     isCompact: false,
     wardenVisible: true,
     isTactical: false,
-  }), 212);
+  }), 64);
   assert.equal(getPlayfieldLabelTopMargin({
     isCompact: true,
     isShortLandscape: true,
     wardenVisible: true,
     isTactical: true,
-  }), 140);
+  }), 56);
   assert.throws(
     () => getPlayfieldLabelTopMargin({
       isCompact: 'true',
@@ -536,20 +536,20 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
   assert.throws(() => getTacticalLabelHorizontalMargin(' '), /requires visible text/);
   assert.deepEqual(getPlayfieldLabelVerticalBounds({
     viewportHeight: 320,
-    instructionTop: 203.2,
+    instructionTop: 320,
     isCompact: true,
     isShortLandscape: true,
     wardenVisible: true,
     isTactical: true,
-  }), { minimumY: 140, maximumY: 187.2 });
+  }), { minimumY: 56, maximumY: 272 });
   assert.deepEqual(getPlayfieldLabelVerticalBounds({
     viewportHeight: 844,
-    instructionTop: 689.2,
+    instructionTop: 844,
     isCompact: true,
     isShortLandscape: false,
     wardenVisible: true,
     isTactical: true,
-  }), { minimumY: 246, maximumY: 732 });
+  }), { minimumY: 64, maximumY: 796 });
   assert.throws(() => getPlayfieldLabelVerticalBounds({
     viewportHeight: Number.NaN,
     instructionTop: 100,

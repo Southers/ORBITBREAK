@@ -28,17 +28,17 @@ import {
 import { addEnvironment } from './environment.js?v=20260815-ob89';
 import { createWorldVisuals } from './world-geometry.js?v=20260816-ob96';
 import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260816-ob96';
-import { createWardenVisuals } from './warden-visuals.js?v=20260815-ob90';
-import { createPlayerVisuals } from './player-visuals.js?v=20260815-ob90';
-import { createStoryDirector } from './story-director.js?v=20260816-ob91';
-import { createHud } from './hud.js?v=20260815-ob90';
-import { createAimPreview } from './aim-preview.js?v=20260816-ob97';
-import { createLandingDirector } from './landing-director.js?v=20260816-ob93';
+import { createWardenVisuals } from './warden-visuals.js?v=20260817-ob99';
+import { createPlayerVisuals } from './player-visuals.js?v=20260817-ob99';
+import { createStoryDirector } from './story-director.js?v=20260817-ob99';
+import { createHud } from './hud.js?v=20260817-ob99';
+import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
+import { createLandingDirector } from './landing-director.js?v=20260817-ob99';
 import { createCameraController } from './camera-controller.js?v=20260816-ob97';
-import { createInputController } from './input-controller.js?v=20260816-ob97';
-import { createHostileSurface } from './hostile-surface.js?v=20260816-ob93';
-import { createScanner } from './scanner.js?v=20260815-ob90';
-import { createRoutePresentation } from './route-presentation.js?v=20260815-ob90';
+import { createInputController } from './input-controller.js?v=20260817-ob99';
+import { createHostileSurface } from './hostile-surface.js?v=20260817-ob99';
+import { createScanner } from './scanner.js?v=20260817-ob99';
+import { createRoutePresentation } from './route-presentation.js?v=20260817-ob99';
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
 import { createFrameVisuals } from './frame-visuals.js?v=20260816-ob93';
 import { createRestorationVisuals } from './restoration-visuals.js?v=20260816-ob92';
@@ -139,7 +139,6 @@ import {
   getSlingshotBandVisualState,
   getSlingshotPreviewPresentation,
   getWardenApproachCopy,
-  getWardenTrackPips,
   shouldShowInhabitantSlot,
   getTradeHullColor,
   getTradeHullKind,
@@ -149,7 +148,7 @@ import {
   getStoryMusicStage,
   getWorldLifeStage,
   getWorldLandingAimLabel,
-} from './presentation.js?v=20260816-ob96';
+} from './presentation.js?v=20260817-ob99';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -233,38 +232,14 @@ const SecondRelayAnswerLine = '“We thought we were alone.”';
 
 const GameShellElement = document.querySelector('#GameShell');
 const GameCanvas = document.querySelector('#GameCanvas');
-const ModeChipElement = document.querySelector('#ModeChip');
-const ModeChipLabelElement = document.querySelector('#ModeChipLabel');
-const ModeChipHintElement = document.querySelector('#ModeChipHint');
 const LiberationFlashElement = document.querySelector('#LiberationFlash');
 const ScoreBurstElement = document.querySelector('#ScoreBurst');
-const CounterElement = document.querySelector('.counter');
-const LaunchCounterElement = document.querySelector('#LaunchCounter');
-const WorldCounterElement = document.querySelector('#WorldCounter');
-const ScoreCounterElement = document.querySelector('#ScoreCounter');
-const FlightScoreElement = document.querySelector('#FlightScore');
-const FlightScoreValueElement = document.querySelector('#FlightScoreValue');
-const ChainValueElement = document.querySelector('#ChainValue');
-const ScannerPanelElement = document.querySelector('#ScannerPanel');
-const ScannerBodyLayerElement = document.querySelector('#ScannerBodyLayer');
-const ScannerWardenElement = document.querySelector('#ScannerWarden');
-const ScannerRunnerElement = document.querySelector('#ScannerRunner');
-const StardustCounterElement = document.querySelector('#StardustCounter');
-const ObjectivePanelElement = document.querySelector('#ObjectivePanel');
-const ObjectiveLabelElement = document.querySelector('#ObjectiveLabel');
-const ObjectiveStateElement = document.querySelector('#ObjectiveState');
-const ObjectivePipsElement = document.querySelector('#ObjectivePips');
-const WardenPanelElement = document.querySelector('#WardenPanel');
-const WardenStateLabelElement = document.querySelector('#WardenStateLabel');
-const WardenDistanceElement = document.querySelector('#WardenDistance');
-const WardenTargetElement = document.querySelector('#WardenTarget');
-const WardenTrackElement = document.querySelector('#WardenTrack');
+const PlayLiveRegionElement = document.querySelector('#PlayLiveRegion');
+const PlayCaptionElement = document.querySelector('#PlayCaption');
+const PlayCaptionTitleElement = document.querySelector('#PlayCaptionTitle');
+const PlayCaptionBodyElement = document.querySelector('#PlayCaptionBody');
 const PullHintElement = document.querySelector('#PullHint');
 const PullHintChevronsElement = PullHintElement.querySelector('.pull-hint__chevrons');
-let ObjectivePipElements = [];
-const InstructionPanelElement = document.querySelector('#InstructionPanel');
-const InstructionTitleElement = document.querySelector('#InstructionTitle');
-const InstructionBodyElement = document.querySelector('#InstructionBody');
 const OpeningBriefingElement = document.querySelector('#OpeningBriefing');
 const BriefingKickerElement = document.querySelector('#BriefingKicker');
 const BriefingPortraitElement = document.querySelector('#BriefingPortrait');
@@ -274,12 +249,11 @@ const BriefingBodyElement = document.querySelector('#BriefingBody');
 const BriefingProgressElement = document.querySelector('#BriefingProgress');
 const BriefingContinueButtonElement = document.querySelector('#BriefingContinueButton');
 const BriefingSkipButtonElement = document.querySelector('#BriefingSkipButton');
-const AimPanelElement = document.querySelector('#AimPanel');
-const AimLabelElement = document.querySelector('#AimLabel');
-const AimPowerFillElement = document.querySelector('#AimPowerFill');
-const AimPowerValueElement = document.querySelector('#AimPowerValue');
 const StatusToastElement = document.querySelector('#StatusToast');
 const ReplayIndicatorElement = document.querySelector('#ReplayIndicator');
+const PauseButtonElement = document.querySelector('#PauseButton');
+const PauseSheetElement = document.querySelector('#PauseSheet');
+const PauseResumeButtonElement = document.querySelector('#PauseResumeButton');
 const RouteLabelElements = [...document.querySelectorAll('.route-label')];
 const TacticalLabelElements = [...document.querySelectorAll('.tactical-label')];
 const VictoryPanelElement = document.querySelector('#VictoryPanel');
@@ -315,9 +289,8 @@ const ScoutZoomOutButtonElement = document.querySelector('#ScoutZoomOutButton');
 const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
-const BurnButtonElement = document.querySelector('#BurnButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260816-ob98';
+GameCanvas.dataset.build = '20260817-ob99';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -479,6 +452,7 @@ let PinchState = null;
 let IsBurnAiming = false;
 let BurnAimDirection = null;
 let HasTaughtBurn = false;
+let IsPauseSheetOpen = false;
 let IsCutAiming = false;
 let CutAimPointer = null;
 let IsKeyboardAiming = false;
@@ -564,9 +538,6 @@ const CompletedHostileEncounterWorldIdentifiers = new Set();
 const WorldseedSound = new WorldseedAudio();
 const Scanner = createScanner({
   GameCanvas,
-  ScannerPanelElement,
-  ScannerBodyLayerElement,
-  ScannerRunnerElement,
   ActiveSystem,
   WorldDefinitions,
   WorldheartDefinition,
@@ -580,7 +551,6 @@ const Scanner = createScanner({
   get RelayNetworkState() { return RelayNetworkState; },
 });
 const {
-  projectScannerPosition,
   configureScannerInterface,
   updateScannerInterface,
 } = Scanner;
@@ -622,12 +592,6 @@ function configureSystemInterface() {
     : '';
   PlayAgainButtonElement.hidden = !CanContinueToNextSystem;
   ResultActionsElement.classList.toggle('result-actions--terminal', !CanContinueToNextSystem);
-
-  ObjectivePipsElement.replaceChildren();
-  for (let PipIndex = 0; PipIndex < ActiveSystem.worldheartUnlockThreshold; PipIndex += 1) {
-    ObjectivePipsElement.append(document.createElement('span'));
-  }
-  ObjectivePipElements = [...ObjectivePipsElement.children];
 
   const SvgNamespace = 'http://www.w3.org/2000/svg';
   const ConstellationNodeByIdentifier = new Map(
@@ -717,9 +681,7 @@ const WardenVisuals = createWardenVisuals(THREE, Scene, {
   WorldheartDefinition,
   GameCanvas,
   getWorldDefinition,
-  projectScannerPosition,
-  ScannerWardenElement,
-  get ScannerProjection() { return Scanner.ScannerProjection; },
+  WorldRuntimeByIdentifier,
   get PrefersReducedMotion() { return PrefersReducedMotion; },
   get WardenPursuitState() { return WardenPursuitState; },
   get GameElapsedTimeSeconds() { return GameElapsedTimeSeconds; },
@@ -778,13 +740,6 @@ function publishWardenState() {
     WardenPursuitState.status,
     IsCommandDefeated,
   );
-  WardenPanelElement.hidden = !IsVisible;
-  WardenPanelElement.classList.toggle('is-defeated', IsCommandDefeated);
-  if (IsVisible) {
-    ScannerWardenElement.removeAttribute('hidden');
-  } else {
-    ScannerWardenElement.setAttribute('hidden', '');
-  }
   WardenVisualGroup.visible = IsVisible;
   for (let RingIndex = 0; RingIndex < WardenShieldRings.length; RingIndex += 1) {
     WardenShieldRings[RingIndex].visible = RingIndex < WardenPursuitState.shieldLayers;
@@ -806,24 +761,13 @@ function publishWardenState() {
     targetLabel: TargetWorld?.label ?? '',
     blocked: getFrameLiveRelayCircuits().length > 0,
   });
-  WardenStateLabelElement.textContent = ApproachCopy.state;
-  WardenDistanceElement.textContent = ApproachCopy.distance;
-  WardenTargetElement.textContent = ApproachCopy.target;
-  const TrackPips = getWardenTrackPips({
-    distance: WardenPursuitState.distance,
-    maximumDistance: WardenPursuitState.maximumDistance,
-    visible: IsVisible && !IsCommandExposed && !IsCommandDefeated,
-  });
-  WardenTrackElement.hidden = TrackPips.length < 1;
-  if (TrackPips.length !== WardenTrackElement.childElementCount) {
-    WardenTrackElement.replaceChildren(
-      ...TrackPips.map(() => document.createElement('span')),
-    );
-  }
-  for (let PipIndex = 0; PipIndex < TrackPips.length; PipIndex += 1) {
-    WardenTrackElement.children[PipIndex].className = TrackPips[PipIndex] === 'taken'
-      ? 'is-taken'
-      : '';
+  GameCanvas.dataset.wardenCopy = [
+    ApproachCopy.state,
+    ApproachCopy.distance,
+    ApproachCopy.target,
+  ].filter(Boolean).join(' · ');
+  if (IsVisible) {
+    announceWarden(`${ApproachCopy.state}. ${ApproachCopy.distance}. ${ApproachCopy.target}`);
   }
   GameCanvas.dataset.wardenStatus = PublishedWardenState.status;
   GameCanvas.dataset.wardenDistance = String(WardenPursuitState.distance);
@@ -882,6 +826,35 @@ function updatePullHint() {
   PullHintChevronsElement.style.transform = `rotate(${Math.atan2(DirectionY, DirectionX)}rad)`;
 }
 
+function isBlockingMenuOpen() {
+  return IsOpeningBriefingActive
+    || !VictoryPanelElement.hidden
+    || !LeaderboardPanelElement.hidden;
+}
+
+function updatePauseChrome() {
+  const ShouldHidePause = isBlockingMenuOpen();
+  PauseButtonElement.hidden = ShouldHidePause;
+  if (ShouldHidePause && IsPauseSheetOpen) {
+    setPauseSheetOpen(false);
+  }
+}
+
+function setPauseSheetOpen(IsOpen) {
+  if (IsOpen && (isBlockingMenuOpen() || IsPointerAiming || IsKeyboardAiming || IsBurnAiming || IsCutAiming)) {
+    return;
+  }
+  IsPauseSheetOpen = IsOpen === true;
+  PauseSheetElement.hidden = !IsPauseSheetOpen;
+  PauseButtonElement.setAttribute('aria-expanded', String(IsPauseSheetOpen));
+  GameCanvas.dataset.pauseSheet = String(IsPauseSheetOpen);
+  if (IsPauseSheetOpen) {
+    PauseResumeButtonElement.focus({ preventScroll: true });
+  } else if (!isBlockingMenuOpen()) {
+    GameCanvas.focus({ preventScroll: true });
+  }
+}
+
 function listLiveWorldIdentifiers() {
   return [...RelayNetworkState.activeWorldIdentifiers].filter(
     (WorldIdentifier) => isRelayWorldLive(RelayNetworkState, WorldIdentifier),
@@ -907,23 +880,11 @@ function getFrameLiveRelayCircuits() {
   return FrameLiveRelayCircuits;
 }
 const Hud = createHud({
-  InstructionPanelElement,
-  InstructionTitleElement,
-  InstructionBodyElement,
-  WorldCounterElement,
-  LaunchCounterElement,
-  CounterElement,
-  ScoreCounterElement,
-  FlightScoreValueElement,
-  ChainValueElement,
-  FlightScoreElement,
+  PlayCaptionElement,
+  PlayCaptionTitleElement,
+  PlayCaptionBodyElement,
+  PlayLiveRegionElement,
   StatusToastElement,
-  StardustCounterElement,
-  ObjectiveLabelElement,
-  ObjectiveStateElement,
-  ObjectivePanelElement,
-  ObjectivePipsElement,
-  ObjectivePipElements,
   ScoreBurstElement,
   Camera,
   ScoreBurstProjection: new THREE.Vector3(),
@@ -932,6 +893,7 @@ const Hud = createHud({
   RestorableWorldCount,
   StardustDefinitions,
   WorldheartDefinition,
+  updateFuelLightVisuals: (...Args) => updateFuelLightVisuals(...Args),
   setTimeout: window.setTimeout.bind(window),
   clearTimeout: window.clearTimeout.bind(window),
   get PrefersReducedMotion() { return PrefersReducedMotion; },
@@ -947,16 +909,19 @@ const Hud = createHud({
   get ActiveHostileEncounterState() { return ActiveHostileEncounterState; },
 });
 const {
+  refreshPlayfieldLabelBounds,
   refreshInstructionPanelBounds,
   updateStardustCounter,
   updateWorldheartObjective,
   updateWorldCounter,
+  updateFuelLights,
   updateLaunchCounter,
   updateScoreInterface,
   showScoreBurst,
   showStatusToast,
   showInstruction,
   hideInstruction,
+  announceWarden,
   resetHud,
 } = Hud;
 
@@ -1064,9 +1029,7 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
     }
   } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.advanced) {
     WorldseedSound.wardenStep();
-    WardenPanelElement.classList.remove('is-step');
-    void WardenPanelElement.offsetWidth;
-    WardenPanelElement.classList.add('is-step');
+    startWardenEventPulse(WardenVisualGroup.position, 0xff5148, 'advance');
     showStatusToast(
       WardenPursuitState.distance <= 1
         ? `WARDEN AT ${TargetWorld?.label ?? 'THE FRONTIER'} NEXT LANDING`
@@ -1337,6 +1300,7 @@ const {
   RunnerAntennaStem,
   RunnerAntennaLight,
   ShipVisualGroup,
+  updateFuelLightVisuals,
   ShipHullMaterial,
   ShipAccentMaterial,
   ShipHullMesh,
@@ -1464,7 +1428,6 @@ function synchronizeWorldheartPosition() {
 
 const RoutePresentation = createRoutePresentation(THREE, {
   Camera,
-  WardenPanelElement,
   StatusToastElement,
   RouteLabelElements,
   TacticalLabelElements,
@@ -1489,6 +1452,9 @@ const RoutePresentation = createRoutePresentation(THREE, {
   TacticalBodyDefinitions,
   ActiveSystem,
   showInstruction,
+  get IsPointerAiming() { return IsPointerAiming; },
+  get IsKeyboardAiming() { return IsKeyboardAiming; },
+  get IsScoutMode() { return IsScoutMode; },
   isLiveInnerCluster,
   getWorldDefinition,
   synchronizeSeedstonePosition,
@@ -1641,7 +1607,6 @@ function rollbackFlightStardust() {
  */
 const HostileSurface = createHostileSurface(THREE, {
   GameCanvas,
-  AimPanelElement,
   SeedGroup,
   SeedRadius,
   LaunchCancelRadius,
@@ -1718,11 +1683,11 @@ const StoryDirector = createStoryDirector({
   BriefingContinueButtonElement,
   BriefingSkipButtonElement,
   BriefingPortraitElement,
-  InstructionPanelElement,
   showInstruction,
   showStatusToast,
   resetGame,
   revealVictoryPanel,
+  updatePauseChrome,
   showHostileEncounterInstruction,
   showRouteChoiceInstruction,
   get OpeningBriefingPageIndex() { return OpeningBriefingPageIndex; },
@@ -1795,7 +1760,7 @@ function scheduleRunFailure(Reason = 'THE WARDEN REACHED THE RUNNER') {
 /** Settles a non-command landing before applying its one deterministic pursuit beat. */
 function settleNonCommandFlight({ firstCircuitClosed = false, circuit = null } = {}) {
   RunState = settleRunFlight(RunState);
-  updateLaunchCounter();
+  updateFuelLights();
   return resolveWardenAfterResolvedFlight({ firstCircuitClosed, circuit });
 }
 
@@ -1938,7 +1903,8 @@ const LandingDirector = createLandingDirector(THREE, {
   hideInstruction,
   beginHostileEncounter,
   getRunnerSurfaceAngle,
-  updateLaunchCounter,
+  updateFuelLights,
+  updateLaunchCounter: (...Args) => updateFuelLights(...Args),
   revealVictoryPanel,
   setTimeout: window.setTimeout.bind(window),
   clearTimeout: window.clearTimeout.bind(window),
@@ -2020,6 +1986,7 @@ const {
 /** Reveals the modal completion summary and moves keyboard focus into it. */
 function revealVictoryPanel() {
   VictoryPanelElement.hidden = false;
+  updatePauseChrome();
   ReplayButtonElement.focus({ preventScroll: true });
 }
 
@@ -2311,10 +2278,6 @@ const AimPreview = createAimPreview(THREE, {
   AimLaunchVelocity,
   LaunchVelocityPerDragUnit,
   LaunchCancelRadius,
-  AimPanelElement,
-  AimPowerFillElement,
-  AimPowerValueElement,
-  AimLabelElement,
   WorldseedSound,
   GameCanvas,
   WorldDefinitions,
@@ -2367,11 +2330,6 @@ const InputController = createInputController(THREE, {
   OrbitalPlane,
   PointerWorldPosition,
   PointerByIdentifier,
-  AimPanelElement,
-  AimLabelElement,
-  AimPowerFillElement,
-  AimPowerValueElement,
-  BurnButtonElement,
   SeedGroup,
   SeedPointerHitMesh,
   LaunchPulseMesh,
@@ -2431,7 +2389,8 @@ const InputController = createInputController(THREE, {
   getRunnerSurfacePose,
   completeWorldheartLiberation,
   flushQueuedStoryBoardsIfReady,
-  updateLaunchCounter,
+  updateFuelLights,
+  updateLaunchCounter: (...Args) => updateFuelLights(...Args),
   captureCommittedLaunchPrediction,
   captureAimInteractionCamera,
   releaseAimInteractionCamera,
@@ -2569,7 +2528,7 @@ function recoverSeedFromVoid(StatusMessage = 'LOST TO THE VOID') {
 
   RunState = settleRunFlight(RunState);
   const SuppressedWorld = resolveWardenAfterResolvedFlight();
-  updateLaunchCounter();
+  updateFuelLights();
   const LostPoints = loseCurrentFlightScore();
   rollbackFlightStardust();
   resetFlightFeedback();
@@ -2651,7 +2610,7 @@ function beginReplayLaunch(Launch) {
     publishHostileEncounterState();
   }
   RunState = releaseRunLaunch(RunState);
-  updateLaunchCounter();
+  updateFuelLights();
   if (Number.isFinite(Launch.originX) && Number.isFinite(Launch.originY)) {
     SeedPhysicsState.position = createVector(Launch.originX, Launch.originY, 0);
     SeedGroup.position.set(Launch.originX, Launch.originY, 0);
@@ -3073,6 +3032,7 @@ function resetGame() {
   }
   resetHud();
   resetLandingDirector();
+  setPauseSheetOpen(false);
 
   IsPointerAiming = false;
   clearCommittedAimCamera();
@@ -3130,8 +3090,6 @@ function resetGame() {
   ScoutZoomInButtonElement.hidden = true;
   ScoutZoomStatusElement.textContent = '';
   updateScoutZoomInterface();
-  AimPanelElement.hidden = true;
-  AimPanelElement.classList.remove('is-locked');
   clearTrajectoryPreview();
   VictoryPanelElement.hidden = true;
   StatusToastElement.classList.remove('is-visible');
@@ -3314,7 +3272,7 @@ function resetGame() {
   PullGuideLine.visible = true;
 
   updateWorldCounter();
-  updateLaunchCounter();
+  updateFuelLights();
   updateScoreInterface();
   updateStardustCounter();
   updateWorldheartObjective();
@@ -3337,6 +3295,7 @@ function resetGame() {
       GameCanvas.focus({ preventScroll: true });
     }
   }
+  updatePauseChrome();
 }
 
 /** Advances at a completed Worldheart, while keeping the campaign frontier replayable. */
@@ -3353,7 +3312,7 @@ function continueCampaignOrReplay() {
 
 let LastControlModeKey = '';
 
-/** Keeps the EXPLORE / LAUNCH / FLIGHT chip and shell mode attribute current. */
+/** Keeps the shell control-mode attribute current for vignette and pause chrome. */
 function updateControlModeInterface() {
   const Presentation = getControlModePresentation({
     gamePhase: GamePhase,
@@ -3371,11 +3330,7 @@ function updateControlModeInterface() {
   }
   LastControlModeKey = ControlModeKey;
   GameShellElement.dataset.controlMode = Presentation.mode;
-  ModeChipElement.classList.toggle('is-hidden', !Presentation.visible);
-  if (Presentation.visible) {
-    ModeChipLabelElement.textContent = Presentation.label;
-    ModeChipHintElement.textContent = Presentation.hint;
-  }
+  updatePauseChrome();
 }
 
 /** Main frame loop. */
@@ -3486,7 +3441,6 @@ function setPageActivity(IsActive) {
         GameCanvas.releasePointerCapture(CanceledPointerIdentifier);
       }
       GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
-      AimPanelElement.hidden = true;
       releaseAimInteractionCamera();
       clearTrajectoryPreview();
       WorldseedSound.endAim();
@@ -3676,11 +3630,18 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     closeLeaderboardPanel();
     return;
   }
+  if (KeyboardEventData.key === 'Escape' && IsPauseSheetOpen) {
+    KeyboardEventData.preventDefault();
+    setPauseSheetOpen(false);
+    return;
+  }
   const ActiveModalElement = !LeaderboardPanelElement.hidden
     ? LeaderboardPanelElement
     : (!VictoryPanelElement.hidden
       ? VictoryPanelElement
-      : (IsOpeningBriefingActive ? OpeningBriefingElement : null));
+      : (IsOpeningBriefingActive
+        ? OpeningBriefingElement
+        : (IsPauseSheetOpen ? PauseSheetElement : null)));
   if (KeyboardEventData.key === 'Tab' && ActiveModalElement) {
     const FocusableElements = getVisibleModalFocusables(ActiveModalElement);
     const FirstFocusableElement = FocusableElements[0];
@@ -3754,6 +3715,11 @@ window.addEventListener('keydown', (KeyboardEventData) => {
   if (handleKeyboardAimKey(KeyboardEventData)) {
     return;
   }
+  if (PressedKey === 'escape') {
+    KeyboardEventData.preventDefault();
+    setPauseSheetOpen(true);
+    return;
+  }
   if (KeyboardEventData.repeat) {
     return;
   }
@@ -3774,7 +3740,9 @@ document.addEventListener('focusin', (FocusEventData) => {
     ? LeaderboardPanelElement
     : (!VictoryPanelElement.hidden
       ? VictoryPanelElement
-      : (IsOpeningBriefingActive ? OpeningBriefingElement : null));
+      : (IsOpeningBriefingActive
+        ? OpeningBriefingElement
+        : (IsPauseSheetOpen ? PauseSheetElement : null)));
   if (!ActiveModalElement || ActiveModalElement.contains(FocusEventData.target)) {
     return;
   }
@@ -3808,7 +3776,13 @@ ScoutZoomInButtonElement.addEventListener('click', () => adjustScoutZoom(-1));
 GhostButtonElement.addEventListener('click', () => {
   setPersonalBestGhostEnabled(!IsPersonalBestGhostEnabled, { announce: true });
 });
-BurnButtonElement.addEventListener('click', requestBreakerAction);
+PauseButtonElement.addEventListener('click', () => setPauseSheetOpen(true));
+PauseResumeButtonElement.addEventListener('click', () => setPauseSheetOpen(false));
+PauseSheetElement.addEventListener('click', (PointerEventData) => {
+  if (PointerEventData.target === PauseSheetElement) {
+    setPauseSheetOpen(false);
+  }
+});
 
 resizeRenderer();
 resetGame();

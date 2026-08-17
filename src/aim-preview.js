@@ -1,5 +1,6 @@
 /**
  * Launch aim preview. Must keep running inside the fixed physics step while aiming.
+ * Trajectory colour and relay-port beacons encode lock, dock and hazard; there is no aim meter.
  */
 
 import { evaluateRelayPortLanding } from './flight-resolver.js';
@@ -28,17 +29,14 @@ export function createAimPreview(THREE, host) {
       cancelRadius: host.LaunchCancelRadius,
       screenDistancePixels: host.LastAimScreenDistancePixels,
     });
-    host.AimPanelElement.classList.toggle('is-cancel', WillCancel);
-    host.AimPowerFillElement.style.width = WillCancel ? '0%' : `${Math.round(PowerRatio * 100)}%`;
-    host.AimPowerFillElement.style.transform = 'none';
-    host.AimPowerValueElement.textContent = WillCancel ? 'CANCEL' : `${Math.round(PowerRatio * 100)}%`;
+    host.GameCanvas.dataset.aimCancel = String(WillCancel);
+    host.GameCanvas.dataset.aimPower = WillCancel ? '0' : String(Math.round(PowerRatio * 100));
 
     if (WillCancel) {
       host.clearTrajectoryPreview();
       if (host.HasCommittedAimCamera) {
         host.applySectorPlanningCamera();
       }
-      host.AimLabelElement.textContent = 'RELEASE TO CANCEL';
       host.WorldseedSound.updateAim(PowerRatio, false);
       return;
     }
@@ -74,20 +72,11 @@ export function createAimPreview(THREE, host) {
     host.renderTrajectoryLine(VisiblePredictionPoints);
 
     const FinalPredictionPoint = TrajectoryPrediction.points[TrajectoryPrediction.points.length - 1];
-    const PowerPercentage = Math.round(PowerRatio * 100);
-    host.AimPowerFillElement.style.width = `${PowerPercentage}%`;
-    host.AimPowerValueElement.textContent = `${PowerPercentage}%`;
 
     if (IsOutcomeVisible && TrajectoryPrediction.collisionKind === 'hazard') {
       host.TrajectoryMaterial.color.set(0xff766d);
       host.TrajectoryMaterial.opacity = 0.88;
       host.LandingMarkerMaterial.color.set(0xff766d);
-      host.AimPanelElement.classList.remove('is-locked');
-      host.AimLabelElement.textContent = `${host.AsteroidDefinition.label} COLLISION`;
-      host.showInstruction(
-        'Red means impact',
-        'Wait for the asteroid to move or change the launch angle.',
-      );
       host.LandingMarkerMesh.position.set(FinalPredictionPoint.x, FinalPredictionPoint.y, 0.2);
       host.LandingMarkerMesh.visible = true;
     } else if (IsOutcomeVisible && TrajectoryPrediction.collisionKind === 'seedstone') {
@@ -98,12 +87,6 @@ export function createAimPreview(THREE, host) {
       host.TrajectoryMaterial.color.set(0x72d9ff);
       host.TrajectoryMaterial.opacity = 0.86;
       host.LandingMarkerMaterial.color.set(0x72d9ff);
-      host.AimPanelElement.classList.add('is-locked');
-      host.AimLabelElement.textContent = `${host.SeedstoneDefinition.label} LOCKED`;
-      host.showInstruction(
-        'Release to land on the Seedstone',
-        'Blue means a one-use tactical launchpad. It does not awaken a world.',
-      );
       const LandingDirection = host.TemporaryThreeVector.set(
         FinalPredictionPoint.x - SeedstonePosition.x,
         FinalPredictionPoint.y - SeedstonePosition.y,
@@ -119,20 +102,6 @@ export function createAimPreview(THREE, host) {
       host.TrajectoryMaterial.color.set(0xffd678);
       host.TrajectoryMaterial.opacity = 0.9;
       host.LandingMarkerMaterial.color.set(0xffd678);
-      host.AimPanelElement.classList.add('is-locked');
-      host.AimLabelElement.textContent = `${host.WorldheartDefinition.label} LOCKED`;
-      host.showInstruction(
-        host.IsCampaignFinale
-          ? 'Release to reconnect the Worldheart'
-          : 'Release to board the Command World',
-        host.IsCampaignFinale
-          ? host.isSystemRestored(host.WorldDefinitions)
-            ? 'Heart, Bloom and Arc will record the journey you completed.'
-            : 'You can leave now, or awaken every world first to earn Bloom.'
-          : host.isSystemRestored(host.WorldDefinitions)
-            ? 'Every world is free. Gold marks the moving command lock.'
-            : 'Gold means the moving command is locked. Release before it leaves the line.',
-      );
       const LandingDirection = host.TemporaryThreeVector.set(
         FinalPredictionPoint.x - host.WorldheartDefinition.position.x,
         FinalPredictionPoint.y - host.WorldheartDefinition.position.y,
@@ -162,28 +131,13 @@ export function createAimPreview(THREE, host) {
       host.TrajectoryMaterial.color.set(PreviewColor);
       host.TrajectoryMaterial.opacity = 0.82;
       host.LandingMarkerMaterial.color.set(IsBullseye ? 0xfff3cd : PreviewColor);
-      host.AimPanelElement.classList.add('is-locked');
-      host.AimLabelElement.textContent = MissesPort
-        ? `${LandingWorldDefinition.label} DOCK ONLY`
-        : IsBullseye
-        ? `${LandingWorldDefinition.label} BULLSEYE`
-        : host.getWorldLandingAimLabel(
-          LandingWorldDefinition.label,
-          IsNewWorldLanding,
+      if (MissesPort) {
+        host.showInstruction(
+          `Dock only at ${LandingWorldDefinition.label}`,
+          'The gold beacon arc is the liberation landing. This line still docks and links the relay.',
+          'missed-port',
         );
-      host.showInstruction(
-        MissesPort
-          ? `Release to dock at ${LandingWorldDefinition.label}`
-          : (IsNewWorldLanding ? 'Release to awaken ' : 'Release to land on ')
-            + LandingWorldDefinition.label,
-        MissesPort
-          ? 'This landing links the relay but misses the gold beacon arc — the cage will hold until you land inside it.'
-          : IsNewWorldLanding
-          ? IsBullseye
-            ? 'Dead centre of the beacon arc. Release for the BULLSEYE liberation bonus.'
-            : 'Gold means the beacon arc. Landing inside it liberates the world.'
-          : 'Green means a restored safe landing.',
-      );
+      }
       const LandingDirection = host.TemporaryThreeVector.set(
         FinalPredictionPoint.x - LandingWorldDefinition.position.x,
         FinalPredictionPoint.y - LandingWorldDefinition.position.y,
@@ -199,39 +153,16 @@ export function createAimPreview(THREE, host) {
       host.TrajectoryMaterial.color.set(0x9db8c6);
       host.TrajectoryMaterial.opacity = 0.48;
       host.LandingMarkerMesh.visible = false;
-      host.AimPanelElement.classList.remove('is-locked');
-      host.AimLabelElement.textContent = PredictedSlingshotEvents.length >= 2 ? 'CHAIN ARC' : 'OPEN ARC';
-      host.showInstruction(
-        PredictedSlingshotEvents.length >= 2
-          ? 'This line chains multiple worlds'
-          : 'No landing yet',
-        PredictedSlingshotEvents.length >= 2
-          ? 'A long chain is one Warden beat. Nudge the angle until a world locks gold or green.'
-          : 'The whole shot is on the map. Bend it through gold rings to chain worlds in one flight.',
-      );
     } else {
       host.TrajectoryMaterial.color.set(0x9db8c6);
       host.TrajectoryMaterial.opacity = 0.48;
       host.LandingMarkerMesh.visible = false;
-      host.AimPanelElement.classList.remove('is-locked');
-      host.AimLabelElement.textContent = 'PULL';
-      host.showInstruction(
-        'No landing yet',
-        'The whole shot is on the map. Pull farther or change the angle until a world locks.',
-      );
     }
     host.PredictedSlingshotWorldIdentifiers.clear();
     for (const SlingshotEvent of PredictedSlingshotEvents) {
       host.PredictedSlingshotWorldIdentifiers.add(SlingshotEvent.bodyIdentifier);
     }
-    if (host.PredictedStardustIdentifiers.size > 0) {
-      host.AimLabelElement.textContent += ` · ARC +${host.PredictedStardustIdentifiers.size}`;
-    }
     if (PredictedSlingshotEvents.length > 0) {
-      const PredictedPoints = PredictedSlingshotEvents.reduce(
-        (Total, Event) => Total + Event.points,
-        0,
-      );
       const ChainPreview = host.getSlingshotPreviewPresentation(PredictedSlingshotEvents.length);
       if (ChainPreview && TrajectoryPrediction.collisionKind !== 'hazard') {
         if (!IsOutcomeVisible || TrajectoryPrediction.collisionKind === null) {
@@ -239,9 +170,6 @@ export function createAimPreview(THREE, host) {
           host.TrajectoryMaterial.opacity = ChainPreview.opacity;
         }
       }
-      host.AimLabelElement.textContent += ChainPreview
-        ? ` · ${ChainPreview.label} +${PredictedPoints.toLocaleString('en-GB')}`
-        : ` · ASSIST +${PredictedPoints.toLocaleString('en-GB')}`;
     }
     host.WorldseedSound.updateAim(
       PowerRatio,

@@ -27,7 +27,6 @@ export function createStoryDirector(host) {
     BriefingContinueButtonElement,
     BriefingSkipButtonElement,
     BriefingPortraitElement,
-    InstructionPanelElement,
     showInstruction,
     showStatusToast,
     resetGame,
@@ -43,6 +42,7 @@ export function createStoryDirector(host) {
     host.StoryLookFocus = null;
     OpeningBriefingElement.hidden = true;
     GameCanvas.dataset.openingBriefing = 'closed';
+    host.updatePauseChrome?.();
     OpeningBriefingElement.classList.remove(
       'is-warden',
       'is-haven',
@@ -107,9 +107,8 @@ export function createStoryDirector(host) {
     );
     OpeningBriefingElement.classList.add(`is-${Presentation.tone}`);
     OpeningBriefingElement.hidden = false;
-    InstructionPanelElement.classList.add('is-hidden');
-    InstructionPanelElement.setAttribute('aria-hidden', 'true');
     GameCanvas.dataset.openingBriefing = `${host.ActiveStoryBoardId}:${Presentation.progressLabel}`;
+    host.updatePauseChrome?.();
     host.StoryLookFocus = getStoryBoardCameraFocus({
       boardId: host.ActiveStoryBoardId === 'opening' ? 'opening' : host.ActiveStoryBoardId,
       portrait: Board.pages[PageIndex]?.portrait ?? '',

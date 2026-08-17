@@ -28,7 +28,6 @@ import { calculateSurfaceRestPosition as calculateSharedSurfaceRestPosition } fr
 export function createHostileSurface(THREE, host) {
   const {
     GameCanvas,
-    AimPanelElement,
     SeedGroup,
     SeedRadius,
     LaunchCancelRadius,
@@ -244,7 +243,6 @@ export function createHostileSurface(THREE, host) {
     host.IsKeyboardAiming = false;
     host.IsPointerAiming = false;
     GameCanvas.classList.remove('is-aiming');
-    AimPanelElement.hidden = true;
     GameCanvas.dataset.keyboardAimAngle = '';
     GameCanvas.dataset.keyboardAimPower = '';
     GameCanvas.dataset.keyboardAimAssist = '';
