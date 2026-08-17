@@ -308,6 +308,7 @@ export function createLandingDirector(THREE, host) {
       host.showInstruction(
         `Docked at ${WorldDefinition.label}`,
         'The relay is linked, but the cage holds. Launch again and land inside the gold beacon arc to liberate this world.',
+        'missed-port',
       );
     } else if (WasAlreadyRestored && host.GamePhase !== 'victory' && host.GamePhase !== 'victoryPending') {
       host.GamePhase = 'attached';
@@ -522,7 +523,7 @@ export function createLandingDirector(THREE, host) {
     host.AttachedSurfaceMeridianSign = 1;
     centerLandedCamera({ snap: false });
     host.RunState = settleRunFlight(host.RunState, { reachedCommandWorld: true });
-    host.updateLaunchCounter();
+    host.updateFuelLights();
     const BankResult = host.bankCurrentFlight();
     host.PendingWorldheartBankedPoints = BankResult.bankedPoints;
     GameCanvas.dataset.lastFlightAccolade = LandingAccolade ?? '';

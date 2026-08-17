@@ -43,11 +43,14 @@ The game remains one-pointer/touch accessible.
 
 - Drag the **globe** to walk. Drag the **ship** and pull away to aim and build a relay. The two gestures never share a grab. A ship pull commits aim even while the finger is still over the crust; the neighbourhood map waits until the pull leaves the cancel disk. Release on the ship, or press Escape, to cancel without spending the flight.
 - Q/E walk around, R/F walk over the poles. Walking is slow on purpose: one revolution takes several seconds. Keyboard and pointer reach the same sphere.
-- The face you stand on is the launch azimuth. Walk until this face looks toward the world you want; over the poles is the short path to the far side. Flattening for aim keeps flight in the orbital plane. After walking, the coach keeps naming that face until you grab the ship, pan, or start keyboard aim. Do not add surface pickups or extra destinations.
+- The face you stand on is the launch azimuth. Walk until this face looks toward the world you want; over the poles is the short path to the far side. Flattening for aim keeps flight in the orbital plane. The first walk gets a fading caption; after that the globe and aim line teach facing. Do not add surface pickups or extra destinations.
 - Drag empty space to pan. Pinch, −/+, or mouse wheel to zoom out from a landed world to the whole Reach. C snaps the camera back to the Runner.
 - During flight, drag from the ship to **break** your line in any direction, then release. Space still breaks along heading. The preview cannot solve a future player-timed break at launch time.
 - On a caged world, drag from the ship through a clamp to **destroy** it. A longer drag can take more than one. Drag back onto the ship, or press Escape, to cancel. Misses do not spend the flight. No health bars.
 - Keyboard controls must reach the same deterministic actions as pointer controls.
+- During a run the canvas is the only surface. Remaining launches are lights on the Orbitbreaker and a quieter backpack row on the Runner. The Warden telegraphs with its vessel, forecast line and a pulse on the targeted world. Banked score lives on landing bursts and the victory card.
+- First walk, first aim, first Break and first missed port get a fading caption; later play stays silent except toasts. Route names appear only while aiming or scouting.
+- One 44px pause control, or Escape when not aiming, opens Scout, zoom, Ghost, Motion, Audio and Reset. Those keyboard shortcuts stay live during play so desktop never needs the sheet.
 
 Surface movement is spherical and weighty. It exists so the Runner can choose which face looks at a destination, and so a clamp on a hostile rim is reachable. It is not a tour, a collectathon or a platformer. Aiming flattens back onto the orbital plane so gravity paths stay 2D and deterministic.
 
@@ -93,7 +96,7 @@ Each circuit grants its shield damage and score only the first time it closes in
 
 This is also why circuits can hurt the Warden: its system is designed to silence a chain by controlling one choke point. A closed route carries the signal around the break, synchronises several worlds at once and reflects the failed suppression back into the command vessel's shield.
 
-This makes route topology understandable without a separate economy. A fast chain expands quickly but is fragile; a loop costs travel but protects progress and advances the endgame. The HUD teaches that order: reconnect the neighbourhood until the Warden appears, unique circuits while it hunts, then the exposed Command World.
+This makes route topology understandable without a separate economy. A fast chain expands quickly but is fragile; a loop costs travel but protects progress and advances the endgame. The playfield teaches that order: reconnect the neighbourhood until the Warden vessel appears, unique circuits while it hunts, then the exposed Command World.
 
 Trade traffic is not background decoration. Its presence shows which links are alive; ships turn back or disappear when a route is threatened, and return when it is restored.
 
@@ -113,7 +116,7 @@ Pursuit is deterministic and action-driven:
 - Reaching the Runner's current world without intact loop protection ends the ranked run.
 - Closing a resilient loop pushes the Warden back and damages its shield.
 
-Surface walking, pausing, reading and camera scouting do not advance it. The threat is pressure to make good flights, not pressure to operate the interface quickly. The inbound HUD counts remaining resolved flights — each launch, landing or miss is one step. Visiting every world is not enough: two unique return-flight loops expose Command. Bonus fuel reaching zero never ends the run.
+Surface walking, pausing, reading and camera scouting do not advance it. The threat is pressure to make good flights, not pressure to operate the interface quickly. The inbound vessel, forecast line and target-world pulse count remaining resolved flights — each launch, landing or miss is one step. Visiting every world is not enough: two unique return-flight loops expose Command. Bonus fuel reaching zero never ends the run.
 
 A representative successful rhythm is intentionally short, with a hopeful first act:
 
@@ -212,7 +215,7 @@ The Reach has the verbs, sphere walking, staged prosperity and instanced life. C
 - Destroy pylons, flight, prediction and replay stay in the orbital plane. The physics identity is unchanged; `breaker-reach-8` retunes the authored layout so gravity is mandatory, not the step integrator.
 - Gravity is the game (jam salvage phase 3): anchor wells (Haven, Ember, Grove, Tide, Frost, Bastion) deepened to 240–340 so full-power direct shots at Tide, Spindle, Quarry, Mirage or the Command World always bend into an intermediate world. Three relay-shard asteroids — Ledge, Cinder and Glasswing — join the Reach as pre-lit waypoints (`countsTowardRestoration: false`) that stage the outer legs. The aim line predicts 1800 fixed steps (~15 s) so a full assisted arc is visible before release, and each body shows a soft additive well glow sized by its gravitational parameter while aiming or flying.
 - Relay-port landings (`breaker-reach-9`): every unrestored world authors a generous beacon arc on its circumference. Landing inside liberates and grades CLEAN/BULLSEYE for deterministic bonus score; landing outside docks safely and links the relay but leaves the cage until a later in-port landing. Pursuit still advances per resolved flight, so precision trades against Warden pressure, never fuel. The arc renders as pulsing gold beacons on unrestored worlds and the aim preview names the outcome (BULLSEYE / awaken / DOCK ONLY) before release.
-- Onboarding and felt pursuit (checkpoint 23): the opening is two cards; Break, Destroy, ports and slingshots are coached in-world at the moment of need. The Warden panel shows a pursuit-track pip row, and every advance is an audible low step, a panel pulse and a warden-toned toast.
+- Onboarding and felt pursuit (checkpoint 23): the opening is two cards; Break, Destroy, ports and slingshots are coached in-world at the moment of need. The Warden vessel, forecast line and target-world pulse telegraph pursuit, and every advance is an audible low step, a world-space pulse and a warden-toned toast.
 - Walk-to-launch (checkpoint 19): ship grab aims from a screen pull even over crust; the map camera waits until the pull leaves cancel. Facing coach survives walk release.
 - Review follow-ups (checkpoint 20): callsign typing and Ctrl/Meta/Alt no longer fire game hotkeys; hiding the tab resets adaptive-quality recovery; rankings ignore stale watch/submit results; slingshot prediction skips the pre-launch rest sample.
 - Draw-call ceiling remains 190. New life is instanced and pooled.

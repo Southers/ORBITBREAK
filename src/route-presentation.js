@@ -20,7 +20,6 @@ import {
 export function createRoutePresentation(THREE, host) {
   const {
     Camera,
-    WardenPanelElement,
     StatusToastElement,
     RouteLabelElements,
     TacticalLabelElements,
@@ -191,6 +190,15 @@ export function createRoutePresentation(THREE, host) {
 
   /** Projects suggested world names into the HUD without spending WebGL draw calls. */
   function updateRouteLabels(InstructionTop) {
+    const LabelsActive = host.IsPointerAiming
+      || host.IsKeyboardAiming
+      || host.IsScoutMode;
+    if (!LabelsActive) {
+      for (const RouteLabelElement of RouteLabelElements) {
+        RouteLabelElement.textContent = '';
+      }
+      return;
+    }
     const RouteChoices = host.GamePhase === 'attached'
       ? getCurrentRouteChoices(RouteLabelElements.length)
       : [];
@@ -203,7 +211,7 @@ export function createRoutePresentation(THREE, host) {
       instructionTop: InstructionTop,
       isCompact: IsCompactLayout,
       isShortLandscape: IsShortLandscape,
-      wardenVisible: !WardenPanelElement.hidden,
+      wardenVisible: false,
       isTactical: false,
     });
     const LabelPositions = [];
@@ -389,6 +397,7 @@ export function createRoutePresentation(THREE, host) {
         !ShouldShowTacticalLayer
         || !TacticalLabelDefinition
         || host.GamePhase !== 'attached'
+        || !(host.IsPointerAiming || host.IsKeyboardAiming || host.IsScoutMode)
         || StatusToastElement.classList.contains('is-visible')
       ) {
         TacticalLabelElement.textContent = '';
@@ -428,7 +437,7 @@ export function createRoutePresentation(THREE, host) {
       instructionTop: InstructionTop,
       isCompact: IsCompactLayout,
       isShortLandscape: IsShortLandscape,
-      wardenVisible: !WardenPanelElement.hidden,
+      wardenVisible: false,
       isTactical: true,
     });
     const ResolvedTacticalLabelPositions = separateOverlappingTacticalLabels(

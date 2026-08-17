@@ -47,6 +47,7 @@ export function auditReleaseReadiness() {
   const FlightResolverSource = readRepositoryFile('src/flight-resolver.js');
   const LivingWorldSource = readRepositoryFile('src/living-world-visuals.js');
   const PlayerSource = readRepositoryFile('src/player-visuals.js');
+  const WardenVisualsSource = readRepositoryFile('src/warden-visuals.js');
   const StoryDirectorSource = readRepositoryFile('src/story-director.js');
   const HudSource = readRepositoryFile('src/hud.js');
   const LandingDirectorSource = readRepositoryFile('src/landing-director.js');
@@ -217,25 +218,35 @@ export function auditReleaseReadiness() {
     'The candidate must retain persistent motion control and its explicit diagnostics gate.',
   );
   requireCondition(
-    /id="WardenPanel"[^>]+aria-live="polite"[^>]+aria-atomic="true"/.test(IndexHtml)
-      && /id="StatusToast"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/.test(IndexHtml),
-    'Warden and transient status updates must remain atomic assistive announcements.',
+    /id="PlayLiveRegion"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
+      && /id="StatusToast"/.test(IndexHtml)
+      && HudSource.includes('function announceLive(Message)')
+      && HudSource.includes('function announceWarden(Message)')
+      && MainSource.includes('announceWarden(')
+      && MainSource.includes('WardenForecastLine.visible')
+      && WardenVisualsSource.includes('function updateWardenTargetTelegraph(')
+      && WardenVisualsSource.includes('startWardenEventPulse('),
+    'Warden telegraph must stay on the vessel, forecast line, target-world pulse and one polite live region.',
   );
   requireCondition(
-    /id="FlightScore"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
-      && /\.flight-score\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
-      && /\.flight-score\s+small\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
-      && /\.warden-panel\s*\{[^}]*top:\s*124px;/s.test(StyleSheet)
-      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.warden-panel\s*\{[^}]*top:\s*164px;/s.test(StyleSheet),
-    'Unbanked score updates must remain atomic, legible and separated from the Warden forecast.',
+    /id="PauseButton"[^>]*aria-label="Pause"/.test(IndexHtml)
+      && /id="PauseSheet"[^>]*role="dialog"[^>]*aria-modal="true"/.test(IndexHtml)
+      && /id="PauseResumeButton"/.test(IndexHtml)
+      && /id="ScoutButton"/.test(IndexHtml)
+      && /id="MotionButton"/.test(IndexHtml)
+      && /id="AudioButton"/.test(IndexHtml)
+      && /id="ResetButton"/.test(IndexHtml)
+      && /\.pause-button\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/s.test(StyleSheet)
+      && MainSource.includes('function setPauseSheetOpen(')
+      && MainSource.includes("PressedKey === 'escape'"),
+    'Play must keep a 44px pause control that opens a labelled sheet of Scout, zoom, Ghost, Motion, Audio and Reset.',
   );
   requireCondition(
-    /\.instruction-panel span\s*\{[^}]*color:\s*rgba\(226, 235, 241, 0\.78\);[^}]*font-size:\s*12px;[^}]*line-height:\s*1\.35;/s.test(StyleSheet),
-    'Critical instruction body copy must retain its legible contrast, size and line height.',
-  );
-  requireCondition(
-    /@media\s*\(orientation:\s*landscape\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.burn-button\s*\{[^}]*right:\s*max\(18px,\s*env\(safe-area-inset-right\)\);[^}]*left:\s*auto;[^}]*transform:\s*none;/s.test(StyleSheet),
-    'Short-landscape Breaker controls must remain on the safe edge of the flight view.',
+    HudSource.includes('function updateFuelLights()')
+      && PlayerSource.includes('function updateFuelLightVisuals(')
+      && PlayerSource.includes('FuelPipWarnColor')
+      && HudSource.includes("GameCanvas.dataset.launchesRemaining = String(Remaining)"),
+    'Bonus fuel must read as ship and backpack lights driven by remainingLaunches, with amber warning on the last two pips.',
   );
   requireCondition(
     /@media\s*\(orientation:\s*landscape\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.victory-panel\s*\{[^}]*width:\s*min\(calc\(100vw - 24px\),\s*760px\);[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior:\s*contain;/s.test(StyleSheet)
@@ -249,13 +260,9 @@ export function auditReleaseReadiness() {
     'Terminal results must centre their unpaired rankings action.',
   );
   requireCondition(
-    /id="ReplayIndicator"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
+    /id="ReplayIndicator"/.test(IndexHtml)
       && /\.replay-indicator\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),
-    'Replay progress must remain an atomic live status at a legible type floor.',
-  );
-  requireCondition(
-    /\.warden-panel\s+span,\s*\.warden-panel\s+small\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;[^}]*white-space:\s*nowrap;/s.test(StyleSheet),
-    'Warden state and target forecasts must retain their legible single-line floor.',
+    'Replay progress must remain a visible overlay at a legible type floor.',
   );
   requireCondition(
     /\.route-label,\s*\.tactical-label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
@@ -268,21 +275,18 @@ export function auditReleaseReadiness() {
     'Route and tactical labels must remain legible, single-line and collision-aware.',
   );
   requireCondition(
-    /id="ScannerPanel"[^>]*role="img"[^>]*aria-label="System scanner"/.test(IndexHtml)
-      && /\.scanner-panel\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
-      && /\.counter__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
-      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.counter__label\s*\{[^}]*font-size:\s*10px;/s.test(StyleSheet)
+    !/id="ScannerPanel"/.test(IndexHtml)
+      && !/id="AimPanel"/.test(IndexHtml)
+      && !/id="ObjectivePanel"/.test(IndexHtml)
+      && !/id="WardenPanel"/.test(IndexHtml)
+      && !/id="InstructionPanel"/.test(IndexHtml)
+      && !/id="ModeChip"/.test(IndexHtml)
+      && !/id="BurnButton"/.test(IndexHtml)
+      && !/id="FlightScore"/.test(IndexHtml)
       && ScannerSource.includes('getScannerAccessibleLabel({')
       && RoutePresentationSource.includes('getPlayfieldLabelVerticalBounds({')
-      && ScannerSource.includes("ScannerPanelElement.setAttribute('aria-label', ScannerAccessibleLabel)"),
-    'Navigation HUD labels must remain legible and the visual scanner must expose a semantic snapshot.',
-  );
-  requireCondition(
-    /id="AimPanel"[^>]*role="group"[^>]*aria-label="Aim preview"/.test(IndexHtml)
-      && /\.aim-panel\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
-      && /#AimLabel\s*\{[^}]*min-width:\s*100px;[^}]*max-width:\s*160px;/s.test(StyleSheet)
-      && /\.burn-button\s+span\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),
-    'Aim preview and Breaker Burn labels must retain their named, legible action hierarchy.',
+      && RoutePresentationSource.includes('host.IsScoutMode'),
+    'Play chrome must stay diegetic: no scanner, aim meter, objective, Warden panel, instruction box, mode chip, Break button or flight-score widget.',
   );
   requireCondition(
     /\.result-breakdown\s+dt\s*\{[^}]*color:\s*rgba\(214,\s*228,\s*235,\s*0\.68\);[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
@@ -290,17 +294,10 @@ export function auditReleaseReadiness() {
     'Verified score categories and earned emblem captions must retain their legible type floor.',
   );
   requireCondition(
-    /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.hud__actions\s*\{[^}]*gap:\s*4px;/s.test(StyleSheet)
-      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?#ResetButton,[\s\S]*?\.scout-zoom-button\s*\{[^}]*min-width:\s*44px;[^}]*padding-inline:\s*5px;[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
-      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.scout-zoom-button\s*\{[^}]*font-size:\s*19px;[^}]*line-height:\s*1;/s.test(StyleSheet)
-      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.counter__label\s*\{[^}]*font-size:\s*10px;/s.test(StyleSheet),
-    'Portrait utility controls and counters must retain 44px targets and a 10px text floor.',
-  );
-  requireCondition(
-    /@media\s*\(max-width:\s*380px\)\s*\{[^}]*\.instruction-panel\s*\{[^}]*bottom:\s*max\(70px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*64px\)\);/s.test(StyleSheet)
-      && /@media\s*\(max-width:\s*340px\)\s*\{[\s\S]*?\.hud__actions\s*\{[^}]*flex-wrap:\s*wrap;/s.test(StyleSheet)
-      && /@media\s*\(max-width:\s*340px\)\s*\{[\s\S]*?\.instruction-panel\s*\{[^}]*bottom:\s*max\(118px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*112px\)\);/s.test(StyleSheet),
-    'Narrow phones must reserve instruction space above wrapped Scout controls.',
+    /id="PauseButton"[^>]*aria-label="Pause"/.test(IndexHtml)
+      && /\.pause-sheet__actions\s+button[\s\S]*?min-width:\s*44px;[^}]*min-height:\s*44px;/s.test(StyleSheet)
+      && /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.scout-zoom-button\s*\{[^}]*font-size:\s*19px;[^}]*line-height:\s*1;/s.test(StyleSheet),
+    'Pause sheet actions and Scout zoom must retain 44px targets.',
   );
   requireCondition(
     /\.leaderboard-form\s+label\s*\{[^}]*color:\s*rgba\(214,\s*228,\s*235,\s*0\.68\);[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
@@ -313,18 +310,13 @@ export function auditReleaseReadiness() {
     'Rankings callsigns, replay actions and submission focus must stay accessible.',
   );
   requireCondition(
-    /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.instruction-panel\s*\{[^}]*flex-direction:\s*row;[^}]*gap:\s*14px;[^}]*width:\s*min\(92vw,\s*540px\);[^}]*padding:\s*9px\s+14px;[^}]*text-align:\s*left;/s.test(StyleSheet)
-      && /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.warden-panel\s*\{[^}]*top:\s*62px;/s.test(StyleSheet)
-      && /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.instruction-panel\s+strong\s*\{[^}]*flex:\s*0\s+0\s+clamp\(112px,\s*20vw,\s*148px\);/s.test(StyleSheet),
-    'Compact landscape must preserve a shallow fluid two-column instruction card.',
-  );
-  requireCondition(
-    RoutePresentationSource.includes('getPlayfieldLabelVerticalBounds({')
-      && HudSource.includes('function refreshInstructionPanelBounds()')
+    HudSource.includes('function refreshPlayfieldLabelBounds()')
       && MainSource.includes('updateRouteLabels(CachedInstructionPanelTop)')
-      && PresentationSource.includes('if (wardenVisible && isShortLandscape) return 140;')
-      && PresentationSource.includes('? Math.min(BaseMaximumY, instructionTop - 16)'),
-    'Compact landscape labels must remain between the reflowed Warden and instruction HUD.',
+      && PresentationSource.includes('if (isShortLandscape) return 56;')
+      && PresentationSource.includes('? Math.min(BaseMaximumY, instructionTop - 16)')
+      && RoutePresentationSource.includes('const LabelsActive = host.IsPointerAiming')
+      && HudSource.includes("showInstruction(Title, Body, CaptionKind = '')"),
+    'Route labels appear only while aiming or scouting; first-run captions then silence the playfield.',
   );
   requireCondition(
     RoutePresentationSource.includes('const RouteLabelMinimumGap = IsShortLandscape ? 160 : 76')
@@ -334,15 +326,8 @@ export function auditReleaseReadiness() {
     'Short-landscape Command exposure must separate choices and omit its duplicate tactical chip.',
   );
   requireCondition(
-    /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-width:\s*640px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.aim-panel\s*\{[^}]*bottom:\s*max\(140px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*134px\)\);/s.test(StyleSheet)
-      && /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-width:\s*640px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.result-actions\s+button\s*\{[^}]*padding:\s*10px\s+8px;[^}]*font-size:\s*13px;[^}]*line-height:\s*1\.2;[^}]*white-space:\s*nowrap;/s.test(StyleSheet),
-    'Narrow-landscape Command aim and result actions must remain separated and compact.',
-  );
-  requireCondition(
-    /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.aim-panel\s*,\s*\.burn-button\s*\{[^}]*bottom:\s*max\(156px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*150px\)\);/s.test(StyleSheet)
-      && /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*340px\)\s*\{[\s\S]*?\.aim-panel\s*,\s*\.burn-button\s*\{[^}]*bottom:\s*max\(206px,\s*calc\(env\(safe-area-inset-bottom\)\s*\+\s*200px\)\);/s.test(StyleSheet)
-      && InputControllerSource.includes("BurnButtonElement.classList.toggle('is-pulse', IsHostileCut)"),
-    'Portrait aim and Destroy controls must clear the coach at ordinary and wrapped-footer widths.',
+    /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-width:\s*640px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.result-actions\s+button\s*\{[^}]*padding:\s*10px\s+8px;[^}]*font-size:\s*13px;[^}]*line-height:\s*1\.2;[^}]*white-space:\s*nowrap;/s.test(StyleSheet),
+    'Narrow-landscape result actions must remain compact.',
   );
   requireCondition(
     /@media\s*\(orientation:\s*portrait\)\s*and\s*\(max-width:\s*380px\)\s*\{[\s\S]*?\.victory-panel\s*\{[^}]*max-height:\s*calc\(100vh\s*-\s*24px\);[^}]*overflow-x:\s*hidden;[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior:\s*contain;/s.test(StyleSheet)
@@ -351,11 +336,10 @@ export function auditReleaseReadiness() {
     'Smallest portrait results must remain scrollable with compact reachable actions.',
   );
   requireCondition(
-    /id="ObjectivePanel"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
-      && /id="ObjectiveLabel"/.test(IndexHtml)
-      && /\.objective-panel__label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
-      && /\.objective-panel__state\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet),
-    'Command World objective updates must remain a complete atomic status with legible type.',
+    HudSource.includes('getLoopObjectivePresentation(')
+      && HudSource.includes('GameCanvas.dataset.objectiveLabel')
+      && HudSource.includes('announceLive(Announcement)'),
+    'Loop objective copy must remain on the canvas contract and the polite live region.',
   );
   requireCondition(
     /id="ScoutZoomStatus"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
@@ -420,9 +404,11 @@ export function auditReleaseReadiness() {
     requireCondition(Pattern.test(IndexHtml), `index.html is missing ${Label}.`);
   }
   requireCondition(
-    IndexHtml.includes('<span class="brand__subtitle">connect the tiny worlds</span>')
-      && /\.brand__subtitle\s*\{[^}]*color:\s*rgba\(224,\s*235,\s*240,\s*0\.68\);[^}]*font-size:\s*11px;/s.test(StyleSheet),
-    'The masthead must state the legible Tiny Worlds promise.',
+    IndexHtml.includes('id="PlayCaption"')
+      && /\.play-caption span\s*\{[^}]*font-size:\s*12px;[^}]*line-height:\s*1\.35;/s.test(StyleSheet)
+      && IndexHtml.includes('id="KeyboardHelp"')
+      && IndexHtml.includes('class="visually-hidden"'),
+    'First-run captions and keyboard help must stay available without parking a HUD on the globe.',
   );
   requireCondition(
     !IndexHtml.includes('launches expire')
@@ -453,7 +439,6 @@ export function auditReleaseReadiness() {
         ?.openingBody.includes('Carry the first word')
       && RoutePresentationSource.includes('getHiddenWardenRouteCoach(')
       && HudSource.includes('getLoopObjectivePresentation(')
-      && /id="ObjectiveLabel"[^>]*>NEIGHBOURHOOD</.test(IndexHtml)
       && PresentationSource.includes('export function getRelayRevealLookTarget(')
       && LandingDirectorSource.includes('getRelayRevealLookTarget(')
       && LandingDirectorSource.includes('function restoreWorld(')

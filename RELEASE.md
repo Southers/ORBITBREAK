@@ -33,22 +33,22 @@ Every successful route leaves a relay behind. Close two unique circuits before t
 
 ## Controls copy
 
-- Pointer/touch: trace around a world to walk; pull backwards from the Runner and release to launch; tap Burn once in flight.
-- Keyboard: Q/E walks; left/right or A/D steers; up/down or W/S sets power; Shift enables fine control; Enter/Space launches; Space Burns in flight; Escape cancels.
-- C toggles Scout view; wheel, plus/minus or the visible zoom buttons adjust it. G toggles the verified local-best ghost when available.
-- R resets the attempt. M toggles audio. P cycles System, Reduced and Full motion. Footer buttons provide the same actions on touch screens.
+- Pointer/touch: trace around a world to walk; pull backwards from the Runner and release to launch; grab the ship in flight to Burn once.
+- Keyboard: Q/E walks; left/right or A/D steers; up/down or W/S sets power; Shift enables fine control; Enter/Space launches; Space Burns in flight; Escape cancels an aim or opens pause.
+- C toggles Scout view; wheel, plus/minus or the pause-sheet zoom buttons adjust it. G toggles the verified local-best ghost when available.
+- R resets the attempt. M toggles audio. P cycles System, Reduced and Full motion. The pause sheet provides the same actions on touch screens.
 
 ## Media capture plan
 
 Capture clean game frames without browser chrome, debug overlays or disposable tuning parameters.
 
-1. **Hero, 16:9:** Breaker's Reach during a planned Ember → Grove slingshot, with the zoomed-out full path, Runner, scanner, UNBANKED score and chain feedback all readable.
+1. **Hero, 16:9:** Breaker's Reach during a planned Ember → Grove slingshot, with the zoomed-out full path, Runner and diegetic ship fuel lights readable.
 2. **Liberation, 16:9:** a world halfway through the spherical colour wave while the Stillness cage visibly breaks.
 3. **Moving route, 16:9:** Verdant Caravan with Pollen Moon, Crown and the changing trajectory in one composition.
 4. **Mastery, 16:9:** Long Night or Worldheart during a two-body chain with both score callouts visible.
 5. **Finale, 16:9:** the opened iron crown, final Command Pulse and pooled response before the results dialog covers the scene.
 6. **Results, 16:9:** a Verified score with breakdown, constellation and earned emblem visible.
-7. **Portrait, 9:16:** live 390×844 play showing the scanner, route label, aim meter and reachable touch controls.
+7. **Portrait, 9:16:** live 390×844 play showing an empty playfield, pause control, fuel pips and reachable touch controls.
 
 Suggested 40-second trailer beat sheet:
 
@@ -85,14 +85,14 @@ Suggested 40-second trailer beat sheet:
 ## Current local candidate evidence
 
 - Build `20260816-ob98` passes deterministic tests (230), syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke and the 200-run validator benchmark (~52ms median per verified replay on the eight-launch golden run).
-- Jam salvage checkpoints: one continuously-blended camera rig with zero hard snaps, selective bloom over a per-sector nebula skydome, dense instanced world life with ember dead worlds, mandatory-slingshot gravity (`breaker-reach-9`), relay-port precision landings, a two-card opening with in-world Break/Destroy/pull coaching, a Warden pursuit-track pip row with an audible advance step, and an animated first-launch `PULL THE SHIP` hint.
+- Jam salvage checkpoints: one continuously-blended camera rig with zero hard snaps, selective bloom over a per-sector nebula skydome, dense instanced world life with ember dead worlds, mandatory-slingshot gravity (`breaker-reach-9`), relay-port precision landings, a two-card opening with first-run captions then silence, diegetic ship fuel lights, Warden vessel/forecast/target-world pulse telegraph, a pause sheet for Scout and settings, and an animated first-launch `PULL THE SHIP` hint.
 - A judge-style rescoring playtest (desktop 1280×800 and portrait 390×844) after these checkpoints read Art 10, Creativity 10, Gameplay 9, Polish 9, Theme 10 with zero console errors; the named top gap (drag-gesture discoverability) is answered by the first-launch pull hint.
 - Breaker's Reach is a twelve-body sector: Haven, Ember and Grove stay the inner neighbourhood, Spindle, Quarry, Mirage, Frost, Tide and Bastion wait behind the veil, and the Ledge, Cinder and Glasswing relay shards stage the mandatory slingshot legs. Aiming frames the current world's neighbours so the bigger map stays readable; Scout zoom-out reaches 3.85. Every unrestored world carries a beacon-marked relay-port arc: landing inside liberates with a CLEAN/BULLSEYE precision bonus, landing outside docks and links only. Golden complete replay derives score 53,300 over eight launches on content `breaker-reach-9`.
-- Story boards are spaced to one flavour beat per landing; rule beats jump the queue and Skip/Escape dismiss the whole queued conversation. Landings celebrate banked points with a floating score burst and a HUD bank pulse, the ship is grabbable within a constant 44px screen target at any zoom, and the pursuit coach names the world the Warden will silence.
+- Story boards are spaced to one flavour beat per landing; rule beats jump the queue and Skip/Escape dismiss the whole queued conversation. Landings celebrate banked points with a floating score burst, the ship is grabbable within a constant 44px screen target at any zoom, and the Warden vessel plus forecast line name the world it will silence.
 - Aiming frames the live neighbourhood on a brighter, less fogged map. Pinch and zoom buttons work during aim, and zoom now reaches from a close world to the whole authored sector. Long Night and Worldheart stay query-only fixtures.
 - After the first live link the committed chain holds 1.7s and Ember teaches leftover Destroy. After the first unique loop a gold ghost names the next closing edge. Command lock remains the exposed finale gift. Warden arrival arms a once-per-run recapture Destroy. Extra Break is still deferred so ranked flights keep one recorded burn.
 - Living worlds mix houses, workshops and docks on authored sphere sites, with cottage/furnace/canopy/jetty families, walker and pack people, barge/sail/sled hulls, and a limb glow that advertises the far-face town. Reduced motion skips the pause.
-- Walking names the neighbour this face looks toward and keeps that coach until you grab the ship. Pulling the ship past a 20px screen deadzone starts aim even over crust; the neighbourhood map waits until the pull leaves the cancel disk.
+- Walking chooses the launch face; the first walk gets a fading caption. Pulling the ship past a 20px screen deadzone starts aim even over crust; the neighbourhood map waits until the pull leaves the cancel disk.
 - Callsign typing and Ctrl/Meta/Alt no longer fire game hotkeys; hiding the tab resets adaptive-quality recovery; rankings ignore stale watch/submit results after reset.
 - Campaign story boards wait for the wrapping liberation and relay look, then freeze the sim. Continue and Skip disconnect dialogue voices and restore the game bed. Aiming snaps to the sector frame and no longer inherits landed pan/zoom, so fog cannot swallow the predicted path.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
@@ -108,27 +108,27 @@ Suggested 40-second trailer beat sheet:
 - Grove's `We thought we were alone` answer now remains in the same instruction as the Warden's target and four-flight arrival forecast instead of being overwritten by it.
 - Once that first network branches, Grove now explains that closing the Haven circuit requires walking its far rim and aiming back around Ember until the visible path locks Haven.
 - After Haven expands to Frost, the live coach now promotes both valid closures—direct Ember or alternate-arc Grove—and explains that either second gold loop exposes Command instead of hiding the objective behind unrelated suggestions.
-- The composite Warden panel and transient story/status toast are polite atomic live regions, so assistive technology receives each complete update rather than a changed fragment.
+- The polite live region and transient story/status toast are atomic assistive announcements, so assistive technology receives each complete Warden or toast update rather than a changed fragment.
 - The Command approach now states `A network cannot be imprisoned`; its final Pulse reveals `WARDEN NODE DISCONNECTED · SECTOR WARDENS: 11`, and the verified result carries the authored reminder that the worlds were never alone.
 - Hostile worlds now ask you to grab the ship and drag through spread clamps; a miss does not spend the flight, and a longer cut can take more than one.
 - A verified result now labels its own run score separately from a stronger stored personal best, preventing the prominent record badge from contradicting the score and breakdown beside it.
-- Critical route and story instructions now use 12px type, stronger contrast and an explicit 1.35 line height; the release audit protects that readability floor.
+- First-run captions use 12px type, stronger contrast and an explicit 1.35 line height; the release audit protects that readability floor.
 - New-world prediction badges name the destination as a target—such as `EMBER TARGET`—instead of reusing `LOCKED`, the story's word for Warden imprisonment.
 - Permanent relay links now pulse within a brighter 70–90% opacity range, keeping the cyan network and protected gold circuits readable at portrait scale without extra draw calls.
-- The permanent masthead now says `connect the tiny worlds` in legible desktop type, placing the jam theme and the player’s core action above the opening diorama instead of relying on the internal `Stillness` term.
+- Play is diegetic: no masthead, scanner, aim meter, objective, Warden dashboard, mode chip or footer. Theme and remaining fuel live on the worlds and the ship.
 - Suggested-world labels now preserve a 76px centre gap when their projected positions converge, keeping both authored route choices readable after surface repositioning in short landscape without moving their worlds or camera.
-- At short landscape heights the 148×52 Breaker control moves to the right safe edge, clearing the central flight corridor while portrait and desktop retain their centred placement.
+- Break and Destroy stay on ship grab and Space; there is no persistent on-screen Burn button covering the flight corridor.
 - Verified results use a compact 760px-wide short-landscape layout with a single sticky three-action row and internal scroll fallback, keeping focused actions visible without changing desktop or portrait results.
 - Offline candidates label the final action `Rankings offline` before the explanatory board opens; configured builds retain the shorter `Rankings` label.
 - Terminal results centre their unpaired rankings action at desktop and portrait sizes while preserving the short-landscape three-action row.
 - Verified replay progress is a 10px atomic polite status, so assistive technology receives each complete launch-count update rather than a changed fragment.
-- Warden state and target forecasts retain a 10px single-line floor, keeping the pursuit's critical pressure and destination cues legible on portrait mobile.
+- Warden telegraph stays on the vessel, forecast line, target-world pulse and one polite live region rather than a persistent dashboard.
 - Command World progress is an atomic polite status, keeping the objective label attached to relay, exposure, core-lock and liberation updates for assistive technology.
 - Scout zoom announces its current percentage to touch and keyboard users, exposes that level in both button names, and marks only the reached limit unavailable without dropping focus.
 - Leaving an active Scout view announces `Scout view off`; already-off control paths remain silent instead of producing redundant feedback.
 - Audio button and `M` shortcut use one tested presentation path and publish the same atomic `AUDIO ON/OFF` confirmation.
 - Explicit Reduced motion holds relay luminance at the same readable 80% midpoint instead of continuously pulsing it.
-- Final Pulse publication now reports `defeated` and `command-world-disabled`, matching the visible Warden panel and verified result without mutating authoritative pursuit state.
+- Final Pulse publication now reports `defeated` and `command-world-disabled`, matching the visible Warden vessel and verified result without mutating authoritative pursuit state.
 - Two-ring world contours and Haven's three-blade grass tufts preserve their silhouettes in one draw call each, restoring headroom during fast liberation and Command transitions.
 - These checks do not approve a public deployment, production leaderboard or jam submission.
 

@@ -181,6 +181,77 @@ export function createPlayerVisuals(THREE, Scene, host) {
   ShipVisualGroup.visible = false;
   SeedGroup.add(ShipVisualGroup);
 
+  const FuelPipLitColor = 0x7deaff;
+  const FuelPipLitEmissive = 0x3ad2ff;
+  const FuelPipWarnColor = 0xffb27d;
+  const FuelPipWarnEmissive = 0xff7a38;
+  const FuelPipDarkColor = 0x1a2a33;
+  const FuelPipDarkEmissive = 0x071018;
+  const MaximumFuelPipCount = 12;
+  const ShipFuelPipGroup = new THREE.Group();
+  const RunnerFuelPipGroup = new THREE.Group();
+  const ShipFuelPips = [];
+  const RunnerFuelPips = [];
+  for (let PipIndex = 0; PipIndex < MaximumFuelPipCount; PipIndex += 1) {
+    const ShipPipMaterial = new THREE.MeshStandardMaterial({
+      color: FuelPipLitColor,
+      emissive: FuelPipLitEmissive,
+      emissiveIntensity: 1.15,
+      roughness: 0.28,
+      metalness: 0.22,
+    });
+    const ShipPip = new THREE.Mesh(new THREE.SphereGeometry(0.042, 8, 6), ShipPipMaterial);
+    ShipFuelPipGroup.add(ShipPip);
+    ShipFuelPips.push(ShipPip);
+
+    const RunnerPipMaterial = new THREE.MeshStandardMaterial({
+      color: FuelPipLitColor,
+      emissive: FuelPipLitEmissive,
+      emissiveIntensity: 0.62,
+      roughness: 0.34,
+      metalness: 0.18,
+    });
+    const RunnerPip = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 6), RunnerPipMaterial);
+    RunnerFuelPipGroup.add(RunnerPip);
+    RunnerFuelPips.push(RunnerPip);
+  }
+  ShipFuelPipGroup.position.set(0, -0.28, 0.22);
+  ShipVisualGroup.add(ShipFuelPipGroup);
+  RunnerFuelPipGroup.position.set(0, 0.02, 0.12);
+  RunnerBackpackMesh.add(RunnerFuelPipGroup);
+
+  function layoutFuelPips(PipMeshes, VisibleCount, Spacing) {
+    const RowWidth = Math.max(0, VisibleCount - 1) * Spacing;
+    for (let PipIndex = 0; PipIndex < PipMeshes.length; PipIndex += 1) {
+      const PipMesh = PipMeshes[PipIndex];
+      PipMesh.visible = PipIndex < VisibleCount;
+      PipMesh.position.set((PipIndex * Spacing) - (RowWidth * 0.5), 0, 0);
+    }
+  }
+
+  function paintFuelPip(PipMesh, IsLit, IsWarning, IntensityScale) {
+    PipMesh.material.color.setHex(IsLit ? (IsWarning ? FuelPipWarnColor : FuelPipLitColor) : FuelPipDarkColor);
+    PipMesh.material.emissive.setHex(
+      IsLit ? (IsWarning ? FuelPipWarnEmissive : FuelPipLitEmissive) : FuelPipDarkEmissive,
+    );
+    PipMesh.material.emissiveIntensity = IsLit
+      ? (IsWarning ? 1.45 : 1.12) * IntensityScale
+      : 0.12 * IntensityScale;
+  }
+
+  function updateFuelLightVisuals(RemainingLaunches, MaximumLaunches) {
+    const VisibleCount = Math.max(0, Math.min(MaximumFuelPipCount, MaximumLaunches));
+    const LitCount = Math.max(0, Math.min(VisibleCount, RemainingLaunches));
+    const IsWarning = LitCount > 0 && LitCount <= 2;
+    layoutFuelPips(ShipFuelPips, VisibleCount, 0.11);
+    layoutFuelPips(RunnerFuelPips, VisibleCount, 0.072);
+    for (let PipIndex = 0; PipIndex < VisibleCount; PipIndex += 1) {
+      const IsLit = PipIndex < LitCount;
+      paintFuelPip(ShipFuelPips[PipIndex], IsLit, IsLit && IsWarning, 1);
+      paintFuelPip(RunnerFuelPips[PipIndex], IsLit, IsLit && IsWarning, 0.55);
+    }
+  }
+
   const SeedHaloGeometry = new THREE.SphereGeometry(SeedRadius * 1.65, 24, 16);
   const SeedHaloMaterial = new THREE.MeshBasicMaterial({
     color: 0x6de8ff,
@@ -361,6 +432,9 @@ export function createPlayerVisuals(THREE, Scene, host) {
     RunnerAntennaStem,
     RunnerAntennaLight,
     ShipVisualGroup,
+    ShipFuelPipGroup,
+    RunnerFuelPipGroup,
+    updateFuelLightVisuals,
     ShipHullMaterial,
     ShipAccentMaterial,
     ShipHullMesh,

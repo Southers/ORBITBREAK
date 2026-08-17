@@ -78,15 +78,15 @@ below. The current controllers and their single responsibilities:
 
 | Module | Owns |
 | --- | --- |
-| `hud.js` | Counters, instruction panel, toasts, dataset diagnostic contract |
+| `hud.js` | Fuel lights, first-run captions, toasts, live region, dataset diagnostic contract |
 | `story-director.js` | Opening briefing, queued story boards, reveal-hold ordering |
 | `aim-preview.js` | Fixed-step aim preview and slingshot band visuals |
 | `input-controller.js` | Pointer/keyboard/pinch gestures, Destroy and Breaker Burn intents |
 | `camera-controller.js` | Sector planning camera, Scout zoom, live follow |
 | `landing-director.js` | Landing/liberation presentation, attach VFX, finale pulse |
 | `hostile-surface.js` | Destroy preview/guide, clamp pylons, encounter lifecycle, surface walking |
-| `scanner.js` | Compact spatial scanner SVG and its accessible snapshot |
-| `route-presentation.js` | Route choices, target beacons, route/tactical HUD labels |
+| `scanner.js` | Diagnostic spatial projection and accessible snapshot strings |
+| `route-presentation.js` | Route choices, target beacons, aim/scout route and tactical labels |
 | `records-ui.js` | Personal best, route ghost, victory summary, leaderboard panel, replay watching |
 | `frame-visuals.js` | Per-frame stardust, biome motion, trail, Runner/ship pose |
 | `restoration-visuals.js` | Liberation wave, staged growth, range veil, restoration-complete moment |
@@ -128,8 +128,8 @@ what the module may touch. Rules learned the hard way:
    results. Keep the destructuring next to the factory call so call sites stay
    unchanged.
 
-Module-internal state that nothing else reads (for example the scanner’s SVG marker
-map or the trail-particle ring index) moves into the module as private variables
+Module-internal state that nothing else reads (for example the scanner’s projection
+bounds or the trail-particle ring index) moves into the module as private variables
 instead of host accessors.
 
 ## Enforced boundaries
