@@ -62,6 +62,7 @@ import {
   getHiddenWardenRouteCoach,
   getPursuitRouteCoach,
   getWardenApproachCopy,
+  getWardenTrackPips,
   getStoryBoardCameraFocus,
   getOpeningBriefingPresentation,
   getStoryBoardPresentation,
@@ -453,7 +454,7 @@ test('hidden Warden coach teaches purpose, then waking, then range', () => {
     routeLabels: ['GROVE', 'FROST'],
   }), {
     title: 'Choose GROVE or FROST',
-    body: 'Land on another world. Watch it wake.',
+    body: 'The next world hides behind gravity. Bend the aim line through a gold slingshot ring to reach it.',
   });
   assert.deepEqual(getHiddenWardenRouteCoach({
     liveRelayCount: 3,
@@ -1124,6 +1125,24 @@ test('Warden HUD counts remaining flights, not a separate clock', () => {
   assert.equal(getWardenApproachCopy({ distance: 0, targetLabel: 'HAVEN' }).distance, 'ARRIVING THIS LANDING');
   assert.equal(getWardenApproachCopy({ exposed: true }).distance, 'LAND ON COMMAND');
   assert.equal(getWardenApproachCopy({ defeated: true }).state, 'WARDEN DEFEATED');
+});
+
+test('Warden pursuit track fills taken ground and hides when out of range', () => {
+  assert.deepEqual(
+    getWardenTrackPips({ distance: 4, maximumDistance: 4 }),
+    ['remaining', 'remaining', 'remaining', 'remaining'],
+  );
+  assert.deepEqual(
+    getWardenTrackPips({ distance: 2, maximumDistance: 4 }),
+    ['taken', 'taken', 'remaining', 'remaining'],
+  );
+  assert.deepEqual(
+    getWardenTrackPips({ distance: 0, maximumDistance: 4 }),
+    ['taken', 'taken', 'taken', 'taken'],
+  );
+  assert.deepEqual(getWardenTrackPips({ distance: 2, maximumDistance: 4, visible: false }), []);
+  assert.deepEqual(getWardenTrackPips({ distance: 5, maximumDistance: 4 }), []);
+  assert.deepEqual(getWardenTrackPips({ distance: 1, maximumDistance: 0 }), []);
 });
 
 test('story boards look at the speaker, the Warden, or the neighbourhood', () => {

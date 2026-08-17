@@ -550,6 +550,58 @@ button[aria-disabled='true'] {
   color: #dff5a7;
 }
 
+.warden-panel__track {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0 5px;
+}
+
+.warden-panel__track[hidden] {
+  display: none;
+}
+
+.warden-panel__track span {
+  display: block;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 124, 115, 0.18);
+  border: 1px solid rgba(255, 124, 115, 0.3);
+}
+
+.warden-panel__track span.is-taken {
+  background: #ff5148;
+  border-color: #ff887f;
+  box-shadow: 0 0 6px rgba(255, 81, 72, 0.75);
+}
+
+.warden-panel.is-step {
+  animation: warden-step-pulse 0.9s ease-out 1;
+}
+
+@keyframes warden-step-pulse {
+  0% {
+    box-shadow: 0 0 24px rgba(255, 64, 54, 0.12);
+    transform: scale(1);
+  }
+
+  22% {
+    box-shadow: 0 0 34px rgba(255, 64, 54, 0.55);
+    transform: scale(1.05);
+  }
+
+  100% {
+    box-shadow: 0 0 24px rgba(255, 64, 54, 0.12);
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .warden-panel.is-step {
+    animation: none;
+  }
+}
+
 .burn-button {
   position: absolute;
   z-index: 7;
@@ -1378,7 +1430,7 @@ button[aria-disabled='true'] {
   }
 
   .mode-chip {
-    top: 76px;
+    top: 110px;
     bottom: auto;
     padding: 4px 12px;
   }
@@ -1521,14 +1573,14 @@ button[aria-disabled='true'] {
 
 @media (orientation: portrait) and (max-width: 640px) {
   .aim-panel,
-  .burn-button.is-pulse {
+  .burn-button {
     bottom: max(156px, calc(env(safe-area-inset-bottom) + 150px));
   }
 }
 
 @media (orientation: portrait) and (max-width: 340px) {
   .aim-panel,
-  .burn-button.is-pulse {
+  .burn-button {
     bottom: max(206px, calc(env(safe-area-inset-bottom) + 200px));
   }
 }

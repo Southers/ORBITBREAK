@@ -139,6 +139,7 @@ import {
   getSlingshotBandVisualState,
   getSlingshotPreviewPresentation,
   getWardenApproachCopy,
+  getWardenTrackPips,
   shouldShowInhabitantSlot,
   getTradeHullColor,
   getTradeHullKind,
@@ -257,6 +258,7 @@ const WardenPanelElement = document.querySelector('#WardenPanel');
 const WardenStateLabelElement = document.querySelector('#WardenStateLabel');
 const WardenDistanceElement = document.querySelector('#WardenDistance');
 const WardenTargetElement = document.querySelector('#WardenTarget');
+const WardenTrackElement = document.querySelector('#WardenTrack');
 let ObjectivePipElements = [];
 const InstructionPanelElement = document.querySelector('#InstructionPanel');
 const InstructionTitleElement = document.querySelector('#InstructionTitle');
@@ -805,6 +807,22 @@ function publishWardenState() {
   WardenStateLabelElement.textContent = ApproachCopy.state;
   WardenDistanceElement.textContent = ApproachCopy.distance;
   WardenTargetElement.textContent = ApproachCopy.target;
+  const TrackPips = getWardenTrackPips({
+    distance: WardenPursuitState.distance,
+    maximumDistance: WardenPursuitState.maximumDistance,
+    visible: IsVisible && !IsCommandExposed && !IsCommandDefeated,
+  });
+  WardenTrackElement.hidden = TrackPips.length < 1;
+  if (TrackPips.length !== WardenTrackElement.childElementCount) {
+    WardenTrackElement.replaceChildren(
+      ...TrackPips.map(() => document.createElement('span')),
+    );
+  }
+  for (let PipIndex = 0; PipIndex < TrackPips.length; PipIndex += 1) {
+    WardenTrackElement.children[PipIndex].className = TrackPips[PipIndex] === 'taken'
+      ? 'is-taken'
+      : '';
+  }
   GameCanvas.dataset.wardenStatus = PublishedWardenState.status;
   GameCanvas.dataset.wardenDistance = String(WardenPursuitState.distance);
   GameCanvas.dataset.wardenTarget = WardenPursuitState.targetWorldIdentifier ?? '';
@@ -996,9 +1014,16 @@ function resolveWardenAfterResolvedFlight({ firstCircuitClosed = false, circuit 
       showStatusToast(ActiveSystem.wardenArrivalBroadcast, 3600, 'warden');
     }
   } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.advanced) {
+    WorldseedSound.wardenStep();
+    WardenPanelElement.classList.remove('is-step');
+    void WardenPanelElement.offsetWidth;
+    WardenPanelElement.classList.add('is-step');
     showStatusToast(
-      `WARDEN → ${TargetWorld?.label ?? 'FRONTIER'} · ${WardenPursuitState.distance} FLIGHTS AWAY`,
+      WardenPursuitState.distance <= 1
+        ? `WARDEN AT ${TargetWorld?.label ?? 'THE FRONTIER'} NEXT LANDING`
+        : `WARDEN → ${TargetWorld?.label ?? 'FRONTIER'} · ${WardenPursuitState.distance} FLIGHTS AWAY`,
       1250,
+      'warden',
     );
   } else if (WardenPursuitState.lastEvent === WardenPursuitEvents.retreated) {
     const CircuitWorldLabels = circuit?.worldIdentifiers

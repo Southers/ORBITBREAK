@@ -347,6 +347,26 @@ export class WorldseedAudio {
     this.closePassPlayed = false;
   }
 
+  /** Bright swoop for the single Breaker Burn so the free correction feels spent. */
+  breakerBurn() {
+    if (this.storyPaused || !this.ensureStarted()) {
+      return;
+    }
+    this.playNoise({ duration: 0.14, volume: 0.07, frequency: 2200 });
+    this.playTone({ frequency: 340, endFrequency: 720, duration: 0.16, volume: 0.09, type: 'triangle' });
+    this.playTone({ frequency: 680, endFrequency: 1080, duration: 0.12, volume: 0.05, delay: 0.05 });
+  }
+
+  /** Low two-note beat when the Warden takes a pursuit step. */
+  wardenStep() {
+    if (this.storyPaused || !this.ensureStarted()) {
+      return;
+    }
+    this.playTone({ frequency: 98, endFrequency: 74, duration: 0.24, volume: 0.09, type: 'square' });
+    this.playTone({ frequency: 66, endFrequency: 52, duration: 0.3, volume: 0.08, type: 'square', delay: 0.18 });
+    this.playNoise({ duration: 0.2, volume: 0.03, frequency: 240, delay: 0.18 });
+  }
+
   startFlightVoice() {
     if (!this.ensureStarted() || this.flightVoice) {
       return;

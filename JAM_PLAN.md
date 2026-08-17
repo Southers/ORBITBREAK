@@ -992,6 +992,18 @@ toast explains a missed arc. Portless bodies (shards, Seedstone, Command)
 keep land-anywhere behaviour. Golden fixtures regenerated: the completion
 replay derives 53,300 over eight launches with every leg landed in-port.
 
+Checkpoint 23 — 16 August 2026: onboarding and felt pursuit. The opening stack
+is two cards (Warden broadcast, then the Runner's charge); everything else is
+taught in-world at the moment of need. The first launch names Break as the one
+free correction; Break now sounds and confirms "COURSE CHANGED"; Destroy toasts
+the remaining clamp count. The Warden panel gains a pursuit-track pip row that
+fills as ground is taken, and every advance plays a low two-note step with a
+panel pulse and a warden-toned toast ("WARDEN AT ⟨world⟩ NEXT LANDING" at one
+flight). The post-first-liberation coach teaches the mandatory slingshot. On
+portrait the mode chip drops below the objective panel and the flight Break
+button rises with the aim panel so nothing covers the coach. Physics and
+`breaker-reach-9` are unchanged.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

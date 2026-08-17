@@ -24,21 +24,7 @@ export const BreakerReachSystemDefinition = {
       kicker: 'STOLEN COURIER',
       portrait: 'runner',
       title: 'I stole the last ship.',
-      body: 'I am a maintenance astronaut. This is the Orbitbreaker, the forbidden courier that can cross their isolation cages.',
-    },
-    {
-      speaker: 'HAVEN',
-      kicker: "BREAKER'S REACH",
-      portrait: 'haven',
-      title: 'They are still out there.',
-      body: 'Haven is the last free garden. Ember, Grove and the rest sit dark, mined and silent. Carry the first word before the Warden notices.',
-    },
-    {
-      speaker: 'THE RUN',
-      kicker: 'YOUR CHARGE',
-      portrait: 'orbitbreaker',
-      title: 'Wake the neighbourhood.',
-      body: 'Land. Link. Watch tiny worlds come alive. When the Reach starts talking, the Warden will hunt. Close the loops. Break Command.',
+      body: 'The Orbitbreaker can cross their isolation cages. Haven is the last free garden — everyone else sits dark and silent. Carry the first word, wake the neighbourhood, and when the Warden hunts, close the loops and break Command.',
     },
   ],
   storyBoards: {

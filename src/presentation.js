@@ -1390,7 +1390,7 @@ export function getHiddenWardenRouteCoach({
   if (liveRelayCount >= 2) {
     return {
       title: Title,
-      body: 'Land on another world. Watch it wake.',
+      body: 'The next world hides behind gravity. Bend the aim line through a gold slingshot ring to reach it.',
     };
   }
   return {
@@ -1509,6 +1509,31 @@ export function getWardenApproachCopy({
       : `${distance} FLIGHT${distance === 1 ? '' : 'S'} AWAY`,
     target: Target,
   };
+}
+
+/**
+ * Pursuit-track pips between the Warden and the Runner.
+ *
+ * Returns one entry per flight of maximum pursuit range: 'taken' pips are the
+ * ground the Warden has already covered, 'remaining' pips are the flights left
+ * before it arrives. An empty array hides the track (defeated/exposed states).
+ */
+export function getWardenTrackPips({ distance = 0, maximumDistance = 0, visible = true } = {}) {
+  if (
+    visible !== true
+    || !Number.isInteger(distance)
+    || !Number.isInteger(maximumDistance)
+    || maximumDistance < 1
+    || distance < 0
+    || distance > maximumDistance
+  ) {
+    return [];
+  }
+  const Pips = [];
+  for (let PipIndex = 0; PipIndex < maximumDistance; PipIndex += 1) {
+    Pips.push(PipIndex < maximumDistance - distance ? 'taken' : 'remaining');
+  }
+  return Pips;
 }
 
 export const StoryBoardPortraitFiles = Object.freeze({

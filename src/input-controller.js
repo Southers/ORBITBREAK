@@ -840,8 +840,8 @@ function applyHostileCut(Origin, End) {
   const RemainingCount = getRemainingClamps(Resolved.state).length;
   showStatusToast(
     Resolved.hitIds.length > 1
-      ? `${Resolved.hitIds.length} CLAMPS GONE`
-      : 'CLAMP GONE',
+      ? `${Resolved.hitIds.length} CLAMPS GONE · ${RemainingCount} LEFT`
+      : `CLAMP GONE · ${RemainingCount} LEFT`,
     900,
   );
   showInstruction(
@@ -1311,8 +1311,8 @@ function releaseAimedLaunch() {
   if (!host.HasTaughtBurn) {
     host.HasTaughtBurn = true;
     showInstruction(
-      'Break ready',
-      'Drag from the ship to break your line any direction. Drag back onto it, or press Escape, to cancel.',
+      'Break ready — one free correction',
+      'If the line drifts, drag from the ship (or press Space) to bend this flight once. Drag back onto the ship, or press Escape, to cancel.',
     );
   } else {
     hideInstruction();
@@ -1402,7 +1402,8 @@ function applyBreakerBurnAtCurrentStep({ record = false } = {}) {
   LaunchPulseMesh.scale.setScalar(1.3);
   LaunchPulseMesh.visible = true;
   host.LaunchPulseLifeSeconds = 0.5;
-  showStatusToast('BREAK', 650);
+  WorldseedSound.breakerBurn();
+  showStatusToast('BREAK · COURSE CHANGED', 850);
   host.BurnAimDirection = null;
   updateBreakerBurnInterface();
   return true;
