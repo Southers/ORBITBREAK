@@ -247,10 +247,15 @@ export function createRoutePresentation(THREE, host) {
     }
 
     const RouteHorizontalMargin = IsShortLandscape ? 80 : HorizontalMargin;
+    const RouteLabelMinimumGap = IsShortLandscape ? 160 : 76;
     const ResolvedLabelPositions = separateOverlappingRouteLabels(LabelPositions, {
-      minimumGap: IsShortLandscape ? 160 : 76,
+      minimumGap: RouteLabelMinimumGap,
       minimumX: RouteHorizontalMargin,
-      maximumX: window.innerWidth - RouteHorizontalMargin,
+      // Never let a very narrow window collapse the bounds below the gap contract.
+      maximumX: Math.max(
+        window.innerWidth - RouteHorizontalMargin,
+        RouteHorizontalMargin + RouteLabelMinimumGap,
+      ),
     });
     const ClearedLabelPositions = separateRouteLabelsFromTacticalLabels(
       ResolvedLabelPositions,
