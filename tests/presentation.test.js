@@ -974,8 +974,8 @@ test('parked Orbitbreaker lies on the crust instead of standing as a pole', () =
     surfaceNormalZ: 1,
   });
   assert.equal(NearFace.dorsal.z, 1);
-  assert.ok(Math.abs(NearFace.nose.y) < 0.08, 'near-face hull must stay screen-horizontal');
-  assert.ok(Math.abs(NearFace.nose.x) > 0.9);
+  assert.ok(Math.abs(NearFace.nose.z) < 0.08);
+  assert.ok(Math.hypot(NearFace.nose.x, NearFace.nose.y) > 0.9);
   const NoseDotDorsal = (
     (NearFace.nose.x * NearFace.dorsal.x)
     + (NearFace.nose.y * NearFace.dorsal.y)
@@ -990,23 +990,39 @@ test('parked Orbitbreaker lies on the crust instead of standing as a pole', () =
   assert.ok(OffsetDotDorsal < -0.2, 'parked hull must sit down on the crust');
   assert.ok(NearFace.scaleY < NearFace.scaleX, 'parked hull must be dumpier than a stick');
 
-  const Equator = getParkedShipPresentation({
+  const LandedEquator = getParkedShipPresentation({
     surfaceNormalX: 1,
     surfaceNormalY: 0,
     surfaceNormalZ: 0,
+    cameraUpX: 0,
+    cameraUpY: 0,
+    cameraUpZ: 1,
   });
-  assert.equal(Equator.dorsal.x, 1);
-  const EquatorNoseDot = (
-    (Equator.nose.x * Equator.dorsal.x)
-    + (Equator.nose.y * Equator.dorsal.y)
-    + (Equator.nose.z * Equator.dorsal.z)
+  assert.equal(LandedEquator.dorsal.x, 1);
+  assert.ok(
+    Math.abs(LandedEquator.nose.z) < 0.08,
+    'landed equator hull must not stand along camera-up',
   );
-  assert.ok(Math.abs(EquatorNoseDot) < 1e-9);
+  assert.ok(Math.abs(LandedEquator.nose.y) > 0.9);
+  const LandedNoseDotUp = (
+    (LandedEquator.nose.x * 0)
+    + (LandedEquator.nose.y * 0)
+    + (LandedEquator.nose.z * 1)
+  );
+  assert.ok(Math.abs(LandedNoseDotUp) < 0.08);
   assert.throws(() => getParkedShipPresentation({
     surfaceNormalX: 0,
     surfaceNormalY: 0,
     surfaceNormalZ: 0,
   }), /finite surface normal/);
+  assert.throws(() => getParkedShipPresentation({
+    surfaceNormalX: 0,
+    surfaceNormalY: 1,
+    surfaceNormalZ: 0,
+    cameraUpX: 0,
+    cameraUpY: 0,
+    cameraUpZ: 0,
+  }), /finite camera up/);
 });
 
 test('Stillness cage visibly expands and vanishes through liberation', () => {

@@ -401,8 +401,15 @@ export function createFrameVisuals(THREE, host) {
             surfaceNormalX: SurfaceStandTo.x,
             surfaceNormalY: SurfaceStandTo.y,
             surfaceNormalZ: SurfaceStandTo.z,
+            cameraUpX: Camera.up.x,
+            cameraUpY: Camera.up.y,
+            cameraUpZ: Camera.up.z,
           }
-          : {},
+          : {
+            cameraUpX: Camera.up.x,
+            cameraUpY: Camera.up.y,
+            cameraUpZ: Camera.up.z,
+          },
       );
       ParkedShipStarboard.set(
         ParkedShip.starboard.x,

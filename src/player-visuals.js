@@ -220,7 +220,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   const ShipHullMaterial = new THREE.MeshStandardMaterial({
     color: 0xddecef,
     emissive: 0x2a7f99,
-    emissiveIntensity: 0.62,
+    emissiveIntensity: 0.34,
     roughness: 0.3,
     metalness: 0.46,
   });
@@ -232,25 +232,25 @@ export function createPlayerVisuals(THREE, Scene, host) {
     metalness: 0.34,
   });
   const ShipHullMesh = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.22, 0.44, 6, 12),
+    new THREE.CapsuleGeometry(0.26, 0.28, 6, 12),
     ShipHullMaterial,
   );
-  ShipHullMesh.scale.set(0.9, 1, 0.72);
+  ShipHullMesh.scale.set(1.05, 1, 0.78);
   ShipHullMesh.castShadow = true;
   ShipVisualGroup.add(ShipHullMesh);
   const ShipNoseMesh = new THREE.Mesh(
-    new THREE.ConeGeometry(0.22, 0.3, 12),
+    new THREE.ConeGeometry(0.22, 0.28, 12),
     ShipAccentMaterial,
   );
-  ShipNoseMesh.position.y = 0.5;
+  ShipNoseMesh.position.y = 0.38;
   ShipVisualGroup.add(ShipNoseMesh);
   for (const Side of [-1, 1]) {
     const WingMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.32, 0.2, 0.055),
+      new THREE.BoxGeometry(0.52, 0.18, 0.07),
       ShipHullMaterial,
     );
-    WingMesh.position.set(Side * 0.28, -0.15, 0);
-    WingMesh.rotation.z = Side * -0.32;
+    WingMesh.position.set(Side * 0.36, -0.08, 0);
+    WingMesh.rotation.z = Side * -0.18;
     ShipVisualGroup.add(WingMesh);
   }
   const ShipWindowMesh = new THREE.Mesh(
