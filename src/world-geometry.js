@@ -67,7 +67,7 @@ export function createWorldVisuals(THREE, Scene, {
     ShellMaterial.opacity = ShellUniforms.uOpacity.value;
     ShellMaterial.color = ShellUniforms.uColor.value;
     const ShellMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(WorldDefinition.radius * 1.08, 40, 26),
+      new THREE.SphereGeometry(WorldDefinition.radius * 1.08, 24, 16),
       ShellMaterial,
     );
     ShellMesh.onBeforeRender = () => {

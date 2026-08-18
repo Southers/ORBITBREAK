@@ -73,6 +73,15 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     Transform.updateMatrix();
   }
 
+  function shouldSkipStridedPresentation() {
+    const QualitySettings = host.AdaptivePresentationSettings;
+    const Stride = QualitySettings?.instanceStride ?? 1;
+    if (Stride <= 1) {
+      return false;
+    }
+    return (host.PresentationFrameIndex ?? 0) % Stride !== 0;
+  }
+
   /**
    * Merges primitive parts into one instanced silhouette. Keeps draw count
    * unchanged while giving people and buildings readable toy shapes.
@@ -600,6 +609,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   let VisibleExtractionFreighterCount = -1;
 
   function updateOccupationScarVisuals(ElapsedTimeSeconds) {
+    if (shouldSkipStridedPresentation()) {
+      return;
+    }
     const {
       IsPointerAiming,
       IsKeyboardAiming,
@@ -905,6 +917,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   }
 
   function updateProsperityBuildingVisuals(ElapsedTimeSeconds) {
+    if (shouldSkipStridedPresentation()) {
+      return;
+    }
     const {
       IsPointerAiming,
       IsKeyboardAiming,
@@ -1101,6 +1116,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   GameCanvas.dataset.inhabitantCount = String(InhabitantInstances.length);
 
   function updateInhabitantVisuals(ElapsedTimeSeconds) {
+    if (shouldSkipStridedPresentation()) {
+      return;
+    }
     const {
       IsPointerAiming,
       IsKeyboardAiming,

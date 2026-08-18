@@ -76,7 +76,7 @@ Suggested 40-second trailer beat sheet:
 - Verify System, Reduced and Full motion modes, including local persistence and unchanged ranked state.
 - On a local `?diagnostics=1` build, start aiming and press Shift+B; confirm the aim cancels without launching and play resumes.
 - On the same local diagnostic build, press Shift+G; confirm WebGL loss is reported, restored and rendering resumes.
-- Press Shift+F on that local build; confirm the pixel-ratio cap degrades one step and restores one step without changing score or launches.
+- Press Shift+F on that local build; confirm bloom/nebula/pixel-ratio degrade one step and restore one step without changing score or launches.
 - Confirm draw calls remain under the 190-call ceiling.
 - Confirm the Breakers Board says offline when no endpoint is configured.
 - Re-run credits review after every asset, font, shader, sound or capture is added.
@@ -84,7 +84,8 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260818-ob108` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (pause sheet, ship fuel lights, Warden vessel telegraph).
+- Build `20260818-ob109` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (pause sheet, ship fuel lights, Warden vessel telegraph).
+- Frame-cost pass: default quality is balanced with UnrealBloom and shadows off, desktop fill capped at 1.5x and portrait/mobile at 1.25x. Adaptive samples every 0.75s; a hitch drops bloom then nebula/atmosphere shells/pixel-ratio. Bloom may return after four smooth samples on a strong GPU, still at 1.5x pixels. Feel it by landing on Haven (should stay smooth immediately) and pressing Shift+F on a `?diagnostics=1` build to watch `data-presentation-tier`, `data-bloom-pipeline` and `data-nebula` drop.
 - First-timer walk vs aim: the verb locks from where the pointer starts. Ship press aims for the whole gesture; planet crust walks; empty space pans. Sticky captions stay until the first walk ("Drag the planet to walk") then until the first launch ("Pull the ship, then let go"), then silence. No HUD panels returned.
 - Tight toy-diorama scale: people, trees, houses, workshops, docks, pack beasts and occupation pylons sit as miniature props. House/workshop profiles sit around 0.24–0.33 so a person is smaller than a house and a house is much smaller than the globe. The landed close-up camera pulls in so those props still read; Scout stays a wide sector view, with one extra zoom-in notch on landed/close only. World radii, gravity, scoring and flight physics are unchanged.
 - Look leftovers after the ob104 playtest: Ember's cream plaque and thin black bar stayed at a fixed screen position while the globe rotated, so they were leftover screen-space chips — frozen score-burst glow and empty route/toast boxes — not crust props. Empty playfield labels now collapse to a zero box; the score burst hides after its animation; idle toasts and the route-label layer stay fully unpainted. Occupation clamps remain short pylons. Window lights still draw; street/glow plaque instances are not allocated. R still always resets. Close-up nebula and bloom stay capped. Last leftover Destroy starts the cage-clear wrap/bloom and holds FIRST ANSWER until that pulse finishes on the live planet.
@@ -102,7 +103,7 @@ Suggested 40-second trailer beat sheet:
 - Campaign story boards wait for the wrapping liberation and relay look, then freeze the sim. Continue and Skip disconnect dialogue voices and restore the game bed. Aiming snaps to the sector frame and no longer inherits landed pan/zoom, so fog cannot swallow the predicted path.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
-- 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
+- 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.25 device-pixel-ratio cap.
 - Explicit reduced motion preserves the deterministic Haven-to-Ember launch and landing.
 - Local-only diagnostics prove background aim cancellation/resume, WebGL loss/restoration and adaptive-quality degradation/recovery.
 - Breaker's Reach results use authored Command, Solidarity and Wayfinder emblems and report bonus fuel without presenting zero as a failure condition.

@@ -68,6 +68,13 @@ export function createFrameVisuals(THREE, host) {
   const SurfaceStandFrom = new THREE.Vector3(0, 1, 0);
   const SurfaceStandTo = new THREE.Vector3();
 
+  let LastStardustSignature = '';
+  let LastTrailLiveCount = -1;
+
+  function getPresentationQuality() {
+    return host.AdaptivePresentationSettings ?? null;
+  }
+
   /** Animates uncollected motes and brightens those intersected by the current prediction. */
   function updateStardustVisuals(ElapsedTimeSeconds) {
     const ShouldShowStardust = ![
@@ -75,29 +82,54 @@ export function createFrameVisuals(THREE, host) {
       'victoryPending',
       'victory',
     ].includes(host.GamePhase);
+    const QualitySettings = getPresentationQuality();
+    const ShouldSpin = QualitySettings?.stardustSpin !== false;
     let HasVisibleStardust = false;
+    let CollectedSignature = '';
+    let PredictedSignature = '';
+
+    for (let StardustIndex = 0; StardustIndex < StardustDefinitions.length; StardustIndex += 1) {
+      const StardustDefinition = StardustDefinitions[StardustIndex];
+      CollectedSignature += StardustDefinition.collected ? '1' : '0';
+      if (host.PredictedStardustIdentifiers.has(StardustDefinition.id)) {
+        PredictedSignature += `${StardustDefinition.id},`;
+      }
+      HasVisibleStardust ||= !StardustDefinition.collected;
+    }
+
+    const VisibilitySignature = `${ShouldShowStardust}|${HasVisibleStardust}|${CollectedSignature}|${PredictedSignature}`;
+    if (!ShouldSpin && VisibilitySignature === LastStardustSignature) {
+      StardustMesh.visible = ShouldShowStardust && HasVisibleStardust;
+      return;
+    }
+    LastStardustSignature = VisibilitySignature;
 
     for (let StardustIndex = 0; StardustIndex < StardustDefinitions.length; StardustIndex += 1) {
       const StardustDefinition = StardustDefinitions[StardustIndex];
       const IsPredictedPickup = host.PredictedStardustIdentifiers.has(StardustDefinition.id);
-      const PulseScale = 0.9 + (Math.sin(
-        (ElapsedTimeSeconds * 5.2) + (StardustIndex * 1.7),
-      ) * 0.14);
+      const PulseScale = ShouldSpin
+        ? 0.9 + (Math.sin(
+          (ElapsedTimeSeconds * 5.2) + (StardustIndex * 1.7),
+        ) * 0.14)
+        : 1;
       const StardustScale = StardustDefinition.collected
         ? 0
         : PulseScale * (IsPredictedPickup ? 1.55 : 1);
-      HasVisibleStardust ||= !StardustDefinition.collected;
 
       StardustTransform.position.set(
         StardustDefinition.position.x,
         StardustDefinition.position.y,
         0.24,
       );
-      StardustTransform.rotation.set(
-        ElapsedTimeSeconds * (0.8 + (StardustIndex * 0.12)),
-        ElapsedTimeSeconds * (1.1 + (StardustIndex * 0.09)),
-        ElapsedTimeSeconds * 0.7,
-      );
+      if (ShouldSpin) {
+        StardustTransform.rotation.set(
+          ElapsedTimeSeconds * (0.8 + (StardustIndex * 0.12)),
+          ElapsedTimeSeconds * (1.1 + (StardustIndex * 0.09)),
+          ElapsedTimeSeconds * 0.7,
+        );
+      } else {
+        StardustTransform.rotation.set(0, 0, 0);
+      }
       StardustTransform.scale.setScalar(StardustScale);
       StardustTransform.updateMatrix();
       StardustMesh.setMatrixAt(StardustIndex, StardustTransform.matrix);
@@ -128,12 +160,18 @@ export function createFrameVisuals(THREE, host) {
    * @param {number} DeltaTimeSeconds - Real frame delta.
    */
   function updateTrailParticles(DeltaTimeSeconds) {
+    const QualitySettings = getPresentationQuality();
+    if (QualitySettings?.trailUpdates === false) {
+      return;
+    }
+    let LiveCount = 0;
     for (const TrailParticle of TrailParticlePool) {
       if (TrailParticle.lifeRemainingSeconds <= 0) {
         continue;
       }
 
       TrailParticle.lifeRemainingSeconds -= DeltaTimeSeconds;
+      LiveCount += 1;
 
       if (TrailParticle.lifeRemainingSeconds <= 0) {
         updateTrailParticleInstance(TrailParticle, 0);
@@ -143,7 +181,10 @@ export function createFrameVisuals(THREE, host) {
       const LifeRatio = TrailParticle.lifeRemainingSeconds / TrailParticle.maximumLifeSeconds;
       updateTrailParticleInstance(TrailParticle, 0.18 + (LifeRatio * 0.69));
     }
-    TrailParticleMesh.instanceMatrix.needsUpdate = true;
+    if (LiveCount > 0 || LastTrailLiveCount !== 0) {
+      TrailParticleMesh.instanceMatrix.needsUpdate = true;
+    }
+    LastTrailLiveCount = LiveCount;
   }
 
   /** Adds distinct, restrained biome motion without distracting from aiming. */
@@ -424,10 +465,12 @@ export function createFrameVisuals(THREE, host) {
 
     if (host.GamePhase === 'flying') {
       updateFlightPlanningPresentation();
-      host.TrailEmissionAccumulatorSeconds += DeltaTimeSeconds;
-      while (host.TrailEmissionAccumulatorSeconds >= 0.036) {
-        emitTrailParticle();
-        host.TrailEmissionAccumulatorSeconds -= 0.036;
+      if (getPresentationQuality()?.trailUpdates !== false) {
+        host.TrailEmissionAccumulatorSeconds += DeltaTimeSeconds;
+        while (host.TrailEmissionAccumulatorSeconds >= 0.036) {
+          emitTrailParticle();
+          host.TrailEmissionAccumulatorSeconds -= 0.036;
+        }
       }
     }
 

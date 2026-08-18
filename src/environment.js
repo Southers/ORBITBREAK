@@ -15,8 +15,8 @@ function createLighting(THREE, Scene, EnvironmentDefinition) {
 
   const KeyLight = new THREE.DirectionalLight(EnvironmentDefinition.keyLightColor, 2.85);
   KeyLight.position.set(-12, 18, 24);
-  KeyLight.castShadow = true;
-  KeyLight.shadow.mapSize.set(1024, 1024);
+  KeyLight.castShadow = false;
+  KeyLight.shadow.mapSize.set(512, 512);
   KeyLight.shadow.camera.left = -24;
   KeyLight.shadow.camera.right = 24;
   KeyLight.shadow.camera.top = 24;
@@ -81,7 +81,7 @@ float valueNoise(vec3 p) {
 float fbm(vec3 p) {
   float total = 0.0;
   float amplitude = 0.5;
-  for (int octave = 0; octave < 3; octave += 1) {
+  for (int octave = 0; octave < 2; octave += 1) {
     total += valueNoise(p) * amplitude;
     p *= 2.15;
     amplitude *= 0.5;
@@ -95,9 +95,8 @@ void main() {
   float bandA = fbm(direction * 2.3 + vec3(drift, 0.0, 17.0));
   float bandB = fbm(direction * 3.6 + vec3(31.0, -drift, 5.0));
   float bandC = fbm(direction * 1.7 + vec3(-9.0, 23.0, drift * 0.6));
-  float wash = fbm(direction * 0.62 + vec3(drift * 0.35, 11.0, -4.0));
   vec3 color = uBaseColor;
-  color += mix(uColorA, uColorC, wash) * (0.1 + (0.12 * uIntensity));
+  color += mix(uColorA, uColorC, bandA) * (0.08 + (0.1 * uIntensity));
   color += uColorA * smoothstep(0.32, 0.94, bandA) * (0.28 * uIntensity);
   color += uColorB * smoothstep(0.38, 0.96, bandB) * (0.2 * uIntensity);
   color += uColorC * smoothstep(0.3, 0.93, bandC) * (0.22 * uIntensity);
@@ -132,11 +131,11 @@ function createNebulaDome(THREE, Scene, EnvironmentDefinition) {
     depthWrite: false,
     fog: false,
   });
-  const DomeMesh = new THREE.Mesh(new THREE.SphereGeometry(360, 28, 18), NebulaMaterial);
+  const DomeMesh = new THREE.Mesh(new THREE.SphereGeometry(360, 16, 10), NebulaMaterial);
   DomeMesh.renderOrder = -100;
   DomeMesh.frustumCulled = false;
   Scene.add(DomeMesh);
-  return NebulaMaterial;
+  return { material: NebulaMaterial, mesh: DomeMesh };
 }
 
 function createDeterministicRandom(Seed) {
@@ -204,12 +203,14 @@ function createStarLayer(THREE, Scene, nextRandomValue, {
 }
 
 function createBackdrop(THREE, Scene, EnvironmentDefinition) {
-  const NebulaMaterial = createNebulaDome(THREE, Scene, EnvironmentDefinition);
+  const NebulaDome = createNebulaDome(THREE, Scene, EnvironmentDefinition);
+  const NebulaMaterial = NebulaDome.material;
+  const DomeMesh = NebulaDome.mesh;
   const nextRandomValue = createDeterministicRandom(732451);
   const StarMap = createStarSpriteTexture(THREE);
 
   const FarLayer = createStarLayer(THREE, Scene, nextRandomValue, {
-    count: 640,
+    count: 420,
     size: 1.15,
     opacity: 0.62,
     color: 0xd9e5ef,
@@ -220,7 +221,7 @@ function createBackdrop(THREE, Scene, EnvironmentDefinition) {
     starMap: StarMap,
   });
   const MidLayer = createStarLayer(THREE, Scene, nextRandomValue, {
-    count: 340,
+    count: 200,
     size: 1.7,
     opacity: 0.84,
     color: 0xf3f7ff,
@@ -243,7 +244,7 @@ function createBackdrop(THREE, Scene, EnvironmentDefinition) {
     starMap: StarMap,
   });
   const DustLayer = createStarLayer(THREE, Scene, nextRandomValue, {
-    count: 160,
+    count: 64,
     size: 9,
     opacity: 0.16,
     color: EnvironmentDefinition.hemisphereSkyColor.getHex(),
@@ -258,20 +259,32 @@ function createBackdrop(THREE, Scene, EnvironmentDefinition) {
   let BackdropElapsedSeconds = 0;
 
   /** Advances twinkle, dust drift and the nebula tint (which tracks the finale). */
-  function updateBackdrop(DeltaTimeSeconds, CameraDistanceScale = 1) {
+  function updateBackdrop(DeltaTimeSeconds, CameraDistanceScale = 1, QualitySettings = null) {
     BackdropElapsedSeconds += DeltaTimeSeconds;
     const CloseView = getCloseViewPresentation(CameraDistanceScale);
-    NebulaMaterial.uniforms.uTime.value = BackdropElapsedSeconds;
-    NebulaMaterial.uniforms.uIntensity.value = CloseView.nebulaIntensity;
+    const ShowNebula = QualitySettings?.nebula !== false;
+    const IntensityScale = QualitySettings?.nebulaIntensityScale ?? 1;
+    const ShouldTwinkle = QualitySettings?.starTwinkle !== false;
+    DomeMesh.visible = ShowNebula;
+    DustLayer.points.visible = ShowNebula;
+    if (!ShowNebula) {
+      return CloseView;
+    }
+    if (ShouldTwinkle) {
+      NebulaMaterial.uniforms.uTime.value = BackdropElapsedSeconds;
+    }
+    NebulaMaterial.uniforms.uIntensity.value = CloseView.nebulaIntensity * IntensityScale;
     if (Scene.background && Scene.background.isColor) {
       NebulaMaterial.uniforms.uBaseColor.value.copy(Scene.background);
     }
-    BrightLayer.material.opacity = BrightLayer.baseOpacity
-      * (0.78 + (Math.sin(BackdropElapsedSeconds * 1.7) * 0.16));
-    MidLayer.material.opacity = MidLayer.baseOpacity
-      * (0.9 + (Math.sin((BackdropElapsedSeconds * 1.1) + 2.4) * 0.1));
-    FarLayer.points.rotation.z = BackdropElapsedSeconds * 0.0016;
-    DustLayer.points.rotation.z = BackdropElapsedSeconds * -0.0075;
+    if (ShouldTwinkle) {
+      BrightLayer.material.opacity = BrightLayer.baseOpacity
+        * (0.78 + (Math.sin(BackdropElapsedSeconds * 1.7) * 0.16));
+      MidLayer.material.opacity = MidLayer.baseOpacity
+        * (0.9 + (Math.sin((BackdropElapsedSeconds * 1.1) + 2.4) * 0.1));
+      FarLayer.points.rotation.z = BackdropElapsedSeconds * 0.0016;
+      DustLayer.points.rotation.z = BackdropElapsedSeconds * -0.0075;
+    }
     DustLayer.material.opacity = DustLayer.baseOpacity * CloseView.dustOpacityScale;
     return CloseView;
   }

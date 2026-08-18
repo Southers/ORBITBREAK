@@ -20,14 +20,17 @@ import {
   resolveReducedMotion,
 } from './preferences.js?v=20260815-ob60';
 import {
+  AdaptiveSampleWindowSeconds,
+  DefaultAdaptivePixelRatioCap,
   SmoothSamplesBeforeUpgrade,
   advanceAdaptivePixelRatio,
-  getAdaptivePresentationTier,
+  getAdaptiveDeviceCap,
+  getAdaptivePresentationSettings,
   getViewportPixelRatioCap,
-} from './performance.js?v=20260814-ob13';
-import { addEnvironment } from './environment.js?v=20260818-ob103';
-import { createWorldVisuals } from './world-geometry.js?v=20260818-ob107';
-import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob107';
+} from './performance.js?v=20260818-ob109';
+import { addEnvironment } from './environment.js?v=20260818-ob109';
+import { createWorldVisuals } from './world-geometry.js?v=20260818-ob109';
+import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob109';
 import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob107';
 import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob108';
 import { createStoryDirector } from './story-director.js?v=20260818-ob104';
@@ -40,7 +43,7 @@ import { createHostileSurface } from './hostile-surface.js?v=20260817-ob99';
 import { createScanner } from './scanner.js?v=20260817-ob99';
 import { createRoutePresentation } from './route-presentation.js?v=20260818-ob105';
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
-import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob108';
+import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob109';
 import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob104';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
@@ -291,7 +294,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260818-ob108';
+GameCanvas.dataset.build = '20260818-ob109';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -366,8 +369,8 @@ const Renderer = new THREE.WebGLRenderer({
 Renderer.outputColorSpace = THREE.SRGBColorSpace;
 Renderer.toneMapping = THREE.ACESFilmicToneMapping;
 Renderer.toneMappingExposure = ActiveSystem.environment.toneMappingExposure;
-Renderer.shadowMap.enabled = true;
-Renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+Renderer.shadowMap.enabled = false;
+Renderer.shadowMap.type = THREE.PCFShadowMap;
 
 const Camera = new THREE.PerspectiveCamera(42, 1, 0.1, 480);
 Camera.position.set(0, 0, 42);
@@ -376,8 +379,8 @@ Camera.lookAt(0, 0, 0);
 /**
  * Post pipeline: bright emissive work (relays, the liberation wave, trajectory
  * light, town windows, the Warden) blooms so everything the player connects
- * visibly glows against the dark sector. Devices that fall to the degraded
- * presentation tier render directly without the composer.
+ * visibly glows against the dark sector. The default balanced tier and any
+ * hitch render the scene directly without the composer.
  */
 const Composer = new EffectComposer(Renderer);
 const ScenePass = new RenderPass(Scene, Camera);
@@ -386,7 +389,7 @@ const CompositeOutputPass = new OutputPass();
 Composer.addPass(ScenePass);
 Composer.addPass(BloomPass);
 Composer.addPass(CompositeOutputPass);
-let IsBloomPipelineEnabled = true;
+let IsBloomPipelineEnabled = false;
 
 /** Renders through the bloom composer unless the adaptive tier disabled it. */
 function renderScene() {
@@ -425,9 +428,11 @@ let GameElapsedTimeSeconds = 0;
 let RunFlightTimeSeconds = 0;
 let IsPageActive = !document.hidden;
 let IsWebGLContextAvailable = true;
-let AdaptivePixelRatioCap = 2;
+let AdaptivePixelRatioCap = DefaultAdaptivePixelRatioCap;
+let AdaptivePresentationSettings = getAdaptivePresentationSettings(DefaultAdaptivePixelRatioCap);
 let SmoothPerformanceSampleCount = 0;
-let PresentationQualityTier = 'high';
+let PresentationQualityTier = AdaptivePresentationSettings.tier;
+let PresentationFrameIndex = 0;
 let CachedInstructionPanelTop = 0;
 let FrameLiveRelayLinks = null;
 let FrameLiveRelayCircuits = null;
@@ -667,6 +672,8 @@ const LivingWorldVisuals = createLivingWorldVisuals(THREE, Scene, {
   get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
   get FinaleRestorationStartedAtSeconds() { return FinaleRestorationStartedAtSeconds; },
   get CameraDistanceScale() { return CameraDistanceScale; },
+  get AdaptivePresentationSettings() { return AdaptivePresentationSettings; },
+  get PresentationFrameIndex() { return PresentationFrameIndex; },
 });
 const {
   updateSlingshotBandVisuals,
@@ -2199,6 +2206,7 @@ const FrameVisuals = createFrameVisuals(THREE, {
   WalkHintPosition,
   get WalkHintVisible() { return WalkHintVisible; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
+  get AdaptivePresentationSettings() { return AdaptivePresentationSettings; },
 });
 const {
   updateStardustVisuals,
@@ -2972,7 +2980,7 @@ function resizeRenderer() {
   const ViewportHeight = window.innerHeight;
   const ViewportAspectRatio = ViewportWidth / Math.max(ViewportHeight, 1);
 
-  const DevicePixelRatioCap = getViewportPixelRatioCap(ViewportWidth, ViewportHeight);
+  const DevicePixelRatioCap = getAdaptiveDeviceCap(ViewportWidth, ViewportHeight);
   AdaptivePixelRatioCap = Math.min(AdaptivePixelRatioCap, DevicePixelRatioCap);
   applyAdaptivePixelRatio();
   Renderer.setSize(ViewportWidth, ViewportHeight, false);
@@ -2998,11 +3006,21 @@ function resizeRenderer() {
 
 /** Applies presentation-only render quality and publishes it for release diagnostics. */
 function applyAdaptivePixelRatio() {
-  const RenderedPixelRatio = Math.min(window.devicePixelRatio, AdaptivePixelRatioCap);
+  const ViewportCap = getViewportPixelRatioCap(window.innerWidth, window.innerHeight);
+  const RenderedPixelRatio = Math.min(window.devicePixelRatio, AdaptivePixelRatioCap, ViewportCap);
   Renderer.setPixelRatio(RenderedPixelRatio);
   Composer.setPixelRatio(RenderedPixelRatio);
   GameCanvas.dataset.pixelRatioCap = AdaptivePixelRatioCap.toFixed(2);
   GameCanvas.dataset.pixelRatio = RenderedPixelRatio.toFixed(2);
+}
+
+/** Hides per-world atmosphere shells when the adaptive tier cannot afford them. */
+function applyAtmosphereQuality(AtmospheresVisible) {
+  for (const WorldRuntime of WorldRuntimeByIdentifier.values()) {
+    if (WorldRuntime.atmosphereMesh) {
+      WorldRuntime.atmosphereMesh.visible = AtmospheresVisible;
+    }
+  }
 }
 
 /** Commits one pure adaptive-quality transition without touching game simulation. */
@@ -3010,22 +3028,26 @@ function applyAdaptiveQualityState(QualityState) {
   const DidCapChange = QualityState.cap !== AdaptivePixelRatioCap;
   AdaptivePixelRatioCap = QualityState.cap;
   SmoothPerformanceSampleCount = QualityState.smoothSamples;
-  const NextPresentationTier = getAdaptivePresentationTier(AdaptivePixelRatioCap);
-  const DidTierChange = NextPresentationTier !== PresentationQualityTier;
-  PresentationQualityTier = NextPresentationTier;
-  const ShadowsEnabled = PresentationQualityTier === 'high';
-  if (KeyLight.castShadow !== ShadowsEnabled) {
-    KeyLight.castShadow = ShadowsEnabled;
-    Renderer.shadowMap.enabled = ShadowsEnabled;
+  const Settings = getAdaptivePresentationSettings(AdaptivePixelRatioCap);
+  const DidTierChange = Settings.tier !== PresentationQualityTier;
+  PresentationQualityTier = Settings.tier;
+  AdaptivePresentationSettings = Settings;
+  if (KeyLight.castShadow !== Settings.shadows) {
+    KeyLight.castShadow = Settings.shadows;
+    Renderer.shadowMap.enabled = Settings.shadows;
   }
-  IsBloomPipelineEnabled = PresentationQualityTier !== 'degraded';
+  IsBloomPipelineEnabled = Settings.bloom;
+  applyAtmosphereQuality(Settings.atmospheres);
   GameCanvas.dataset.bloomPipeline = String(IsBloomPipelineEnabled);
+  GameCanvas.dataset.nebula = String(Settings.nebula);
+  GameCanvas.dataset.atmospheres = String(Settings.atmospheres);
   GameCanvas.dataset.adaptiveQuality = QualityState.action;
   GameCanvas.dataset.presentationTier = PresentationQualityTier;
   GameCanvas.dataset.smoothPerformanceSamples = String(SmoothPerformanceSampleCount);
   if (!DidCapChange && !DidTierChange) return;
   applyAdaptivePixelRatio();
   Renderer.setSize(window.innerWidth, window.innerHeight, false);
+  Composer.setSize(window.innerWidth, window.innerHeight);
 }
 
 /**
@@ -3051,7 +3073,7 @@ function updatePerformanceBudget(DeltaTimeSeconds) {
     );
   }
 
-  if (PerformanceSampleElapsedSeconds < 2) {
+  if (PerformanceSampleElapsedSeconds < AdaptiveSampleWindowSeconds) {
     return;
   }
 
@@ -3072,7 +3094,7 @@ function updatePerformanceBudget(DeltaTimeSeconds) {
     },
     {
       averageFrameSeconds: AverageFrameSeconds,
-      deviceCap: getViewportPixelRatioCap(window.innerWidth, window.innerHeight),
+      deviceCap: getAdaptiveDeviceCap(window.innerWidth, window.innerHeight),
       isVisible: document.visibilityState === 'visible',
     },
   ));
@@ -3422,9 +3444,15 @@ function renderFrame() {
     const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
     updateCamera(DeltaTimeSeconds);
     updateControlModeInterface();
-    const CloseView = updateEnvironmentBackdrop(DeltaTimeSeconds, CameraDistanceScale);
-    BloomPass.strength = CloseView.bloomStrength;
-    BloomPass.threshold = CloseView.bloomThreshold;
+    const CloseView = updateEnvironmentBackdrop(
+      DeltaTimeSeconds,
+      CameraDistanceScale,
+      AdaptivePresentationSettings,
+    );
+    if (IsBloomPipelineEnabled) {
+      BloomPass.strength = CloseView.bloomStrength;
+      BloomPass.threshold = CloseView.bloomThreshold;
+    }
     renderScene();
     return;
   }
@@ -3440,13 +3468,14 @@ function renderFrame() {
     PhysicsAccumulatorSeconds -= FixedPhysicsStepSeconds;
   }
 
+  PresentationFrameIndex += 1;
   updateWorldRestorationVisuals(ElapsedTimeSeconds);
   updateOccupationScarVisuals(ElapsedTimeSeconds);
   refreshDockedTradeState(ElapsedTimeSeconds);
   updateProsperityBuildingVisuals(ElapsedTimeSeconds);
   updateExtractionFreighterVisuals(ElapsedTimeSeconds);
   updateInhabitantVisuals(ElapsedTimeSeconds);
-  if (PresentationQualityTier !== 'degraded' && !PrefersReducedMotion) {
+  if (AdaptivePresentationSettings.biomeMotion && !PrefersReducedMotion) {
     updateWorldBiomeMotion(DeltaTimeSeconds, ElapsedTimeSeconds);
   }
   updateFinaleRestorationVisuals(ElapsedTimeSeconds);
@@ -3482,9 +3511,15 @@ function renderFrame() {
   updateFlightAudio();
   updateWorldLifeAudio();
   updatePersonalBestGhostVisibility();
-  const CloseView = updateEnvironmentBackdrop(DeltaTimeSeconds, CameraDistanceScale);
-  BloomPass.strength = CloseView.bloomStrength;
-  BloomPass.threshold = CloseView.bloomThreshold;
+  const CloseView = updateEnvironmentBackdrop(
+    DeltaTimeSeconds,
+    CameraDistanceScale,
+    AdaptivePresentationSettings,
+  );
+  if (IsBloomPipelineEnabled) {
+    BloomPass.strength = CloseView.bloomStrength;
+    BloomPass.threshold = CloseView.bloomThreshold;
+  }
 
   renderScene();
   updatePerformanceBudget(DeltaTimeSeconds);
@@ -3626,7 +3661,7 @@ function runReleaseDiagnostic(DiagnosticKind) {
     return true;
   }
   if (DiagnosticKind === 'performance') {
-    const DevicePixelRatioCap = getViewportPixelRatioCap(
+    const DevicePixelRatioCap = getAdaptiveDeviceCap(
       window.innerWidth,
       window.innerHeight,
     );
@@ -3892,6 +3927,11 @@ PauseSheetElement.addEventListener('click', (PointerEventData) => {
 });
 
 resizeRenderer();
+applyAdaptiveQualityState({
+  cap: AdaptivePixelRatioCap,
+  smoothSamples: 0,
+  action: 'boot',
+});
 resetGame();
 applyMotionPreference();
 renderFrame();
