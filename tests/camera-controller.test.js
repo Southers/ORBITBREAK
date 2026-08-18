@@ -228,6 +228,22 @@ test('relay reveal waits for the liberation wave before panning the look target'
   assert.equal(host.DesiredCameraLookTarget.y, 0);
 });
 
+test('Scout pullback is a camera move, not a HUD widget', () => {
+  const { host, controller } = createHarness();
+  controller.centerLandedCamera({ snap: true });
+  settle(host, controller, 120);
+  const LandedScale = host.CameraDistanceScale;
+  controller.setScoutMode(true);
+  assert.ok(host.ScoutZoomScale >= 1.6, 'Scout must pull back past the landed globe');
+  settle(host, controller, 90);
+  assert.ok(
+    host.CameraDistanceScale > LandedScale + 0.4,
+    'Scout camera distance must change enough to read as a pullback',
+  );
+  controller.setScoutMode(false, { snapToRunner: true });
+  assert.equal(host.ScoutZoomScale, 1);
+});
+
 test('reduced motion keeps instant cuts for accessibility', () => {
   const { host, controller } = createHarness({ prefersReducedMotion: true });
   controller.centerLandedCamera({ snap: true });

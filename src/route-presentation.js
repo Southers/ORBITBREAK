@@ -12,9 +12,14 @@ import {
   getPlayfieldLabelVerticalBounds,
   getPursuitRouteCoach,
   getTacticalLabelHorizontalMargin,
+  getRouteLabelHorizontalMargin,
+  isProjectedLabelInsideWorldDisc,
+  collapsePlayfieldLabelBox,
+  revealPlayfieldLabelBox,
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
+  shouldShowPlayfieldWorldLabels,
 } from './presentation.js';
 
 export function createRoutePresentation(THREE, host) {
@@ -189,38 +194,93 @@ export function createRoutePresentation(THREE, host) {
   }
 
   /** Projects suggested world names into the HUD without spending WebGL draw calls. */
+  function hidePlayfieldLabel(LabelElement) {
+    collapsePlayfieldLabelBox(LabelElement);
+  }
+
+  function writePlayfieldLabel(LabelElement, Text) {
+    const VisibleText = typeof Text === 'string' ? Text.trim() : '';
+    if (VisibleText.length < 1) {
+      hidePlayfieldLabel(LabelElement);
+      return;
+    }
+    LabelElement.textContent = VisibleText;
+    revealPlayfieldLabelBox(LabelElement);
+  }
+
+  function getCurrentWorldDiscProjection() {
+    const CurrentWorld = host.GamePhase === 'attached'
+      ? getWorldDefinition(host.CurrentWorldIdentifier)
+      : null;
+    if (!CurrentWorld) {
+      return null;
+    }
+    RouteLabelProjection.set(
+      CurrentWorld.position.x,
+      CurrentWorld.position.y,
+      0,
+    ).project(Camera);
+    const WorldNdcX = RouteLabelProjection.x;
+    const WorldNdcY = RouteLabelProjection.y;
+    RouteLabelProjection.set(
+      CurrentWorld.position.x + CurrentWorld.radius,
+      CurrentWorld.position.y,
+      0,
+    ).project(Camera);
+    return {
+      worldNdcX: WorldNdcX,
+      worldNdcY: WorldNdcY,
+      worldRimNdcX: RouteLabelProjection.x,
+      worldRimNdcY: RouteLabelProjection.y,
+    };
+  }
+
   function updateRouteLabels(InstructionTop) {
-    const LabelsActive = host.IsPointerAiming
-      || host.IsKeyboardAiming
-      || host.IsScoutMode;
+    const LabelsActive = shouldShowPlayfieldWorldLabels({
+      isPointerAiming: host.IsPointerAiming,
+      isKeyboardAiming: host.IsKeyboardAiming,
+      isScoutMode: host.IsScoutMode,
+      toastVisible: StatusToastElement.classList.contains('is-visible'),
+    }) && host.GamePhase === 'attached';
+    const RouteLabelsLayer = RouteLabelElements[0]?.parentElement ?? null;
+    RouteLabelsLayer?.classList.toggle('is-active', LabelsActive);
+    if (RouteLabelsLayer) {
+      RouteLabelsLayer.hidden = !LabelsActive;
+    }
     if (!LabelsActive) {
       for (const RouteLabelElement of RouteLabelElements) {
-        RouteLabelElement.textContent = '';
+        hidePlayfieldLabel(RouteLabelElement);
+      }
+      for (const TacticalLabelElement of TacticalLabelElements) {
+        hidePlayfieldLabel(TacticalLabelElement);
       }
       return;
     }
     const RouteChoices = host.GamePhase === 'attached'
       ? getCurrentRouteChoices(RouteLabelElements.length)
       : [];
+    const CurrentWorldDisc = getCurrentWorldDiscProjection();
     const IsCompactLayout = window.innerWidth <= 640;
     const IsShortLandscape = window.innerWidth >= window.innerHeight
       && window.innerHeight <= 520;
-    const HorizontalMargin = IsCompactLayout ? 48 : 58;
+    const WardenVisible = StatusToastElement.classList.contains('is-visible')
+      && StatusToastElement.classList.contains('is-warden');
     const LabelVerticalBounds = getPlayfieldLabelVerticalBounds({
       viewportHeight: window.innerHeight,
       instructionTop: InstructionTop,
       isCompact: IsCompactLayout,
       isShortLandscape: IsShortLandscape,
-      wardenVisible: false,
+      wardenVisible: WardenVisible,
       isTactical: false,
     });
     const LabelPositions = [];
+    const VisibleRouteLabelElements = [];
 
     for (let LabelIndex = 0; LabelIndex < RouteLabelElements.length; LabelIndex += 1) {
       const RouteLabelElement = RouteLabelElements[LabelIndex];
       const WorldDefinition = RouteChoices[LabelIndex];
       if (!WorldDefinition) {
-        RouteLabelElement.textContent = '';
+        hidePlayfieldLabel(RouteLabelElement);
         continue;
       }
 
@@ -229,6 +289,17 @@ export function createRoutePresentation(THREE, host) {
         WorldDefinition.position.y + WorldDefinition.radius + 0.72,
         0,
       ).project(Camera);
+      if (
+        CurrentWorldDisc
+        && isProjectedLabelInsideWorldDisc({
+          labelNdcX: RouteLabelProjection.x,
+          labelNdcY: RouteLabelProjection.y,
+          ...CurrentWorldDisc,
+        })
+      ) {
+        hidePlayfieldLabel(RouteLabelElement);
+        continue;
+      }
       const IsOffscreen = Math.abs(RouteLabelProjection.x) > 0.92
         || Math.abs(RouteLabelProjection.y) > 0.86;
       let DirectionPrefix = '';
@@ -237,7 +308,10 @@ export function createRoutePresentation(THREE, host) {
           ? (RouteLabelProjection.x > 0 ? '→ ' : '← ')
           : (RouteLabelProjection.y > 0 ? '↑ ' : '↓ ');
       }
-      RouteLabelElement.textContent = DirectionPrefix + WorldDefinition.label;
+      const LabelText = DirectionPrefix + WorldDefinition.label;
+      writePlayfieldLabel(RouteLabelElement, LabelText);
+      const HorizontalMargin = getRouteLabelHorizontalMargin(LabelText);
+      VisibleRouteLabelElements.push(RouteLabelElement);
       LabelPositions.push({
         x: Math.round(
           THREE.MathUtils.clamp(
@@ -254,7 +328,10 @@ export function createRoutePresentation(THREE, host) {
       });
     }
 
-    const RouteHorizontalMargin = IsShortLandscape ? 80 : HorizontalMargin;
+    const RouteHorizontalMargin = Math.max(
+      IsShortLandscape ? 80 : (IsCompactLayout ? 48 : 58),
+      64,
+    );
     const RouteLabelMinimumGap = IsShortLandscape ? 160 : 76;
     const ResolvedLabelPositions = separateOverlappingRouteLabels(LabelPositions, {
       minimumGap: RouteLabelMinimumGap,
@@ -276,8 +353,8 @@ export function createRoutePresentation(THREE, host) {
       },
     );
     for (let LabelIndex = 0; LabelIndex < ClearedLabelPositions.length; LabelIndex += 1) {
-      RouteLabelElements[LabelIndex].style.left = `${ClearedLabelPositions[LabelIndex].x}px`;
-      RouteLabelElements[LabelIndex].style.top = `${ClearedLabelPositions[LabelIndex].y}px`;
+      VisibleRouteLabelElements[LabelIndex].style.left = `${ClearedLabelPositions[LabelIndex].x}px`;
+      VisibleRouteLabelElements[LabelIndex].style.top = `${ClearedLabelPositions[LabelIndex].y}px`;
     }
   }
 
@@ -400,7 +477,7 @@ export function createRoutePresentation(THREE, host) {
         || !(host.IsPointerAiming || host.IsKeyboardAiming || host.IsScoutMode)
         || StatusToastElement.classList.contains('is-visible')
       ) {
-        TacticalLabelElement.textContent = '';
+        hidePlayfieldLabel(TacticalLabelElement);
         continue;
       }
 
@@ -409,7 +486,7 @@ export function createRoutePresentation(THREE, host) {
         TacticalLabelDefinition.position.y + TacticalLabelDefinition.definition.radius + 0.55,
         0,
       ).project(Camera);
-      TacticalLabelElement.textContent = TacticalLabelDefinition.text;
+      writePlayfieldLabel(TacticalLabelElement, TacticalLabelDefinition.text);
       const ProjectedLabelX = (
         (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth
       );
@@ -437,7 +514,8 @@ export function createRoutePresentation(THREE, host) {
       instructionTop: InstructionTop,
       isCompact: IsCompactLayout,
       isShortLandscape: IsShortLandscape,
-      wardenVisible: false,
+      wardenVisible: StatusToastElement.classList.contains('is-visible')
+        && StatusToastElement.classList.contains('is-warden'),
       isTactical: true,
     });
     const ResolvedTacticalLabelPositions = separateOverlappingTacticalLabels(

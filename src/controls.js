@@ -6,6 +6,32 @@ export const SurfaceGestureModes = Object.freeze({
   walk: 'walk',
 });
 
+/** Where a landed pointer-down starts. The verb stays locked for the whole gesture. */
+export const LandedPointerTargets = Object.freeze({
+  ship: 'ship',
+  world: 'world',
+  space: 'space',
+});
+
+/**
+ * Ship, then crust, then empty space. Movement after the press cannot steal the verb.
+ */
+export function classifyLandedPointerStart({
+  isOverShip = false,
+  isOverWorld = false,
+} = {}) {
+  if (isOverShip === true) {
+    return LandedPointerTargets.ship;
+  }
+  if (isOverWorld === true) {
+    return LandedPointerTargets.world;
+  }
+  return LandedPointerTargets.space;
+}
+
+/** Generous screen halo around the ship, larger than the tiny diorama mesh. */
+export const SeedScreenGrabRadiusPixels = 72;
+
 function normalizeAngle(AngleRadians) {
   return ((AngleRadians + Math.PI) % FullCircleRadians + FullCircleRadians) % FullCircleRadians
     - Math.PI;
@@ -285,8 +311,8 @@ export function projectRayOntoSphere(Origin, Direction, Center, Radius) {
 }
 
 /**
- * Dragging across the globe walks. Pulling off it into space aims. A tiny twitch stays pending.
- * Ship grab uses classifyPendingShipGrab instead, so a crust hit cannot steal the launch.
+ * Legacy movement classifier kept for tests. Live play locks walk vs aim from
+ * classifyLandedPointerStart instead, so a planet drag cannot become a launch.
  */
 export function classifySphereSurfaceGesture({
   worldCenter,
@@ -475,7 +501,7 @@ export function getPointerClientDistance(FirstPointer, SecondPointer) {
   );
 }
 
-/** Screen pull that leaves a pending ship grab and starts aim, even over crust. */
+/** Screen pull that leaves a ship-locked twitch pending and then shows the aim tether. */
 export const ShipGrabAimDeadzonePixels = 20;
 
 /**

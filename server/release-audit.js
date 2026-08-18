@@ -52,6 +52,7 @@ export function auditReleaseReadiness() {
   const HudSource = readRepositoryFile('src/hud.js');
   const LandingDirectorSource = readRepositoryFile('src/landing-director.js');
   const InputControllerSource = readRepositoryFile('src/input-controller.js');
+  const ControlsSource = readRepositoryFile('src/controls.js');
   const CameraSource = readRepositoryFile('src/camera-controller.js');
   const ScannerSource = readRepositoryFile('src/scanner.js');
   const RoutePresentationSource = readRepositoryFile('src/route-presentation.js');
@@ -139,11 +140,24 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     InputControllerSource.includes('classifyPendingShipGrab(')
+      && InputControllerSource.includes('classifyLandedPointerStart(')
+      && InputControllerSource.includes('LandedPointerTargets.ship')
       && CameraSource.includes('commitAimPlanningCamera(')
       && CameraSource.includes('host.HasCommittedAimCamera')
       && InputControllerSource.includes('dataset.aimCamera')
       && InputControllerSource.includes('showWalkFacingInstruction(getCurrentAttachedWorld())'),
-    'Ship grab must commit aim from a screen pull, keep the globe camera until cancel, and retain facing after a walk.',
+    'Ship grab must lock aim from pointer-down, keep the globe camera until cancel, and retain facing after a walk.',
+  );
+  requireCondition(
+    ControlsSource.includes('export function classifyLandedPointerStart(')
+      && ControlsSource.includes('SeedScreenGrabRadiusPixels = 72')
+      && PresentationSource.includes("title: 'Drag the planet to walk'")
+      && PresentationSource.includes("title: 'Pull the ship, then let go'")
+      && HudSource.includes('function updateFirstRunCoach(')
+      && FrameVisualsSource.includes('getLandedVerbHighlight(')
+      && !InputControllerSource.includes('classifySphereSurfaceGesture(')
+      && !InputControllerSource.includes('classifySurfaceGesture('),
+    'First-timer walk vs aim must lock from where the drag starts, not how it moves, with sticky walk-then-launch captions.',
   );
   requireCondition(
     PresentationSource.includes('export function getWorldLifeStage(')
@@ -152,8 +166,14 @@ export function auditReleaseReadiness() {
       && LivingWorldSource.includes('OccupationFumeMesh')
       && LivingWorldSource.includes('ExtractionFreighterMesh')
       && LivingWorldSource.includes('visiblePrisonerCount')
-      && PlayerSource.includes('RunnerPresentationScale = 0.52')
-      && CameraSource.includes('getLandedCameraScale('),
+      && PlayerSource.includes('RunnerPresentationScale = 0.26')
+      && CameraSource.includes('getLandedCameraScale(')
+      && CameraSource.includes('getActiveViewZoomMinimumScale(')
+      && PresentationSource.includes('LandedMinimumZoomScale = 0.28')
+      && PresentationSource.includes('ScoutMinimumZoomScale = 0.38')
+      && PresentationSource.includes('house: { height: 0.24')
+      && PresentationSource.includes('workshop: { height: 0.33')
+      && PresentationSource.includes('worker: { x: 0.13, y: 0.14, z: 0.12 }'),
     'Occupied worlds must show tyrant extraction, held people and a tiny Runner so living contrast can read.',
   );
   requireCondition(
@@ -312,11 +332,23 @@ export function auditReleaseReadiness() {
   requireCondition(
     HudSource.includes('function refreshPlayfieldLabelBounds()')
       && MainSource.includes('updateRouteLabels(CachedInstructionPanelTop)')
-      && PresentationSource.includes('if (isShortLandscape) return 56;')
-      && PresentationSource.includes('? Math.min(BaseMaximumY, instructionTop - 16)')
-      && RoutePresentationSource.includes('const LabelsActive = host.IsPointerAiming')
-      && HudSource.includes("showInstruction(Title, Body, CaptionKind = '')"),
-    'Route labels appear only while aiming or scouting; first-run captions then silence the playfield.',
+      && PresentationSource.includes('if (isShortLandscape) return 56 + WardenReserve;')
+      && PresentationSource.includes('Math.min(BaseMaximumY, instructionTop - 16)')
+      && PresentationSource.includes('export function shouldShowPlayfieldWorldLabels({')
+      && PresentationSource.includes('export function collapsePlayfieldLabelBox(')
+      && PresentationSource.includes('export function isPlayfieldLabelBoxCollapsed(')
+      && PresentationSource.includes("LabelElement.dataset.visible = 'false'")
+      && PresentationSource.includes('export function shouldPlayOpeningBriefing({')
+      && PresentationSource.includes('export function getRouteLabelHorizontalMargin(')
+      && RoutePresentationSource.includes('const LabelsActive = shouldShowPlayfieldWorldLabels({')
+      && RoutePresentationSource.includes('function hidePlayfieldLabel(LabelElement)')
+      && RoutePresentationSource.includes('collapsePlayfieldLabelBox(LabelElement)')
+      && HudSource.includes("showInstruction(Title, Body, CaptionKind = '')")
+      && HudSource.includes('function hideScoreBurst()')
+      && HudSource.includes("ScoreBurstElement.textContent = ''")
+      && /score-burst\[hidden\][\s\S]*width:\s*0 !important;/s.test(StyleSheet)
+      && /status-toast:not\(\.is-visible\)[\s\S]*background:\s*none !important;/s.test(StyleSheet),
+    'Route labels appear only while aiming or scouting; empty chips and score bursts must collapse to a zero box.',
   );
   requireCondition(
     RoutePresentationSource.includes('const RouteLabelMinimumGap = IsShortLandscape ? 160 : 76')

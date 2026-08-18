@@ -804,6 +804,13 @@ empty console. Release checks protect semantic Pulse state, portrait clearance, 
 compact actions. This accessibility-only pass changes no action timing, route, input mapping, camera,
 world position, physics, score, pursuit, replay or leaderboard behavior.
 
+Gauntlet pass 45 — 18 August 2026: Playtest reported long-running hitching. Code profile showed
+UnrealBloom plus a 2× pixel-ratio default as the fill-rate trap, adaptive quality waiting ~6s of
+slow samples before bloom died, and per-frame inhabitant/stardust/trail matrix uploads. Default
+quality is now balanced: bloom and shadows off, desktop fill 1.5×, portrait/mobile 1.25×, 0.75s
+samples. A hitch drops bloom immediately, then nebula, atmosphere shells and pixel-ratio. Physics,
+scoring and ranked determinism are unchanged. Scores are not restated until a fresh playtest.
+
 Gameplay honesty check — 15 August 2026: later gauntlet passes scored Gameplay 9/10 while polishing
 HUD type. That was too high. A new player still met endgame jargon (`COMMAND WORLD 0 / 3`, circuits,
 shields) before their first landing, so the loop did not exist as play. The opening now teaches one

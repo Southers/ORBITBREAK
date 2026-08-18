@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <title>ORBITBREAK</title>
   <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260814-ob13" />
-  <link rel="stylesheet" href="./src/style.css?v=20260817-ob99" />
+  <link rel="stylesheet" href="./src/style.css?v=20260818-ob109" />
 
   <!--
     Buildless release import map. Three.js is pinned and vendored so startup
@@ -41,16 +41,16 @@
       tabindex="0"
       aria-label="ORBITBREAK gravity game. Drag the ship to launch, drag a world to walk, drag empty space to pan, pinch or wheel to zoom, break once during flight, and cut clamps by dragging through them."
       aria-describedby="KeyboardHelp"
-      aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Enter Space Escape A D W S Q E C G + -"
+      aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Enter Space Escape A D W S Q E T F C G R + -"
     ></canvas>
     <p id="KeyboardHelp" class="visually-hidden">
       Keyboard controls: focus the game, use left and right or A and D to steer, use up and
       down or W and S to change power, hold Shift for fine adjustments, and press Enter or
-      Space to launch. Q and E walk around the current world; R and F walk over the poles.
+      Space to launch. Q and E walk around the current world; T and F walk over the poles.
       Drag the globe to walk; pull the ship to aim. Drag back onto the ship or press Escape to cancel.
       During flight, drag from the ship to break your line, or press Space to break along your heading.
       On a caged world, drag from the ship through a clamp to cut it.
-      Press Escape when not aiming to pause. Keyboard shortcuts C, plus, minus, G, P, M and R stay live during play.
+      Press Escape when not aiming to pause. Press R to reset. Keyboard shortcuts C, plus, minus, G, P, M and R stay live during play.
     </p>
     <div id="LiberationFlash" class="liberation-flash" aria-hidden="true"></div>
     <div id="AimVignette" class="aim-vignette" aria-hidden="true"></div>
@@ -93,7 +93,7 @@
       <span id="PlayCaptionBody"></span>
     </div>
 
-    <section id="StatusToast" class="status-toast" aria-hidden="true"></section>
+    <section id="StatusToast" class="status-toast" aria-hidden="true" hidden></section>
     <div id="ReplayIndicator" class="replay-indicator" hidden>
       WATCHING VERIFIED REPLAY
     </div>
@@ -103,12 +103,12 @@
       <span class="pull-hint__label">PULL THE SHIP</span>
     </div>
 
-    <div id="RouteLabels" class="route-labels" aria-hidden="true">
-      <span class="route-label"></span>
-      <span class="route-label"></span>
-      <span class="tactical-label tactical-label--seedstone"></span>
-      <span class="tactical-label tactical-label--hazard"></span>
-      <span class="tactical-label tactical-label--worldheart"></span>
+    <div id="RouteLabels" class="route-labels" aria-hidden="true" hidden>
+      <span class="route-label" hidden data-visible="false"></span>
+      <span class="route-label" hidden data-visible="false"></span>
+      <span class="tactical-label tactical-label--seedstone" hidden data-visible="false"></span>
+      <span class="tactical-label tactical-label--hazard" hidden data-visible="false"></span>
+      <span class="tactical-label tactical-label--worldheart" hidden data-visible="false"></span>
     </div>
 
     <section
@@ -218,6 +218,6 @@
     </section>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260817-ob99"></script>
+  <script type="module" src="./src/main.js?v=20260818-ob109"></script>
 </body>
 </html>

@@ -6,9 +6,10 @@
 import { getScoutZoomPresentation } from './controls.js';
 import { countLiveRelayWorlds, listRelayCircuits } from './network.js';
 import {
+  getActiveViewZoomMinimumScale,
   getLandedCameraScale,
   getLandedSurfaceCameraPose,
-  getFlightCameraScale,
+  getFlightFollowFrame,
   getPlanningAtmosphere,
   getPlanningFocusWorldIdentifiers,
   getSectorPlanningCamera,
@@ -21,6 +22,8 @@ const CameraRigStiffness = 4.2;
 const AtmosphereBlendStiffness = 5;
 /** Peak positional amplitude of the landing impact shake. */
 const CameraShakeAmplitude = 0.055;
+/** Scout pullback is a camera move, not a HUD widget. */
+const ScoutPullbackScale = 1.62;
 
 export function createCameraController(THREE, host) {
   const {
@@ -41,7 +44,6 @@ export function createCameraController(THREE, host) {
     WorldheartDefinition,
     PredictedSlingshotWorldIdentifiers,
     TrajectoryMaterial,
-    MinimumScoutZoomScale,
     isLiveInnerCluster,
     getSectorClusterRules,
     calculateBodyPositionAtTime,
@@ -54,6 +56,7 @@ export function createCameraController(THREE, host) {
     updateScannerInterface,
   } = host;
   const ActiveSystem = host.ActiveSystem;
+  let ScoutReturnZoomScale = 1;
 
   /**
    * Continuously blended camera rig. The camera is always expressed as a
@@ -86,6 +89,60 @@ export function createCameraController(THREE, host) {
       return host.SeedstoneDefinition;
     }
     return getWorldDefinition(host.CurrentWorldIdentifier);
+  }
+
+  function getFlightFramingTargetPoint(ShipX, ShipY) {
+    const PredictedId = host.LastPredictedBodyIdentifier;
+    if (PredictedId === WorldheartDefinition.id) {
+      const CommandPosition = calculateBodyPositionAtTime(
+        WorldheartDefinition,
+        host.PhysicsElapsedTimeSeconds,
+      );
+      return { x: CommandPosition.x, y: CommandPosition.y };
+    }
+    if (PredictedId) {
+      const PredictedWorld = getWorldDefinition(PredictedId);
+      if (PredictedWorld) {
+        return { x: PredictedWorld.position.x, y: PredictedWorld.position.y };
+      }
+    }
+    let NearestWorld = null;
+    let NearestDistance = Infinity;
+    for (const WorldDefinition of WorldDefinitions) {
+      if (WorldDefinition.id === host.CurrentWorldIdentifier) {
+        continue;
+      }
+      const Distance = Math.hypot(
+        WorldDefinition.position.x - ShipX,
+        WorldDefinition.position.y - ShipY,
+      );
+      if (Distance < NearestDistance) {
+        NearestDistance = Distance;
+        NearestWorld = WorldDefinition;
+      }
+    }
+    if (NearestWorld && NearestDistance > (NearestWorld.radius * 1.25)) {
+      return { x: NearestWorld.position.x, y: NearestWorld.position.y };
+    }
+    return null;
+  }
+
+  function getLiveFlightFollowFrame() {
+    const ShipX = host.SeedPhysicsState.position.x;
+    const ShipY = host.SeedPhysicsState.position.y;
+    const Velocity = host.SeedPhysicsState.velocity ?? { x: 0, y: 0 };
+    const TargetPoint = getFlightFramingTargetPoint(ShipX, ShipY);
+    const FlightWorld = getWorldDefinition(host.CurrentWorldIdentifier);
+    return getFlightFollowFrame({
+      shipX: ShipX,
+      shipY: ShipY,
+      velocityX: Velocity.x,
+      velocityY: Velocity.y,
+      targetX: TargetPoint?.x,
+      targetY: TargetPoint?.y,
+      worldRadius: FlightWorld?.radius ?? 3,
+      viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
+    });
   }
 
 function captureAimInteractionCamera() {
@@ -254,7 +311,10 @@ function refreshPlanningZoomControls({ announce = false } = {}) {
     ? host.AimZoomScale
     : (host.IsScoutMode ? host.ScoutZoomScale : host.CameraZoomScale);
   const Presentation = getScoutZoomPresentation(Scale, {
-    minimumScale: MinimumScoutZoomScale,
+    minimumScale: getActiveViewZoomMinimumScale({
+      isScoutMode: host.IsScoutMode === true,
+      isPlanningCamera: shouldUseSectorPlanningCamera(),
+    }),
     maximumScale: getActiveMaximumScoutZoomScale(),
   });
   ScoutZoomInButtonElement.setAttribute('aria-disabled', String(!Presentation.canZoomIn));
@@ -279,6 +339,19 @@ function setScoutMode(Enabled, { snapToRunner = true } = {}) {
   } else if (snapToRunner) {
     ScoutCameraTarget.set(host.SeedPhysicsState.position.x, host.SeedPhysicsState.position.y, 0);
     CameraPanOffset.set(0, 0, 0);
+  }
+  const EnteringScout = host.IsScoutMode && !WasScoutMode;
+  const LeavingScout = !host.IsScoutMode && WasScoutMode;
+  if (EnteringScout) {
+    ScoutReturnZoomScale = host.CameraZoomScale;
+    const MaximumScale = getActiveMaximumScoutZoomScale();
+    host.ScoutZoomScale = Math.min(
+      MaximumScale,
+      Math.max(host.ScoutZoomScale, ScoutPullbackScale),
+    );
+  } else if (LeavingScout && snapToRunner) {
+    host.CameraZoomScale = ScoutReturnZoomScale;
+    host.ScoutZoomScale = ScoutReturnZoomScale;
   }
   const ShouldRestoreScoutButtonFocus = !host.IsScoutMode
     && (
@@ -305,11 +378,15 @@ function adjustScoutZoom(Direction) {
 
 function adjustViewZoom(Direction) {
   const MaximumScale = getActiveMaximumScoutZoomScale();
+  const MinimumScale = getActiveViewZoomMinimumScale({
+    isScoutMode: host.IsScoutMode === true,
+    isPlanningCamera: shouldUseSectorPlanningCamera(),
+  });
   if (shouldUseSectorPlanningCamera()) {
     const PreviousScale = host.AimZoomScale;
     host.AimZoomScale = THREE.MathUtils.clamp(
       host.AimZoomScale + (Math.sign(Direction) * 0.1),
-      MinimumScoutZoomScale,
+      MinimumScale,
       MaximumScale,
     );
     const DidChange = host.AimZoomScale !== PreviousScale;
@@ -322,7 +399,7 @@ function adjustViewZoom(Direction) {
   const PreviousScale = host.CameraZoomScale;
   host.CameraZoomScale = THREE.MathUtils.clamp(
     host.CameraZoomScale + (Math.sign(Direction) * 0.1),
-    MinimumScoutZoomScale,
+    MinimumScale,
     MaximumScale,
   );
   host.ScoutZoomScale = host.CameraZoomScale;
@@ -499,6 +576,13 @@ function updateCamera(DeltaTimeSeconds) {
         0,
       );
     }
+  } else if (UsesExplorationCamera && host.GamePhase === 'flying') {
+    const FlightFrame = getLiveFlightFollowFrame();
+    DesiredCameraLookTarget.set(
+      FlightFrame.lookX + CameraPanOffset.x,
+      FlightFrame.lookY + CameraPanOffset.y,
+      FlightFrame.lookZ,
+    );
   } else if (UsesExplorationCamera) {
     DesiredCameraLookTarget.set(
       host.SeedPhysicsState.position.x + CameraPanOffset.x,
@@ -518,8 +602,8 @@ function updateCamera(DeltaTimeSeconds) {
   const CameraFollowAlpha = host.PrefersReducedMotion
     ? 1
     : 1 - Math.exp(-DeltaTimeSeconds * (
-      host.GamePhase === 'flying' || StoryLookPoint
-        ? 5.2
+      host.GamePhase === 'flying' || StoryLookPoint || host.IsScoutMode
+        ? 8.6
         : (UsesExplorationCamera ? 3.8 : 2.6)
     ));
   CameraLookTarget.lerp(DesiredCameraLookTarget, CameraFollowAlpha);
@@ -532,11 +616,7 @@ function updateCamera(DeltaTimeSeconds) {
   } else if (UsesPlanningCamera) {
     DesiredDistanceScale = host.PlanningCameraScale * host.AimZoomScale;
   } else if (UsesExplorationCamera && host.GamePhase === 'flying') {
-    const FlightWorld = getWorldDefinition(host.CurrentWorldIdentifier);
-    DesiredDistanceScale = getFlightCameraScale({
-      worldRadius: FlightWorld?.radius ?? 3,
-      viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
-    });
+    DesiredDistanceScale = getLiveFlightFollowFrame().scale;
   } else if (
     UsesExplorationCamera
     && (host.GamePhase === 'attached' || host.GamePhase === 'restoring')

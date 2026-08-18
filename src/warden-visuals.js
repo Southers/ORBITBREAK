@@ -23,7 +23,7 @@ export function createWardenVisuals(THREE, Scene, host) {
   const MaximumHostileClampCount = 5;
   for (let ClampIndex = 0; ClampIndex < MaximumHostileClampCount; ClampIndex += 1) {
     const ClampMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.22, 0.82, 0.22),
+      new THREE.BoxGeometry(0.07, 0.24, 0.07),
       HostilePylonTemplateMaterial.clone(),
     );
     ClampMesh.visible = false;
@@ -51,11 +51,11 @@ export function createWardenVisuals(THREE, Scene, host) {
         ClampMesh.visible = false;
         continue;
       }
-      const ClampDistance = WorldDefinition.radius + 0.3;
+      const ClampDistance = WorldDefinition.radius + 0.18;
       ClampMesh.position.set(
         WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
         WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
-        0.34,
+        0.12,
       );
       ClampMesh.rotation.z = Clamp.surfaceAngle - (Math.PI * 0.5);
       ClampMesh.visible = true;
@@ -82,6 +82,19 @@ export function createWardenVisuals(THREE, Scene, host) {
     WardenCoreMaterial,
   );
   WardenVisualGroup.add(WardenCoreMesh);
+  const WardenCrustMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1a1014,
+    emissive: 0x5a1418,
+    emissiveIntensity: 0.55,
+    roughness: 0.48,
+    metalness: 0.78,
+  });
+  const WardenCrustMesh = new THREE.Mesh(
+    new THREE.TorusGeometry(1.08, 0.055, 7, 36),
+    WardenCrustMaterial,
+  );
+  WardenCrustMesh.rotation.x = Math.PI * 0.5;
+  WardenVisualGroup.add(WardenCrustMesh);
   const WardenArmorMaterial = new THREE.MeshStandardMaterial({
     color: 0x160f18,
     emissive: 0x6e1018,

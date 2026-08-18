@@ -3,18 +3,20 @@
  * These are presentation-only and never enter ranked simulation.
  */
 
+import { getCloseViewPresentation } from './presentation.js';
+
 function createLighting(THREE, Scene, EnvironmentDefinition) {
   const HemisphereLight = new THREE.HemisphereLight(
     EnvironmentDefinition.hemisphereSkyColor,
     EnvironmentDefinition.hemisphereGroundColor,
-    1.55,
+    1.78,
   );
   Scene.add(HemisphereLight);
 
-  const KeyLight = new THREE.DirectionalLight(EnvironmentDefinition.keyLightColor, 3.2);
+  const KeyLight = new THREE.DirectionalLight(EnvironmentDefinition.keyLightColor, 2.85);
   KeyLight.position.set(-12, 18, 24);
-  KeyLight.castShadow = true;
-  KeyLight.shadow.mapSize.set(1024, 1024);
+  KeyLight.castShadow = false;
+  KeyLight.shadow.mapSize.set(512, 512);
   KeyLight.shadow.camera.left = -24;
   KeyLight.shadow.camera.right = 24;
   KeyLight.shadow.camera.top = 24;
@@ -25,11 +27,11 @@ function createLighting(THREE, Scene, EnvironmentDefinition) {
   KeyLight.shadow.normalBias = 0.035;
   Scene.add(KeyLight);
 
-  const FillLight = new THREE.DirectionalLight(EnvironmentDefinition.fillLightColor, 1.0);
-  FillLight.position.set(18, -10, 14);
+  const FillLight = new THREE.DirectionalLight(EnvironmentDefinition.fillLightColor, 1.42);
+  FillLight.position.set(18, -8, 16);
   Scene.add(FillLight);
 
-  const RimLight = new THREE.DirectionalLight(EnvironmentDefinition.rimLightColor, 1.15);
+  const RimLight = new THREE.DirectionalLight(EnvironmentDefinition.rimLightColor, 1.38);
   RimLight.position.set(8, 12, -18);
   Scene.add(RimLight);
 
@@ -51,6 +53,7 @@ uniform vec3 uColorA;
 uniform vec3 uColorB;
 uniform vec3 uColorC;
 uniform float uTime;
+uniform float uIntensity;
 
 float hash(vec3 p) {
   return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453123);
@@ -78,7 +81,7 @@ float valueNoise(vec3 p) {
 float fbm(vec3 p) {
   float total = 0.0;
   float amplitude = 0.5;
-  for (int octave = 0; octave < 3; octave += 1) {
+  for (int octave = 0; octave < 2; octave += 1) {
     total += valueNoise(p) * amplitude;
     p *= 2.15;
     amplitude *= 0.5;
@@ -93,23 +96,26 @@ void main() {
   float bandB = fbm(direction * 3.6 + vec3(31.0, -drift, 5.0));
   float bandC = fbm(direction * 1.7 + vec3(-9.0, 23.0, drift * 0.6));
   vec3 color = uBaseColor;
-  color += uColorA * smoothstep(0.46, 0.94, bandA) * 0.27;
-  color += uColorB * smoothstep(0.52, 0.96, bandB) * 0.15;
-  color += uColorC * smoothstep(0.44, 0.93, bandC) * 0.2;
+  color += mix(uColorA, uColorC, bandA) * (0.08 + (0.1 * uIntensity));
+  color += uColorA * smoothstep(0.32, 0.94, bandA) * (0.28 * uIntensity);
+  color += uColorB * smoothstep(0.38, 0.96, bandB) * (0.2 * uIntensity);
+  color += uColorC * smoothstep(0.3, 0.93, bandC) * (0.22 * uIntensity);
   // Deepen the dome away from the orbital plane so the play field reads brightest.
-  float planeGlow = 1.0 - smoothstep(0.15, 0.85, abs(direction.z));
-  color += uColorA * planeGlow * 0.05;
+  float planeGlow = 1.0 - smoothstep(0.12, 0.82, abs(direction.z));
+  color += uColorA * planeGlow * (0.07 * uIntensity);
+  color += uColorC * planeGlow * (0.04 * uIntensity);
+  color = mix(uBaseColor, color, clamp(uIntensity, 0.0, 1.0));
   gl_FragColor = vec4(color, 1.0);
 }
 `;
 
 function createNebulaDome(THREE, Scene, EnvironmentDefinition) {
   const ColorA = EnvironmentDefinition.hemisphereSkyColor.clone()
-    .lerp(EnvironmentDefinition.backgroundColor, 0.25);
+    .lerp(EnvironmentDefinition.backgroundColor, 0.08);
   const ColorB = EnvironmentDefinition.rimLightColor.clone()
-    .lerp(EnvironmentDefinition.backgroundColor, 0.2);
+    .lerp(EnvironmentDefinition.backgroundColor, 0.06);
   const ColorC = EnvironmentDefinition.keyLightColor.clone()
-    .lerp(EnvironmentDefinition.backgroundColor, 0.45);
+    .lerp(EnvironmentDefinition.backgroundColor, 0.18);
   const NebulaMaterial = new THREE.ShaderMaterial({
     vertexShader: NebulaVertexShader,
     fragmentShader: NebulaFragmentShader,
@@ -119,16 +125,17 @@ function createNebulaDome(THREE, Scene, EnvironmentDefinition) {
       uColorB: { value: ColorB },
       uColorC: { value: ColorC },
       uTime: { value: 0 },
+      uIntensity: { value: 0.62 },
     },
     side: THREE.BackSide,
     depthWrite: false,
     fog: false,
   });
-  const DomeMesh = new THREE.Mesh(new THREE.SphereGeometry(360, 28, 18), NebulaMaterial);
+  const DomeMesh = new THREE.Mesh(new THREE.SphereGeometry(360, 16, 10), NebulaMaterial);
   DomeMesh.renderOrder = -100;
   DomeMesh.frustumCulled = false;
   Scene.add(DomeMesh);
-  return NebulaMaterial;
+  return { material: NebulaMaterial, mesh: DomeMesh };
 }
 
 function createDeterministicRandom(Seed) {
@@ -137,6 +144,25 @@ function createDeterministicRandom(Seed) {
     RandomState = (RandomState * 1664525 + 1013904223) % 4294967296;
     return RandomState / 4294967296;
   };
+}
+
+function createStarSpriteTexture(THREE) {
+  const StarCanvas = document.createElement('canvas');
+  StarCanvas.width = 128;
+  StarCanvas.height = 128;
+  const StarContext = StarCanvas.getContext('2d');
+  StarContext.clearRect(0, 0, 128, 128);
+  const StarGradient = StarContext.createRadialGradient(64, 64, 0, 64, 64, 62);
+  StarGradient.addColorStop(0, 'rgba(255,255,255,1)');
+  StarGradient.addColorStop(0.12, 'rgba(255,255,255,0.92)');
+  StarGradient.addColorStop(0.32, 'rgba(210,240,255,0.42)');
+  StarGradient.addColorStop(0.58, 'rgba(170,220,255,0.12)');
+  StarGradient.addColorStop(1, 'rgba(255,255,255,0)');
+  StarContext.fillStyle = StarGradient;
+  StarContext.fillRect(0, 0, 128, 128);
+  const StarTexture = new THREE.CanvasTexture(StarCanvas);
+  StarTexture.needsUpdate = true;
+  return StarTexture;
 }
 
 function createStarLayer(THREE, Scene, nextRandomValue, {
@@ -149,6 +175,7 @@ function createStarLayer(THREE, Scene, nextRandomValue, {
   nearZ,
   farZ,
   additive = false,
+  starMap,
 }) {
   const StarPositions = new Float32Array(count * 3);
   for (let StarIndex = 0; StarIndex < count; StarIndex += 1) {
@@ -162,10 +189,12 @@ function createStarLayer(THREE, Scene, nextRandomValue, {
   const StarMaterial = new THREE.PointsMaterial({
     color,
     size,
-    sizeAttenuation: true,
+    map: starMap,
+    sizeAttenuation: false,
     transparent: true,
     opacity,
     depthWrite: false,
+    alphaTest: 0.02,
     blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
   });
   const StarPoints = new THREE.Points(StarGeometry, StarMaterial);
@@ -174,43 +203,49 @@ function createStarLayer(THREE, Scene, nextRandomValue, {
 }
 
 function createBackdrop(THREE, Scene, EnvironmentDefinition) {
-  const NebulaMaterial = createNebulaDome(THREE, Scene, EnvironmentDefinition);
+  const NebulaDome = createNebulaDome(THREE, Scene, EnvironmentDefinition);
+  const NebulaMaterial = NebulaDome.material;
+  const DomeMesh = NebulaDome.mesh;
   const nextRandomValue = createDeterministicRandom(732451);
+  const StarMap = createStarSpriteTexture(THREE);
 
   const FarLayer = createStarLayer(THREE, Scene, nextRandomValue, {
-    count: 640,
-    size: 0.09,
-    opacity: 0.58,
+    count: 420,
+    size: 1.15,
+    opacity: 0.62,
     color: 0xd9e5ef,
     spreadX: 210,
     spreadY: 160,
     nearZ: -18,
     farZ: -52,
+    starMap: StarMap,
   });
   const MidLayer = createStarLayer(THREE, Scene, nextRandomValue, {
-    count: 340,
-    size: 0.17,
-    opacity: 0.8,
+    count: 200,
+    size: 1.7,
+    opacity: 0.84,
     color: 0xf3f7ff,
     spreadX: 185,
     spreadY: 140,
     nearZ: -12,
     farZ: -36,
+    starMap: StarMap,
   });
   const BrightLayer = createStarLayer(THREE, Scene, nextRandomValue, {
     count: 76,
-    size: 0.4,
-    opacity: 0.95,
-    color: 0xffffff,
+    size: 3.8,
+    opacity: 0.88,
+    color: 0xd7f4ff,
     spreadX: 170,
     spreadY: 125,
     nearZ: -9,
     farZ: -28,
     additive: true,
+    starMap: StarMap,
   });
   const DustLayer = createStarLayer(THREE, Scene, nextRandomValue, {
-    count: 130,
-    size: 0.15,
+    count: 64,
+    size: 9,
     opacity: 0.16,
     color: EnvironmentDefinition.hemisphereSkyColor.getHex(),
     spreadX: 130,
@@ -218,23 +253,40 @@ function createBackdrop(THREE, Scene, EnvironmentDefinition) {
     nearZ: 4,
     farZ: -6,
     additive: true,
+    starMap: StarMap,
   });
 
   let BackdropElapsedSeconds = 0;
 
   /** Advances twinkle, dust drift and the nebula tint (which tracks the finale). */
-  function updateBackdrop(DeltaTimeSeconds) {
+  function updateBackdrop(DeltaTimeSeconds, CameraDistanceScale = 1, QualitySettings = null) {
     BackdropElapsedSeconds += DeltaTimeSeconds;
-    NebulaMaterial.uniforms.uTime.value = BackdropElapsedSeconds;
+    const CloseView = getCloseViewPresentation(CameraDistanceScale);
+    const ShowNebula = QualitySettings?.nebula !== false;
+    const IntensityScale = QualitySettings?.nebulaIntensityScale ?? 1;
+    const ShouldTwinkle = QualitySettings?.starTwinkle !== false;
+    DomeMesh.visible = ShowNebula;
+    DustLayer.points.visible = ShowNebula;
+    if (!ShowNebula) {
+      return CloseView;
+    }
+    if (ShouldTwinkle) {
+      NebulaMaterial.uniforms.uTime.value = BackdropElapsedSeconds;
+    }
+    NebulaMaterial.uniforms.uIntensity.value = CloseView.nebulaIntensity * IntensityScale;
     if (Scene.background && Scene.background.isColor) {
       NebulaMaterial.uniforms.uBaseColor.value.copy(Scene.background);
     }
-    BrightLayer.material.opacity = BrightLayer.baseOpacity
-      * (0.82 + (Math.sin(BackdropElapsedSeconds * 1.7) * 0.18));
-    MidLayer.material.opacity = MidLayer.baseOpacity
-      * (0.9 + (Math.sin((BackdropElapsedSeconds * 1.1) + 2.4) * 0.1));
-    FarLayer.points.rotation.z = BackdropElapsedSeconds * 0.0016;
-    DustLayer.points.rotation.z = BackdropElapsedSeconds * -0.0075;
+    if (ShouldTwinkle) {
+      BrightLayer.material.opacity = BrightLayer.baseOpacity
+        * (0.78 + (Math.sin(BackdropElapsedSeconds * 1.7) * 0.16));
+      MidLayer.material.opacity = MidLayer.baseOpacity
+        * (0.9 + (Math.sin((BackdropElapsedSeconds * 1.1) + 2.4) * 0.1));
+      FarLayer.points.rotation.z = BackdropElapsedSeconds * 0.0016;
+      DustLayer.points.rotation.z = BackdropElapsedSeconds * -0.0075;
+    }
+    DustLayer.material.opacity = DustLayer.baseOpacity * CloseView.dustOpacityScale;
+    return CloseView;
   }
 
   return updateBackdrop;

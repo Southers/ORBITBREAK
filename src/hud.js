@@ -5,18 +5,16 @@
 
 import { countRestoredWorlds } from './campaign.js';
 import { countLiveRelayWorlds, listRelayCircuits } from './network.js';
-import { getLoopObjectivePresentation } from './presentation.js';
+import { getFirstRunCoachPresentation, getLoopObjectivePresentation } from './presentation.js';
 
 const TaughtCaptionStorageKey = 'orbitbreak.taughtCaptions';
-const FirstRunCaptionKinds = new Set(['walk', 'aim', 'break', 'missed-port']);
+const FirstRunCaptionKinds = new Set(['break', 'missed-port']);
 
 function loadTaughtCaptions() {
   try {
     const Stored = JSON.parse(window.localStorage.getItem(TaughtCaptionStorageKey));
     if (Stored && typeof Stored === 'object') {
       return {
-        walk: Stored.walk === true,
-        aim: Stored.aim === true,
         break: Stored.break === true,
         'missed-port': Stored['missed-port'] === true,
       };
@@ -25,8 +23,6 @@ function loadTaughtCaptions() {
     // Ignore quota / private-mode failures and start untaught.
   }
   return {
-    walk: false,
-    aim: false,
     break: false,
     'missed-port': false,
   };
@@ -60,6 +56,7 @@ export function createHud(host) {
   let LastLiveRegionText = '';
   let LastObjectiveAnnouncement = '';
   let PlayCaptionTimeoutIdentifier = null;
+  let ScoreBurstTimeoutIdentifier = null;
 
   function announceLive(Message) {
     if (!PlayLiveRegionElement || !Message) {
@@ -73,7 +70,9 @@ export function createHud(host) {
   }
 
   function refreshPlayfieldLabelBounds() {
-    host.CachedInstructionPanelTop = window.innerHeight;
+    host.CachedInstructionPanelTop = PlayCaptionElement.hidden
+      ? window.innerHeight
+      : Math.min(window.innerHeight, PlayCaptionElement.getBoundingClientRect().top);
   }
 
   /** Updates the optional Arc mastery counter. */
@@ -130,8 +129,24 @@ export function createHud(host) {
    * @param {string} Text - Short score line, e.g. "+2,400".
    * @param {string} [Tone] - 'bank' or 'circuit'.
    */
+  function hideScoreBurst() {
+    if (ScoreBurstTimeoutIdentifier !== null) {
+      host.clearTimeout(ScoreBurstTimeoutIdentifier);
+      ScoreBurstTimeoutIdentifier = null;
+    }
+    ScoreBurstElement.removeEventListener('animationend', hideScoreBurst);
+    ScoreBurstElement.classList.remove('is-live');
+    ScoreBurstElement.classList.remove('is-circuit');
+    ScoreBurstElement.textContent = '';
+    ScoreBurstElement.hidden = true;
+    ScoreBurstElement.style.removeProperty('--burst-x');
+    ScoreBurstElement.style.removeProperty('--burst-y');
+  }
+
   function showScoreBurst(WorldPosition, Text, Tone = 'bank') {
-    if (host.PrefersReducedMotion) {
+    hideScoreBurst();
+    const VisibleText = typeof Text === 'string' ? Text.trim() : '';
+    if (host.PrefersReducedMotion || VisibleText.length < 1) {
       return;
     }
     ScoreBurstProjection.set(
@@ -143,12 +158,17 @@ export function createHud(host) {
     const ClampedY = Math.min(88, Math.max(10, (-ScoreBurstProjection.y * 0.5 + 0.5) * 100));
     ScoreBurstElement.style.setProperty('--burst-x', `${ClampedX}%`);
     ScoreBurstElement.style.setProperty('--burst-y', `${ClampedY}%`);
-    ScoreBurstElement.textContent = Text;
+    ScoreBurstElement.textContent = VisibleText;
     ScoreBurstElement.classList.toggle('is-circuit', Tone === 'circuit');
     ScoreBurstElement.hidden = false;
     ScoreBurstElement.classList.remove('is-live');
     void ScoreBurstElement.offsetWidth;
     ScoreBurstElement.classList.add('is-live');
+    ScoreBurstElement.addEventListener('animationend', hideScoreBurst);
+    ScoreBurstTimeoutIdentifier = host.setTimeout(() => {
+      ScoreBurstTimeoutIdentifier = null;
+      hideScoreBurst();
+    }, 1450);
   }
 
   /** Keeps banked points machine-readable. The visible number lives on the victory card. */
@@ -166,20 +186,38 @@ export function createHud(host) {
    * @param {string} Message - Text shown to the player.
    * @param {number} VisibleDurationMilliseconds - Duration before the toast fades.
    */
+  function hideStatusToast() {
+    if (host.StatusToastTimeoutIdentifier !== null) {
+      host.clearTimeout(host.StatusToastTimeoutIdentifier);
+      host.StatusToastTimeoutIdentifier = null;
+    }
+    StatusToastElement.classList.remove('is-visible');
+    StatusToastElement.classList.remove('is-memory');
+    StatusToastElement.classList.remove('is-warden');
+    StatusToastElement.textContent = '';
+    StatusToastElement.hidden = true;
+  }
+
   function showStatusToast(Message, VisibleDurationMilliseconds = 900, Tone = 'status') {
+    const VisibleMessage = typeof Message === 'string' ? Message.trim() : '';
+    if (VisibleMessage.length < 1) {
+      hideStatusToast();
+      return;
+    }
     if (host.StatusToastTimeoutIdentifier !== null) {
       host.clearTimeout(host.StatusToastTimeoutIdentifier);
     }
 
-    StatusToastElement.textContent = Message;
+    StatusToastElement.textContent = VisibleMessage;
     StatusToastElement.classList.toggle('is-memory', Tone === 'memory');
     StatusToastElement.classList.toggle('is-warden', Tone === 'warden');
     StatusToastElement.classList.add('is-visible');
-    announceLive(Message);
+    StatusToastElement.hidden = false;
+    announceLive(VisibleMessage);
 
     host.StatusToastTimeoutIdentifier = host.setTimeout(() => {
-      StatusToastElement.classList.remove('is-visible');
       host.StatusToastTimeoutIdentifier = null;
+      hideStatusToast();
     }, VisibleDurationMilliseconds);
   }
 
@@ -192,14 +230,15 @@ export function createHud(host) {
     PlayCaptionElement.classList.remove('is-fading');
     PlayCaptionTitleElement.textContent = '';
     PlayCaptionBodyElement.textContent = '';
+    delete PlayCaptionElement.dataset.coachKind;
   }
 
   /**
-   * First-run fading captions only. Later play calls no-op; toasts still fire separately.
+   * First-run fading captions for later verbs. Walk and launch stay on the sticky coach.
    *
    * @param {string} Title - Strong instruction line.
    * @param {string} Body - Supporting instruction line.
-   * @param {string} [CaptionKind] - One of walk, aim, break, missed-port.
+   * @param {string} [CaptionKind] - One of break, missed-port.
    */
   function showInstruction(Title, Body, CaptionKind = '') {
     const Kind = FirstRunCaptionKinds.has(CaptionKind) ? CaptionKind : '';
@@ -226,6 +265,42 @@ export function createHud(host) {
     }, host.PrefersReducedMotion ? 4200 : 3200);
   }
 
+  /** Stays on screen until the player actually walks, then until they launch, then silence. */
+  function updateFirstRunCoach() {
+    const Coach = getFirstRunCoachPresentation({
+      gamePhase: host.GamePhase,
+      hasWalkedOnce: host.HasWalkedOnce === true,
+      hasLaunchedOnce: host.HasLaunchedOnce === true,
+      isOpeningBriefingActive: host.IsOpeningBriefingActive === true,
+      runStatus: host.RunState?.status ?? 'active',
+    });
+    if (!Coach.visible) {
+      if (PlayCaptionElement.dataset.coachKind) {
+        delete PlayCaptionElement.dataset.coachKind;
+        if (!PlayCaptionElement.classList.contains('is-fading')) {
+          hideInstruction();
+        }
+      }
+      return;
+    }
+    const SameCaption = PlayCaptionElement.dataset.coachKind === Coach.kind
+      && PlayCaptionTitleElement.textContent === Coach.title
+      && PlayCaptionElement.hidden === false;
+    if (SameCaption) {
+      return;
+    }
+    if (PlayCaptionTimeoutIdentifier !== null) {
+      host.clearTimeout(PlayCaptionTimeoutIdentifier);
+      PlayCaptionTimeoutIdentifier = null;
+    }
+    PlayCaptionTitleElement.textContent = Coach.title;
+    PlayCaptionBodyElement.textContent = Coach.body;
+    PlayCaptionElement.hidden = false;
+    PlayCaptionElement.classList.remove('is-fading');
+    PlayCaptionElement.dataset.coachKind = Coach.kind;
+    announceLive(Coach.title);
+  }
+
   function announceWarden(Message) {
     if (Message) {
       announceLive(Message);
@@ -233,13 +308,8 @@ export function createHud(host) {
   }
 
   function resetHud() {
-    if (host.StatusToastTimeoutIdentifier !== null) {
-      host.clearTimeout(host.StatusToastTimeoutIdentifier);
-      host.StatusToastTimeoutIdentifier = null;
-    }
-    StatusToastElement.classList.remove('is-visible');
-    ScoreBurstElement.classList.remove('is-live');
-    ScoreBurstElement.hidden = true;
+    hideStatusToast();
+    hideScoreBurst();
     LastObjectiveAnnouncement = '';
     hideInstruction();
   }
@@ -257,6 +327,7 @@ export function createHud(host) {
     showStatusToast,
     showInstruction,
     hideInstruction,
+    updateFirstRunCoach,
     announceWarden,
     resetHud,
   };

@@ -43,14 +43,14 @@ Optional: `npm run test:boot` loads the playable shell in headless Chromium, and
 ## Current development controls
 
 - Drag the ship to aim and release away from it to launch. Drag back onto the ship, or press `Escape`, to cancel without spending the flight. Aim for the pulsing gold beacon arc: landing inside it liberates the world and grades CLEAN or BULLSEYE; landing outside only docks.
-- Drag the current globe (not the ship) to walk; `Q`/`E` walk around and `R`/`F` walk over the poles. The face you stand on looks toward a neighbour for launch.
+- Drag the current globe (not the ship) to walk; `Q`/`E` walk around and `T`/`F` walk over the poles. The face you stand on looks toward a neighbour for launch.
 - Drag empty space to pan. Pinch or mouse wheel to zoom. Plus/minus keys and the on-screen zoom buttons still work. `C` snaps the camera back to the Runner.
 - Press `G` or tap Ghost to show or hide the verified local personal-best route while scouting or flying.
 - During flight, drag from the ship to **break** your line in any direction, then release to fire. Tap Break or press `Space` to break along heading.
 - On Bastion or Command, drag from the ship through a clamp to cut it. A longer drag can take more than one. Drag back onto the ship, or press `Escape`, to cancel.
 - Focus the game and use left/right or `A`/`D` to steer.
 - Use up/down or `W`/`S` to adjust power; hold `Shift` for fine control.
-- Press `Q`/`E` to walk around the current world. Press `Enter` or `Space` to launch; `Escape` cancels aiming or a cut.
+- Press `Q`/`E` to walk around the current world and `T`/`F` to walk over the poles. Press `Enter` or `Space` to launch; `Escape` cancels aiming or a cut.
 - `R` resets the run, `M` toggles audio and `P` cycles motion preference.
 
 ## Project guide

@@ -52,6 +52,69 @@ export function getRunnerForm(GamePhase, FlightElapsedSeconds = 0) {
   return FlightElapsedSeconds < 0.28 ? 'launch-craft' : 'ship';
 }
 
+/**
+ * First-run pointer coaching stays until the verb is done, then goes silent.
+ * Walk is taught before launch so a stranger can drag the planet, then pull the ship.
+ */
+export function getFirstRunCoachPresentation({
+  gamePhase = 'attached',
+  hasWalkedOnce = false,
+  hasLaunchedOnce = false,
+  isOpeningBriefingActive = false,
+  runStatus = 'active',
+} = {}) {
+  if (
+    gamePhase !== 'attached'
+    || isOpeningBriefingActive === true
+    || runStatus !== 'active'
+  ) {
+    return { visible: false, kind: '', title: '', body: '' };
+  }
+  if (hasWalkedOnce !== true && hasLaunchedOnce !== true) {
+    return {
+      visible: true,
+      kind: 'walk',
+      title: 'Drag the planet to walk',
+      body: '',
+    };
+  }
+  if (hasLaunchedOnce !== true) {
+    return {
+      visible: true,
+      kind: 'aim',
+      title: 'Pull the ship, then let go',
+      body: '',
+    };
+  }
+  return { visible: false, kind: '', title: '', body: '' };
+}
+
+/** Ship halo vs planet rim so walk and aim look different before the drag commits. */
+export function getLandedVerbHighlight({
+  gamePhase = 'attached',
+  hasWalkedOnce = false,
+  hasLaunchedOnce = false,
+  isGrabReady = false,
+  isShipArmed = false,
+  isAiming = false,
+  isWalkReady = false,
+  isWalking = false,
+} = {}) {
+  const IsAttached = gamePhase === 'attached';
+  const ShipCharge = isGrabReady === true || isShipArmed === true || isAiming === true;
+  return {
+    shipHalo: IsAttached && (hasLaunchedOnce !== true || ShipCharge),
+    shipHaloCharge: IsAttached && ShipCharge,
+    worldWalkHalo: IsAttached && (
+      isWalking === true
+      || isWalkReady === true
+      || hasWalkedOnce !== true
+    ),
+    walkCursor: IsAttached && (isWalking === true || isWalkReady === true),
+    pullHint: IsAttached && hasWalkedOnce === true && hasLaunchedOnce !== true,
+  };
+}
+
 /** Deterministic occupation-cage transition driven by restoration progress. */
 export function getStillnessPresentation(IsRestored, RestorationProgress = 0) {
   if (!IsRestored) {
@@ -91,8 +154,20 @@ export function getRangeVeilStrength(
   return getAuthoredRangeVeilStrength(worldIdentifier, innerClusterLive, SectorRules);
 }
 
-export const PlanningMinimumZoomScale = 0.22;
+/** Scout and aim stay a sector view; landed close-up may take one extra zoom-in notch. */
+export const ScoutMinimumZoomScale = 0.38;
+export const LandedMinimumZoomScale = 0.28;
+export const PlanningMinimumZoomScale = ScoutMinimumZoomScale;
 export const PlanningMaximumZoomScale = 3.85;
+
+export function getActiveViewZoomMinimumScale({
+  isScoutMode = false,
+  isPlanningCamera = false,
+} = {}) {
+  return (isScoutMode === true || isPlanningCamera === true)
+    ? ScoutMinimumZoomScale
+    : LandedMinimumZoomScale;
+}
 export const PlanningNeighbourhoodPadding = 3.4;
 
 /**
@@ -252,12 +327,12 @@ export function getTradeHullFamily(kind) {
 
 export function getTradeHullScale(kind) {
   const Scales = {
-    barge: { x: 1.7, y: 0.42, z: 0.82 },
-    sail: { x: 0.55, y: 1.45, z: 0.38 },
-    sled: { x: 1.45, y: 0.32, z: 0.58 },
-    hull: { x: 1.05, y: 0.7, z: 0.7 },
-    spine: { x: 0.7, y: 1.2, z: 0.45 },
-    boat: { x: 1, y: 0.55, z: 0.62 },
+    barge: { x: 0.36, y: 0.1, z: 0.18 },
+    sail: { x: 0.13, y: 0.3, z: 0.1 },
+    sled: { x: 0.3, y: 0.09, z: 0.14 },
+    hull: { x: 0.23, y: 0.16, z: 0.16 },
+    spine: { x: 0.16, y: 0.26, z: 0.12 },
+    boat: { x: 0.22, y: 0.13, z: 0.14 },
   };
   return Scales[kind] ?? Scales.boat;
 }
@@ -305,11 +380,12 @@ export function getProsperityBuildingKind(stage, patternIndex = 0) {
   return ['house', 'workshop', 'dock'][patternIndex % 3];
 }
 
+/** Houses, workshops and docks stay toy-diorama props, much smaller than world radii. */
 export function getProsperityBuildingProfile(kind) {
   const Profiles = {
-    house: { height: 0.92, width: 1, depth: 0.9, hasWindow: true, hasStreet: true },
-    workshop: { height: 1.42, width: 0.62, depth: 0.72, hasWindow: true, hasStreet: false },
-    dock: { height: 0.34, width: 1.62, depth: 0.7, hasWindow: false, hasStreet: false },
+    house: { height: 0.24, width: 0.26, depth: 0.24, hasWindow: true, hasStreet: true },
+    workshop: { height: 0.33, width: 0.16, depth: 0.18, hasWindow: true, hasStreet: false },
+    dock: { height: 0.19, width: 0.28, depth: 0.24, hasWindow: false, hasStreet: false },
   };
   return Profiles[kind] ?? null;
 }
@@ -511,9 +587,9 @@ export function getInhabitantSilhouette(slotIndex) {
   const Variants = ['worker', 'child', 'pack'];
   const Kind = Variants[slotIndex % 3];
   const Scales = {
-    worker: { x: 1.28, y: 1.36, z: 1.22 },
-    child: { x: 0.88, y: 0.82, z: 0.86 },
-    pack: { x: 1.48, y: 1.12, z: 1.72 },
+    worker: { x: 0.13, y: 0.14, z: 0.12 },
+    child: { x: 0.09, y: 0.09, z: 0.09 },
+    pack: { x: 0.16, y: 0.11, z: 0.19 },
   };
   return { kind: Kind, scale: Scales[Kind] };
 }
@@ -657,16 +733,17 @@ export function getLandedSurfaceCameraPose({
   const CameraDirectionX = DirectionX / LiftedDistance;
   const CameraDirectionY = DirectionY / LiftedDistance;
   const CameraDirectionZ = LiftedZ / LiftedDistance;
-  const ClosePull = worldRadius * 2.35;
+  const ClosePull = worldRadius * 1.22;
   const ZoomPull = baseCameraDistance * cameraScale;
   const RadialPull = Math.max(ClosePull, ZoomPull);
+  const LookAlongRadius = worldRadius * 0.28;
   return {
     cameraX: worldX + (CameraDirectionX * RadialPull),
     cameraY: worldY + (CameraDirectionY * RadialPull),
     cameraZ: worldZ + (CameraDirectionZ * RadialPull),
-    lookAtX: worldX + (DirectionX * worldRadius * 0.18),
-    lookAtY: worldY + (DirectionY * worldRadius * 0.18),
-    lookAtZ: worldZ + (DirectionZ * worldRadius * 0.18),
+    lookAtX: worldX + (DirectionX * LookAlongRadius),
+    lookAtY: worldY + (DirectionY * LookAlongRadius),
+    lookAtZ: worldZ + (DirectionZ * LookAlongRadius),
     upX: 0,
     upY: PoleLock ? 1 : 0,
     upZ: PoleLock ? 0 : 1,
@@ -677,8 +754,8 @@ export function getLandedSurfaceCameraPose({
 export function getLandedCameraScale({
   worldRadius,
   viewportWorldHeight,
-  minimumScale = 0.42,
-  maximumScale = 0.58,
+  minimumScale = 0.32,
+  maximumScale = 0.46,
 } = {}) {
   if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
     throw new Error('Landed camera requires a positive world radius.');
@@ -686,7 +763,7 @@ export function getLandedCameraScale({
   if (!Number.isFinite(viewportWorldHeight) || viewportWorldHeight <= 0) {
     throw new Error('Landed camera requires a positive viewport height.');
   }
-  const FramedHeight = worldRadius * 3.35;
+  const FramedHeight = worldRadius * 2.48;
   return Math.min(
     maximumScale,
     Math.max(minimumScale, FramedHeight / viewportWorldHeight),
@@ -699,6 +776,8 @@ export function getFlightCameraScale({
   viewportWorldHeight = 24,
   minimumScale = 0.62,
   maximumScale = 0.92,
+  targetDistance = 0,
+  shipSpeed = 0,
 } = {}) {
   if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
     throw new Error('Flight camera requires a positive world radius.');
@@ -706,11 +785,235 @@ export function getFlightCameraScale({
   if (!Number.isFinite(viewportWorldHeight) || viewportWorldHeight <= 0) {
     throw new Error('Flight camera requires a positive viewport height.');
   }
-  const FramedHeight = worldRadius * 6.2;
+  const SafeTargetDistance = Number.isFinite(targetDistance) ? Math.max(0, targetDistance) : 0;
+  const SafeShipSpeed = Number.isFinite(shipSpeed) ? Math.max(0, shipSpeed) : 0;
+  const FramedHeight = (worldRadius * 6.2)
+    + Math.min(8.5, SafeTargetDistance * 0.22)
+    + Math.min(4.5, SafeShipSpeed * 0.38);
   return Math.min(
     maximumScale,
     Math.max(minimumScale, FramedHeight / viewportWorldHeight),
   );
+}
+
+/**
+ * Keeps the ship in frame after a Break or void miss by looking ahead of
+ * velocity and biasing slightly toward the next world.
+ */
+export function getFlightFollowFrame({
+  shipX,
+  shipY,
+  velocityX = 0,
+  velocityY = 0,
+  targetX = null,
+  targetY = null,
+  worldRadius = 3,
+  viewportWorldHeight = 24,
+  lookaheadSeconds = 0.48,
+} = {}) {
+  if (!Number.isFinite(shipX) || !Number.isFinite(shipY)) {
+    throw new Error('Flight follow requires a finite ship position.');
+  }
+  const VelocityX = Number.isFinite(velocityX) ? velocityX : 0;
+  const VelocityY = Number.isFinite(velocityY) ? velocityY : 0;
+  const Speed = Math.hypot(VelocityX, VelocityY);
+  const Lookahead = Math.min(6.2, Speed * Math.max(0, lookaheadSeconds));
+  let lookX = shipX;
+  let lookY = shipY;
+  if (Speed > 1e-4) {
+    lookX += (VelocityX / Speed) * Lookahead;
+    lookY += (VelocityY / Speed) * Lookahead;
+  }
+  let targetDistance = 0;
+  if (Number.isFinite(targetX) && Number.isFinite(targetY)) {
+    targetDistance = Math.hypot(targetX - shipX, targetY - shipY);
+    const FrameBlend = Math.min(0.28, targetDistance / 42);
+    lookX += (targetX - lookX) * FrameBlend;
+    lookY += (targetY - lookY) * FrameBlend;
+  }
+  return {
+    lookX,
+    lookY,
+    lookZ: 0,
+    scale: getFlightCameraScale({
+      worldRadius,
+      viewportWorldHeight,
+      targetDistance,
+      shipSpeed: Speed,
+    }),
+  };
+}
+
+/** Occupied rims keep biome colour instead of flattening to one grey shell. */
+export function getOccupiedAtmosphereOpacity(atmosphereOpacity = 0.12) {
+  if (!Number.isFinite(atmosphereOpacity) || atmosphereOpacity < 0) {
+    throw new Error('Occupied atmosphere requires a non-negative opacity.');
+  }
+  return Math.max(0.08, Math.min(0.16, 0.07 + (atmosphereOpacity * 0.5)));
+}
+
+/** Frost ice, Ember basalt and Grove canopy read at a glance without extra draws. */
+export function getWorldSurfaceFinish(visualKey) {
+  if (visualKey === 'frost' || visualKey === 'nest' || visualKey === 'shard') {
+    return { roughness: 0.28, metalness: 0.22 };
+  }
+  if (visualKey === 'ember' || visualKey === 'kiln' || visualKey === 'lantern' || visualKey === 'vault') {
+    return { roughness: 0.5, metalness: 0.14 };
+  }
+  if (visualKey === 'tide' || visualKey === 'drift' || visualKey === 'dew') {
+    return { roughness: 0.4, metalness: 0.16 };
+  }
+  if (visualKey === 'grove' || visualKey === 'canopy') {
+    return { roughness: 0.76, metalness: 0.04 };
+  }
+  return { roughness: 0.82, metalness: 0.03 };
+}
+
+/** World pills stay off during landed play and while a toast covers the playfield. */
+export function shouldShowPlayfieldWorldLabels({
+  isPointerAiming = false,
+  isKeyboardAiming = false,
+  isScoutMode = false,
+  toastVisible = false,
+} = {}) {
+  return (isPointerAiming === true || isKeyboardAiming === true || isScoutMode === true)
+    && toastVisible !== true;
+}
+
+function getPlayfieldLabelStyle(LabelElement) {
+  if (!LabelElement.style) {
+    LabelElement.style = {};
+  }
+  return LabelElement.style;
+}
+
+/**
+ * Collapses a projected world/tactical chip so an empty label cannot paint a
+ * leftover screen-space box (cream plaque or black bar) after hide.
+ */
+export function collapsePlayfieldLabelBox(LabelElement) {
+  if (!LabelElement) {
+    return LabelElement;
+  }
+  LabelElement.textContent = '';
+  LabelElement.hidden = true;
+  if (LabelElement.dataset) {
+    LabelElement.dataset.visible = 'false';
+  }
+  const Style = getPlayfieldLabelStyle(LabelElement);
+  Style.left = '';
+  Style.top = '';
+  Style.display = 'none';
+  Style.visibility = 'hidden';
+  Style.background = 'none';
+  Style.border = '0';
+  Style.padding = '0';
+  Style.margin = '0';
+  Style.width = '0';
+  Style.height = '0';
+  Style.minWidth = '0';
+  Style.minHeight = '0';
+  Style.maxWidth = '0';
+  Style.maxHeight = '0';
+  Style.overflow = 'hidden';
+  Style.boxShadow = 'none';
+  Style.backdropFilter = 'none';
+  Style.webkitBackdropFilter = 'none';
+  Style.color = 'transparent';
+  Style.textShadow = 'none';
+  Style.transform = 'none';
+  Style.opacity = '0';
+  Style.pointerEvents = 'none';
+  return LabelElement;
+}
+
+/** Restores a chip so aiming/scout text can size to its glyphs only. */
+export function revealPlayfieldLabelBox(LabelElement) {
+  if (!LabelElement) {
+    return LabelElement;
+  }
+  LabelElement.hidden = false;
+  if (LabelElement.dataset) {
+    LabelElement.dataset.visible = 'true';
+  }
+  const Style = getPlayfieldLabelStyle(LabelElement);
+  Style.display = '';
+  Style.visibility = '';
+  Style.width = '';
+  Style.height = '';
+  Style.minWidth = '';
+  Style.minHeight = '';
+  Style.maxWidth = '';
+  Style.maxHeight = '';
+  Style.overflow = '';
+  Style.color = '';
+  Style.textShadow = '';
+  Style.transform = '';
+  Style.opacity = '';
+  Style.margin = '';
+  Style.background = 'none';
+  Style.border = '0';
+  Style.padding = '0';
+  Style.boxShadow = 'none';
+  Style.backdropFilter = 'none';
+  Style.webkitBackdropFilter = 'none';
+  Style.pointerEvents = 'none';
+  return LabelElement;
+}
+
+/** True when an empty playfield chip has no background and no layout size. */
+export function isPlayfieldLabelBoxCollapsed(LabelElement) {
+  if (!LabelElement) {
+    return true;
+  }
+  const Text = typeof LabelElement.textContent === 'string'
+    ? LabelElement.textContent.trim()
+    : '';
+  const Style = LabelElement.style ?? {};
+  const Background = String(Style.background ?? '');
+  return LabelElement.hidden === true
+    && LabelElement.dataset?.visible === 'false'
+    && Text.length < 1
+    && Style.display === 'none'
+    && Style.width === '0'
+    && Style.height === '0'
+    && (Background === 'none' || Background === 'transparent')
+    && Style.overflow === 'hidden';
+}
+
+/** Close-up cameras keep space dark; scout can keep more nebula without washing planets. */
+export function getCloseViewPresentation(cameraDistanceScale = 1) {
+  if (!Number.isFinite(cameraDistanceScale) || cameraDistanceScale <= 0) {
+    throw new Error('Close view presentation requires a positive camera scale.');
+  }
+  const CloseFade = Math.max(0, Math.min(1, (1.05 - cameraDistanceScale) / 0.7));
+  return {
+    closeFade: CloseFade,
+    nebulaIntensity: 0.58 - (CloseFade * 0.22),
+    dustOpacityScale: 0.4 + ((1 - CloseFade) * 0.6),
+    bloomStrength: 0.32 + ((1 - CloseFade) * 0.2),
+    bloomThreshold: 0.76 + (CloseFade * 0.14),
+  };
+}
+
+/** Hides a projected chip that has collapsed onto the current world's disc. */
+export function isProjectedLabelInsideWorldDisc({
+  labelNdcX,
+  labelNdcY,
+  worldNdcX,
+  worldNdcY,
+  worldRimNdcX,
+  worldRimNdcY,
+} = {}) {
+  const Values = [labelNdcX, labelNdcY, worldNdcX, worldNdcY, worldRimNdcX, worldRimNdcY];
+  if (Values.some((Value) => !Number.isFinite(Value))) {
+    return false;
+  }
+  const DiscRadius = Math.hypot(worldRimNdcX - worldNdcX, worldRimNdcY - worldNdcY);
+  if (!(DiscRadius > 0)) {
+    return false;
+  }
+  return Math.hypot(labelNdcX - worldNdcX, labelNdcY - worldNdcY) < (DiscRadius * 0.92);
 }
 
 /** Bright initial break followed by a clean, short screen-space fade. */
@@ -1181,6 +1484,22 @@ export function getTacticalLabelHorizontalMargin(LabelText) {
   return Math.max(64, Math.ceil([...LabelText].length * 4) + 4);
 }
 
+/** Route chips use the same half-width clamp so they are not cut in half at the edge. */
+export function getRouteLabelHorizontalMargin(LabelText) {
+  return getTacticalLabelHorizontalMargin(LabelText);
+}
+
+/** Opening plays once per session; later Reset/R restarts the run without the Warden intro. */
+export function shouldPlayOpeningBriefing({
+  hasCompletedOpeningBriefing = false,
+  replayActive = false,
+} = {}) {
+  if (replayActive === true) {
+    return false;
+  }
+  return hasCompletedOpeningBriefing !== true;
+}
+
 /** Describes the visual scanner without turning moving coordinates into live announcements. */
 export function getScannerAccessibleLabel({
   runnerLocation,
@@ -1233,9 +1552,10 @@ export function getPlayfieldLabelTopMargin({
   ) {
     throw new Error('Playfield label margin requires boolean layout state.');
   }
-  if (isShortLandscape) return 56;
-  if (isCompact) return isTactical ? 64 : 72;
-  return isTactical ? 56 : 64;
+  const WardenReserve = wardenVisible ? (isShortLandscape ? 72 : 88) : 0;
+  if (isShortLandscape) return 56 + WardenReserve;
+  if (isCompact) return (isTactical ? 64 : 72) + WardenReserve;
+  return (isTactical ? 56 : 64) + WardenReserve;
 }
 
 /** Keeps projected chips inside the playfield when HTML labels are active. */
@@ -1260,12 +1580,11 @@ export function getPlayfieldLabelVerticalBounds({
     wardenVisible,
     isTactical,
   });
-  const BaseMaximumY = viewportHeight - (isCompact ? 48 : 40);
+  const CaptionReserve = isCompact ? 96 : 88;
+  const BaseMaximumY = viewportHeight - CaptionReserve;
   const MaximumY = Math.max(
     0,
-    isShortLandscape
-      ? Math.min(BaseMaximumY, instructionTop - 16)
-      : BaseMaximumY,
+    Math.min(BaseMaximumY, instructionTop - 16),
   );
   return {
     minimumY: Math.min(MinimumY, MaximumY),
@@ -1708,10 +2027,16 @@ export function isCampaignStoryBoardReadyToPresent({
   replayActive = false,
   gamePhase = 'attached',
   relayRevealActive = false,
+  liberationCelebrateActive = false,
   hostileEncounterActive = false,
   boardId = '',
 } = {}) {
-  if (briefingActive === true || replayActive === true || relayRevealActive === true) {
+  if (
+    briefingActive === true
+    || replayActive === true
+    || relayRevealActive === true
+    || liberationCelebrateActive === true
+  ) {
     return false;
   }
   if (
@@ -1725,6 +2050,18 @@ export function isCampaignStoryBoardReadyToPresent({
 
 export const DefaultRelayRevealHoldDurationSeconds = 0.85;
 export const LinkedRelayRevealHoldDurationSeconds = 1.7;
+export const LiberationCelebrateHoldSeconds = 1.05;
+export const CageClearPulseDurationSeconds = 1.08;
+export const CageClearPulseReducedMotionDurationSeconds = 0.18;
+
+/** Cage-clear wrap/bloom duration after the last Destroy. Reduced motion keeps a short flash. */
+export function getCageClearPulseDurationSeconds({
+  prefersReducedMotion = false,
+} = {}) {
+  return prefersReducedMotion === true
+    ? CageClearPulseReducedMotionDurationSeconds
+    : CageClearPulseDurationSeconds;
+}
 
 /** After the first live link, hold the committed chain longer. Reduced motion skips it. */
 export function getRelayRevealHoldDurationSeconds({

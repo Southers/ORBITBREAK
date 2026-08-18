@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
   getControlModePresentation,
@@ -54,10 +55,24 @@ import {
   getExtractionFreighterTravelProgress,
   getLandedCameraScale,
   getLandedSurfaceCameraPose,
+  getActiveViewZoomMinimumScale,
+  LandedMinimumZoomScale,
+  ScoutMinimumZoomScale,
   getFlightCameraScale,
+  getFlightFollowFrame,
+  getOccupiedAtmosphereOpacity,
+  getWorldSurfaceFinish,
+  shouldShowPlayfieldWorldLabels,
+  collapsePlayfieldLabelBox,
+  isPlayfieldLabelBoxCollapsed,
+  isProjectedLabelInsideWorldDisc,
   getTacticalLabelHorizontalMargin,
+  getRouteLabelHorizontalMargin,
+  shouldPlayOpeningBriefing,
   getWorldLandingAimLabel,
   getLaunchFacingPresentation,
+  getFirstRunCoachPresentation,
+  getLandedVerbHighlight,
   getLoopObjectivePresentation,
   getHiddenWardenRouteCoach,
   getPursuitRouteCoach,
@@ -70,6 +85,9 @@ import {
   getTriggeredCampaignStoryBoardIds,
   isCampaignStoryBoardReadyToPresent,
   isCriticalStoryBoard,
+  getCloseViewPresentation,
+  getCageClearPulseDurationSeconds,
+  StoryBoardsAllowedDuringEncounter,
   shouldAssistCommandLock,
   shouldHoldCommittedPrediction,
   separateOverlappingTacticalLabels,
@@ -352,8 +370,36 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
     boardId: 'firstNest',
   }), true);
   assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'attached',
+    liberationCelebrateActive: true,
+    boardId: 'firstAnswer',
+  }), false);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
+    gamePhase: 'attached',
+    hostileEncounterActive: true,
+    boardId: 'firstAnswer',
+  }), false);
+  assert.equal(isCampaignStoryBoardReadyToPresent({
     gamePhase: 'victoryPending',
   }), true);
+});
+
+test('close-up cameras cap nebula and bloom so space stays dark', () => {
+  const LandedView = getCloseViewPresentation(0.5);
+  const ScoutView = getCloseViewPresentation(3.85);
+  assert.ok(LandedView.closeFade > ScoutView.closeFade);
+  assert.ok(LandedView.nebulaIntensity < ScoutView.nebulaIntensity);
+  assert.ok(LandedView.bloomStrength < ScoutView.bloomStrength);
+  assert.ok(LandedView.bloomThreshold > ScoutView.bloomThreshold);
+  assert.ok(LandedView.dustOpacityScale < ScoutView.dustOpacityScale);
+  assert.throws(() => getCloseViewPresentation(0), /positive camera scale/);
+  assert.throws(() => getCloseViewPresentation(Number.NaN), /positive camera scale/);
+});
+
+test('cage-clear wrap holds the story board until the live planet has bloomed', () => {
+  assert.equal(getCageClearPulseDurationSeconds({}), 1.08);
+  assert.equal(getCageClearPulseDurationSeconds({ prefersReducedMotion: true }), 0.18);
+  assert.equal(StoryBoardsAllowedDuringEncounter.includes('firstAnswer'), false);
 });
 
 test('critical rule beats jump the queue while flavour beats space out one per landing', () => {
@@ -511,16 +557,22 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
     isCompact: true,
     wardenVisible: true,
     isTactical: true,
-  }), 64);
+  }), 152);
   assert.equal(getPlayfieldLabelTopMargin({
     isCompact: false,
     wardenVisible: true,
     isTactical: false,
-  }), 64);
+  }), 152);
   assert.equal(getPlayfieldLabelTopMargin({
     isCompact: true,
     isShortLandscape: true,
     wardenVisible: true,
+    isTactical: true,
+  }), 128);
+  assert.equal(getPlayfieldLabelTopMargin({
+    isCompact: true,
+    isShortLandscape: true,
+    wardenVisible: false,
     isTactical: true,
   }), 56);
   assert.throws(
@@ -533,6 +585,8 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
   );
   assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · 1 USE'), 72);
   assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · MOVING · 1 USE'), 108);
+  assert.equal(getRouteLabelHorizontalMargin('GROVE'), 64);
+  assert.equal(getRouteLabelHorizontalMargin('→ GROVE'), 64);
   assert.throws(() => getTacticalLabelHorizontalMargin(' '), /requires visible text/);
   assert.deepEqual(getPlayfieldLabelVerticalBounds({
     viewportHeight: 320,
@@ -541,7 +595,7 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
     isShortLandscape: true,
     wardenVisible: true,
     isTactical: true,
-  }), { minimumY: 56, maximumY: 272 });
+  }), { minimumY: 128, maximumY: 224 });
   assert.deepEqual(getPlayfieldLabelVerticalBounds({
     viewportHeight: 844,
     instructionTop: 844,
@@ -549,7 +603,7 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
     isShortLandscape: false,
     wardenVisible: true,
     isTactical: true,
-  }), { minimumY: 64, maximumY: 796 });
+  }), { minimumY: 152, maximumY: 748 });
   assert.throws(() => getPlayfieldLabelVerticalBounds({
     viewportHeight: Number.NaN,
     instructionTop: 100,
@@ -740,6 +794,48 @@ test('the launch face names the neighbour this longitude looks toward', () => {
   });
 });
 
+test('first-run captions stay until walk, then until launch, then silence', () => {
+  const Opening = getFirstRunCoachPresentation({
+    gamePhase: 'attached',
+    hasWalkedOnce: false,
+    hasLaunchedOnce: false,
+  });
+  assert.equal(Opening.visible, true);
+  assert.equal(Opening.title, 'Drag the planet to walk');
+  const AfterWalk = getFirstRunCoachPresentation({
+    gamePhase: 'attached',
+    hasWalkedOnce: true,
+    hasLaunchedOnce: false,
+  });
+  assert.equal(AfterWalk.title, 'Pull the ship, then let go');
+  const AfterLaunch = getFirstRunCoachPresentation({
+    gamePhase: 'attached',
+    hasWalkedOnce: true,
+    hasLaunchedOnce: true,
+  });
+  assert.equal(AfterLaunch.visible, false);
+  assert.equal(getFirstRunCoachPresentation({
+    gamePhase: 'flying',
+    hasWalkedOnce: false,
+    hasLaunchedOnce: false,
+  }).visible, false);
+  const IdleHighlight = getLandedVerbHighlight({
+    gamePhase: 'attached',
+    hasWalkedOnce: false,
+    hasLaunchedOnce: false,
+  });
+  assert.equal(IdleHighlight.shipHalo, true);
+  assert.equal(IdleHighlight.worldWalkHalo, true);
+  assert.equal(IdleHighlight.pullHint, false);
+  const ReadyToLaunch = getLandedVerbHighlight({
+    gamePhase: 'attached',
+    hasWalkedOnce: true,
+    hasLaunchedOnce: false,
+  });
+  assert.equal(ReadyToLaunch.pullHint, true);
+  assert.equal(ReadyToLaunch.worldWalkHalo, false);
+});
+
 test('slingshot preview names a chain only after two distinct wells', () => {
   assert.equal(getSlingshotPreviewPresentation(0), null);
   assert.deepEqual(getSlingshotPreviewPresentation(1), {
@@ -897,6 +993,12 @@ test('prosperity densifies from a first link to busy routes and circuits', () =>
   assert.equal(getProsperityBuildingKind('circuit', 2), 'dock');
   assert.equal(getProsperityBuildingKind('isolated', 0), null);
   assert.equal(getProsperityBuildingProfile('dock').height < getProsperityBuildingProfile('house').height, true);
+  assert.ok(getProsperityBuildingProfile('workshop').height > getProsperityBuildingProfile('house').height);
+  assert.ok(getProsperityBuildingProfile('house').height < 0.3);
+  assert.ok(getProsperityBuildingProfile('workshop').height < 0.4);
+  assert.ok(getInhabitantSilhouette(0).scale.y < getProsperityBuildingProfile('house').height);
+  assert.ok(getInhabitantSilhouette(2).scale.y < getProsperityBuildingProfile('house').height);
+  assert.ok(getTradeHullScale('barge').x < 0.5);
   assert.equal(getProsperityBuildingFamily('ember'), 'furnace');
   assert.equal(getProsperityBuildingFamily('grove'), 'canopy');
   assert.equal(getProsperityBuildingFamily('meadow'), 'cottage');
@@ -1008,10 +1110,18 @@ test('tyrant occupation collapses through the liberation wave and never returns 
 
 test('landed camera frames one world tightly enough for surface art to read', () => {
   const EmberScale = getLandedCameraScale({ worldRadius: 3.2, viewportWorldHeight: 24 });
-  assert.ok(EmberScale >= 0.42 && EmberScale <= 0.58);
-  assert.ok(EmberScale < 1);
+  assert.ok(EmberScale >= 0.32 && EmberScale <= 0.46);
+  assert.ok(EmberScale < 0.42);
   const TinyScale = getLandedCameraScale({ worldRadius: 2.15, viewportWorldHeight: 24 });
-  assert.equal(TinyScale, 0.42);
+  assert.equal(TinyScale, 0.32);
+});
+
+test('landed close-up may zoom one extra notch while Scout stays a sector view', () => {
+  assert.equal(ScoutMinimumZoomScale, 0.38);
+  assert.equal(LandedMinimumZoomScale, 0.28);
+  assert.equal(getActiveViewZoomMinimumScale({ isScoutMode: true }), ScoutMinimumZoomScale);
+  assert.equal(getActiveViewZoomMinimumScale({ isPlanningCamera: true }), ScoutMinimumZoomScale);
+  assert.equal(getActiveViewZoomMinimumScale({}), LandedMinimumZoomScale);
 });
 
 test('landed facing camera keeps the Runner on the near face and reduced motion stays overhead', () => {
@@ -1087,6 +1197,101 @@ test('flight camera follows wider than a landing but tighter than the planning m
   assert.ok(FlightScale > LandedScale);
   assert.ok(FlightScale < 1);
   assert.equal(getFlightCameraScale({ worldRadius: 2.15, viewportWorldHeight: 24 }), 0.62);
+});
+
+test('flight follow looks ahead of the ship and keeps Ember distinct from origin', () => {
+  const Resting = getFlightFollowFrame({
+    shipX: 2,
+    shipY: -3,
+    worldRadius: 3.2,
+    viewportWorldHeight: 24,
+  });
+  assert.equal(Resting.lookX, 2);
+  assert.equal(Resting.lookY, -3);
+  const Breaking = getFlightFollowFrame({
+    shipX: 2,
+    shipY: -3,
+    velocityX: 10,
+    velocityY: 0,
+    targetX: 14,
+    targetY: 0,
+    worldRadius: 3.2,
+    viewportWorldHeight: 24,
+  });
+  assert.ok(Breaking.lookX > Resting.lookX);
+  assert.ok(Breaking.lookX < 14);
+  assert.ok(Breaking.scale >= Resting.scale);
+});
+
+test('occupied atmospheres and surface finishes keep Ember, Grove and Frost distinct', () => {
+  assert.ok(getOccupiedAtmosphereOpacity(0.18) > getOccupiedAtmosphereOpacity(0.14));
+  assert.ok(getOccupiedAtmosphereOpacity(0) >= 0.08);
+  const EmberFinish = getWorldSurfaceFinish('ember');
+  const FrostFinish = getWorldSurfaceFinish('frost');
+  const GroveFinish = getWorldSurfaceFinish('grove');
+  assert.ok(FrostFinish.roughness < EmberFinish.roughness);
+  assert.ok(EmberFinish.roughness < GroveFinish.roughness);
+  assert.equal(shouldShowPlayfieldWorldLabels({ isPointerAiming: true }), true);
+  assert.equal(shouldShowPlayfieldWorldLabels({
+    isPointerAiming: true,
+    toastVisible: true,
+  }), false);
+  assert.equal(shouldShowPlayfieldWorldLabels({}), false);
+  assert.equal(isProjectedLabelInsideWorldDisc({
+    labelNdcX: 0.02,
+    labelNdcY: 0.01,
+    worldNdcX: 0,
+    worldNdcY: 0,
+    worldRimNdcX: 0.4,
+    worldRimNdcY: 0,
+  }), true);
+  assert.equal(isProjectedLabelInsideWorldDisc({
+    labelNdcX: 0.8,
+    labelNdcY: 0.1,
+    worldNdcX: 0,
+    worldNdcY: 0,
+    worldRimNdcX: 0.4,
+    worldRimNdcY: 0,
+  }), false);
+  assert.equal(shouldPlayOpeningBriefing({}), true);
+  assert.equal(shouldPlayOpeningBriefing({ hasCompletedOpeningBriefing: true }), false);
+  assert.equal(shouldPlayOpeningBriefing({ replayActive: true }), false);
+});
+
+test('empty playfield labels have zero box and no background', () => {
+  const LabelElement = {
+    textContent: 'Grove',
+    hidden: false,
+    dataset: { visible: 'true' },
+    style: {
+      display: 'block',
+      width: '120px',
+      height: '24px',
+      background: 'rgba(5, 12, 20, 0.7)',
+      overflow: 'visible',
+    },
+  };
+  collapsePlayfieldLabelBox(LabelElement);
+  assert.equal(isPlayfieldLabelBoxCollapsed(LabelElement), true);
+  assert.equal(LabelElement.textContent, '');
+  assert.equal(LabelElement.style.background, 'none');
+  assert.equal(LabelElement.style.width, '0');
+  assert.equal(LabelElement.style.height, '0');
+  assert.equal(LabelElement.style.display, 'none');
+
+  const StyleSheet = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
+  assert.match(
+    StyleSheet,
+    /\.route-label:empty[\s\S]*?width:\s*0 !important;[\s\S]*?height:\s*0 !important;/,
+  );
+  assert.match(
+    StyleSheet,
+    /\.score-burst\[hidden\][\s\S]*?width:\s*0 !important;/,
+  );
+  assert.match(
+    StyleSheet,
+    /\.status-toast:not\(\.is-visible\)[\s\S]*?background:\s*none !important;/,
+  );
 });
 
 test('pursuit coach treats a launch as the turn and a return flight as the loop', () => {

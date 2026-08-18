@@ -6,6 +6,17 @@ export const BreakerReachSystemDefinition = {
   contentVersion: 'breaker-reach-9',
   label: "BREAKER'S REACH",
   launchBudget: 10,
+  environment: {
+    backgroundColor: 0x07131e,
+    fogColor: 0x07131e,
+    fogDensity: 0.007,
+    hemisphereSkyColor: 0xd5e8f6,
+    hemisphereGroundColor: 0x243848,
+    keyLightColor: 0xfff3d4,
+    fillLightColor: 0x7eb2d8,
+    rimLightColor: 0xa6e8ff,
+    toneMappingExposure: 1.24,
+  },
   circuitBonusValue: 1250,
   wardenVictoryValuePerStep: 1000,
   openingBroadcast: 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
@@ -439,6 +450,11 @@ export const BreakerReachSystemDefinition = {
         { longitude: -0.9, latitude: 0.88 },
       ],
       memory: 'Roots split the perfect grid from below.',
+      restoration: {
+        ...FirstLightSystemDefinition.worlds[2].restoration,
+        atmosphereOpacity: 0.14,
+        waveColor: 0xe8ffc8,
+      },
     },
     {
       ...FirstLightSystemDefinition.worlds[4],
@@ -452,6 +468,10 @@ export const BreakerReachSystemDefinition = {
         { longitude: 1.75, latitude: -0.28 },
       ],
       memory: 'The water refuses its ordered orbit.',
+      restoration: {
+        ...FirstLightSystemDefinition.worlds[4].restoration,
+        atmosphereOpacity: 0.14,
+      },
     },
     {
       ...FirstLightSystemDefinition.worlds[3],
@@ -488,7 +508,7 @@ export const BreakerReachSystemDefinition = {
       memory: 'The watchtowers turn their lights away from the Command World.',
       restoration: {
         durationSeconds: 2.25, waveWidth: 0.048, growthTrailWidth: 0.19,
-        waveColor: 0xf1d4ff, atmosphereOpacity: 0, rotationSpeed: 0.0008,
+        waveColor: 0xf1d4ff, atmosphereOpacity: 0.12, rotationSpeed: 0.0008,
         surfaceVariation: 0.055,
       },
     },
@@ -508,7 +528,7 @@ export const BreakerReachSystemDefinition = {
       memory: 'The looms remember every route they were forbidden to weave.',
       restoration: {
         durationSeconds: 1.9, waveWidth: 0.055, growthTrailWidth: 0.2,
-        waveColor: 0xe4f8bd, atmosphereOpacity: 0, rotationSpeed: 0.00065,
+        waveColor: 0xe4f8bd, atmosphereOpacity: 0.12, rotationSpeed: 0.00065,
         surfaceVariation: 0.09,
       },
     },
@@ -528,7 +548,7 @@ export const BreakerReachSystemDefinition = {
       memory: 'The pit stops sending stone to Command and starts sending it home.',
       restoration: {
         durationSeconds: 2.3, waveWidth: 0.048, growthTrailWidth: 0.18,
-        waveColor: 0xffd9a0, atmosphereOpacity: 0, rotationSpeed: 0.00115,
+        waveColor: 0xffd9a0, atmosphereOpacity: 0.12, rotationSpeed: 0.00115,
         surfaceVariation: 0.05,
       },
     },
@@ -549,7 +569,7 @@ export const BreakerReachSystemDefinition = {
       memory: 'The glass shows the moving crown instead of an empty sky.',
       restoration: {
         durationSeconds: 2.4, waveWidth: 0.044, growthTrailWidth: 0.2,
-        waveColor: 0xe9f2ff, atmosphereOpacity: 0, rotationSpeed: 0.0009,
+        waveColor: 0xe9f2ff, atmosphereOpacity: 0.12, rotationSpeed: 0.0009,
         surfaceVariation: 0.04,
       },
     },

@@ -14,6 +14,9 @@ import {
   adjustSurfacePose,
   classifySphereSurfaceGesture,
   classifyPendingShipGrab,
+  classifyLandedPointerStart,
+  LandedPointerTargets,
+  SeedScreenGrabRadiusPixels,
   createSurfacePose,
   flattenSurfacePoseToEquator,
   getSphereSurfacePosition,
@@ -180,6 +183,22 @@ test('a ray hitting the globe walks and a pull into space aims', () => {
     sphereHit: null,
     planePosition: { x: 3.2, y: 0 },
   }), SurfaceGestureModes.aim);
+});
+
+test('landed pointer-down locks ship, world or space before the drag moves', () => {
+  assert.equal(classifyLandedPointerStart({
+    isOverShip: true,
+    isOverWorld: true,
+  }), LandedPointerTargets.ship);
+  assert.equal(classifyLandedPointerStart({
+    isOverShip: false,
+    isOverWorld: true,
+  }), LandedPointerTargets.world);
+  assert.equal(classifyLandedPointerStart({
+    isOverShip: false,
+    isOverWorld: false,
+  }), LandedPointerTargets.space);
+  assert.ok(SeedScreenGrabRadiusPixels > 44);
 });
 
 test('a ship grab aims from a screen pull even while the globe is still under the pointer', () => {

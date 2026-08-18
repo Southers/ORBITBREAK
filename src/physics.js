@@ -47,12 +47,39 @@ function getBurnDirection(PhysicsState, Direction) {
   }
   const Speed = Math.hypot(PhysicsState.velocity.x, PhysicsState.velocity.y);
   if (!(Speed > 0)) {
-    return null;
+    return { x: 1, y: 0 };
   }
   return {
     x: PhysicsState.velocity.x / Speed,
     y: PhysicsState.velocity.y / Speed,
   };
+}
+
+/**
+ * Heading-only Break uses current velocity. A stalled ship still burns away from
+ * the launch world so Space is never a silent no-op.
+ */
+export function getBreakerBurnDirection(PhysicsState, OriginPosition = null) {
+  const Speed = Math.hypot(PhysicsState.velocity.x, PhysicsState.velocity.y);
+  if (Speed > 0.08) {
+    return {
+      x: PhysicsState.velocity.x / Speed,
+      y: PhysicsState.velocity.y / Speed,
+    };
+  }
+  if (
+    OriginPosition
+    && Number.isFinite(OriginPosition.x)
+    && Number.isFinite(OriginPosition.y)
+  ) {
+    const EscapeX = PhysicsState.position.x - OriginPosition.x;
+    const EscapeY = PhysicsState.position.y - OriginPosition.y;
+    const EscapeLength = Math.hypot(EscapeX, EscapeY);
+    if (EscapeLength > 0) {
+      return { x: EscapeX / EscapeLength, y: EscapeY / EscapeLength };
+    }
+  }
+  return { x: 1, y: 0 };
 }
 
 /** Applies the one-shot Burn along a dragged direction, or current heading if none is given. */
@@ -74,6 +101,9 @@ export const MaximumLaunchSpeed = 12.5;
 export const OrbitTrapOuterRadiusFactor = 2.8;
 export const OrbitTrapRevolutions = 1.35;
 export const OrbitTrapMinSteps = 96;
+/** 3 s at 120 Hz: a crawl that never completes a revolution still recovers. */
+export const FlightStallTimeoutSteps = 360;
+export const FlightStallDisplacement = 0.5;
 
 /** Creates persistent orbit-trap accumulators shared by live flight, prediction and replay. */
 export function createOrbitTrapState() {
@@ -82,6 +112,10 @@ export function createOrbitTrapState() {
     lastAngle: 0,
     accumulatedAngle: 0,
     steps: 0,
+    stallX: 0,
+    stallY: 0,
+    stallSteps: 0,
+    stallAnchored: false,
   };
 }
 
@@ -90,6 +124,28 @@ export function createOrbitTrapState() {
  * recovers once the Runner has looped instead of flying forever.
  */
 export function advanceOrbitTrap(TrapState, Position, WorldDefinitions) {
+  if (!TrapState.stallAnchored) {
+    TrapState.stallX = Position.x;
+    TrapState.stallY = Position.y;
+    TrapState.stallAnchored = true;
+    TrapState.stallSteps = 0;
+  } else {
+    const StallDisplacement = Math.hypot(
+      Position.x - TrapState.stallX,
+      Position.y - TrapState.stallY,
+    );
+    if (StallDisplacement >= FlightStallDisplacement) {
+      TrapState.stallX = Position.x;
+      TrapState.stallY = Position.y;
+      TrapState.stallSteps = 0;
+    } else {
+      TrapState.stallSteps += 1;
+      if (TrapState.stallSteps >= FlightStallTimeoutSteps) {
+        return true;
+      }
+    }
+  }
+
   let NearestWorld = null;
   let NearestDistance = Infinity;
   for (const WorldDefinition of WorldDefinitions) {

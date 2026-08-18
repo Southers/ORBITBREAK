@@ -3,6 +3,91 @@
  * Physics identity stays in the playable shell.
  */
 
+function createPlanarRibbon(THREE, Scene, {
+  maxPoints,
+  color,
+  opacity,
+  renderOrder,
+}) {
+  const VertexCount = maxPoints * 2;
+  const Positions = new Float32Array(VertexCount * 3);
+  const Geometry = new THREE.BufferGeometry();
+  const PositionAttribute = new THREE.BufferAttribute(Positions, 3);
+  PositionAttribute.setUsage(THREE.DynamicDrawUsage);
+  Geometry.setAttribute('position', PositionAttribute);
+  const IndexValues = new Uint32Array(Math.max(0, (maxPoints - 1) * 6));
+  let IndexOffset = 0;
+  for (let PointIndex = 0; PointIndex < maxPoints - 1; PointIndex += 1) {
+    const VertexIndex = PointIndex * 2;
+    IndexValues[IndexOffset] = VertexIndex;
+    IndexValues[IndexOffset + 1] = VertexIndex + 1;
+    IndexValues[IndexOffset + 2] = VertexIndex + 2;
+    IndexValues[IndexOffset + 3] = VertexIndex + 1;
+    IndexValues[IndexOffset + 4] = VertexIndex + 3;
+    IndexValues[IndexOffset + 5] = VertexIndex + 2;
+    IndexOffset += 6;
+  }
+  Geometry.setIndex(new THREE.BufferAttribute(IndexValues, 1));
+  const Material = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
+  const Mesh = new THREE.Mesh(Geometry, Material);
+  Mesh.visible = false;
+  Mesh.frustumCulled = false;
+  Mesh.renderOrder = renderOrder;
+  Scene.add(Mesh);
+  return {
+    mesh: Mesh,
+    positions: Positions,
+    positionAttribute: PositionAttribute,
+    geometry: Geometry,
+    maxPoints,
+  };
+}
+
+function writePlanarRibbon(Ribbon, Points, HalfWidth) {
+  if (!Ribbon || !Array.isArray(Points) || Points.length < 2) {
+    if (Ribbon) {
+      Ribbon.mesh.visible = false;
+    }
+    return;
+  }
+  const PointCount = Math.min(Points.length, Ribbon.maxPoints);
+  for (let PointIndex = 0; PointIndex < PointCount; PointIndex += 1) {
+    const Point = Points[PointIndex];
+    const Previous = Points[Math.max(0, PointIndex - 1)];
+    const Next = Points[Math.min(PointCount - 1, PointIndex + 1)];
+    let TangentX = Next.x - Previous.x;
+    let TangentY = Next.y - Previous.y;
+    const TangentLength = Math.hypot(TangentX, TangentY) || 1;
+    TangentX /= TangentLength;
+    TangentY /= TangentLength;
+    const NormalX = -TangentY;
+    const NormalY = TangentX;
+    const EndTaper = PointIndex === 0 || PointIndex === PointCount - 1 ? 0.28 : 1;
+    const SpanTaper = 1 - (Math.abs((PointIndex / Math.max(1, PointCount - 1)) - 0.5) * 0.22);
+    const Width = HalfWidth * EndTaper * SpanTaper;
+    const VertexOffset = PointIndex * 6;
+    Ribbon.positions[VertexOffset] = Point.x + (NormalX * Width);
+    Ribbon.positions[VertexOffset + 1] = Point.y + (NormalY * Width);
+    Ribbon.positions[VertexOffset + 2] = 0.13;
+    Ribbon.positions[VertexOffset + 3] = Point.x - (NormalX * Width);
+    Ribbon.positions[VertexOffset + 4] = Point.y - (NormalY * Width);
+    Ribbon.positions[VertexOffset + 5] = 0.13;
+  }
+  Ribbon.positionAttribute.needsUpdate = true;
+  Ribbon.geometry.setDrawRange(0, Math.max(0, (PointCount - 1) * 6));
+  Ribbon.geometry.computeBoundingSphere();
+  Ribbon.mesh.visible = PointCount > 1;
+}
+
 export function createPlayerVisuals(THREE, Scene, host) {
   const {
     SeedRadius,
@@ -14,14 +99,14 @@ export function createPlayerVisuals(THREE, Scene, host) {
   /** A compact procedural Runner stays tiny on the world; collision radius is unchanged. */
   const SeedGroup = new THREE.Group();
   const RunnerVisualGroup = new THREE.Group();
-  const RunnerPresentationScale = 0.52;
-  const ShipPresentationScale = 0.58;
+  const RunnerPresentationScale = 0.26;
+  const ShipPresentationScale = 0.3;
   RunnerVisualGroup.scale.setScalar(RunnerPresentationScale);
   GameCanvas.dataset.runnerVisualScale = String(RunnerPresentationScale);
   const RunnerSuitMaterial = new THREE.MeshStandardMaterial({
     color: 0xe9f2f4,
     emissive: 0x4f8fa0,
-    emissiveIntensity: 0.28,
+    emissiveIntensity: 0.4,
     roughness: 0.38,
     metalness: 0.08,
   });
@@ -35,7 +120,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   const RunnerVisorMaterial = new THREE.MeshStandardMaterial({
     color: 0xffbf62,
     emissive: 0xff7a38,
-    emissiveIntensity: 1.25,
+    emissiveIntensity: 1.55,
     roughness: 0.2,
     metalness: 0.3,
   });
@@ -131,7 +216,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   const ShipHullMaterial = new THREE.MeshStandardMaterial({
     color: 0xddecef,
     emissive: 0x2a7f99,
-    emissiveIntensity: 0.42,
+    emissiveIntensity: 0.62,
     roughness: 0.3,
     metalness: 0.46,
   });
@@ -171,6 +256,12 @@ export function createPlayerVisuals(THREE, Scene, host) {
   ShipWindowMesh.position.set(0, 0.16, 0.2);
   ShipWindowMesh.scale.set(1, 1.18, 0.38);
   ShipVisualGroup.add(ShipWindowMesh);
+  const ShipTailMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.08, 0.28, 0.16),
+    ShipAccentMaterial,
+  );
+  ShipTailMesh.position.set(0, -0.28, -0.16);
+  ShipVisualGroup.add(ShipTailMesh);
   const ShipThrusterMesh = new THREE.Mesh(
     new THREE.ConeGeometry(0.12, 0.44, 10),
     RunnerThrusterMaterial,
@@ -252,7 +343,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
     }
   }
 
-  const SeedHaloGeometry = new THREE.SphereGeometry(SeedRadius * 1.65, 24, 16);
+  const SeedHaloGeometry = new THREE.SphereGeometry(SeedRadius * 2.35, 24, 16);
   const SeedHaloMaterial = new THREE.MeshBasicMaterial({
     color: 0x6de8ff,
     transparent: true,
@@ -263,6 +354,43 @@ export function createPlayerVisuals(THREE, Scene, host) {
   const SeedHaloMesh = new THREE.Mesh(SeedHaloGeometry, SeedHaloMaterial);
   SeedGroup.add(SeedHaloMesh);
 
+  const WorldWalkHaloMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffe7a0,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
+  const WorldWalkHaloMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 32, 20),
+    WorldWalkHaloMaterial,
+  );
+  WorldWalkHaloMesh.visible = false;
+  WorldWalkHaloMesh.frustumCulled = false;
+  WorldWalkHaloMesh.renderOrder = 6;
+  Scene.add(WorldWalkHaloMesh);
+
+  const WalkCursorMaterial = new THREE.MeshBasicMaterial({
+    color: 0xfff0c4,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
+    toneMapped: false,
+  });
+  const WalkCursorMesh = new THREE.Mesh(
+    new THREE.TorusGeometry(0.22, 0.045, 8, 24),
+    WalkCursorMaterial,
+  );
+  WalkCursorMesh.visible = false;
+  WalkCursorMesh.frustumCulled = false;
+  WalkCursorMesh.renderOrder = 7;
+  Scene.add(WalkCursorMesh);
+
   const SeedPointLight = new THREE.PointLight(0x72dcff, 2.1, 6, 2);
   SeedGroup.add(SeedPointLight);
   Scene.add(SeedGroup);
@@ -270,7 +398,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   /**
    * An enlarged invisible sphere makes pointer acquisition forgiving on touchscreens.
    */
-  const SeedPointerHitGeometry = new THREE.SphereGeometry(SeedRadius * 3.6, 12, 8);
+  const SeedPointerHitGeometry = new THREE.SphereGeometry(SeedRadius * 2.2, 12, 8);
   const SeedPointerHitMaterial = new THREE.MeshBasicMaterial({
     transparent: true,
     opacity: 0,
@@ -302,6 +430,12 @@ export function createPlayerVisuals(THREE, Scene, host) {
   TrajectoryLine.visible = false;
   TrajectoryLine.frustumCulled = false;
   Scene.add(TrajectoryLine);
+  const TrajectoryRibbon = createPlanarRibbon(THREE, Scene, {
+    maxPoints: MaximumPreviewPointCount,
+    color: 0xb8ffe0,
+    opacity: 0.42,
+    renderOrder: 18,
+  });
 
   const LandingMarkerGeometry = new THREE.RingGeometry(0.42, 0.58, 32);
   const LandingMarkerMaterial = new THREE.MeshBasicMaterial({
@@ -351,6 +485,12 @@ export function createPlayerVisuals(THREE, Scene, host) {
   PullGuideLine.visible = false;
   PullGuideLine.renderOrder = 20;
   Scene.add(PullGuideLine);
+  const PullGuideRibbon = createPlanarRibbon(THREE, Scene, {
+    maxPoints: 2,
+    color: 0xc8ffe0,
+    opacity: 0.5,
+    renderOrder: 19,
+  });
 
   const CutGuideGeometry = new THREE.BufferGeometry();
   const CutGuideMaterial = new THREE.LineDashedMaterial({
@@ -445,6 +585,10 @@ export function createPlayerVisuals(THREE, Scene, host) {
     SeedHaloMaterial,
     SeedHaloMesh,
     SeedPointLight,
+    WorldWalkHaloMesh,
+    WorldWalkHaloMaterial,
+    WalkCursorMesh,
+    WalkCursorMaterial,
     SeedPointerHitGeometry,
     SeedPointerHitMaterial,
     SeedPointerHitMesh,
@@ -454,6 +598,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
     TrajectoryPositionAttribute,
     TrajectoryMaterial,
     TrajectoryLine,
+    TrajectoryRibbon,
     LandingMarkerGeometry,
     LandingMarkerMaterial,
     LandingMarkerMesh,
@@ -463,6 +608,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
     PullGuideGeometry,
     PullGuideMaterial,
     PullGuideLine,
+    PullGuideRibbon,
     CutGuideGeometry,
     CutGuideMaterial,
     CutGuideLine,
@@ -474,5 +620,6 @@ export function createPlayerVisuals(THREE, Scene, host) {
     TrailParticleTransform,
     createFeedbackPulse,
     updateTrailParticleInstance,
+    writePlanarRibbon,
   };
 }

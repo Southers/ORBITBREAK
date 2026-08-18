@@ -7,6 +7,7 @@
 
 import { SurfaceGestureModes } from './controls.js';
 import {
+  getLandedVerbHighlight,
   getLiberationFlashOpacity,
   getRunnerAnimationState,
   getRunnerForm,
@@ -38,13 +39,19 @@ export function createFrameVisuals(THREE, host) {
     RunnerArmMeshes,
     RunnerLegMeshes,
     RunnerThrusterGroup,
+    ShipThrusterMesh,
     SeedHaloMesh,
     SeedHaloMaterial,
+    WorldWalkHaloMesh,
+    WorldWalkHaloMaterial,
+    WalkCursorMesh,
+    WalkCursorMaterial,
     LiberationFlashElement,
     LandingMarkerMesh,
     LaunchPulseMesh,
     ImpactPulseMesh,
     PullGuideLine,
+    PullGuideRibbon,
     PullGuideMaterial,
     CutGuideLine,
     CutGuideMaterial,
@@ -61,6 +68,13 @@ export function createFrameVisuals(THREE, host) {
   const SurfaceStandFrom = new THREE.Vector3(0, 1, 0);
   const SurfaceStandTo = new THREE.Vector3();
 
+  let LastStardustSignature = '';
+  let LastTrailLiveCount = -1;
+
+  function getPresentationQuality() {
+    return host.AdaptivePresentationSettings ?? null;
+  }
+
   /** Animates uncollected motes and brightens those intersected by the current prediction. */
   function updateStardustVisuals(ElapsedTimeSeconds) {
     const ShouldShowStardust = ![
@@ -68,29 +82,54 @@ export function createFrameVisuals(THREE, host) {
       'victoryPending',
       'victory',
     ].includes(host.GamePhase);
+    const QualitySettings = getPresentationQuality();
+    const ShouldSpin = QualitySettings?.stardustSpin !== false;
     let HasVisibleStardust = false;
+    let CollectedSignature = '';
+    let PredictedSignature = '';
+
+    for (let StardustIndex = 0; StardustIndex < StardustDefinitions.length; StardustIndex += 1) {
+      const StardustDefinition = StardustDefinitions[StardustIndex];
+      CollectedSignature += StardustDefinition.collected ? '1' : '0';
+      if (host.PredictedStardustIdentifiers.has(StardustDefinition.id)) {
+        PredictedSignature += `${StardustDefinition.id},`;
+      }
+      HasVisibleStardust ||= !StardustDefinition.collected;
+    }
+
+    const VisibilitySignature = `${ShouldShowStardust}|${HasVisibleStardust}|${CollectedSignature}|${PredictedSignature}`;
+    if (!ShouldSpin && VisibilitySignature === LastStardustSignature) {
+      StardustMesh.visible = ShouldShowStardust && HasVisibleStardust;
+      return;
+    }
+    LastStardustSignature = VisibilitySignature;
 
     for (let StardustIndex = 0; StardustIndex < StardustDefinitions.length; StardustIndex += 1) {
       const StardustDefinition = StardustDefinitions[StardustIndex];
       const IsPredictedPickup = host.PredictedStardustIdentifiers.has(StardustDefinition.id);
-      const PulseScale = 0.9 + (Math.sin(
-        (ElapsedTimeSeconds * 5.2) + (StardustIndex * 1.7),
-      ) * 0.14);
+      const PulseScale = ShouldSpin
+        ? 0.9 + (Math.sin(
+          (ElapsedTimeSeconds * 5.2) + (StardustIndex * 1.7),
+        ) * 0.14)
+        : 1;
       const StardustScale = StardustDefinition.collected
         ? 0
         : PulseScale * (IsPredictedPickup ? 1.55 : 1);
-      HasVisibleStardust ||= !StardustDefinition.collected;
 
       StardustTransform.position.set(
         StardustDefinition.position.x,
         StardustDefinition.position.y,
         0.24,
       );
-      StardustTransform.rotation.set(
-        ElapsedTimeSeconds * (0.8 + (StardustIndex * 0.12)),
-        ElapsedTimeSeconds * (1.1 + (StardustIndex * 0.09)),
-        ElapsedTimeSeconds * 0.7,
-      );
+      if (ShouldSpin) {
+        StardustTransform.rotation.set(
+          ElapsedTimeSeconds * (0.8 + (StardustIndex * 0.12)),
+          ElapsedTimeSeconds * (1.1 + (StardustIndex * 0.09)),
+          ElapsedTimeSeconds * 0.7,
+        );
+      } else {
+        StardustTransform.rotation.set(0, 0, 0);
+      }
       StardustTransform.scale.setScalar(StardustScale);
       StardustTransform.updateMatrix();
       StardustMesh.setMatrixAt(StardustIndex, StardustTransform.matrix);
@@ -121,12 +160,18 @@ export function createFrameVisuals(THREE, host) {
    * @param {number} DeltaTimeSeconds - Real frame delta.
    */
   function updateTrailParticles(DeltaTimeSeconds) {
+    const QualitySettings = getPresentationQuality();
+    if (QualitySettings?.trailUpdates === false) {
+      return;
+    }
+    let LiveCount = 0;
     for (const TrailParticle of TrailParticlePool) {
       if (TrailParticle.lifeRemainingSeconds <= 0) {
         continue;
       }
 
       TrailParticle.lifeRemainingSeconds -= DeltaTimeSeconds;
+      LiveCount += 1;
 
       if (TrailParticle.lifeRemainingSeconds <= 0) {
         updateTrailParticleInstance(TrailParticle, 0);
@@ -136,7 +181,10 @@ export function createFrameVisuals(THREE, host) {
       const LifeRatio = TrailParticle.lifeRemainingSeconds / TrailParticle.maximumLifeSeconds;
       updateTrailParticleInstance(TrailParticle, 0.18 + (LifeRatio * 0.69));
     }
-    TrailParticleMesh.instanceMatrix.needsUpdate = true;
+    if (LiveCount > 0 || LastTrailLiveCount !== 0) {
+      TrailParticleMesh.instanceMatrix.needsUpdate = true;
+    }
+    LastTrailLiveCount = LiveCount;
   }
 
   /** Adds distinct, restrained biome motion without distracting from aiming. */
@@ -338,20 +386,70 @@ export function createFrameVisuals(THREE, host) {
         }
       }
     }
+    const CanvasClassList = GameCanvas.classList;
+    const HasCanvasClass = (Name) => (
+      typeof CanvasClassList?.contains === 'function' && CanvasClassList.contains(Name)
+    );
     const IsChargingLaunch = host.IsPointerAiming || host.IsKeyboardAiming;
+    const VerbHighlight = getLandedVerbHighlight({
+      gamePhase: host.GamePhase,
+      hasWalkedOnce: host.HasWalkedOnce === true,
+      hasLaunchedOnce: host.HasLaunchedOnce === true,
+      isGrabReady: HasCanvasClass('is-grab-ready'),
+      isShipArmed: HasCanvasClass('is-ship-armed'),
+      isAiming: IsChargingLaunch,
+      isWalkReady: HasCanvasClass('is-walk-ready'),
+      isWalking: host.PointerGestureMode === SurfaceGestureModes.walk
+        || host.IsPointerWalking === true,
+    });
     SeedHaloMesh.scale.setScalar(
-      1
-      + (IsChargingLaunch ? 0.24 : 0)
-      + (Math.sin(ElapsedTimeSeconds * (IsChargingLaunch ? 7.4 : 4.2)) * 0.08),
+      (VerbHighlight.shipHaloCharge ? 1.42 : (VerbHighlight.shipHalo ? 1.18 : 1))
+      + (Math.sin(ElapsedTimeSeconds * (VerbHighlight.shipHaloCharge ? 7.4 : 4.2)) * (
+        VerbHighlight.shipHaloCharge ? 0.12 : 0.08
+      )),
     );
     if (RunnerAnimationState === 'recovering') {
       SeedHaloMaterial.color.setHex(0xff766d);
     } else {
-      SeedHaloMaterial.color.setHex(IsChargingLaunch ? 0xc4f7a6 : 0x6de8ff);
+      SeedHaloMaterial.color.setHex(VerbHighlight.shipHaloCharge ? 0xc4f7a6 : 0x6de8ff);
     }
-    const HaloRestOpacity = RunnerAnimationState === 'liberating' ? 0.2 : 0.105;
-    SeedHaloMaterial.opacity = (IsChargingLaunch ? 0.34 : HaloRestOpacity)
-      + (Math.sin(ElapsedTimeSeconds * 4.2) * (IsChargingLaunch ? 0.06 : 0.025));
+    const HaloRestOpacity = RunnerAnimationState === 'liberating'
+      ? 0.2
+      : (VerbHighlight.shipHalo ? 0.22 : 0.08);
+    SeedHaloMaterial.opacity = (VerbHighlight.shipHaloCharge ? 0.48 : HaloRestOpacity)
+      + (Math.sin(ElapsedTimeSeconds * 4.2) * (VerbHighlight.shipHaloCharge ? 0.08 : 0.03));
+
+    const AttachedWalkWorld = VerbHighlight.worldWalkHalo
+      ? getWorldDefinition(host.CurrentWorldIdentifier)
+      : null;
+    if (AttachedWalkWorld?.position && WorldWalkHaloMesh) {
+      WorldWalkHaloMesh.visible = true;
+      WorldWalkHaloMesh.position.set(
+        AttachedWalkWorld.position.x,
+        AttachedWalkWorld.position.y,
+        AttachedWalkWorld.position.z ?? 0,
+      );
+      const WalkHaloRadius = AttachedWalkWorld.radius * 1.06;
+      WorldWalkHaloMesh.scale.setScalar(WalkHaloRadius);
+      WorldWalkHaloMaterial.opacity = (
+        host.IsPointerWalking || HasCanvasClass('is-walk-ready')
+          ? 0.22
+          : 0.12
+      ) + (Math.sin(ElapsedTimeSeconds * 3.4) * 0.04);
+    } else if (WorldWalkHaloMesh) {
+      WorldWalkHaloMesh.visible = false;
+    }
+
+    if (WalkCursorMesh && VerbHighlight.walkCursor && host.WalkHintVisible === true) {
+      WalkCursorMesh.visible = true;
+      WalkCursorMesh.position.copy(host.WalkHintPosition);
+      WalkCursorMesh.lookAt(Camera.position);
+      WalkCursorMaterial.opacity = 0.72 + (Math.sin(ElapsedTimeSeconds * 8) * 0.12);
+      const CursorPulse = 1 + (Math.sin(ElapsedTimeSeconds * 8) * 0.12);
+      WalkCursorMesh.scale.setScalar(CursorPulse);
+    } else if (WalkCursorMesh) {
+      WalkCursorMesh.visible = false;
+    }
 
     if (host.LiberationFlashLifeSeconds > 0) {
       host.LiberationFlashLifeSeconds = Math.max(
@@ -367,10 +465,12 @@ export function createFrameVisuals(THREE, host) {
 
     if (host.GamePhase === 'flying') {
       updateFlightPlanningPresentation();
-      host.TrailEmissionAccumulatorSeconds += DeltaTimeSeconds;
-      while (host.TrailEmissionAccumulatorSeconds >= 0.036) {
-        emitTrailParticle();
-        host.TrailEmissionAccumulatorSeconds -= 0.036;
+      if (getPresentationQuality()?.trailUpdates !== false) {
+        host.TrailEmissionAccumulatorSeconds += DeltaTimeSeconds;
+        while (host.TrailEmissionAccumulatorSeconds >= 0.036) {
+          emitTrailParticle();
+          host.TrailEmissionAccumulatorSeconds -= 0.036;
+        }
       }
     }
 
@@ -384,10 +484,25 @@ export function createFrameVisuals(THREE, host) {
 
     if (host.LaunchPulseLifeSeconds > 0) {
       host.LaunchPulseLifeSeconds = Math.max(0, host.LaunchPulseLifeSeconds - DeltaTimeSeconds);
-      const LaunchProgress = 1 - (host.LaunchPulseLifeSeconds / 0.42);
+      const PulseDuration = host.LaunchPulseDurationSeconds > 0
+        ? host.LaunchPulseDurationSeconds
+        : 0.42;
+      const LaunchProgress = 1 - (host.LaunchPulseLifeSeconds / PulseDuration);
       LaunchPulseMesh.scale.setScalar(1 + (LaunchProgress * 3.4));
       LaunchPulseMesh.material.opacity = (1 - LaunchProgress) * 0.68;
       LaunchPulseMesh.visible = host.LaunchPulseLifeSeconds > 0;
+    }
+
+    if (ShipThrusterMesh) {
+      if (host.BreakerBurnFlareLifeSeconds > 0) {
+        host.BreakerBurnFlareLifeSeconds = Math.max(
+          0,
+          host.BreakerBurnFlareLifeSeconds - DeltaTimeSeconds,
+        );
+      }
+      const FlareLife = host.BreakerBurnFlareLifeSeconds ?? 0;
+      const FlareScale = FlareLife > 0 ? 1 + ((FlareLife / 0.55) * 2.4) : 1;
+      ShipThrusterMesh.scale.setScalar(FlareScale);
     }
 
     if (host.ImpactPulseLifeSeconds > 0) {
@@ -405,7 +520,8 @@ export function createFrameVisuals(THREE, host) {
       && host.CurrentWorldIdentifier === StartingWorldIdentifier
       && !host.HasLaunchedOnce
       && !host.IsOpeningBriefingActive;
-    PullGuideLine.visible = IsOpeningCoachVisible;
+    PullGuideLine.visible = false;
+    PullGuideRibbon.mesh.visible = IsOpeningCoachVisible;
     updateTargetBeacons(ElapsedTimeSeconds);
     if (IsOpeningCoachVisible) {
       PullGuideMaterial.dashOffset -= DeltaTimeSeconds * 0.9;

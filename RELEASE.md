@@ -34,7 +34,7 @@ Every successful route leaves a relay behind. Close two unique circuits before t
 ## Controls copy
 
 - Pointer/touch: trace around a world to walk; pull backwards from the Runner and release to launch; grab the ship in flight to Burn once.
-- Keyboard: Q/E walks; left/right or A/D steers; up/down or W/S sets power; Shift enables fine control; Enter/Space launches; Space Burns in flight; Escape cancels an aim or opens pause.
+- Keyboard: Q/E walks around, T/F walks over the poles; left/right or A/D steers; up/down or W/S sets power; Shift enables fine control; Enter/Space launches; Space Burns in flight; Escape cancels an aim or opens pause.
 - C toggles Scout view; wheel, plus/minus or the pause-sheet zoom buttons adjust it. G toggles the verified local-best ghost when available.
 - R resets the attempt. M toggles audio. P cycles System, Reduced and Full motion. The pause sheet provides the same actions on touch screens.
 
@@ -76,7 +76,7 @@ Suggested 40-second trailer beat sheet:
 - Verify System, Reduced and Full motion modes, including local persistence and unchanged ranked state.
 - On a local `?diagnostics=1` build, start aiming and press Shift+B; confirm the aim cancels without launching and play resumes.
 - On the same local diagnostic build, press Shift+G; confirm WebGL loss is reported, restored and rendering resumes.
-- Press Shift+F on that local build; confirm the pixel-ratio cap degrades one step and restores one step without changing score or launches.
+- Press Shift+F on that local build; confirm bloom/nebula/pixel-ratio degrade one step and restore one step without changing score or launches.
 - Confirm draw calls remain under the 190-call ceiling.
 - Confirm the Breakers Board says offline when no endpoint is configured.
 - Re-run credits review after every asset, font, shader, sound or capture is added.
@@ -84,7 +84,13 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260817-ob99` passes deterministic tests (230), syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (pause sheet, ship fuel lights, Warden vessel telegraph).
+- Build `20260818-ob109` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (pause sheet, ship fuel lights, Warden vessel telegraph).
+- Frame-cost pass: default quality is balanced with UnrealBloom and shadows off, desktop fill capped at 1.5x and portrait/mobile at 1.25x. Adaptive samples every 0.75s; a hitch drops bloom then nebula/atmosphere shells/pixel-ratio. Bloom may return after four smooth samples on a strong GPU, still at 1.5x pixels. Feel it by landing on Haven (should stay smooth immediately) and pressing Shift+F on a `?diagnostics=1` build to watch `data-presentation-tier`, `data-bloom-pipeline` and `data-nebula` drop.
+- First-timer walk vs aim: the verb locks from where the pointer starts. Ship press aims for the whole gesture; planet crust walks; empty space pans. Sticky captions stay until the first walk ("Drag the planet to walk") then until the first launch ("Pull the ship, then let go"), then silence. No HUD panels returned.
+- Tight toy-diorama scale: people, trees, houses, workshops, docks, pack beasts and occupation pylons sit as miniature props. House/workshop profiles sit around 0.24–0.33 so a person is smaller than a house and a house is much smaller than the globe. The landed close-up camera pulls in so those props still read; Scout stays a wide sector view, with one extra zoom-in notch on landed/close only. World radii, gravity, scoring and flight physics are unchanged.
+- Look leftovers after the ob104 playtest: Ember's cream plaque and thin black bar stayed at a fixed screen position while the globe rotated, so they were leftover screen-space chips — frozen score-burst glow and empty route/toast boxes — not crust props. Empty playfield labels now collapse to a zero box; the score burst hides after its animation; idle toasts and the route-label layer stay fully unpainted. Occupation clamps remain short pylons. Window lights still draw; street/glow plaque instances are not allocated. R still always resets. Close-up nebula and bloom stay capped. Last leftover Destroy starts the cage-clear wrap/bloom and holds FIRST ANSWER until that pulse finishes on the live planet.
+- FUN reliability after the live Pages playtest: stalled crawls recover after a 3s no-progress orbit trap; Enter launches after a walk without an arrow key first; Reset/R skips the opening Warden intro and reframes Haven; Scout pullback and Break thruster flare stay diegetic; world chips keep their full pills and the Warden broadcast sits at the top edge instead of through the globe.
+- Tiny Worlds look pass after the live Pages playtest: per-world atmosphere/rim and biome surface identity, round star sprites, ring gravity wells, on-world cage-break/atmosphere bloom during liberation, flight follow with velocity lookahead, and world pills that clear after landing instead of leaving an empty black label.
 - Jam salvage checkpoints: one continuously-blended camera rig with zero hard snaps, selective bloom over a per-sector nebula skydome, dense instanced world life with ember dead worlds, mandatory-slingshot gravity (`breaker-reach-9`), relay-port precision landings, a two-card opening with first-run captions then silence, diegetic ship fuel lights, Warden vessel/forecast/target-world pulse telegraph, a pause sheet for Scout and settings, and an animated first-launch `PULL THE SHIP` hint.
 - A judge-style rescoring playtest (desktop 1280×800 and portrait 390×844) after these checkpoints read Art 10, Creativity 10, Gameplay 9, Polish 9, Theme 10 with zero console errors; the named top gap (drag-gesture discoverability) is answered by the first-launch pull hint.
 - Breaker's Reach is a twelve-body sector: Haven, Ember and Grove stay the inner neighbourhood, Spindle, Quarry, Mirage, Frost, Tide and Bastion wait behind the veil, and the Ledge, Cinder and Glasswing relay shards stage the mandatory slingshot legs. Aiming frames the current world's neighbours so the bigger map stays readable; Scout zoom-out reaches 3.85. Every unrestored world carries a beacon-marked relay-port arc: landing inside liberates with a CLEAN/BULLSEYE precision bonus, landing outside docks and links only. Golden complete replay derives score 53,300 over eight launches on content `breaker-reach-9`.
@@ -97,7 +103,7 @@ Suggested 40-second trailer beat sheet:
 - Campaign story boards wait for the wrapping liberation and relay look, then freeze the sim. Continue and Skip disconnect dialogue voices and restore the game bed. Aiming snaps to the sector frame and no longer inherits landed pan/zoom, so fog cannot swallow the predicted path.
 - A complete desktop Breaker's Reach route reached both circuits, the moving Command World and a verified 12,250 result at 176/190 peak draw calls.
 - A fresh 390×844 route reached the same verified ending at 174/190, with no overflow and all visible controls at least 44px high.
-- 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.5 device-pixel-ratio cap.
+- 844×390 and 390×844 resize/orientation changes publish the correct layout and 1.25 device-pixel-ratio cap.
 - Explicit reduced motion preserves the deterministic Haven-to-Ember launch and landing.
 - Local-only diagnostics prove background aim cancellation/resume, WebGL loss/restoration and adaptive-quality degradation/recovery.
 - Breaker's Reach results use authored Command, Solidarity and Wayfinder emblems and report bonus fuel without presenting zero as a failure condition.

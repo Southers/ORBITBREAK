@@ -73,6 +73,15 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     Transform.updateMatrix();
   }
 
+  function shouldSkipStridedPresentation() {
+    const QualitySettings = host.AdaptivePresentationSettings;
+    const Stride = QualitySettings?.instanceStride ?? 1;
+    if (Stride <= 1) {
+      return false;
+    }
+    return (host.PresentationFrameIndex ?? 0) % Stride !== 0;
+  }
+
   /**
    * Merges primitive parts into one instanced silhouette. Keeps draw count
    * unchanged while giving people and buildings readable toy shapes.
@@ -172,41 +181,41 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   /** Cottage: walls, pitched roof, chimney and a door that reads from orbit. */
   function createCottageBuildingGeometry() {
     return mergePrimitiveParts([
-      { geometry: new THREE.BoxGeometry(0.72, 0.42, 0.58), position: [0, 0.21, 0] },
-      { geometry: new THREE.ConeGeometry(0.58, 0.38, 4), position: [0, 0.58, 0], rotation: [0, Math.PI * 0.25, 0] },
-      { geometry: new THREE.BoxGeometry(0.12, 0.22, 0.12), position: [0.18, 0.7, -0.08] },
-      { geometry: new THREE.BoxGeometry(0.16, 0.26, 0.05), position: [0, 0.16, 0.3] },
+      { geometry: new THREE.BoxGeometry(0.72, 0.42, 0.58), position: [0, 0.21, 0], color: 0xe4c49a },
+      { geometry: new THREE.ConeGeometry(0.58, 0.38, 4), position: [0, 0.58, 0], rotation: [0, Math.PI * 0.25, 0], color: 0xb24a3a },
+      { geometry: new THREE.BoxGeometry(0.12, 0.22, 0.12), position: [0.18, 0.7, -0.08], color: 0x7a5344 },
+      { geometry: new THREE.BoxGeometry(0.16, 0.26, 0.05), position: [0, 0.16, 0.3], color: 0x4a2e24 },
     ]);
   }
 
   /** Furnace: kiln body, stack and a mouth so workshops read as industry. */
   function createFurnaceBuildingGeometry() {
     return mergePrimitiveParts([
-      { geometry: new THREE.CylinderGeometry(0.22, 0.26, 0.38, 8), position: [0, 0.19, 0] },
-      { geometry: new THREE.CylinderGeometry(0.1, 0.12, 0.52, 6), position: [0, 0.62, 0] },
-      { geometry: new THREE.BoxGeometry(0.16, 0.14, 0.08), position: [0, 0.18, 0.24] },
-      { geometry: new THREE.BoxGeometry(0.36, 0.08, 0.36), position: [0, 0.04, 0] },
+      { geometry: new THREE.CylinderGeometry(0.22, 0.26, 0.38, 8), position: [0, 0.19, 0], color: 0xb76545 },
+      { geometry: new THREE.CylinderGeometry(0.1, 0.12, 0.52, 6), position: [0, 0.62, 0], color: 0x5a3a32 },
+      { geometry: new THREE.BoxGeometry(0.16, 0.14, 0.08), position: [0, 0.18, 0.24], color: 0xff7b32 },
+      { geometry: new THREE.BoxGeometry(0.36, 0.08, 0.36), position: [0, 0.04, 0], color: 0x4a2c24 },
     ]);
   }
 
   /** Canopy hall: trunk plus two leaf masses, a tree-building not a lathe blob. */
   function createCanopyBuildingGeometry() {
     return mergePrimitiveParts([
-      { geometry: new THREE.CylinderGeometry(0.08, 0.11, 0.36, 6), position: [0, 0.18, 0] },
-      { geometry: new THREE.SphereGeometry(0.28, 8, 6), position: [0, 0.42, 0] },
-      { geometry: new THREE.ConeGeometry(0.32, 0.34, 6), position: [0, 0.68, 0] },
+      { geometry: new THREE.CylinderGeometry(0.08, 0.11, 0.36, 6), position: [0, 0.18, 0], color: 0x6a4a36 },
+      { geometry: new THREE.SphereGeometry(0.28, 8, 6), position: [0, 0.42, 0], color: 0x4e7a44 },
+      { geometry: new THREE.ConeGeometry(0.32, 0.34, 6), position: [0, 0.68, 0], color: 0x3d6a38 },
     ]);
   }
 
   /** Jetty: deck, pilings and a bollard so docks read as harbour, not a plank. */
   function createJettyBuildingGeometry() {
     return mergePrimitiveParts([
-      { geometry: new THREE.BoxGeometry(1.42, 0.1, 0.48), position: [0, 0.16, 0] },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, 0.16] },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, 0.16] },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, -0.16] },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, -0.16] },
-      { geometry: new THREE.CylinderGeometry(0.04, 0.05, 0.16, 6), position: [0.48, 0.26, 0] },
+      { geometry: new THREE.BoxGeometry(1.42, 0.1, 0.48), position: [0, 0.16, 0], color: 0x8a6a48 },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, 0.16], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, 0.16], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, -0.16], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, -0.16], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.04, 0.05, 0.16, 6), position: [0.48, 0.26, 0], color: 0xc9a078 },
     ]);
   }
 
@@ -291,7 +300,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     depthWrite: false,
   });
   const GravityWellMesh = new THREE.InstancedMesh(
-    new THREE.PlaneGeometry(2, 2),
+    new THREE.RingGeometry(0.58, 1, 64),
     GravityWellMaterial,
     WorldDefinitions.length,
   );
@@ -418,7 +427,13 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
 
     SlingshotAssistMaterial.opacity = VisualState.assistOpacity;
     SlingshotRazorMaterial.opacity = VisualState.razorOpacity;
-    GravityWellMaterial.opacity = VisualState.wellOpacity;
+    const ZoomFade = THREE.MathUtils.clamp(
+      1 - THREE.MathUtils.smoothstep(0.95, 1.55, host.CameraDistanceScale ?? 1),
+      0,
+      1,
+    );
+    GravityWellMesh.visible = ZoomFade > 0.04;
+    GravityWellMaterial.opacity = VisualState.wellOpacity * (0.22 + (ZoomFade * 0.78));
     const BandRotation = PrefersReducedMotion ? 0 : ElapsedTimeSeconds * 0.14;
     for (let WorldIndex = 0; WorldIndex < WorldDefinitions.length; WorldIndex += 1) {
       const WorldDefinition = WorldDefinitions[WorldIndex];
@@ -440,7 +455,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       SlingshotRazorMesh.setColorAt(WorldIndex, SlingshotRazorColor);
 
       const WellRadius = WorldDefinition.radius
-        + (Math.sqrt(WorldDefinition.gravitationalParameter) * 0.34);
+        + (Math.sqrt(WorldDefinition.gravitationalParameter) * 0.22);
       SlingshotBandTransform.rotation.set(0, 0, 0);
       SlingshotBandTransform.position.set(
         WorldDefinition.position.x,
@@ -462,24 +477,25 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   }
 
   /** Instanced mines, clamps, fumes and haulers make Warden-owned worlds look eaten, not merely clamped. */
+  // Toy-diorama occupation kit: pylons stay readable at Scout, mines stay smaller than the globe.
   const OccupationScarProfiles = {
-    meadow: { height: 0.9, width: 0.82, depth: 0.82 },
-    ember: { height: 1.42, width: 0.7, depth: 0.86 },
-    grove: { height: 0.78, width: 1.18, depth: 0.72 },
-    tide: { height: 0.92, width: 1.3, depth: 0.68 },
-    frost: { height: 1.22, width: 0.72, depth: 0.88 },
-    vault: { height: 1.48, width: 0.78, depth: 0.92 },
-    loom: { height: 0.86, width: 1.12, depth: 0.7 },
-    kiln: { height: 1.36, width: 0.74, depth: 0.88 },
-    shard: { height: 1.28, width: 0.7, depth: 0.94 },
-    relay: { height: 0.9, width: 0.82, depth: 0.82 },
-    drift: { height: 0.92, width: 1.3, depth: 0.68 },
-    bower: { height: 0.9, width: 0.82, depth: 0.82 },
-    lantern: { height: 1.36, width: 0.74, depth: 0.88 },
-    canopy: { height: 0.78, width: 1.18, depth: 0.72 },
-    crown: { height: 1.48, width: 0.78, depth: 0.92 },
-    dew: { height: 0.92, width: 1.3, depth: 0.68 },
-    nest: { height: 1.22, width: 0.72, depth: 0.88 },
+    meadow: { height: 0.16, width: 0.24, depth: 0.24 },
+    ember: { height: 0.23, width: 0.22, depth: 0.26 },
+    grove: { height: 0.15, width: 0.3, depth: 0.22 },
+    tide: { height: 0.16, width: 0.33, depth: 0.2 },
+    frost: { height: 0.2, width: 0.22, depth: 0.26 },
+    vault: { height: 0.24, width: 0.23, depth: 0.27 },
+    loom: { height: 0.16, width: 0.28, depth: 0.22 },
+    kiln: { height: 0.22, width: 0.23, depth: 0.26 },
+    shard: { height: 0.2, width: 0.22, depth: 0.27 },
+    relay: { height: 0.16, width: 0.24, depth: 0.24 },
+    drift: { height: 0.16, width: 0.33, depth: 0.2 },
+    bower: { height: 0.16, width: 0.24, depth: 0.24 },
+    lantern: { height: 0.22, width: 0.23, depth: 0.26 },
+    canopy: { height: 0.15, width: 0.3, depth: 0.22 },
+    crown: { height: 0.24, width: 0.23, depth: 0.27 },
+    dew: { height: 0.16, width: 0.33, depth: 0.2 },
+    nest: { height: 0.2, width: 0.22, depth: 0.26 },
   };
   const OccupationFumeColors = {
     meadow: new THREE.Color(0x8a6a40),
@@ -507,7 +523,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       patternIndex: PatternIndex,
       buildingFamily: getProsperityBuildingFamily(WorldDefinition.visualKey),
       profile: OccupationScarProfiles[WorldDefinition.visualKey]
-        ?? { height: 0.85, width: 0.8, depth: 0.8 },
+        ?? { height: 0.18, width: 0.23, depth: 0.23 },
       fumeColor: OccupationFumeColors[WorldDefinition.visualKey] ?? OccupationFumeColors.vault,
     }))
   ));
@@ -536,7 +552,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     OccupationScarCapacity,
   );
   const OccupationClampMesh = new THREE.InstancedMesh(
-    new THREE.BoxGeometry(0.68, 0.1, 0.16),
+    new THREE.CylinderGeometry(0.036, 0.048, 0.28, 6),
     OccupationScarMaterial,
     OccupationScarCapacity,
   );
@@ -550,7 +566,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     toneMapped: false,
   });
   const OccupationFumeMesh = new THREE.InstancedMesh(
-    new THREE.ConeGeometry(0.16, 0.72, 6, 1, true),
+    new THREE.ConeGeometry(0.11, 0.52, 6, 1, true),
     OccupationFumeMaterial,
     OccupationScarCapacity,
   );
@@ -593,6 +609,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   let VisibleExtractionFreighterCount = -1;
 
   function updateOccupationScarVisuals(ElapsedTimeSeconds) {
+    if (shouldSkipStridedPresentation()) {
+      return;
+    }
     const {
       IsPointerAiming,
       IsKeyboardAiming,
@@ -615,6 +634,12 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         RestorationProgress,
       );
       if (ScarStrength > 0.01) NextVisibleOccupationScarCount += 1;
+      if (ScarStrength <= 0.01) {
+        hideInstance(OccupationScarTransform, OccupationMineMesh, ScarIndex);
+        hideInstance(OccupationScarTransform, OccupationClampMesh, ScarIndex);
+        hideInstance(OccupationScarTransform, OccupationFumeMesh, ScarIndex);
+        continue;
+      }
       const Height = Scar.profile.height * (1 + ((Scar.patternIndex % 2) * 0.12));
       applySphereInstance(
         OccupationScarTransform,
@@ -639,10 +664,10 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         : 1 + (Math.sin((ElapsedTimeSeconds * 1.7) + Scar.patternIndex) * 0.18);
       applySphereInstance(
         OccupationScarTransform,
-        getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.92),
-        ScarStrength * FumePulse,
-        ScarStrength * (1.15 + ((Scar.patternIndex % 2) * 0.25)) * FumePulse,
-        ScarStrength * FumePulse,
+        getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.55),
+        ScarStrength * 0.42 * FumePulse,
+        ScarStrength * 0.5 * (1.05 + ((Scar.patternIndex % 2) * 0.18)) * FumePulse,
+        ScarStrength * 0.42 * FumePulse,
       );
       OccupationFumeMesh.setMatrixAt(ScarIndex, OccupationScarTransform.matrix);
       OccupationFumeColor.copy(Scar.fumeColor);
@@ -782,7 +807,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   const ProsperityBuildingColor = new THREE.Color();
   const ProsperityCircuitWarmColor = new THREE.Color(0xffe7b0);
   const ProsperityDockLitColor = new THREE.Color(0xfff4c8);
-  const ProsperityWindowCapacity = Math.max(1, OccupationScarCapacity * 3);
+  const ProsperityWindowCapacity = Math.max(1, OccupationScarCapacity);
   const ProsperityWindowMaterial = new THREE.MeshBasicMaterial({
     color: 0xffe29a,
     transparent: true,
@@ -797,6 +822,8 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     ProsperityWindowMaterial,
     ProsperityWindowCapacity,
   );
+  // Window lights only. Street and town-glow used stretched untextured boxes
+  // that read as blank plaques; those instances are no longer allocated.
   ProsperityWindowMesh.count = 0;
   ProsperityWindowMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   ProsperityWindowMesh.frustumCulled = false;
@@ -823,13 +850,6 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       FinaleRestorationStartedAtSeconds,
     } = host;
     return PrefersReducedMotion ? 0 : 0.12;
-  }
-
-  function hideProsperityWindows(ScarIndex) {
-    const WindowSlot = ScarIndex * 3;
-    hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, WindowSlot);
-    hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, WindowSlot + 1);
-    hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, WindowSlot + 2);
   }
 
   function refreshDockedTradeState(ElapsedTimeSeconds) {
@@ -897,6 +917,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   }
 
   function updateProsperityBuildingVisuals(ElapsedTimeSeconds) {
+    if (shouldSkipStridedPresentation()) {
+      return;
+    }
     const {
       IsPointerAiming,
       IsKeyboardAiming,
@@ -932,7 +955,6 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       const HideBuilding = Presence <= 0.04 || !BuildingProfile;
       if (HideBuilding) {
         hideInstance(ProsperityBuildingTransform, FamilyMesh, Scar.familyIndex);
-        hideProsperityWindows(ScarIndex);
         continue;
       }
       NextVisibleProsperityBuildingCount += 1;
@@ -958,51 +980,19 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       }
       FamilyMesh.setColorAt(Scar.familyIndex, ProsperityBuildingColor);
 
-      const WindowSlot = ScarIndex * 3;
-      const StreetSlot = WindowSlot + 1;
-      const GlowSlot = WindowSlot + 2;
       if (BuildingProfile.hasWindow) {
         applySphereInstance(
           ProsperityWindowTransform,
           getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.42),
-          Presence,
-          Presence * (IsDockLit ? 1.25 : 1),
-          Presence,
+          Presence * 0.13,
+          Presence * 0.11 * (IsDockLit ? 1.25 : 1),
+          Presence * 0.09,
         );
-        ProsperityWindowMesh.setMatrixAt(WindowSlot, ProsperityWindowTransform.matrix);
+        ProsperityWindowMesh.setMatrixAt(NextVisibleWindowCount, ProsperityWindowTransform.matrix);
         ProsperityWindowColor.setHex(ProsperityStage === 'circuit' ? 0xfff0c4 : 0xffd27a);
-        ProsperityWindowMesh.setColorAt(WindowSlot, ProsperityWindowColor);
+        ProsperityWindowMesh.setColorAt(NextVisibleWindowCount, ProsperityWindowColor);
         NextVisibleWindowCount += 1;
-      } else {
-        hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, WindowSlot);
       }
-      if (BuildingProfile.hasStreet) {
-        applySphereInstance(
-          ProsperityWindowTransform,
-          getWorldLifePlacement(Scar.worldDefinition, Scar.site, 0.02),
-          2.4 * Presence,
-          0.18 * Presence,
-          0.7 * Presence,
-        );
-        ProsperityWindowMesh.setMatrixAt(StreetSlot, ProsperityWindowTransform.matrix);
-        ProsperityWindowColor.setHex(0x6a5a48);
-        ProsperityWindowMesh.setColorAt(StreetSlot, ProsperityWindowColor);
-        NextVisibleWindowCount += 1;
-      } else {
-        hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, StreetSlot);
-      }
-      const GlowScale = Presence * (ProsperityStage === 'circuit' ? 4.2 : 3.4);
-      applySphereInstance(
-        ProsperityWindowTransform,
-        getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.72),
-        GlowScale,
-        GlowScale * 0.55,
-        GlowScale,
-      );
-      ProsperityWindowMesh.setMatrixAt(GlowSlot, ProsperityWindowTransform.matrix);
-      ProsperityWindowColor.setHex(ProsperityStage === 'circuit' ? 0xfff3c8 : 0xffc878);
-      ProsperityWindowMesh.setColorAt(GlowSlot, ProsperityWindowColor);
-      NextVisibleWindowCount += 1;
     }
     for (const FamilyMesh of Object.values(ProsperityBuildingMeshes)) {
       if (FamilyMesh.count > 0) {
@@ -1018,7 +1008,8 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         ProsperityWindowMesh.instanceColor.needsUpdate = true;
       }
     }
-    ProsperityWindowMesh.count = OccupationScarInstances.length * 3;
+    ProsperityWindowMesh.count = NextVisibleWindowCount;
+    ProsperityWindowMesh.visible = NextVisibleWindowCount > 0;
     const HasLiveCircuit = getFrameLiveRelayCircuits().length > 0;
     const WindowPulse = PrefersReducedMotion
       ? 0.68
@@ -1125,6 +1116,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   GameCanvas.dataset.inhabitantCount = String(InhabitantInstances.length);
 
   function updateInhabitantVisuals(ElapsedTimeSeconds) {
+    if (shouldSkipStridedPresentation()) {
+      return;
+    }
     const {
       IsPointerAiming,
       IsKeyboardAiming,
@@ -1213,14 +1207,13 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         );
       const HeightScale = THREE.MathUtils.lerp(HeldHeight, 1, Freedom) * BobScale;
       const Silhouette = getInhabitantSilhouette(Inhabitant.slotIndex);
-      const SilhouetteMix = Freedom;
       const FacingYaw = Inhabitant.phase + (WalkingOffset * 14);
       applySphereInstance(
         InhabitantTransform,
         getWorldLifePlacement(Inhabitant.worldDefinition, SurfaceSite, 0.02),
-        Presence * THREE.MathUtils.lerp(1, Silhouette.scale.x, SilhouetteMix),
-        Presence * HeightScale * THREE.MathUtils.lerp(1, Silhouette.scale.y, SilhouetteMix),
-        Presence * THREE.MathUtils.lerp(1, Silhouette.scale.z, SilhouetteMix),
+        Presence * Silhouette.scale.x,
+        Presence * HeightScale * Silhouette.scale.y,
+        Presence * Silhouette.scale.z,
         FacingYaw,
       );
       FamilyMesh.setMatrixAt(Inhabitant.familyIndex, InhabitantTransform.matrix);
