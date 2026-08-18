@@ -56,13 +56,17 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.equal(BreakerReachSystemDefinition.openingBriefing[1].title, 'I stole the last ship.');
   assert.match(
     BreakerReachSystemDefinition.openingBriefing[1].body,
-    /Orbitbreaker between tiny worlds/,
+    /Orbitbreaker to other tiny worlds/,
   );
   assert.match(
     BreakerReachSystemDefinition.openingBriefing[1].body,
-    /Swipe from the ship through a cage/,
+    /Linking them lets those worlds prosper/,
   );
-  assert.equal(BreakerReachSystemDefinition.openingBody, 'Link a world and it wakes: lights, people, trade.');
+  assert.match(
+    BreakerReachSystemDefinition.openingBriefing[1].body,
+    /Pull the ship through a cage to break it/,
+  );
+  assert.equal(BreakerReachSystemDefinition.openingBody, 'Linking them lets those worlds prosper.');
   assert.equal(BreakerReachSystemDefinition.storyBoards.firstAnswer.pages.length, 2);
   assert.equal(BreakerReachSystemDefinition.storyBoards.wardenArrival.pages.length, 2);
   assert.doesNotMatch(

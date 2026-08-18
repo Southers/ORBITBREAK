@@ -235,7 +235,6 @@ export function createHud(host) {
 
   /**
    * First-run fading captions for later verbs. Walk and launch stay on the sticky coach.
-   * Walk gets one prosper line so a skipped intro still names why you fly.
    *
    * @param {string} Title - Strong instruction line.
    * @param {string} Body - Supporting instruction line.
@@ -266,7 +265,7 @@ export function createHud(host) {
     }, host.PrefersReducedMotion ? 4200 : 3200);
   }
 
-  /** Walk line holds until the ship is first grabbed, aim line until first launch, then silence. */
+  /** Walk names prosper. Aim names cage-break. Titles stay in presentation.js. */
   function updateFirstRunCoach() {
     const Coach = getFirstRunCoachPresentation({
       gamePhase: host.GamePhase,
@@ -285,7 +284,11 @@ export function createHud(host) {
       return;
     }
     const CoachBody = Coach.body
-      || (Coach.kind === 'walk' ? 'Link a world and it wakes: lights, people, trade.' : '');
+      || (Coach.kind === 'walk'
+        ? 'Linking them lets those worlds prosper.'
+        : Coach.kind === 'aim'
+          ? 'Occupied worlds have Warden cages. Pull the ship through a cage to break it.'
+          : '');
     const SameCaption = PlayCaptionElement.dataset.coachKind === Coach.kind
       && PlayCaptionTitleElement.textContent === Coach.title
       && PlayCaptionBodyElement.textContent === CoachBody

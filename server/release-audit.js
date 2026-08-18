@@ -536,16 +536,15 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
-      ?.openingBody.includes('Link a world and it wakes')
+      ?.openingBody.includes('Linking them lets those worlds prosper')
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
-        ?.openingBody.includes('lights, people, trade')
+        ?.openingBriefing?.[1]?.body.includes('Orbitbreaker to other tiny worlds')
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
-        ?.openingBriefing?.[1]?.body.includes('Orbitbreaker between tiny worlds')
-      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
-        ?.openingBriefing?.[1]?.body.includes('Swipe from the ship through a cage')
+        ?.openingBriefing?.[1]?.body.includes('Pull the ship through a cage to break it')
       && RoutePresentationSource.includes('getHiddenWardenRouteCoach(')
       && HudSource.includes('getLoopObjectivePresentation(')
-      && HudSource.includes('Link a world and it wakes: lights, people, trade.')
+      && HudSource.includes('Linking them lets those worlds prosper.')
+      && HudSource.includes('Pull the ship through a cage to break it.')
       && PresentationSource.includes('export function getRelayRevealLookTarget(')
       && LandingDirectorSource.includes('getRelayRevealLookTarget(')
       && LandingDirectorSource.includes('function restoreWorld(')

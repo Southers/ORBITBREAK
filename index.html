@@ -14,20 +14,20 @@
   />
   <meta name="theme-color" content="#07111d" />
   <meta name="orbitbreak-leaderboard-api" content="" />
-  <meta name="description" content="Fly the Orbitbreaker between tiny worlds. Land, walk, then launch. Linking worlds wakes them. Break the Warden's moving Command World." />
+  <meta name="description" content="Fly the Orbitbreaker to other tiny worlds. Linking them lets those worlds prosper. Break the Warden's moving Command World." />
   <meta property="og:title" content="ORBITBREAK" />
-  <meta property="og:description" content="Fly the Orbitbreaker between tiny worlds. Land, walk, launch, link them, and break the Warden's moving Command World." />
+  <meta property="og:description" content="Fly the Orbitbreaker to other tiny worlds. Linking them lets those worlds prosper. Break the Warden's moving Command World." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://southers.github.io/ORBITBREAK/" />
   <meta property="og:site_name" content="ORBITBREAK" />
   <meta property="og:image" content="https://southers.github.io/ORBITBREAK/assets/warden-portrait.jpg" />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="ORBITBREAK" />
-  <meta name="twitter:description" content="Fly the Orbitbreaker between tiny worlds. Land, walk, launch, link them, and break the Warden's moving Command World." />
+  <meta name="twitter:description" content="Fly the Orbitbreaker to other tiny worlds. Linking them lets those worlds prosper. Break the Warden's moving Command World." />
   <meta name="twitter:image" content="https://southers.github.io/ORBITBREAK/assets/warden-portrait.jpg" />
   <title>ORBITBREAK</title>
-  <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260818-ob122" />
-  <!-- copy-revision: 20260818-ob122 -->
+  <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260818-ob123" />
+  <!-- copy-revision: 20260818-ob123 -->
   <link rel="stylesheet" href="./src/style.css?v=20260818-ob121" />
 
   <!--
@@ -47,7 +47,7 @@
     <canvas
       id="GameCanvas"
       tabindex="0"
-      aria-label="ORBITBREAK. Fly the Orbitbreaker between tiny worlds. Drag a world to walk, pull the ship then let go to launch, and swipe from the ship through a cage to break it."
+      aria-label="ORBITBREAK. Fly the Orbitbreaker to other tiny worlds. Drag a world to walk, pull the ship then let go to launch, and pull the ship through a cage to break it."
       aria-describedby="KeyboardHelp"
       aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Enter Space Escape A D W S Q E T F C G R + -"
     ></canvas>
@@ -55,10 +55,10 @@
       Keyboard controls: focus the game, use left and right or A and D to steer, use up and
       down or W and S to change power, hold Shift for fine adjustments, and press Enter or
       Space to launch. Q and E walk around the current world; T and F walk over the poles.
-      Drag the planet to walk. Pull the ship, then let go. Linking worlds wakes them: lights, people, trade.
+      Drag the planet to walk. Pull the ship, then let go. Linking them lets those worlds prosper.
       Drag back onto the ship or press Escape to cancel.
       During flight, drag from the ship to break your line, or press Space to break along your heading.
-      Occupied worlds have cages. Drag from the ship through a cage to break it.
+      Occupied worlds have Warden cages. Pull the ship through a cage to break it.
       Press Escape when not aiming to pause. Press R to reset. Keyboard shortcuts C, plus, minus, G, P, M and R stay live during play.
     </p>
     <div id="LiberationFlash" class="liberation-flash" aria-hidden="true"></div>
@@ -79,14 +79,14 @@
         <figure class="opening-briefing__portrait">
           <img
             id="BriefingPortrait"
-            src="./assets/warden-portrait.jpg?v=20260818-ob122"
+            src="./assets/warden-portrait.jpg?v=20260818-ob123"
             alt=""
           />
           <figcaption id="BriefingSpeaker">THE WARDEN</figcaption>
         </figure>
         <h1 id="BriefingTitle">Travel is forbidden.</h1>
         <p id="BriefingBody">
-          Stay on your world. Do not fly. Do not talk to a neighbour. Connection is disorder. I hunt anyone who links a world.
+          Stay on your world. I hunt anyone who flies.
         </p>
         <p class="opening-briefing__progress" id="BriefingProgress">1 / 2</p>
         <div class="opening-briefing__actions">
