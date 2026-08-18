@@ -347,6 +347,41 @@ export class WorldseedAudio {
     this.closePassPlayed = false;
   }
 
+  /** Metallic snap for Destroy. Distinct from landing impact so a cut never sounds like a port. */
+  cut(HitCount = 1) {
+    if (this.storyPaused || !this.ensureStarted()) {
+      return;
+    }
+    const Count = Math.max(1, HitCount);
+    this.playNoise({ duration: 0.11, volume: 0.09, frequency: 2600 });
+    this.playNoise({ duration: 0.16, volume: 0.05, frequency: 740, delay: 0.02 });
+    this.playTone({
+      frequency: 880,
+      endFrequency: 196,
+      duration: 0.18,
+      volume: 0.09,
+      type: 'square',
+    });
+    this.playTone({
+      frequency: 1480,
+      endFrequency: 990,
+      duration: 0.09,
+      volume: 0.055,
+      delay: 0.035,
+      type: 'triangle',
+    });
+    if (Count > 1) {
+      this.playTone({
+        frequency: 1174,
+        endFrequency: 262,
+        duration: 0.16,
+        volume: 0.07,
+        delay: 0.07,
+        type: 'square',
+      });
+    }
+  }
+
   /** Bright swoop for the single Breaker Burn so the free correction feels spent. */
   breakerBurn() {
     if (this.storyPaused || !this.ensureStarted()) {

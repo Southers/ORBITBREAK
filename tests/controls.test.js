@@ -17,6 +17,8 @@ import {
   classifyLandedPointerStart,
   LandedPointerTargets,
   SeedScreenGrabRadiusPixels,
+  SeedOnGlobeGrabRadiusPixels,
+  getLandedShipGrabRadiusPixels,
   createSurfacePose,
   flattenSurfacePoseToEquator,
   getSphereSurfacePosition,
@@ -24,6 +26,9 @@ import {
   getGreatCircleAngle,
   getSurfacePoseFromDirection,
   getSurfaceWalkArcLimit,
+  getSurfaceWalkPointerArcLimit,
+  hasLeftSurfaceWalkDeadzone,
+  SurfaceWalkTapRadians,
   stepSurfacePoseToward,
   intersectRaySphere,
   clampCameraZoomScale,
@@ -159,6 +164,57 @@ test('sphere walking steps toward a far hit instead of snapping across the globe
   assert.ok(getSurfaceWalkArcLimit(1) <= 0.12);
 });
 
+test('visible-face sphere hits ignore the far side and origin-inside rays', () => {
+  const World = { x: 0, y: 0, z: 0 };
+  const Front = intersectRaySphere(
+    { x: 0, y: 0, z: 4 },
+    { x: 0, y: 0, z: -1 },
+    World,
+    2,
+    { nearOnly: true },
+  );
+  assert.ok(Front);
+  assert.ok(Math.abs(Front.z - 2) < 1e-9);
+  const Inside = intersectRaySphere(
+    { x: 0, y: 0, z: 0.2 },
+    { x: 0, y: 0, z: -1 },
+    World,
+    2,
+    { nearOnly: true },
+  );
+  assert.equal(Inside, null);
+  const Miss = intersectRaySphere(
+    { x: 4, y: 0, z: 4 },
+    { x: 1, y: 0, z: 0 },
+    World,
+    2,
+    { nearOnly: true },
+  );
+  assert.equal(Miss, null);
+});
+
+test('pointer walk ramps from a dead-zone so a flick cannot sling around the globe', () => {
+  const Start = createSurfacePose({ longitude: 0, latitude: 0 });
+  const Far = createSurfacePose({ longitude: Math.PI, latitude: 0 });
+  assert.equal(hasLeftSurfaceWalkDeadzone(Start, Start), false);
+  assert.equal(hasLeftSurfaceWalkDeadzone(Start, Far), true);
+  assert.equal(getSurfaceWalkPointerArcLimit(1 / 60, 0), 0);
+  const Early = getSurfaceWalkPointerArcLimit(1 / 60, 0.05);
+  const Cruise = getSurfaceWalkPointerArcLimit(1 / 60, 1);
+  assert.ok(Early < Cruise);
+  assert.ok(Cruise <= getSurfaceWalkArcLimit(1 / 60) + 1e-12);
+  const FlickTravel = getSurfaceWalkPointerArcLimit(0.05, 0.08);
+  assert.ok(FlickTravel < 0.04);
+});
+
+test('keyboard walk can share the pointer cruise step size', () => {
+  const Start = createSurfacePose({ longitude: 0, latitude: 0 });
+  const Tapped = adjustSurfacePose(Start, { east: 1 });
+  assert.ok(Math.abs(Tapped.longitude - SurfaceWalkTapRadians) < 1e-12);
+  const Held = adjustSurfacePose(Start, { east: 1, stepRadians: getSurfaceWalkArcLimit(1 / 60) });
+  assert.ok(Math.abs(Held.longitude - getSurfaceWalkArcLimit(1 / 60)) < 1e-12);
+});
+
 test('a ray hitting the globe walks and a pull into space aims', () => {
   const World = { x: 0, y: 0, z: 0 };
   const Hit = intersectRaySphere(
@@ -199,6 +255,25 @@ test('landed pointer-down locks ship, world or space before the drag moves', () 
     isOverWorld: false,
   }), LandedPointerTargets.space);
   assert.ok(SeedScreenGrabRadiusPixels > 44);
+});
+
+test('landed ship grab stays small on the visible crust so planet drags can walk', () => {
+  assert.equal(getLandedShipGrabRadiusPixels({ isOverWorld: false }), SeedScreenGrabRadiusPixels);
+  const OnGlobe = getLandedShipGrabRadiusPixels({
+    isOverWorld: true,
+    worldScreenRadiusPixels: 220,
+  });
+  assert.equal(OnGlobe, SeedOnGlobeGrabRadiusPixels);
+  assert.ok(OnGlobe < SeedScreenGrabRadiusPixels);
+  const TightDisc = getLandedShipGrabRadiusPixels({
+    isOverWorld: true,
+    worldScreenRadiusPixels: 48,
+  });
+  assert.ok(TightDisc < 48 * 0.5);
+  assert.equal(classifyLandedPointerStart({
+    isOverShip: false,
+    isOverWorld: true,
+  }), LandedPointerTargets.world);
 });
 
 test('a ship grab aims from a screen pull even while the globe is still under the pointer', () => {

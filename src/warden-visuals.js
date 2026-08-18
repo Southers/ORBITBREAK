@@ -11,26 +11,243 @@ export function createWardenVisuals(THREE, Scene, host) {
   } = host;
   const TemporaryThreeVector = new THREE.Vector3();
 
-  /** Spread clamps on a hostile rim. Drag through them to tear the cage. */
+  /** Spread cage cells on a hostile rim. Drag through them to tear the cage. */
   const HostilePylonGroup = new THREE.Group();
   const HostilePylonTemplateMaterial = new THREE.MeshStandardMaterial({
-    color: 0x5b1d29,
+    color: 0x3a161c,
     emissive: 0xff493f,
-    emissiveIntensity: 1.2,
-    roughness: 0.48,
-    metalness: 0.62,
+    emissiveIntensity: 1.05,
+    roughness: 0.42,
+    metalness: 0.72,
   });
+  const ClampPostGeometry = new THREE.BoxGeometry(0.18, 1.35, 0.18);
+  const ClampBarXGeometry = new THREE.BoxGeometry(0.95, 0.12, 0.14);
+  const ClampBarZGeometry = new THREE.BoxGeometry(0.14, 0.12, 0.7);
+  const ClampBaseGeometry = new THREE.BoxGeometry(1.02, 0.16, 0.78);
+  const ClampLockGeometry = new THREE.OctahedronGeometry(0.16, 0);
+  const ClampHoopGeometry = new THREE.TorusGeometry(0.48, 0.085, 8, 20);
+  const ClampPostOffsets = [
+    [-0.38, 0, -0.28],
+    [0.38, 0, -0.28],
+    [-0.38, 0, 0.28],
+    [0.38, 0, 0.28],
+  ];
+
+  function createHostileClampCage(Material) {
+    const Cage = new THREE.Group();
+    for (const [OffsetX, OffsetY, OffsetZ] of ClampPostOffsets) {
+      const Post = new THREE.Mesh(ClampPostGeometry, Material);
+      Post.position.set(OffsetX, OffsetY, OffsetZ);
+      Cage.add(Post);
+    }
+    for (const RingY of [0.52, 0.08, -0.36]) {
+      const Front = new THREE.Mesh(ClampBarXGeometry, Material);
+      Front.position.set(0, RingY, 0.28);
+      const Back = new THREE.Mesh(ClampBarXGeometry, Material);
+      Back.position.set(0, RingY, -0.28);
+      const Left = new THREE.Mesh(ClampBarZGeometry, Material);
+      Left.position.set(-0.38, RingY, 0);
+      const Right = new THREE.Mesh(ClampBarZGeometry, Material);
+      Right.position.set(0.38, RingY, 0);
+      Cage.add(Front, Back, Left, Right);
+    }
+    const Base = new THREE.Mesh(ClampBaseGeometry, Material);
+    Base.position.y = -0.62;
+    const Lock = new THREE.Mesh(ClampLockGeometry, Material);
+    Lock.position.y = 0.78;
+    const Hoop = new THREE.Mesh(ClampHoopGeometry, Material);
+    Hoop.position.y = 0.18;
+    Cage.add(Base, Lock, Hoop);
+    return Cage;
+  }
+
   const MaximumHostileClampCount = 5;
   for (let ClampIndex = 0; ClampIndex < MaximumHostileClampCount; ClampIndex += 1) {
-    const ClampMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.07, 0.24, 0.07),
-      HostilePylonTemplateMaterial.clone(),
-    );
+    const ClampMesh = createHostileClampCage(HostilePylonTemplateMaterial.clone());
     ClampMesh.visible = false;
+    ClampMesh.userData.clampId = ClampIndex;
+    ClampMesh.userData.clampMaterial = ClampMesh.children[0]?.material;
     HostilePylonGroup.add(ClampMesh);
   }
   HostilePylonGroup.visible = false;
   Scene.add(HostilePylonGroup);
+
+  const CutSlashMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffe7b0,
+    transparent: true,
+    opacity: 0.92,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const CutSlashMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 0.18, 0.08),
+    CutSlashMaterial,
+  );
+  CutSlashMesh.visible = false;
+  CutSlashMesh.renderOrder = 22;
+  CutSlashMesh.frustumCulled = false;
+  Scene.add(CutSlashMesh);
+
+  const HostileBreakGroup = new THREE.Group();
+  HostileBreakGroup.frustumCulled = false;
+  Scene.add(HostileBreakGroup);
+  const ClampBreakShardCount = 18;
+  const ClampBreakShardMaterial = new THREE.MeshStandardMaterial({
+    color: 0x4a1c24,
+    emissive: 0xffd678,
+    emissiveIntensity: 1.6,
+    roughness: 0.4,
+    metalness: 0.7,
+    transparent: true,
+    opacity: 1,
+  });
+  const ClampBreakShardMesh = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(0.07, 0.045, 0.035),
+    ClampBreakShardMaterial,
+    ClampBreakShardCount,
+  );
+  ClampBreakShardMesh.count = 0;
+  ClampBreakShardMesh.frustumCulled = false;
+  ClampBreakShardMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  HostileBreakGroup.add(ClampBreakShardMesh);
+  const ClampBreakBurstMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffe08a,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    toneMapped: false,
+  });
+  const ClampBreakBurstMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.16, 10, 8),
+    ClampBreakBurstMaterial,
+  );
+  ClampBreakBurstMesh.visible = false;
+  HostileBreakGroup.add(ClampBreakBurstMesh);
+  const ClampBreakShardTransform = new THREE.Object3D();
+  const ClampBreakWorldPosition = new THREE.Vector3();
+  const ActiveClampBreaks = [];
+
+  function placeCutSlash(Origin, End, WillHit) {
+    const DeltaX = End.x - Origin.x;
+    const DeltaY = End.y - Origin.y;
+    const Length = Math.hypot(DeltaX, DeltaY);
+    if (!(Length > 0.04)) {
+      CutSlashMesh.visible = false;
+      return;
+    }
+    CutSlashMesh.position.set(
+      (Origin.x + End.x) * 0.5,
+      (Origin.y + End.y) * 0.5,
+      0.3,
+    );
+    CutSlashMesh.rotation.set(0, 0, Math.atan2(DeltaY, DeltaX));
+    CutSlashMesh.scale.set(Length, WillHit ? 1.15 : 0.85, 1);
+    CutSlashMaterial.color.setHex(WillHit ? 0xffd678 : 0xffe7d2);
+    CutSlashMaterial.opacity = WillHit ? 0.96 : 0.55;
+    CutSlashMesh.visible = true;
+  }
+
+  function hideCutSlash() {
+    CutSlashMesh.visible = false;
+  }
+
+  function startClampBreaks(WorldDefinition, ClampIds, EncounterState) {
+    if (!WorldDefinition || !Array.isArray(ClampIds) || ClampIds.length < 1) {
+      return;
+    }
+    const ClampIdSet = new Set(ClampIds);
+    for (const Clamp of EncounterState?.clamps ?? []) {
+      if (!ClampIdSet.has(Clamp.id)) continue;
+      const ClampMesh = HostilePylonGroup.children[Clamp.id];
+      if (ClampMesh) {
+        ClampMesh.getWorldPosition(ClampBreakWorldPosition);
+        ClampMesh.visible = false;
+      } else {
+        ClampBreakWorldPosition.set(
+          WorldDefinition.position.x
+            + (Math.cos(Clamp.surfaceAngle) * (WorldDefinition.radius + 0.55)),
+          WorldDefinition.position.y
+            + (Math.sin(Clamp.surfaceAngle) * (WorldDefinition.radius + 0.55)),
+          0.12,
+        );
+      }
+      const ReducedMotion = host.PrefersReducedMotion === true;
+      ActiveClampBreaks.push({
+        x: ClampBreakWorldPosition.x,
+        y: ClampBreakWorldPosition.y,
+        z: ClampBreakWorldPosition.z,
+        age: 0,
+        duration: ReducedMotion ? 0.28 : 0.52,
+        reducedMotion: ReducedMotion,
+        shards: Array.from({ length: 6 }, (_, ShardIndex) => {
+          const Angle = Clamp.surfaceAngle + ((ShardIndex - 2.5) * 0.42);
+          return {
+            vx: Math.cos(Angle) * (ReducedMotion ? 0.4 : 1.35 + (ShardIndex % 3) * 0.28),
+            vy: Math.sin(Angle) * (ReducedMotion ? 0.4 : 1.35 + (ShardIndex % 3) * 0.28),
+            vz: ReducedMotion ? 0.12 : 0.55 - (ShardIndex * 0.12),
+            spin: (ShardIndex % 2 === 0 ? 1 : -1) * (2.4 + ShardIndex * 0.35),
+          };
+        }),
+      });
+    }
+  }
+
+  function updateClampBreaks(DeltaTimeSeconds) {
+    if (ActiveClampBreaks.length < 1) {
+      ClampBreakShardMesh.count = 0;
+      ClampBreakBurstMesh.visible = false;
+      return;
+    }
+    let ShardSlot = 0;
+    let BurstVisible = false;
+    for (let BreakIndex = ActiveClampBreaks.length - 1; BreakIndex >= 0; BreakIndex -= 1) {
+      const Break = ActiveClampBreaks[BreakIndex];
+      Break.age += DeltaTimeSeconds;
+      const Progress = Math.max(0, Math.min(1, Break.age / Break.duration));
+      if (!BurstVisible) {
+        ClampBreakBurstMesh.position.set(Break.x, Break.y, Break.z);
+        ClampBreakBurstMesh.scale.setScalar(1 + (Progress * (Break.reducedMotion ? 1.6 : 3.4)));
+        ClampBreakBurstMaterial.opacity = (1 - Progress) * 0.9;
+        ClampBreakBurstMesh.visible = true;
+        BurstVisible = true;
+      }
+      for (const Shard of Break.shards) {
+        if (ShardSlot >= ClampBreakShardCount) break;
+        const Travel = Break.reducedMotion ? Progress * 0.12 : Progress;
+        ClampBreakShardTransform.position.set(
+          Break.x + (Shard.vx * Travel),
+          Break.y + (Shard.vy * Travel),
+          Break.z + (Shard.vz * Travel),
+        );
+        ClampBreakShardTransform.rotation.set(
+          Shard.spin * Progress,
+          Shard.spin * Progress * 0.7,
+          Shard.spin * Progress * 1.2,
+        );
+        const Scale = 1 - (Progress * 0.55);
+        ClampBreakShardTransform.scale.setScalar(Math.max(0.15, Scale));
+        ClampBreakShardTransform.updateMatrix();
+        ClampBreakShardMesh.setMatrixAt(ShardSlot, ClampBreakShardTransform.matrix);
+        ShardSlot += 1;
+      }
+      if (Progress >= 1) {
+        ActiveClampBreaks.splice(BreakIndex, 1);
+      }
+    }
+    ClampBreakShardMesh.count = ShardSlot;
+    ClampBreakShardMesh.instanceMatrix.needsUpdate = true;
+    ClampBreakShardMaterial.opacity = ActiveClampBreaks.length > 0
+      ? 1 - (ActiveClampBreaks[0].age / ActiveClampBreaks[0].duration) * 0.35
+      : 0;
+    if (!BurstVisible) {
+      ClampBreakBurstMesh.visible = false;
+    }
+  }
+
+  HostilePylonGroup.userData.placeCutSlash = placeCutSlash;
+  HostilePylonGroup.userData.hideCutSlash = hideCutSlash;
+  HostilePylonGroup.userData.breakClamps = startClampBreaks;
 
   function positionHostilePylons(WorldDefinition, EncounterState, HighlightedIds = []) {
     const HighlightedIdSet = HighlightedIds instanceof Set
@@ -40,22 +257,18 @@ export function createWardenVisuals(THREE, Scene, host) {
       HostilePylonGroup.visible = false;
       return;
     }
-    const WorldRuntime = host.WorldRuntimeByIdentifier?.get(WorldDefinition.id);
-    if (WorldRuntime?.group) {
-      if (HostilePylonGroup.parent !== WorldRuntime.group) {
-        WorldRuntime.group.add(HostilePylonGroup);
-      }
-      HostilePylonGroup.position.set(0, 0, 0);
-      HostilePylonGroup.rotation.set(0, 0, 0);
-      HostilePylonGroup.quaternion.identity();
-    } else if (HostilePylonGroup.parent !== Scene) {
+    if (HostilePylonGroup.parent !== Scene) {
       Scene.add(HostilePylonGroup);
     }
-    const ParentToWorld = HostilePylonGroup.parent === WorldRuntime?.group;
+    HostilePylonGroup.position.set(0, 0, 0);
+    HostilePylonGroup.rotation.set(0, 0, 0);
+    HostilePylonGroup.quaternion.identity();
     let AnyVisible = false;
     for (const ClampMesh of HostilePylonGroup.children) {
       ClampMesh.visible = false;
     }
+    const CageScale = Math.max(1.35, WorldDefinition.radius * 0.52);
+    const ClampDistance = WorldDefinition.radius + (0.38 * CageScale);
     for (const Clamp of EncounterState.clamps) {
       const ClampMesh = HostilePylonGroup.children[Clamp.id];
       if (!ClampMesh) continue;
@@ -63,27 +276,22 @@ export function createWardenVisuals(THREE, Scene, host) {
         ClampMesh.visible = false;
         continue;
       }
-      const ClampDistance = WorldDefinition.radius + 0.18;
-      if (ParentToWorld) {
-        ClampMesh.position.set(
-          Math.cos(Clamp.surfaceAngle) * ClampDistance,
-          Math.sin(Clamp.surfaceAngle) * ClampDistance,
-          0,
-        );
-      } else {
-        ClampMesh.position.set(
-          WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
-          WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
-          0.12,
-        );
-      }
-      ClampMesh.rotation.z = Clamp.surfaceAngle - (Math.PI * 0.5);
+      ClampMesh.position.set(
+        WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
+        WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
+        WorldDefinition.position.z ?? 0,
+      );
+      ClampMesh.rotation.set(0, 0, Clamp.surfaceAngle - (Math.PI * 0.5));
       ClampMesh.visible = true;
       AnyVisible = true;
       const IsHighlighted = HighlightedIdSet.has(Clamp.id);
-      ClampMesh.material.emissive.setHex(IsHighlighted ? 0xffd678 : 0xff493f);
-      ClampMesh.material.emissiveIntensity = IsHighlighted ? 2.15 : 1.2;
-      ClampMesh.scale.setScalar(IsHighlighted ? 1.18 : 1);
+      const ClampMaterial = ClampMesh.userData.clampMaterial;
+      if (ClampMaterial) {
+        ClampMaterial.color.setHex(IsHighlighted ? 0xffe7a8 : 0x4a1c24);
+        ClampMaterial.emissive.setHex(IsHighlighted ? 0xffd678 : 0xff5a4a);
+        ClampMaterial.emissiveIntensity = IsHighlighted ? 2.6 : 1.15;
+      }
+      ClampMesh.scale.setScalar(IsHighlighted ? CageScale * 1.12 : CageScale);
     }
     HostilePylonGroup.visible = AnyVisible;
   }
@@ -370,6 +578,7 @@ export function createWardenVisuals(THREE, Scene, host) {
       WardenPursuitState,
       GameElapsedTimeSeconds,
     } = host;
+    updateClampBreaks(DeltaTimeSeconds);
     updateWardenEventPulse(ElapsedTimeSeconds);
     updateWardenTargetTelegraph(ElapsedTimeSeconds);
     if (WardenPursuitState.status === 'hidden') return;
@@ -503,6 +712,10 @@ export function createWardenVisuals(THREE, Scene, host) {
     });
     WardenApproachStartPosition.copy(WardenEntryPosition);
     HostilePylonGroup.visible = false;
+    hideCutSlash();
+    ActiveClampBreaks.length = 0;
+    ClampBreakShardMesh.count = 0;
+    ClampBreakBurstMesh.visible = false;
     clearWardenTargetTelegraph();
   }
 
