@@ -353,7 +353,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
    * Grab cue hugs the toy ship. Idle Haven draws nothing; a filled sphere here
    * intersected the crust as a flashlight donut around the Runner.
    */
-  const SeedHaloGeometry = new THREE.TorusGeometry(0.22, 0.018, 8, 24);
+  const SeedHaloGeometry = new THREE.TorusGeometry(0.07, 0.01, 8, 24);
   const SeedHaloMaterial = new THREE.MeshBasicMaterial({
     color: 0x8fe7ff,
     transparent: true,
