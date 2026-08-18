@@ -154,7 +154,7 @@ test('point-to-segment distance is zero on the line and positive off it', () => 
   ) - 1) < 1e-12);
 });
 
-test('leftover Destroy is a single bar, not a Bastion cage', () => {
+test('leftover Destroy is a single cage, not a Bastion cage', () => {
   const Leftover = getLeftoverHostileEncounter();
   const State = createHostileEncounterState({
     worldIdentifier: 'ember',

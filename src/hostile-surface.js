@@ -129,6 +129,7 @@ export function createHostileSurface(THREE, host) {
 
   function hideCutGuide() {
     CutGuideLine.visible = false;
+    HostilePylonGroup.userData.hideCutSlash?.();
   }
 
   function renderCutGuide(Preview) {
@@ -141,9 +142,16 @@ export function createHostileSurface(THREE, host) {
       new THREE.Vector3(Preview.end.x, Preview.end.y, 0.28),
     ]);
     CutGuideLine.computeLineDistances();
-    CutGuideMaterial.color.setHex(Preview.hits.length > 0 ? 0xffd678 : 0xff766d);
-    CutGuideMaterial.opacity = Preview.hits.length > 0 ? 0.95 : 0.55;
-    CutGuideLine.visible = true;
+    CutGuideMaterial.color.setHex(Preview.hits.length > 0 ? 0xffd678 : 0xffe7d2);
+    CutGuideMaterial.opacity = Preview.hits.length > 0 ? 0.2 : 0.12;
+    CutGuideLine.visible = false;
+    if (typeof HostilePylonGroup.userData.placeCutSlash === 'function') {
+      HostilePylonGroup.userData.placeCutSlash(
+        Preview.origin,
+        Preview.end,
+        Preview.hits.length > 0,
+      );
+    }
   }
 
   function refreshHostileClampVisuals() {
@@ -201,18 +209,18 @@ export function createHostileSurface(THREE, host) {
       showInstruction(
         CommandApproachTitle,
         RemainingCount === 3
-          ? 'Grab the ship and drag through a gold bar. Drag back onto it to cancel.'
+          ? 'Grab the ship and drag through a gold cage. Drag back onto it to cancel.'
           : `${RemainingCount} left. A longer drag can take more than one.`,
       );
     } else if (RemainingCount === host.ActiveHostileEncounterState.clamps.length
       && RemainingCount === 1) {
       showInstruction(
-        `${AttachedWorld.label} has one leftover bar.`,
+        `${AttachedWorld.label} has one leftover cage.`,
         'Grab the ship and drag through it. Destroy the cage.',
       );
     } else if (RemainingCount === 3) {
       showInstruction(
-        `${AttachedWorld.label} still has bars.`,
+        `${AttachedWorld.label} still has cages.`,
         'Grab the ship and drag through a clamp. Walk the globe if destroy cannot reach.',
       );
     } else {
@@ -314,12 +322,12 @@ export function createHostileSurface(THREE, host) {
     return moveRunnerOnSurface({ east: Direction, fine: Fine });
   }
 
-  function moveRunnerOnSurface({ east = 0, north = 0, fine = false } = {}) {
+  function moveRunnerOnSurface({ east = 0, north = 0, fine = false, stepRadians } = {}) {
     const AttachedWorld = getCurrentAttachedWorld();
     if (!AttachedWorld) return false;
     if (east === 0 && north === 0) return false;
     return setRunnerSurfacePose(
-      adjustSurfacePose(getRunnerSurfacePose(AttachedWorld), { east, north, fine }),
+      adjustSurfacePose(getRunnerSurfacePose(AttachedWorld), { east, north, fine, stepRadians }),
       'keyboard',
     );
   }

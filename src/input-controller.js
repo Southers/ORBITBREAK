@@ -18,11 +18,14 @@ import {
   getSurfacePoseFromDirection,
   getSurfacePoseFromPosition,
   getSurfaceWalkArcLimit,
+  getSurfaceWalkPointerArcLimit,
+  hasLeftSurfaceWalkDeadzone,
   intersectRaySphere,
   projectRayOntoSphere,
   SeedScreenGrabRadiusPixels,
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
+  SurfaceWalkTapRadians,
 } from './controls.js';
 import {
   getHostileEncounterAngularDistance,
@@ -54,7 +57,6 @@ export function createInputController(THREE, host) {
     SeedGroup,
     SeedPointerHitMesh,
     LaunchPulseMesh,
-    ImpactPulseMesh,
     PullGuideLine,
     CameraPanOffset,
     PanOffsetStart,
@@ -126,6 +128,12 @@ export function createInputController(THREE, host) {
   const PointerFallbackNormal = new THREE.Vector3();
   const PointerFallbackPoint = new THREE.Vector3();
   let LastSurfaceWalkAtSeconds = 0;
+  let SurfaceWalkDragAgeSeconds = 0;
+  let SurfaceWalkPressPose = null;
+  let SurfaceWalkHasLeftDeadzone = false;
+  const HeldWalkKeys = new Set();
+  let HeldWalkFine = false;
+  let HeldWalkFrameHandle = 0;
 
 /**
  * Converts pointer coordinates into world space. Planning and flight still hit
@@ -252,18 +260,19 @@ function isPointerOverAttachedWorld(WorldPosition) {
   return Distance <= AttachedWorld.radius + 0.45;
 }
 
-function getAttachedGlobeHit(RequireVisibleFace = false) {
+function getAttachedGlobeHit(RequireVisibleFace = true) {
   const AttachedWorld = getCurrentAttachedWorld();
   if (!AttachedWorld) {
     return null;
   }
   const SurfaceRadius = AttachedWorld.radius + host.SeedRadius + 0.03;
-  if (RequireVisibleFace) {
+  if (RequireVisibleFace !== false) {
     return intersectRaySphere(
       PointerRaycaster.ray.origin,
       PointerRaycaster.ray.direction,
       AttachedWorld.position,
-      AttachedWorld.radius + 0.45,
+      SurfaceRadius,
+      { nearOnly: true },
     );
   }
   return projectRayOntoSphere(
@@ -283,6 +292,84 @@ function consumeSurfaceWalkDeltaSeconds() {
   LastSurfaceWalkAtSeconds = Now;
   return Math.min(0.05, Math.max(0, DeltaSeconds));
 }
+
+function getHeldWalkAxes() {
+  let East = 0;
+  let North = 0;
+  if (HeldWalkKeys.has('q')) East += 1;
+  if (HeldWalkKeys.has('e')) East -= 1;
+  if (HeldWalkKeys.has('t')) North += 1;
+  if (HeldWalkKeys.has('f')) North -= 1;
+  return { east: East, north: North };
+}
+
+function canHoldWalkKeys() {
+  return host.GamePhase === 'attached'
+    && host.ReplayPlaybackState === null
+    && host.IsKeyboardAiming !== true
+    && host.IsPointerAiming !== true
+    && host.IsCutAiming !== true
+    && host.IsOpeningBriefingActive !== true;
+}
+
+function applyKeyboardWalkStep(StepRadians) {
+  if (!(StepRadians > 1e-6) || !canHoldWalkKeys()) {
+    return false;
+  }
+  const Axes = getHeldWalkAxes();
+  if (Axes.east === 0 && Axes.north === 0) {
+    return false;
+  }
+  const DidMove = moveRunnerOnSurface({
+    east: Axes.east,
+    north: Axes.north,
+    stepRadians: StepRadians,
+  });
+  if (DidMove) {
+    host.RunnerWalkLifeSeconds = 0.34;
+    host.HasWalkedOnce = true;
+    if (!host.ActiveHostileEncounterState) {
+      showWalkFacingInstruction(getCurrentAttachedWorld());
+    }
+  }
+  return DidMove;
+}
+
+function tickHeldWalk() {
+  HeldWalkFrameHandle = 0;
+  if (HeldWalkKeys.size < 1 || !canHoldWalkKeys()) {
+    if (!canHoldWalkKeys()) {
+      HeldWalkKeys.clear();
+    }
+    return;
+  }
+  const StepRadians = getSurfaceWalkArcLimit(consumeSurfaceWalkDeltaSeconds());
+  applyKeyboardWalkStep(HeldWalkFine ? StepRadians * 0.5 : StepRadians);
+  HeldWalkFrameHandle = requestAnimationFrame(tickHeldWalk);
+}
+
+function startHeldWalkLoop() {
+  if (HeldWalkFrameHandle || typeof requestAnimationFrame !== 'function') {
+    return;
+  }
+  HeldWalkFrameHandle = requestAnimationFrame(tickHeldWalk);
+}
+
+function handleWalkKeyUp(KeyboardEventData) {
+  const ReleasedKey = KeyboardEventData.key.toLowerCase();
+  if (ReleasedKey === 'q' || ReleasedKey === 'e' || ReleasedKey === 't' || ReleasedKey === 'f') {
+    HeldWalkKeys.delete(ReleasedKey);
+  }
+  if (KeyboardEventData.key === 'Shift') {
+    HeldWalkFine = false;
+  }
+}
+
+GameCanvas.addEventListener('keyup', handleWalkKeyUp);
+GameCanvas.addEventListener('blur', () => {
+  HeldWalkKeys.clear();
+  HeldWalkFine = false;
+});
 
 function showWalkFacingInstruction(AttachedWorld) {
   if (!AttachedWorld || showHostileEncounterInstruction()) {
@@ -310,32 +397,27 @@ function walkRunnerToGlobeHit(Hit, InputKind = 'pointer') {
     return false;
   }
   const CurrentPose = getRunnerSurfacePose(AttachedWorld);
-  const WorldRuntime = WorldRuntimeByIdentifier.get(AttachedWorld.id);
-  const CrustQuaternion = WorldRuntime?.group?.quaternion;
-  let TargetPose = getSurfacePoseFromPosition(AttachedWorld.position, Hit);
-  if (CrustQuaternion) {
-    try {
-      TargetPose = getSurfacePoseFromDirection(getLogicalSurfaceDirectionFromWorldHit({
-        worldX: AttachedWorld.position.x,
-        worldY: AttachedWorld.position.y,
-        worldZ: AttachedWorld.position.z ?? 0,
-        hitX: Hit.x,
-        hitY: Hit.y,
-        hitZ: Hit.z ?? 0,
-        crustQX: CrustQuaternion.x,
-        crustQY: CrustQuaternion.y,
-        crustQZ: CrustQuaternion.z,
-        crustQW: CrustQuaternion.w,
-      }));
-    } catch {
-      TargetPose = getSurfacePoseFromPosition(AttachedWorld.position, Hit);
+  const TargetPose = getLogicalWalkPose(AttachedWorld, Hit);
+  let JustLeftDeadzone = false;
+  if (!SurfaceWalkHasLeftDeadzone) {
+    if (!hasLeftSurfaceWalkDeadzone(SurfaceWalkPressPose ?? CurrentPose, TargetPose)) {
+      return false;
     }
+    SurfaceWalkHasLeftDeadzone = true;
+    SurfaceWalkDragAgeSeconds = 0;
+    JustLeftDeadzone = true;
+  }
+  const DeltaSeconds = consumeSurfaceWalkDeltaSeconds();
+  SurfaceWalkDragAgeSeconds += DeltaSeconds;
+  let MaxArc = getSurfaceWalkPointerArcLimit(DeltaSeconds, SurfaceWalkDragAgeSeconds);
+  if (JustLeftDeadzone) {
+    MaxArc = Math.max(MaxArc, SurfaceWalkTapRadians);
   }
   const DidMove = setRunnerSurfacePose(
     stepSurfacePoseToward(
       CurrentPose,
       TargetPose,
-      getSurfaceWalkArcLimit(consumeSurfaceWalkDeltaSeconds()),
+      MaxArc,
     ),
     InputKind,
   );
@@ -573,29 +655,24 @@ function handleKeyboardAimKey(KeyboardEventData) {
   ) {
     KeyboardEventData.preventDefault();
     setScoutMode(false);
+    HeldWalkFine = KeyboardEventData.shiftKey === true;
+    HeldWalkKeys.add(PressedKey);
+    startHeldWalkLoop();
     if (KeyboardEventData.repeat === true) {
-      const StepRadians = (KeyboardEventData.shiftKey ? 1 : 2) * (Math.PI / 180);
-      if (getSurfaceWalkArcLimit(consumeSurfaceWalkDeltaSeconds()) < StepRadians * 0.8) {
+      if (HeldWalkFrameHandle) {
         return true;
       }
-    } else {
-      LastSurfaceWalkAtSeconds = (
-        typeof performance !== 'undefined' ? performance.now() : Date.now()
-      ) / 1000;
+      const RepeatStep = getSurfaceWalkArcLimit(consumeSurfaceWalkDeltaSeconds());
+      return applyKeyboardWalkStep(
+        KeyboardEventData.shiftKey ? RepeatStep * 0.5 : RepeatStep,
+      );
     }
-    const DidMove = moveRunnerOnSurface({
-      east: PressedKey === 'q' ? 1 : (PressedKey === 'e' ? -1 : 0),
-      north: PressedKey === 't' ? 1 : (PressedKey === 'f' ? -1 : 0),
-      fine: KeyboardEventData.shiftKey,
-    });
-    if (DidMove) {
-      host.RunnerWalkLifeSeconds = 0.34;
-      host.HasWalkedOnce = true;
-    }
-    if (DidMove && !host.ActiveHostileEncounterState) {
-      showWalkFacingInstruction(getCurrentAttachedWorld());
-    }
-    return DidMove;
+    LastSurfaceWalkAtSeconds = (
+      typeof performance !== 'undefined' ? performance.now() : Date.now()
+    ) / 1000;
+    return applyKeyboardWalkStep(
+      KeyboardEventData.shiftKey ? SurfaceWalkTapRadians * 0.5 : SurfaceWalkTapRadians,
+    );
   }
   const IsLaunchKey = PressedKey === 'enter' || PressedKey === ' ';
   const RotationDirection = PressedKey === 'arrowleft' || PressedKey === 'a'
@@ -820,23 +897,13 @@ function applyHostileCut(Origin, End) {
     showHostileEncounterInstruction();
     return false;
   }
+  HostilePylonGroup.userData.breakClamps?.(
+    AttachedWorld,
+    Resolved.hitIds,
+    host.ActiveHostileEncounterState,
+  );
+  WorldseedSound.cut(Resolved.hitIds.length);
   host.ActiveHostileEncounterState = Resolved.state;
-  const LastHit = Resolved.hitIds.at(-1);
-  const HitClamp = Resolved.state.clamps[LastHit];
-  if (HitClamp) {
-    const HitPosition = {
-      x: AttachedWorld.position.x
-        + (Math.cos(HitClamp.surfaceAngle) * (AttachedWorld.radius + 0.3)),
-      y: AttachedWorld.position.y
-        + (Math.sin(HitClamp.surfaceAngle) * (AttachedWorld.radius + 0.3)),
-    };
-    ImpactPulseMesh.material.color.set(0xffd678);
-    ImpactPulseMesh.position.set(HitPosition.x, HitPosition.y, 0.28);
-    ImpactPulseMesh.scale.setScalar(1.2);
-    ImpactPulseMesh.visible = true;
-    host.ImpactPulseLifeSeconds = 0.58;
-  }
-  WorldseedSound.impact(AttachedWorld.id);
   GameCanvas.dataset.lastHostileWorld = AttachedWorld.id;
   if (Resolved.state.completed) {
     CompletedHostileEncounterWorldIdentifiers.add(AttachedWorld.id);
@@ -881,7 +948,7 @@ function applyHostileCut(Origin, End) {
   showInstruction(
     `${RemainingCount} left on ${AttachedWorld.label}.`,
     RemainingCount === 1
-      ? 'One bar remains. Drag through it.'
+      ? 'One cage remains. Drag through it.'
       : 'A longer drag can take more than one.',
   );
   return true;
@@ -1057,8 +1124,38 @@ function beginSurfaceWalk() {
   WorldseedSound.beginWalk();
   GameCanvas.classList.add('is-walking');
   LastSurfaceWalkAtSeconds = 0;
+  SurfaceWalkDragAgeSeconds = 0;
+  SurfaceWalkHasLeftDeadzone = false;
   const AttachedWorld = getCurrentAttachedWorld();
+  const PressHit = getAttachedGlobeHit(true);
+  SurfaceWalkPressPose = PressHit && AttachedWorld
+    ? getLogicalWalkPose(AttachedWorld, PressHit)
+    : (AttachedWorld ? getRunnerSurfacePose(AttachedWorld) : null);
   showWalkFacingInstruction(AttachedWorld);
+}
+
+function getLogicalWalkPose(AttachedWorld, Hit) {
+  const WorldRuntime = WorldRuntimeByIdentifier.get(AttachedWorld.id);
+  const CrustQuaternion = WorldRuntime?.group?.quaternion;
+  if (CrustQuaternion) {
+    try {
+      return getSurfacePoseFromDirection(getLogicalSurfaceDirectionFromWorldHit({
+        worldX: AttachedWorld.position.x,
+        worldY: AttachedWorld.position.y,
+        worldZ: AttachedWorld.position.z ?? 0,
+        hitX: Hit.x,
+        hitY: Hit.y,
+        hitZ: Hit.z ?? 0,
+        crustQX: CrustQuaternion.x,
+        crustQY: CrustQuaternion.y,
+        crustQZ: CrustQuaternion.z,
+        crustQW: CrustQuaternion.w,
+      }));
+    } catch {
+      return getSurfacePoseFromPosition(AttachedWorld.position, Hit);
+    }
+  }
+  return getSurfacePoseFromPosition(AttachedWorld.position, Hit);
 }
 
 /**
@@ -1141,7 +1238,6 @@ function handlePointerDown(PointerEventData) {
   if (PointerStartTarget === LandedPointerTargets.world) {
     setScoutMode(false);
     beginSurfaceWalk();
-    walkRunnerToGlobeHit(getAttachedGlobeHit(false));
     PointerEventData.preventDefault();
     return;
   }
@@ -1186,7 +1282,7 @@ function handlePointerMove(PointerEventData) {
       );
       GameCanvas.classList.toggle('is-walk-ready', IsWalkReady);
       if (IsWalkReady) {
-        const GlobeHit = getAttachedGlobeHit(false);
+        const GlobeHit = getAttachedGlobeHit(true);
         if (GlobeHit) {
           host.WalkHintPosition.set(GlobeHit.x, GlobeHit.y, GlobeHit.z ?? 0);
           host.WalkHintVisible = true;
@@ -1256,7 +1352,7 @@ function handlePointerMove(PointerEventData) {
   }
 
   if (host.IsPointerWalking) {
-    walkRunnerToGlobeHit(getAttachedGlobeHit(false));
+    walkRunnerToGlobeHit(getAttachedGlobeHit(true));
     PointerEventData.preventDefault();
     return;
   }

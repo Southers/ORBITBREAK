@@ -154,12 +154,17 @@ export function flattenSurfacePoseToEquator(Pose) {
   });
 }
 
+/** One keyboard tap, matching a short weighty pointer step rather than a twitch. */
+export const SurfaceWalkTapRadians = 2 * (Math.PI / 180);
+
 /** Walks east/west and north/south on the sphere, wrapping over the poles. */
-export function adjustSurfacePose(Pose, { east = 0, north = 0, fine = false } = {}) {
+export function adjustSurfacePose(Pose, { east = 0, north = 0, fine = false, stepRadians } = {}) {
   if (!Number.isFinite(Pose?.longitude) || !Number.isFinite(Pose?.latitude)) {
     throw new Error('Surface pose must be finite.');
   }
-  const StepRadians = (fine ? 1 : 2) * (Math.PI / 180);
+  const StepRadians = Number.isFinite(stepRadians)
+    ? Math.max(0, stepRadians)
+    : (fine ? SurfaceWalkTapRadians * 0.5 : SurfaceWalkTapRadians);
   let Longitude = Pose.longitude;
   let Latitude = Pose.latitude;
   let MeridianSign = Pose.meridianSign < 0 ? -1 : 1;
@@ -187,12 +192,43 @@ export function adjustSurfacePose(Pose, { east = 0, north = 0, fine = false } = 
 
 /** Caps how far one walk sample may travel so the globe has weight. */
 export const SurfaceWalkRadiansPerSecond = 0.7;
+/** Hard cap so a lagged pointer sample cannot dump a huge arc. */
+export const SurfaceWalkMaxRadiansPerSample = 0.12;
+/** Ignore globe-hit jitter until the pointer actually traces the crust. */
+export const SurfaceWalkPointerDeadzoneRadians = 0.045;
+/** Seconds of sustained drag before pointer walk reaches full cruise speed. */
+export const SurfaceWalkAccelerationSeconds = 0.32;
 
 export function getSurfaceWalkArcLimit(DeltaTimeSeconds) {
   if (!Number.isFinite(DeltaTimeSeconds) || DeltaTimeSeconds < 0) {
     throw new Error('Walk arc limit requires a non-negative finite duration.');
   }
-  return Math.min(0.12, DeltaTimeSeconds * SurfaceWalkRadiansPerSecond);
+  return Math.min(
+    SurfaceWalkMaxRadiansPerSample,
+    DeltaTimeSeconds * SurfaceWalkRadiansPerSecond,
+  );
+}
+
+/**
+ * Pointer walk ramps from a standstill so a flick across the disc cannot
+ * sling the Runner around the globe at cruise speed.
+ */
+export function getSurfaceWalkPointerArcLimit(DeltaTimeSeconds, DragAgeSeconds) {
+  const BaseLimit = getSurfaceWalkArcLimit(DeltaTimeSeconds);
+  if (!(DragAgeSeconds > 0) || !Number.isFinite(DragAgeSeconds)) {
+    return 0;
+  }
+  const Ramp = Math.max(0, Math.min(1, DragAgeSeconds / SurfaceWalkAccelerationSeconds));
+  const EasedRamp = Ramp * Ramp * (3 - (2 * Ramp));
+  return BaseLimit * EasedRamp;
+}
+
+/** True once a pointer trace has left the press dead-zone on the sphere. */
+export function hasLeftSurfaceWalkDeadzone(PressPose, TargetPose, DeadzoneRadians = SurfaceWalkPointerDeadzoneRadians) {
+  if (!(DeadzoneRadians >= 0) || !Number.isFinite(DeadzoneRadians)) {
+    throw new Error('Walk dead-zone requires a non-negative finite arc.');
+  }
+  return getGreatCircleAngle(PressPose, TargetPose) >= DeadzoneRadians;
 }
 
 export function getGreatCircleAngle(FromPose, ToPose) {
@@ -261,7 +297,7 @@ export function adjustSurfaceAngle(AngleRadians, Direction, { fine = false } = {
   return normalizeAngle(AngleRadians + (Math.sign(Direction) * StepRadians));
 }
 
-export function intersectRaySphere(Origin, Direction, Center, Radius) {
+export function intersectRaySphere(Origin, Direction, Center, Radius, { nearOnly = false } = {}) {
   if (!(Radius > 0)) {
     throw new Error('Sphere intersection requires a positive radius.');
   }
@@ -278,6 +314,9 @@ export function intersectRaySphere(Origin, Direction, Center, Radius) {
   const Root = Math.sqrt(Discriminant);
   const Near = -HalfB - Root;
   const Far = -HalfB + Root;
+  if (nearOnly === true && !(Near >= 0)) {
+    return null;
+  }
   const Distance = Near >= 0 ? Near : Far;
   if (!(Distance >= 0)) {
     return null;
