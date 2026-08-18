@@ -15,6 +15,7 @@ import {
   getKeyboardAimDragVector,
   getPinchZoomScale,
   getPointerClientDistance,
+  getSurfacePoseFromDirection,
   getSurfacePoseFromPosition,
   getSurfaceWalkArcLimit,
   intersectRaySphere,
@@ -35,6 +36,7 @@ import {
   getCageClearPulseDurationSeconds,
   getActiveViewZoomMinimumScale,
   getLaunchFacingPresentation,
+  getLogicalSurfaceDirectionFromWorldHit,
   shouldAssistCommandLock,
 } from './presentation.js';
 import { recordReplayBurn, recordReplayLaunch } from './replay.js';
@@ -308,7 +310,27 @@ function walkRunnerToGlobeHit(Hit, InputKind = 'pointer') {
     return false;
   }
   const CurrentPose = getRunnerSurfacePose(AttachedWorld);
-  const TargetPose = getSurfacePoseFromPosition(AttachedWorld.position, Hit);
+  const WorldRuntime = WorldRuntimeByIdentifier.get(AttachedWorld.id);
+  const CrustQuaternion = WorldRuntime?.group?.quaternion;
+  let TargetPose = getSurfacePoseFromPosition(AttachedWorld.position, Hit);
+  if (CrustQuaternion) {
+    try {
+      TargetPose = getSurfacePoseFromDirection(getLogicalSurfaceDirectionFromWorldHit({
+        worldX: AttachedWorld.position.x,
+        worldY: AttachedWorld.position.y,
+        worldZ: AttachedWorld.position.z ?? 0,
+        hitX: Hit.x,
+        hitY: Hit.y,
+        hitZ: Hit.z ?? 0,
+        crustQX: CrustQuaternion.x,
+        crustQY: CrustQuaternion.y,
+        crustQZ: CrustQuaternion.z,
+        crustQW: CrustQuaternion.w,
+      }));
+    } catch {
+      TargetPose = getSurfacePoseFromPosition(AttachedWorld.position, Hit);
+    }
+  }
   const DidMove = setRunnerSurfacePose(
     stepSurfacePoseToward(
       CurrentPose,

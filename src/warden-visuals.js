@@ -40,6 +40,18 @@ export function createWardenVisuals(THREE, Scene, host) {
       HostilePylonGroup.visible = false;
       return;
     }
+    const WorldRuntime = host.WorldRuntimeByIdentifier?.get(WorldDefinition.id);
+    if (WorldRuntime?.group) {
+      if (HostilePylonGroup.parent !== WorldRuntime.group) {
+        WorldRuntime.group.add(HostilePylonGroup);
+      }
+      HostilePylonGroup.position.set(0, 0, 0);
+      HostilePylonGroup.rotation.set(0, 0, 0);
+      HostilePylonGroup.quaternion.identity();
+    } else if (HostilePylonGroup.parent !== Scene) {
+      Scene.add(HostilePylonGroup);
+    }
+    const ParentToWorld = HostilePylonGroup.parent === WorldRuntime?.group;
     let AnyVisible = false;
     for (const ClampMesh of HostilePylonGroup.children) {
       ClampMesh.visible = false;
@@ -52,11 +64,19 @@ export function createWardenVisuals(THREE, Scene, host) {
         continue;
       }
       const ClampDistance = WorldDefinition.radius + 0.18;
-      ClampMesh.position.set(
-        WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
-        WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
-        0.12,
-      );
+      if (ParentToWorld) {
+        ClampMesh.position.set(
+          Math.cos(Clamp.surfaceAngle) * ClampDistance,
+          Math.sin(Clamp.surfaceAngle) * ClampDistance,
+          0,
+        );
+      } else {
+        ClampMesh.position.set(
+          WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
+          WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
+          0.12,
+        );
+      }
       ClampMesh.rotation.z = Clamp.surfaceAngle - (Math.PI * 0.5);
       ClampMesh.visible = true;
       AnyVisible = true;

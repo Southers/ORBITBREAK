@@ -144,7 +144,11 @@ export function getParkedShipPresentation({
   NoseZ = (DorsalX * StarboardY) - (DorsalY * StarboardX);
 
   const SideOffset = 0.18;
-  const RadialDrop = 0.16;
+  const RadialDrop = getParkedShipCrustDrop({
+    runnerPresentationScale: LandedRunnerPresentationScale,
+    shipScale: ParkedShipPresentationScale,
+    hullLocalRadius: ParkedShipHullLocalRadius,
+  });
   return {
     dorsal: { x: DorsalX, y: DorsalY, z: DorsalZ },
     nose: { x: NoseX, y: NoseY, z: NoseZ },
@@ -157,7 +161,263 @@ export function getParkedShipPresentation({
       y: (NoseY * SideOffset) - (DorsalY * RadialDrop),
       z: (NoseZ * SideOffset) - (DorsalZ * RadialDrop),
     },
-    scale: 0.08,
+    scale: ParkedShipPresentationScale,
+  };
+}
+
+/** Camera-facing pole of a toy world under the locked +Z landed view. */
+export const CameraFacingPole = Object.freeze({ x: 0, y: 0, z: 1 });
+/**
+ * RunnerVisualGroup pivot sits near the torso. Legs are at local y=-0.34 with
+ * a 0.24 cylinder, so feet kiss around local y=-0.46 before presentation scale.
+ */
+export const RunnerFootLocalY = -0.46;
+/** Must match the landed RunnerVisualGroup scale in player-visuals. */
+export const LandedRunnerPresentationScale = 0.26;
+/** Must match the parked courier scale in getParkedShipPresentation. */
+export const ParkedShipPresentationScale = 0.08;
+/** Local cylinder radius of the parked hull before ship scale. */
+export const ParkedShipHullLocalRadius = 0.13;
+
+function hypot3(X, Y, Z) {
+  return Math.hypot(X, Y, Z);
+}
+
+function normalizeVector3(X, Y, Z) {
+  const Length = hypot3(X, Y, Z) || 1;
+  return {
+    x: X / Length,
+    y: Y / Length,
+    z: Z / Length,
+  };
+}
+
+function normalizeQuaternion(X, Y, Z, W) {
+  const Length = Math.hypot(X, Y, Z, W) || 1;
+  return {
+    x: X / Length,
+    y: Y / Length,
+    z: Z / Length,
+    w: W / Length,
+  };
+}
+
+/** Quaternion that maps one unit vector onto another. Matches Three.js. */
+export function getQuaternionFromUnitVectors(
+  fromX,
+  fromY,
+  fromZ,
+  toX,
+  toY,
+  toZ,
+) {
+  const From = normalizeVector3(fromX, fromY, fromZ);
+  const To = normalizeVector3(toX, toY, toZ);
+  const Dot = (From.x * To.x) + (From.y * To.y) + (From.z * To.z);
+  const Remainder = Dot + 1;
+  if (Remainder < 1e-8) {
+    if (Math.abs(From.x) > Math.abs(From.z)) {
+      return normalizeQuaternion(-From.y, From.x, 0, 0);
+    }
+    return normalizeQuaternion(0, -From.z, From.y, 0);
+  }
+  return normalizeQuaternion(
+    (From.y * To.z) - (From.z * To.y),
+    (From.z * To.x) - (From.x * To.z),
+    (From.x * To.y) - (From.y * To.x),
+    Remainder,
+  );
+}
+
+export function invertQuaternion(X, Y, Z, W) {
+  return normalizeQuaternion(-X, -Y, -Z, W);
+}
+
+export function rotateVectorByQuaternion(X, Y, Z, QX, QY, QZ, QW) {
+  const Ix = (QW * X) + (QY * Z) - (QZ * Y);
+  const Iy = (QW * Y) + (QZ * X) - (QX * Z);
+  const Iz = (QW * Z) + (QX * Y) - (QY * X);
+  const Iw = -(QX * X) - (QY * Y) - (QZ * Z);
+  return {
+    x: (Ix * QW) + (Iw * -QX) + (Iy * -QZ) - (Iz * -QY),
+    y: (Iy * QW) + (Iw * -QY) + (Iz * -QX) - (Ix * -QZ),
+    z: (Iz * QW) + (Iw * -QZ) + (Ix * -QY) - (Iy * -QX),
+  };
+}
+
+/** Distance from SeedGroup origin down to the visual feet. */
+export function getRunnerFootWorldOffset(runnerPresentationScale = LandedRunnerPresentationScale) {
+  if (!(runnerPresentationScale > 0) || !Number.isFinite(runnerPresentationScale)) {
+    throw new Error('Runner foot offset requires a positive presentation scale.');
+  }
+  return Math.abs(RunnerFootLocalY) * runnerPresentationScale;
+}
+
+/** How far the parked hull origin sits below SeedGroup so the belly kisses crust. */
+export function getParkedShipCrustDrop({
+  runnerPresentationScale = LandedRunnerPresentationScale,
+  shipScale = ParkedShipPresentationScale,
+  hullLocalRadius = ParkedShipHullLocalRadius,
+} = {}) {
+  if (!(shipScale > 0) || !Number.isFinite(shipScale)) {
+    throw new Error('Parked ship crust drop requires a positive ship scale.');
+  }
+  if (!(hullLocalRadius >= 0) || !Number.isFinite(hullLocalRadius)) {
+    throw new Error('Parked ship crust drop requires a finite hull radius.');
+  }
+  return Math.max(
+    0,
+    getRunnerFootWorldOffset(runnerPresentationScale) - (hullLocalRadius * shipScale),
+  );
+}
+
+/**
+ * Walk-driven crust rotation for one world. Maps the logical surface direction
+ * onto the camera-facing pole so the Runner stays on top of the toy planet.
+ */
+export function getWorldCrustWalkQuaternion({
+  surfaceDirectionX,
+  surfaceDirectionY,
+  surfaceDirectionZ,
+  facingX = CameraFacingPole.x,
+  facingY = CameraFacingPole.y,
+  facingZ = CameraFacingPole.z,
+} = {}) {
+  if (
+    !Number.isFinite(surfaceDirectionX)
+    || !Number.isFinite(surfaceDirectionY)
+    || !Number.isFinite(surfaceDirectionZ)
+  ) {
+    throw new Error('Crust walk rotation requires a finite surface direction.');
+  }
+  if (hypot3(surfaceDirectionX, surfaceDirectionY, surfaceDirectionZ) <= 1e-8) {
+    throw new Error('Crust walk rotation requires a non-zero surface direction.');
+  }
+  return getQuaternionFromUnitVectors(
+    surfaceDirectionX,
+    surfaceDirectionY,
+    surfaceDirectionZ,
+    facingX,
+    facingY,
+    facingZ,
+  );
+}
+
+/**
+ * Converts a world-space globe hit through the current crust quaternion back
+ * into the logical surface direction used by lat/lon walking.
+ */
+export function getLogicalSurfaceDirectionFromWorldHit({
+  worldX,
+  worldY,
+  worldZ = 0,
+  hitX,
+  hitY,
+  hitZ = 0,
+  crustQX = 0,
+  crustQY = 0,
+  crustQZ = 0,
+  crustQW = 1,
+} = {}) {
+  if (
+    !Number.isFinite(worldX)
+    || !Number.isFinite(worldY)
+    || !Number.isFinite(worldZ)
+    || !Number.isFinite(hitX)
+    || !Number.isFinite(hitY)
+    || !Number.isFinite(hitZ)
+  ) {
+    throw new Error('Logical globe hit requires finite world and hit positions.');
+  }
+  if (
+    !Number.isFinite(crustQX)
+    || !Number.isFinite(crustQY)
+    || !Number.isFinite(crustQZ)
+    || !Number.isFinite(crustQW)
+  ) {
+    throw new Error('Logical globe hit requires a finite crust quaternion.');
+  }
+  const Inverse = invertQuaternion(crustQX, crustQY, crustQZ, crustQW);
+  const Local = rotateVectorByQuaternion(
+    hitX - worldX,
+    hitY - worldY,
+    hitZ - worldZ,
+    Inverse.x,
+    Inverse.y,
+    Inverse.z,
+    Inverse.w,
+  );
+  if (hypot3(Local.x, Local.y, Local.z) <= 1e-10) {
+    throw new Error('Logical globe hit requires a point off the world centre.');
+  }
+  return normalizeVector3(Local.x, Local.y, Local.z);
+}
+
+/** Occupied world: skip idle restoration Y-spin so walk rotation can own the crust. */
+export function shouldHoldWorldCrustIdleSpin({
+  gamePhase,
+  worldId,
+  currentWorldId,
+} = {}) {
+  return (gamePhase === 'attached' || gamePhase === 'restoring')
+    && worldId === currentWorldId
+    && worldId != null
+    && worldId !== '';
+}
+
+/** Landed walk/idle: spin that world's crust. Aim and flight leave it still. */
+export function shouldSpinWorldCrustUnderWalker({
+  gamePhase,
+  worldId,
+  currentWorldId,
+  isPointerAiming = false,
+  isKeyboardAiming = false,
+} = {}) {
+  return shouldHoldWorldCrustIdleSpin({ gamePhase, worldId, currentWorldId })
+    && isPointerAiming !== true
+    && isKeyboardAiming !== true;
+}
+
+/**
+ * Plants the Runner on the visual crust. Walk presentation keeps them on the
+ * camera-facing pole; aim uses the logical surface direction so the hull and
+ * trajectory stay in the orbital plane.
+ */
+export function getLandedSurfacePlant({
+  worldX,
+  worldY,
+  worldZ = 0,
+  visualRadius,
+  runnerPresentationScale = LandedRunnerPresentationScale,
+  surfaceDirectionX = CameraFacingPole.x,
+  surfaceDirectionY = CameraFacingPole.y,
+  surfaceDirectionZ = CameraFacingPole.z,
+  spinCrust = true,
+  facingX = CameraFacingPole.x,
+  facingY = CameraFacingPole.y,
+  facingZ = CameraFacingPole.z,
+} = {}) {
+  if (!Number.isFinite(worldX) || !Number.isFinite(worldY) || !Number.isFinite(worldZ)) {
+    throw new Error('Landed surface plant requires a finite world centre.');
+  }
+  if (!Number.isFinite(visualRadius) || visualRadius <= 0) {
+    throw new Error('Landed surface plant requires a positive visual radius.');
+  }
+  const FootOffset = getRunnerFootWorldOffset(runnerPresentationScale);
+  const PlantDistance = visualRadius + FootOffset;
+  const Stand = spinCrust === true
+    ? normalizeVector3(facingX, facingY, facingZ)
+    : normalizeVector3(surfaceDirectionX, surfaceDirectionY, surfaceDirectionZ);
+  return {
+    x: worldX + (Stand.x * PlantDistance),
+    y: worldY + (Stand.y * PlantDistance),
+    z: worldZ + (Stand.z * PlantDistance),
+    standNormalX: Stand.x,
+    standNormalY: Stand.y,
+    standNormalZ: Stand.z,
+    visualRadius,
+    footOffset: FootOffset,
+    plantDistance: PlantDistance,
   };
 }
 

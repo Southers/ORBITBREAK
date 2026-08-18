@@ -58,6 +58,7 @@ export function auditReleaseReadiness() {
   const RoutePresentationSource = readRepositoryFile('src/route-presentation.js');
   const RecordsUiSource = readRepositoryFile('src/records-ui.js');
   const FrameVisualsSource = readRepositoryFile('src/frame-visuals.js');
+  const RestorationVisualsSource = readRepositoryFile('src/restoration-visuals.js');
   const WorldGeometrySource = readRepositoryFile('src/world-geometry.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
@@ -191,7 +192,7 @@ export function auditReleaseReadiness() {
       && PresentationSource.includes('parentY: { x: NoseX, y: NoseY, z: NoseZ }')
       && PresentationSource.includes('parentZ: { x: DorsalX, y: DorsalY, z: DorsalZ }')
       && PresentationSource.includes('lieDownX: 0')
-      && PresentationSource.includes('scale: 0.08')
+      && PresentationSource.includes('ParkedShipPresentationScale = 0.08')
       && !PresentationSource.includes('parentY: { x: DorsalX, y: DorsalY, z: DorsalZ }')
       && PlayerSource.includes('new THREE.CylinderGeometry(0.07, 0.13, 0.52, 10)')
       && PlayerSource.includes('new THREE.ConeGeometry(0.07, 0.32, 10)')
@@ -213,6 +214,20 @@ export function auditReleaseReadiness() {
       && FrameVisualsSource.includes('ShipThrusterMesh.visible = !ShowParkedShip')
       && PlayerSource.includes('SeedPointLight.visible = false'),
     'Landed Haven must not wear meridian/contour rings or an occupation grid, and the parked Orbitbreaker must lie on the crust as a courier.',
+  );
+  requireCondition(
+    PresentationSource.includes('export function getWorldCrustWalkQuaternion(')
+      && PresentationSource.includes('export function getLandedSurfacePlant(')
+      && PresentationSource.includes('export function shouldHoldWorldCrustIdleSpin(')
+      && FrameVisualsSource.includes('applyOccupiedWorldCrust')
+      && FrameVisualsSource.includes('getLandedSurfacePlant(')
+      && RestorationVisualsSource.includes('shouldHoldWorldCrustIdleSpin(')
+      && RestorationVisualsSource.includes('spinIdleWorldCrust(')
+      && CameraSource.includes('const WorldCameraUp = Object.freeze({ x: 0, y: 0, z: 1 })')
+      && InputControllerSource.includes('getLogicalSurfaceDirectionFromWorldHit(')
+      && LivingWorldSource.includes('CrustOffset.applyQuaternion(WorldGroup.quaternion)')
+      && !CameraSource.includes('PoleLock'),
+    'Landed walk must spin only the occupied world under the Runner, plant feet on the visual crust, and keep camera up on world +Z.',
   );
   requireCondition(
     PresentationSource.includes('export function getWorldLifeStage(')

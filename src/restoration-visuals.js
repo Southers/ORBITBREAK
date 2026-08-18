@@ -16,6 +16,7 @@ import {
   getCageClearPulseDurationSeconds,
   LiberationCelebrateHoldSeconds,
   getStillnessPresentation,
+  shouldHoldWorldCrustIdleSpin,
 } from './presentation.js';
 import {
   calculateRestorationWaveProgress,
@@ -44,6 +45,17 @@ export function createRestorationVisuals(THREE, host) {
   const TyrantAtmosphereColor = new THREE.Color(0x5a2418);
   const AtmosphereRestoreColor = new THREE.Color();
   const SuppressionDurationSeconds = 0.92;
+
+  function spinIdleWorldCrust(WorldRuntime, WorldDefinition, Amount) {
+    if (shouldHoldWorldCrustIdleSpin({
+      gamePhase: host.GamePhase,
+      worldId: WorldDefinition.id,
+      currentWorldId: host.CurrentWorldIdentifier,
+    })) {
+      return;
+    }
+    WorldRuntime.group.rotateY(Amount);
+  }
 
   function paintTyrantAtmosphere(WorldRuntime, WorldDefinition, Opacity) {
     if (!WorldRuntime.atmosphereMaterial?.color) {
@@ -172,14 +184,14 @@ export function createRestorationVisuals(THREE, host) {
             WorldRuntime.suppressionStartedAtSeconds = null;
             WorldRuntime.group.scale.setScalar(1);
           }
-          WorldRuntime.group.rotation.y += 0.0005;
+          spinIdleWorldCrust(WorldRuntime, WorldDefinition, 0.0005);
           if (applyRangeVeilToWorld(WorldRuntime, WorldDefinition, InnerClusterLive) > 0) {
             VeiledWorldIdentifiers.push(WorldDefinition.id);
           }
           applyAtmosphereViewFade(WorldRuntime, WorldDefinition);
           continue;
         }
-        WorldRuntime.group.rotation.y += 0.0005;
+        spinIdleWorldCrust(WorldRuntime, WorldDefinition, 0.0005);
         WorldRuntime.stillnessCageGroup.rotation.y += 0.0015;
         paintTyrantAtmosphere(WorldRuntime, WorldDefinition);
         if (applyRangeVeilToWorld(WorldRuntime, WorldDefinition, InnerClusterLive) > 0) {
@@ -338,10 +350,14 @@ export function createRestorationVisuals(THREE, host) {
       }
 
       const MotionProgress = THREE.MathUtils.smoothstep(LinearRestorationProgress, 0.28, 0.92);
-      WorldRuntime.group.rotation.y += THREE.MathUtils.lerp(
-        0.0005,
-        WorldDefinition.restoration.rotationSpeed,
-        MotionProgress,
+      spinIdleWorldCrust(
+        WorldRuntime,
+        WorldDefinition,
+        THREE.MathUtils.lerp(
+          0.0005,
+          WorldDefinition.restoration.rotationSpeed,
+          MotionProgress,
+        ),
       );
       WorldRuntime.contourRingGroup.rotation.z += 0.0007 * MotionProgress;
       WorldRuntime.contourRingGroup.scale.setScalar(

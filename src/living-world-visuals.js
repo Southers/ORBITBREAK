@@ -56,6 +56,8 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
 
   const SurfaceUp = new THREE.Vector3(0, 1, 0);
   const SurfaceNormal = new THREE.Vector3();
+  const CrustOffset = new THREE.Vector3();
+  const CrustDirection = new THREE.Vector3();
 
   function applySphereInstance(Transform, Placement, ScaleX, ScaleY, ScaleZ, YawRadians = 0) {
     SurfaceNormal.set(Placement.directionX, Placement.directionY, Placement.directionZ);
@@ -229,7 +231,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   }
 
   function getWorldLifePlacement(WorldDefinition, Site, RadialOffset) {
-    return getSphereLifePlacement({
+    const Placement = getSphereLifePlacement({
       worldX: WorldDefinition.position.x,
       worldY: WorldDefinition.position.y,
       worldZ: WorldDefinition.position.z ?? 0,
@@ -238,6 +240,27 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       latitude: Site.latitude,
       radialOffset: RadialOffset,
     });
+    const WorldGroup = WorldRuntimeByIdentifier.get(WorldDefinition.id)?.group;
+    if (!WorldGroup) {
+      return Placement;
+    }
+    CrustOffset.set(
+      Placement.x - WorldDefinition.position.x,
+      Placement.y - WorldDefinition.position.y,
+      Placement.z - (WorldDefinition.position.z ?? 0),
+    );
+    CrustOffset.applyQuaternion(WorldGroup.quaternion);
+    CrustDirection.set(Placement.directionX, Placement.directionY, Placement.directionZ);
+    CrustDirection.applyQuaternion(WorldGroup.quaternion);
+    return {
+      ...Placement,
+      x: WorldDefinition.position.x + CrustOffset.x,
+      y: WorldDefinition.position.y + CrustOffset.y,
+      z: (WorldDefinition.position.z ?? 0) + CrustOffset.z,
+      directionX: CrustDirection.x,
+      directionY: CrustDirection.y,
+      directionZ: CrustDirection.z,
+    };
   }
 
   /** Equatorial scoring wells make slingshot chains readable while aiming and flying. */
