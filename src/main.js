@@ -30,21 +30,21 @@ import {
 } from './performance.js?v=20260818-ob109';
 import { addEnvironment } from './environment.js?v=20260818-ob109';
 import { createWorldVisuals } from './world-geometry.js?v=20260818-ob115';
-import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob109';
-import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob107';
+import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob121';
+import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob121';
 import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob119';
 import { createStoryDirector } from './story-director.js?v=20260818-ob104';
 import { createHud } from './hud.js?v=20260818-ob110';
 import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
 import { createLandingDirector } from './landing-director.js?v=20260818-ob115';
 import { createCameraController } from './camera-controller.js?v=20260818-ob120';
-import { createInputController } from './input-controller.js?v=20260818-ob110';
+import { createInputController } from './input-controller.js?v=20260818-ob121';
 import { createHostileSurface } from './hostile-surface.js?v=20260817-ob99';
 import { createScanner } from './scanner.js?v=20260817-ob99';
 import { createRoutePresentation } from './route-presentation.js?v=20260818-ob112';
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
-import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob120';
-import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob112';
+import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob121';
+import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob121';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
 import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=0.179.1';
@@ -152,7 +152,7 @@ import {
   getWorldLifeStage,
   getWorldLandingAimLabel,
   getLandedCameraScale,
-} from './presentation.js?v=20260818-ob120';
+} from './presentation.js?v=20260818-ob121';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -294,7 +294,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260818-ob120';
+GameCanvas.dataset.build = '20260818-ob121';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -2154,6 +2154,7 @@ const FrameVisuals = createFrameVisuals(THREE, {
   StardustPredictedColor,
   StardustBaseColor,
   ShaderMotionVisualKeys,
+  WorldRuntimeByIdentifier,
   WorldRuntimesByVisualKey,
   EmptyWorldRuntimeList,
   SurfaceSwayQuaternion,
@@ -2165,6 +2166,7 @@ const FrameVisuals = createFrameVisuals(THREE, {
   ShipVisualGroup,
   ShipLieGroup,
   ShipPresentationScale,
+  RunnerPresentationScale,
   RunnerArmMeshes,
   RunnerLegMeshes,
   RunnerThrusterGroup,
@@ -2227,6 +2229,7 @@ const {
   updateWorldBiomeMotion,
   updateSeedVisuals,
   updateTrailParticles,
+  applyOccupiedWorldCrust,
 } = FrameVisuals;
 
 
@@ -3414,6 +3417,8 @@ function resetGame() {
     }
   }
   updatePauseChrome();
+  applyOccupiedWorldCrust();
+  updateSeedVisuals(0, 0);
 }
 
 /** Advances at a completed Worldheart, while keeping the campaign frontier replayable. */
@@ -3460,6 +3465,8 @@ function renderFrame() {
 
   if (IsOpeningBriefingActive) {
     const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
+    applyOccupiedWorldCrust();
+    updateSeedVisuals(DeltaTimeSeconds, GameElapsedTimeSeconds);
     updateCamera(DeltaTimeSeconds);
     updateControlModeInterface();
     const CloseView = updateEnvironmentBackdrop(
@@ -3488,6 +3495,7 @@ function renderFrame() {
 
   PresentationFrameIndex += 1;
   updateWorldRestorationVisuals(ElapsedTimeSeconds);
+  applyOccupiedWorldCrust();
   updateOccupationScarVisuals(ElapsedTimeSeconds);
   refreshDockedTradeState(ElapsedTimeSeconds);
   updateProsperityBuildingVisuals(ElapsedTimeSeconds);

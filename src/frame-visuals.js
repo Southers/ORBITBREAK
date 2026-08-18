@@ -7,12 +7,15 @@
 
 import { SurfaceGestureModes } from './controls.js';
 import {
+  getLandedSurfacePlant,
   getLandedVerbHighlight,
   getLiberationFlashOpacity,
   getParkedShipPresentation,
   getRunnerAnimationState,
   getRunnerForm,
   getRunnerPose,
+  getWorldCrustWalkQuaternion,
+  shouldSpinWorldCrustUnderWalker,
 } from './presentation.js';
 
 export function createFrameVisuals(THREE, host) {
@@ -27,8 +30,10 @@ export function createFrameVisuals(THREE, host) {
     StardustPredictedColor,
     StardustBaseColor,
     ShaderMotionVisualKeys,
+    WorldRuntimeByIdentifier,
     WorldRuntimesByVisualKey,
     EmptyWorldRuntimeList,
+    RunnerPresentationScale,
     SurfaceSwayQuaternion,
     LocalSwayAxis,
     TrailParticlePool,
@@ -79,6 +84,70 @@ export function createFrameVisuals(THREE, host) {
 
   function getPresentationQuality() {
     return host.AdaptivePresentationSettings ?? null;
+  }
+
+  function getAttachedVisualWorld() {
+    return host.getWorldDefinition(host.CurrentWorldIdentifier)
+      ?? TacticalBodyDefinitions.find(
+        (BodyDefinition) => BodyDefinition.id === host.CurrentWorldIdentifier,
+      )
+      ?? null;
+  }
+
+  /**
+   * Rotates only the occupied world's group so its logical standing face sits
+   * on the camera-facing pole. Other worlds keep their own idle restoration
+   * spin. Aiming restores identity so launch stay in the orbital plane.
+   */
+  function applyOccupiedWorldCrust() {
+    const AttachedWorld = getAttachedVisualWorld();
+    const WorldRuntime = AttachedWorld
+      ? WorldRuntimeByIdentifier.get(AttachedWorld.id)
+      : null;
+    if (!WorldRuntime?.group) {
+      return;
+    }
+    const IsLanded = host.GamePhase === 'attached' || host.GamePhase === 'restoring';
+    if (!IsLanded) {
+      return;
+    }
+    const ShouldSpin = shouldSpinWorldCrustUnderWalker({
+      gamePhase: host.GamePhase,
+      worldId: AttachedWorld.id,
+      currentWorldId: host.CurrentWorldIdentifier,
+      isPointerAiming: host.IsPointerAiming === true,
+      isKeyboardAiming: host.IsKeyboardAiming === true,
+    });
+    if (!ShouldSpin) {
+      WorldRuntime.group.quaternion.identity();
+      WorldRuntime.group.rotation.set(0, 0, 0);
+      GameCanvas.dataset.crustWalk = '';
+      return;
+    }
+    SurfaceStandTo.set(
+      host.SeedPhysicsState.position.x - AttachedWorld.position.x,
+      host.SeedPhysicsState.position.y - AttachedWorld.position.y,
+      (host.SeedPhysicsState.position.z ?? 0) - (AttachedWorld.position.z ?? 0),
+    );
+    if (SurfaceStandTo.lengthSq() <= 1e-8) {
+      WorldRuntime.group.quaternion.identity();
+      WorldRuntime.group.rotation.set(0, 0, 0);
+      GameCanvas.dataset.crustWalk = '';
+      return;
+    }
+    SurfaceStandTo.normalize();
+    const CrustQuaternion = getWorldCrustWalkQuaternion({
+      surfaceDirectionX: SurfaceStandTo.x,
+      surfaceDirectionY: SurfaceStandTo.y,
+      surfaceDirectionZ: SurfaceStandTo.z,
+    });
+    WorldRuntime.group.quaternion.set(
+      CrustQuaternion.x,
+      CrustQuaternion.y,
+      CrustQuaternion.z,
+      CrustQuaternion.w,
+    );
+    GameCanvas.dataset.crustWalk = AttachedWorld.id;
   }
 
   /** Animates uncollected motes and brightens those intersected by the current prediction. */
@@ -283,11 +352,46 @@ export function createFrameVisuals(THREE, host) {
    * @param {number} ElapsedTimeSeconds - Total elapsed game time.
    */
   function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
-    SeedGroup.position.set(
-      host.SeedPhysicsState.position.x,
-      host.SeedPhysicsState.position.y,
-      host.SeedPhysicsState.position.z,
-    );
+    applyOccupiedWorldCrust();
+    const IsLanded = host.GamePhase === 'attached' || host.GamePhase === 'restoring';
+    const AttachedBody = getAttachedVisualWorld();
+    if (IsLanded && AttachedBody?.position && AttachedBody.radius > 0) {
+      const ShouldSpin = shouldSpinWorldCrustUnderWalker({
+        gamePhase: host.GamePhase,
+        worldId: AttachedBody.id,
+        currentWorldId: host.CurrentWorldIdentifier,
+        isPointerAiming: host.IsPointerAiming === true,
+        isKeyboardAiming: host.IsKeyboardAiming === true,
+      });
+      SurfaceStandTo.set(
+        host.SeedPhysicsState.position.x - AttachedBody.position.x,
+        host.SeedPhysicsState.position.y - AttachedBody.position.y,
+        (host.SeedPhysicsState.position.z ?? 0) - (AttachedBody.position.z ?? 0),
+      );
+      if (SurfaceStandTo.lengthSq() <= 1e-8) {
+        SurfaceStandTo.set(0, 0, 1);
+      } else {
+        SurfaceStandTo.normalize();
+      }
+      const Plant = getLandedSurfacePlant({
+        worldX: AttachedBody.position.x,
+        worldY: AttachedBody.position.y,
+        worldZ: AttachedBody.position.z ?? 0,
+        visualRadius: AttachedBody.radius,
+        runnerPresentationScale: RunnerPresentationScale,
+        surfaceDirectionX: SurfaceStandTo.x,
+        surfaceDirectionY: SurfaceStandTo.y,
+        surfaceDirectionZ: SurfaceStandTo.z,
+        spinCrust: ShouldSpin,
+      });
+      SeedGroup.position.set(Plant.x, Plant.y, Plant.z);
+    } else {
+      SeedGroup.position.set(
+        host.SeedPhysicsState.position.x,
+        host.SeedPhysicsState.position.y,
+        host.SeedPhysicsState.position.z,
+      );
+    }
     RouteLabelProjection.copy(SeedGroup.position).project(Camera);
     GameCanvas.dataset.seedScreenX = String(Math.round(
       (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth,
@@ -388,12 +492,31 @@ export function createFrameVisuals(THREE, host) {
         PoseBlend,
       );
     } else {
-      const AttachedBody = getWorldDefinition(host.CurrentWorldIdentifier)
-        ?? TacticalBodyDefinitions.find(
-          (BodyDefinition) => BodyDefinition.id === host.CurrentWorldIdentifier,
-        );
       let HasSurfaceNormal = false;
-      if (AttachedBody?.position) {
+      if (IsLanded && AttachedBody?.position && AttachedBody.radius > 0) {
+        const ShouldSpin = shouldSpinWorldCrustUnderWalker({
+          gamePhase: host.GamePhase,
+          worldId: AttachedBody.id,
+          currentWorldId: host.CurrentWorldIdentifier,
+          isPointerAiming: host.IsPointerAiming === true,
+          isKeyboardAiming: host.IsKeyboardAiming === true,
+        });
+        const Plant = getLandedSurfacePlant({
+          worldX: AttachedBody.position.x,
+          worldY: AttachedBody.position.y,
+          worldZ: AttachedBody.position.z ?? 0,
+          visualRadius: AttachedBody.radius,
+          runnerPresentationScale: RunnerPresentationScale,
+          surfaceDirectionX: SurfaceStandTo.x,
+          surfaceDirectionY: SurfaceStandTo.y,
+          surfaceDirectionZ: SurfaceStandTo.z,
+          spinCrust: ShouldSpin,
+        });
+        SurfaceStandTo.set(Plant.standNormalX, Plant.standNormalY, Plant.standNormalZ);
+        HasSurfaceNormal = true;
+        RunnerVisualGroup.rotation.set(0, 0, 0);
+        RunnerVisualGroup.quaternion.setFromUnitVectors(SurfaceStandFrom, SurfaceStandTo);
+      } else if (AttachedBody?.position) {
         SurfaceStandTo.set(
           host.SeedPhysicsState.position.x - AttachedBody.position.x,
           host.SeedPhysicsState.position.y - AttachedBody.position.y,
@@ -599,5 +722,6 @@ export function createFrameVisuals(THREE, host) {
     updateWorldBiomeMotion,
     updateSeedVisuals,
     updateTrailParticles,
+    applyOccupiedWorldCrust,
   };
 }

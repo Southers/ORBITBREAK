@@ -23,7 +23,18 @@ import {
   getRunnerAnimationState,
   getRunnerForm,
   getParkedShipPresentation,
+  getParkedShipCrustDrop,
   getRunnerPose,
+  getRunnerFootWorldOffset,
+  getWorldCrustWalkQuaternion,
+  getLogicalSurfaceDirectionFromWorldHit,
+  rotateVectorByQuaternion,
+  shouldHoldWorldCrustIdleSpin,
+  shouldSpinWorldCrustUnderWalker,
+  getLandedSurfacePlant,
+  LandedRunnerPresentationScale,
+  ParkedShipPresentationScale,
+  RunnerFootLocalY,
   getScannerAccessibleLabel,
   getSlingshotBandVisualState,
   getSlingshotPreviewPresentation,
@@ -1055,6 +1066,121 @@ test('parked Orbitbreaker lies on the crust instead of standing as a pole', () =
     viewUpY: 0,
     viewUpZ: 0,
   }), /finite view up/);
+});
+
+test('walking a full circuit keeps the Runner on the camera-facing pole of one world', () => {
+  const World = { x: 4, y: -2, z: 0, radius: 3.2 };
+  const FootOffset = getRunnerFootWorldOffset(LandedRunnerPresentationScale);
+  assert.equal(FootOffset, Math.abs(RunnerFootLocalY) * LandedRunnerPresentationScale);
+  const PhysicsRest = World.radius + 0.46 + 0.03;
+  const Longitudes = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2];
+  for (const Longitude of Longitudes) {
+    const DirectionX = Math.cos(Longitude);
+    const DirectionY = Math.sin(Longitude);
+    const Crust = getWorldCrustWalkQuaternion({
+      surfaceDirectionX: DirectionX,
+      surfaceDirectionY: DirectionY,
+      surfaceDirectionZ: 0,
+    });
+    const Rotated = rotateVectorByQuaternion(
+      DirectionX,
+      DirectionY,
+      0,
+      Crust.x,
+      Crust.y,
+      Crust.z,
+      Crust.w,
+    );
+    assert.ok(Math.abs(Rotated.x) < 1e-8);
+    assert.ok(Math.abs(Rotated.y) < 1e-8);
+    assert.ok(Math.abs(Rotated.z - 1) < 1e-8);
+    const Plant = getLandedSurfacePlant({
+      worldX: World.x,
+      worldY: World.y,
+      worldZ: World.z,
+      visualRadius: World.radius,
+      runnerPresentationScale: LandedRunnerPresentationScale,
+      surfaceDirectionX: DirectionX,
+      surfaceDirectionY: DirectionY,
+      surfaceDirectionZ: 0,
+      spinCrust: true,
+    });
+    assert.ok(Math.abs(Plant.x - World.x) < 1e-9, 'walk plant must stay over the world centre');
+    assert.ok(Math.abs(Plant.y - World.y) < 1e-9, 'walk plant must stay over the world centre');
+    assert.ok(Math.abs(Plant.z - (World.z + World.radius + FootOffset)) < 1e-9);
+    assert.ok(Plant.plantDistance < PhysicsRest, 'plant must use visual radius, not physics rest');
+    assert.equal(Plant.standNormalZ, 1);
+    const VisualTop = {
+      x: World.x,
+      y: World.y,
+      z: World.z + World.radius,
+    };
+    const Logical = getLogicalSurfaceDirectionFromWorldHit({
+      worldX: World.x,
+      worldY: World.y,
+      worldZ: World.z,
+      hitX: VisualTop.x,
+      hitY: VisualTop.y,
+      hitZ: VisualTop.z,
+      crustQX: Crust.x,
+      crustQY: Crust.y,
+      crustQZ: Crust.z,
+      crustQW: Crust.w,
+    });
+    assert.ok(Math.abs(Logical.x - DirectionX) < 1e-8, 'top of the spun globe is the walked face');
+    assert.ok(Math.abs(Logical.y - DirectionY) < 1e-8);
+    assert.ok(Math.abs(Logical.z) < 1e-8);
+  }
+  const AimPlant = getLandedSurfacePlant({
+    worldX: World.x,
+    worldY: World.y,
+    worldZ: World.z,
+    visualRadius: World.radius,
+    runnerPresentationScale: LandedRunnerPresentationScale,
+    surfaceDirectionX: 1,
+    surfaceDirectionY: 0,
+    surfaceDirectionZ: 0,
+    spinCrust: false,
+  });
+  assert.ok(Math.abs(AimPlant.x - (World.x + World.radius + FootOffset)) < 1e-9);
+  assert.ok(Math.abs(AimPlant.z - World.z) < 1e-9);
+  assert.equal(
+    shouldSpinWorldCrustUnderWalker({
+      gamePhase: 'attached',
+      worldId: 'haven',
+      currentWorldId: 'haven',
+    }),
+    true,
+  );
+  assert.equal(
+    shouldSpinWorldCrustUnderWalker({
+      gamePhase: 'attached',
+      worldId: 'haven',
+      currentWorldId: 'haven',
+      isPointerAiming: true,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldHoldWorldCrustIdleSpin({
+      gamePhase: 'attached',
+      worldId: 'ember',
+      currentWorldId: 'haven',
+    }),
+    false,
+  );
+  assert.equal(
+    shouldHoldWorldCrustIdleSpin({
+      gamePhase: 'flying',
+      worldId: 'haven',
+      currentWorldId: 'haven',
+    }),
+    false,
+  );
+  const ShipDrop = getParkedShipCrustDrop();
+  assert.ok(ShipDrop > 0.08);
+  assert.ok(ShipDrop < FootOffset);
+  assert.equal(ParkedShipPresentationScale, 0.08);
 });
 
 test('Stillness cage visibly expands and vanishes through liberation', () => {
