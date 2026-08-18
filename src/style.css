@@ -72,6 +72,10 @@ button[aria-disabled='true'] {
   cursor: grab;
 }
 
+#GameCanvas.is-ship-armed {
+  cursor: grabbing;
+}
+
 #GameCanvas.is-aiming {
   cursor: grabbing;
 }

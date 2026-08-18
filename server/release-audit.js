@@ -52,6 +52,7 @@ export function auditReleaseReadiness() {
   const HudSource = readRepositoryFile('src/hud.js');
   const LandingDirectorSource = readRepositoryFile('src/landing-director.js');
   const InputControllerSource = readRepositoryFile('src/input-controller.js');
+  const ControlsSource = readRepositoryFile('src/controls.js');
   const CameraSource = readRepositoryFile('src/camera-controller.js');
   const ScannerSource = readRepositoryFile('src/scanner.js');
   const RoutePresentationSource = readRepositoryFile('src/route-presentation.js');
@@ -139,11 +140,24 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     InputControllerSource.includes('classifyPendingShipGrab(')
+      && InputControllerSource.includes('classifyLandedPointerStart(')
+      && InputControllerSource.includes('LandedPointerTargets.ship')
       && CameraSource.includes('commitAimPlanningCamera(')
       && CameraSource.includes('host.HasCommittedAimCamera')
       && InputControllerSource.includes('dataset.aimCamera')
       && InputControllerSource.includes('showWalkFacingInstruction(getCurrentAttachedWorld())'),
-    'Ship grab must commit aim from a screen pull, keep the globe camera until cancel, and retain facing after a walk.',
+    'Ship grab must lock aim from pointer-down, keep the globe camera until cancel, and retain facing after a walk.',
+  );
+  requireCondition(
+    ControlsSource.includes('export function classifyLandedPointerStart(')
+      && ControlsSource.includes('SeedScreenGrabRadiusPixels = 72')
+      && PresentationSource.includes("title: 'Drag the planet to walk'")
+      && PresentationSource.includes("title: 'Pull the ship, then let go'")
+      && HudSource.includes('function updateFirstRunCoach(')
+      && FrameVisualsSource.includes('getLandedVerbHighlight(')
+      && !InputControllerSource.includes('classifySphereSurfaceGesture(')
+      && !InputControllerSource.includes('classifySurfaceGesture('),
+    'First-timer walk vs aim must lock from where the drag starts, not how it moves, with sticky walk-then-launch captions.',
   );
   requireCondition(
     PresentationSource.includes('export function getWorldLifeStage(')

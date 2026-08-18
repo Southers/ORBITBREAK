@@ -5,8 +5,10 @@
 
 import {
   SurfaceGestureModes,
+  LandedPointerTargets,
   adjustKeyboardAimState,
   classifyPendingShipGrab,
+  classifyLandedPointerStart,
   createKeyboardAimState,
   findNearestKeyboardAimAngle,
   getAimCameraStage,
@@ -17,6 +19,7 @@ import {
   getSurfaceWalkArcLimit,
   intersectRaySphere,
   projectRayOntoSphere,
+  SeedScreenGrabRadiusPixels,
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
 } from './controls.js';
@@ -184,7 +187,6 @@ function getPointerWorldPosition(PointerEventData, UnprojectCamera = Camera) {
  * @returns {boolean} Whether the user acquired the seed.
  */
 const SeedScreenProjection = new THREE.Vector3();
-const SeedScreenGrabRadiusPixels = 44;
 
 function isPointerOverSeed(PointerEventData) {
   const CanvasBounds = GameCanvas.getBoundingClientRect();
@@ -298,11 +300,6 @@ function showWalkFacingInstruction(AttachedWorld) {
   });
   GameCanvas.dataset.facingWorld = Facing.worldId ?? '';
   GameCanvas.dataset.facingAlignment = Facing.alignment.toFixed(2);
-  showInstruction(
-    'Walk the globe',
-    'Drag to choose a launch face. Over the poles is the short path to the far side.',
-    'walk',
-  );
 }
 
 function walkRunnerToGlobeHit(Hit, InputKind = 'pointer') {
@@ -322,6 +319,11 @@ function walkRunnerToGlobeHit(Hit, InputKind = 'pointer') {
   );
   if (DidMove) {
     host.RunnerWalkLifeSeconds = 0.34;
+    host.HasWalkedOnce = true;
+    if (Hit) {
+      host.WalkHintPosition.set(Hit.x, Hit.y, Hit.z ?? 0);
+      host.WalkHintVisible = true;
+    }
     showWalkFacingInstruction(AttachedWorld);
   }
   return DidMove;
@@ -478,11 +480,6 @@ function beginKeyboardAim() {
   syncKeyboardLaunchVectors();
   updateKeyboardAimPreview();
   commitAimPlanningCamera();
-  showInstruction(
-    'Pull to aim',
-    'Gold locks a landing. Drag back onto the ship to cancel.',
-    'aim',
-  );
   GameCanvas.focus({ preventScroll: true });
   return true;
 }
@@ -507,7 +504,7 @@ function cancelAimedLaunch({ announce = true } = {}) {
   host.IsPointerScouting = false;
   host.PointerGestureMode = SurfaceGestureModes.pending;
   host.ActivePointerIdentifier = null;
-  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
+  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting', 'is-ship-armed');
   GameCanvas.dataset.keyboardAimAngle = '';
   GameCanvas.dataset.keyboardAimPower = '';
   GameCanvas.dataset.keyboardAimAssist = '';
@@ -570,6 +567,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
     });
     if (DidMove) {
       host.RunnerWalkLifeSeconds = 0.34;
+      host.HasWalkedOnce = true;
     }
     if (DidMove && !host.ActiveHostileEncounterState) {
       showWalkFacingInstruction(getCurrentAttachedWorld());
@@ -590,9 +588,13 @@ function handleKeyboardAimKey(KeyboardEventData) {
     || host.IsBurnAiming
     || host.IsCutAiming
     || (
-      host.PointerGestureMode === SurfaceGestureModes.pending
-      && host.ActivePointerIdentifier !== null
+      host.ActivePointerIdentifier !== null
       && host.GamePhase === 'attached'
+      && host.IsPointerWalking !== true
+      && (
+        host.PointerGestureMode === SurfaceGestureModes.pending
+        || (host.PointerGestureMode === SurfaceGestureModes.aim && host.IsPointerAiming !== true)
+      )
     )
   )) {
     KeyboardEventData.preventDefault();
@@ -605,6 +607,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
     } else {
       host.ActivePointerIdentifier = null;
       host.PointerGestureMode = SurfaceGestureModes.pending;
+      GameCanvas.classList.remove('is-ship-armed');
       clearAimScreenDistance();
       if (!showHostileEncounterInstruction()) {
         showWalkFacingInstruction(getCurrentAttachedWorld());
@@ -1009,6 +1012,7 @@ function beginLaunchAim(WorldPosition, PointerEventData = null) {
   host.IsPointerAiming = true;
   WorldseedSound.beginAim();
   GameCanvas.classList.add('is-aiming');
+  GameCanvas.classList.remove('is-ship-armed');
   const AimPointer = PointerEventData
     ? (getPointerWorldPosition(PointerEventData, host.AimInteractionCamera) ?? WorldPosition)
     : WorldPosition;
@@ -1024,6 +1028,8 @@ function beginLaunchAim(WorldPosition, PointerEventData = null) {
 function beginSurfaceWalk() {
   host.PointerGestureMode = SurfaceGestureModes.walk;
   host.IsPointerWalking = true;
+  host.WalkHintPosition.copy(SeedGroup.position);
+  host.WalkHintVisible = true;
   WorldseedSound.beginWalk();
   GameCanvas.classList.add('is-walking');
   LastSurfaceWalkAtSeconds = 0;
@@ -1090,21 +1096,24 @@ function handlePointerDown(PointerEventData) {
     return;
   }
 
-  if (isPointerOverSeed(PointerEventData) && !host.ActiveHostileEncounterState) {
+  const PointerStartTarget = classifyLandedPointerStart({
+    isOverShip: isPointerOverSeed(PointerEventData) && !host.ActiveHostileEncounterState,
+    isOverWorld: isPointerOverAttachedWorld(CurrentPointerWorldPosition),
+  });
+  if (PointerStartTarget === LandedPointerTargets.ship) {
     setScoutMode(false);
-    host.PointerGestureMode = SurfaceGestureModes.pending;
+    host.PointerGestureMode = SurfaceGestureModes.aim;
+    host.IsPointerWalking = false;
+    host.WalkHintVisible = false;
+    GameCanvas.classList.add('is-ship-armed');
+    GameCanvas.classList.remove('is-walking', 'is-walk-ready');
     PointerGestureStartWorldPosition.copy(CurrentPointerWorldPosition);
     LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
-    showInstruction(
-      'Pull to aim',
-      'Gold locks a landing. Drag back onto the ship to cancel.',
-      'aim',
-    );
     PointerEventData.preventDefault();
     return;
   }
 
-  if (isPointerOverAttachedWorld(CurrentPointerWorldPosition)) {
+  if (PointerStartTarget === LandedPointerTargets.world) {
     setScoutMode(false);
     beginSurfaceWalk();
     walkRunnerToGlobeHit(getAttachedGlobeHit(false));
@@ -1147,12 +1156,24 @@ function handlePointerMove(PointerEventData) {
       && !isPointerOverSeed(PointerEventData)
     ) {
       const HoverWorldPosition = getPointerWorldPosition(PointerEventData);
-      GameCanvas.classList.toggle(
-        'is-walk-ready',
-        Boolean(HoverWorldPosition && isPointerOverAttachedWorld(HoverWorldPosition)),
+      const IsWalkReady = Boolean(
+        HoverWorldPosition && isPointerOverAttachedWorld(HoverWorldPosition),
       );
+      GameCanvas.classList.toggle('is-walk-ready', IsWalkReady);
+      if (IsWalkReady) {
+        const GlobeHit = getAttachedGlobeHit(false);
+        if (GlobeHit) {
+          host.WalkHintPosition.set(GlobeHit.x, GlobeHit.y, GlobeHit.z ?? 0);
+          host.WalkHintVisible = true;
+        }
+      } else {
+        host.WalkHintVisible = false;
+      }
     } else {
       GameCanvas.classList.remove('is-walk-ready');
+      if (!host.IsPointerWalking) {
+        host.WalkHintVisible = false;
+      }
     }
   }
   if (PointerEventData.pointerId !== host.ActivePointerIdentifier) {
@@ -1170,7 +1191,7 @@ function handlePointerMove(PointerEventData) {
   rememberAimScreenDistance(PointerEventData);
 
   if (
-    host.PointerGestureMode === SurfaceGestureModes.pending
+    host.PointerGestureMode === SurfaceGestureModes.aim
     && host.GamePhase === 'attached'
     && !host.IsPointerAiming
     && !host.IsPointerWalking
@@ -1234,12 +1255,11 @@ function releaseAimedLaunch() {
     host.PointerGestureMode = SurfaceGestureModes.pending;
     host.IsKeyboardAiming = false;
     host.ActivePointerIdentifier = null;
-    GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
+    GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting', 'is-ship-armed');
     releaseAimInteractionCamera();
     clearCommittedAimCamera();
     clearTrajectoryPreview();
     WorldseedSound.endAim();
-    showInstruction('Pull to aim', 'Gold locks a landing. Drag back onto the ship to cancel.', 'aim');
     return false;
   }
 
@@ -1253,7 +1273,7 @@ function releaseAimedLaunch() {
   host.IsBreakerBurnAvailable = false;
   host.IsBreakerBurnPending = false;
   host.ActivePointerIdentifier = null;
-  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
+  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting', 'is-ship-armed');
   releaseAimInteractionCamera();
   clearCommittedAimCamera();
 
@@ -1462,6 +1482,7 @@ function handlePointerUp(PointerEventData) {
     host.IsPointerWalking = false;
     host.ActivePointerIdentifier = null;
     host.PointerGestureMode = SurfaceGestureModes.pending;
+    host.WalkHintVisible = false;
     GameCanvas.classList.remove('is-walking');
     if (!showHostileEncounterInstruction()) {
       showWalkFacingInstruction(getCurrentAttachedWorld());
@@ -1473,6 +1494,7 @@ function handlePointerUp(PointerEventData) {
   if (!host.IsPointerAiming) {
     host.ActivePointerIdentifier = null;
     host.PointerGestureMode = SurfaceGestureModes.pending;
+    GameCanvas.classList.remove('is-ship-armed');
     clearAimScreenDistance();
     if (!showHostileEncounterInstruction()) {
       showWalkFacingInstruction(getCurrentAttachedWorld());
@@ -1528,7 +1550,7 @@ function handlePointerCancel(PointerEventData) {
   host.IsPointerScouting = false;
   host.ActivePointerIdentifier = null;
   host.PointerGestureMode = SurfaceGestureModes.pending;
-  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
+  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting', 'is-ship-armed');
   releaseAimInteractionCamera();
   clearCommittedAimCamera();
   clearTrajectoryPreview();

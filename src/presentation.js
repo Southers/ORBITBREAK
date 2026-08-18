@@ -52,6 +52,69 @@ export function getRunnerForm(GamePhase, FlightElapsedSeconds = 0) {
   return FlightElapsedSeconds < 0.28 ? 'launch-craft' : 'ship';
 }
 
+/**
+ * First-run pointer coaching stays until the verb is done, then goes silent.
+ * Walk is taught before launch so a stranger can drag the planet, then pull the ship.
+ */
+export function getFirstRunCoachPresentation({
+  gamePhase = 'attached',
+  hasWalkedOnce = false,
+  hasLaunchedOnce = false,
+  isOpeningBriefingActive = false,
+  runStatus = 'active',
+} = {}) {
+  if (
+    gamePhase !== 'attached'
+    || isOpeningBriefingActive === true
+    || runStatus !== 'active'
+  ) {
+    return { visible: false, kind: '', title: '', body: '' };
+  }
+  if (hasWalkedOnce !== true && hasLaunchedOnce !== true) {
+    return {
+      visible: true,
+      kind: 'walk',
+      title: 'Drag the planet to walk',
+      body: '',
+    };
+  }
+  if (hasLaunchedOnce !== true) {
+    return {
+      visible: true,
+      kind: 'aim',
+      title: 'Pull the ship, then let go',
+      body: '',
+    };
+  }
+  return { visible: false, kind: '', title: '', body: '' };
+}
+
+/** Ship halo vs planet rim so walk and aim look different before the drag commits. */
+export function getLandedVerbHighlight({
+  gamePhase = 'attached',
+  hasWalkedOnce = false,
+  hasLaunchedOnce = false,
+  isGrabReady = false,
+  isShipArmed = false,
+  isAiming = false,
+  isWalkReady = false,
+  isWalking = false,
+} = {}) {
+  const IsAttached = gamePhase === 'attached';
+  const ShipCharge = isGrabReady === true || isShipArmed === true || isAiming === true;
+  return {
+    shipHalo: IsAttached && (hasLaunchedOnce !== true || ShipCharge),
+    shipHaloCharge: IsAttached && ShipCharge,
+    worldWalkHalo: IsAttached && (
+      isWalking === true
+      || isWalkReady === true
+      || hasWalkedOnce !== true
+    ),
+    walkCursor: IsAttached && (isWalking === true || isWalkReady === true),
+    pullHint: IsAttached && hasWalkedOnce === true && hasLaunchedOnce !== true,
+  };
+}
+
 /** Deterministic occupation-cage transition driven by restoration progress. */
 export function getStillnessPresentation(IsRestored, RestorationProgress = 0) {
   if (!IsRestored) {

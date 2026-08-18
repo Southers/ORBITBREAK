@@ -343,7 +343,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
     }
   }
 
-  const SeedHaloGeometry = new THREE.SphereGeometry(SeedRadius * 1.65, 24, 16);
+  const SeedHaloGeometry = new THREE.SphereGeometry(SeedRadius * 2.35, 24, 16);
   const SeedHaloMaterial = new THREE.MeshBasicMaterial({
     color: 0x6de8ff,
     transparent: true,
@@ -354,6 +354,43 @@ export function createPlayerVisuals(THREE, Scene, host) {
   const SeedHaloMesh = new THREE.Mesh(SeedHaloGeometry, SeedHaloMaterial);
   SeedGroup.add(SeedHaloMesh);
 
+  const WorldWalkHaloMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffe7a0,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
+  const WorldWalkHaloMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 32, 20),
+    WorldWalkHaloMaterial,
+  );
+  WorldWalkHaloMesh.visible = false;
+  WorldWalkHaloMesh.frustumCulled = false;
+  WorldWalkHaloMesh.renderOrder = 6;
+  Scene.add(WorldWalkHaloMesh);
+
+  const WalkCursorMaterial = new THREE.MeshBasicMaterial({
+    color: 0xfff0c4,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
+    toneMapped: false,
+  });
+  const WalkCursorMesh = new THREE.Mesh(
+    new THREE.TorusGeometry(0.22, 0.045, 8, 24),
+    WalkCursorMaterial,
+  );
+  WalkCursorMesh.visible = false;
+  WalkCursorMesh.frustumCulled = false;
+  WalkCursorMesh.renderOrder = 7;
+  Scene.add(WalkCursorMesh);
+
   const SeedPointLight = new THREE.PointLight(0x72dcff, 2.1, 6, 2);
   SeedGroup.add(SeedPointLight);
   Scene.add(SeedGroup);
@@ -361,7 +398,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   /**
    * An enlarged invisible sphere makes pointer acquisition forgiving on touchscreens.
    */
-  const SeedPointerHitGeometry = new THREE.SphereGeometry(SeedRadius * 3.6, 12, 8);
+  const SeedPointerHitGeometry = new THREE.SphereGeometry(SeedRadius * 2.2, 12, 8);
   const SeedPointerHitMaterial = new THREE.MeshBasicMaterial({
     transparent: true,
     opacity: 0,
@@ -548,6 +585,10 @@ export function createPlayerVisuals(THREE, Scene, host) {
     SeedHaloMaterial,
     SeedHaloMesh,
     SeedPointLight,
+    WorldWalkHaloMesh,
+    WorldWalkHaloMaterial,
+    WalkCursorMesh,
+    WalkCursorMaterial,
     SeedPointerHitGeometry,
     SeedPointerHitMaterial,
     SeedPointerHitMesh,

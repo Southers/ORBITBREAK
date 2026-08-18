@@ -29,18 +29,18 @@ import { addEnvironment } from './environment.js?v=20260818-ob103';
 import { createWorldVisuals } from './world-geometry.js?v=20260818-ob107';
 import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob107';
 import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob107';
-import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob107';
+import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob108';
 import { createStoryDirector } from './story-director.js?v=20260818-ob104';
-import { createHud } from './hud.js?v=20260818-ob105';
+import { createHud } from './hud.js?v=20260818-ob108';
 import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
 import { createLandingDirector } from './landing-director.js?v=20260818-ob104';
 import { createCameraController } from './camera-controller.js?v=20260818-ob107';
-import { createInputController } from './input-controller.js?v=20260818-ob107';
+import { createInputController } from './input-controller.js?v=20260818-ob108';
 import { createHostileSurface } from './hostile-surface.js?v=20260817-ob99';
 import { createScanner } from './scanner.js?v=20260817-ob99';
 import { createRoutePresentation } from './route-presentation.js?v=20260818-ob105';
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
-import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob102';
+import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob108';
 import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob104';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
@@ -149,7 +149,7 @@ import {
   getWorldLifeStage,
   getWorldLandingAimLabel,
   getLandedCameraScale,
-} from './presentation.js?v=20260818-ob107';
+} from './presentation.js?v=20260818-ob108';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -291,7 +291,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260818-ob107';
+GameCanvas.dataset.build = '20260818-ob108';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -409,6 +409,8 @@ const AimDragVector = new THREE.Vector3();
 const AimLaunchVelocity = new THREE.Vector3();
 const LastAimPointerWorldPosition = new THREE.Vector3();
 const PointerGestureStartWorldPosition = new THREE.Vector3();
+const WalkHintPosition = new THREE.Vector3();
+let WalkHintVisible = false;
 const ScoutPointerStartWorldPosition = new THREE.Vector3();
 const ScoutCameraStartTarget = new THREE.Vector3();
 const ScoutCameraTarget = new THREE.Vector3();
@@ -493,6 +495,7 @@ let StatusToastTimeoutIdentifier = null;
 let WorldheartCompletionTimeoutIdentifier = null;
 let LeaderboardLoadSequence = 0;
 let HasLaunchedOnce = false;
+let HasWalkedOnce = false;
 let HasCompletedOpeningBriefing = false;
 let OpeningBriefingPageIndex = 0;
 let IsOpeningBriefingActive = false;
@@ -791,6 +794,7 @@ const PullHintPullProjection = new THREE.Vector3();
 /** Animated first-launch coach: chevrons marching along the pull direction from the ship. */
 function updatePullHint() {
   const ShouldShow = GamePhase === 'attached'
+    && HasWalkedOnce
     && !HasLaunchedOnce
     && !IsPointerAiming
     && !IsKeyboardAiming
@@ -913,6 +917,10 @@ const Hud = createHud({
   get WardenPursuitState() { return WardenPursuitState; },
   get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
   get ActiveHostileEncounterState() { return ActiveHostileEncounterState; },
+  get GamePhase() { return GamePhase; },
+  get HasWalkedOnce() { return HasWalkedOnce; },
+  get HasLaunchedOnce() { return HasLaunchedOnce; },
+  get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
 });
 const {
   refreshPlayfieldLabelBounds,
@@ -927,6 +935,7 @@ const {
   showStatusToast,
   showInstruction,
   hideInstruction,
+  updateFirstRunCoach,
   announceWarden,
   resetHud,
 } = Hud;
@@ -1317,6 +1326,10 @@ const {
   SeedHaloMaterial,
   SeedHaloMesh,
   SeedPointLight,
+  WorldWalkHaloMesh,
+  WorldWalkHaloMaterial,
+  WalkCursorMesh,
+  WalkCursorMaterial,
   SeedPointerHitGeometry,
   SeedPointerHitMaterial,
   SeedPointerHitMesh,
@@ -2135,9 +2148,13 @@ const FrameVisuals = createFrameVisuals(THREE, {
   RunnerLegMeshes,
   RunnerThrusterGroup,
   ShipThrusterMesh,
-  SeedHaloMesh,
-  SeedHaloMaterial,
-  LiberationFlashElement,
+    SeedHaloMesh,
+    SeedHaloMaterial,
+    WorldWalkHaloMesh,
+    WorldWalkHaloMaterial,
+    WalkCursorMesh,
+    WalkCursorMaterial,
+    LiberationFlashElement,
   LandingMarkerMesh,
   LaunchPulseMesh,
   ImpactPulseMesh,
@@ -2177,6 +2194,10 @@ const FrameVisuals = createFrameVisuals(THREE, {
   get ImpactPulseLifeSeconds() { return ImpactPulseLifeSeconds; },
   set ImpactPulseLifeSeconds(Value) { ImpactPulseLifeSeconds = Value; },
   get HasLaunchedOnce() { return HasLaunchedOnce; },
+  get HasWalkedOnce() { return HasWalkedOnce; },
+  get IsPointerWalking() { return IsPointerWalking; },
+  WalkHintPosition,
+  get WalkHintVisible() { return WalkHintVisible; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
 });
 const {
@@ -2508,6 +2529,11 @@ const InputController = createInputController(THREE, {
   set LiberationCelebrateUntilSeconds(Value) { LiberationCelebrateUntilSeconds = Value; },
   get HasLaunchedOnce() { return HasLaunchedOnce; },
   set HasLaunchedOnce(Value) { HasLaunchedOnce = Value; },
+  get HasWalkedOnce() { return HasWalkedOnce; },
+  set HasWalkedOnce(Value) { HasWalkedOnce = Value; },
+  WalkHintPosition,
+  get WalkHintVisible() { return WalkHintVisible; },
+  set WalkHintVisible(Value) { WalkHintVisible = Value; },
   get HasTaughtBurn() { return HasTaughtBurn; },
   set HasTaughtBurn(Value) { HasTaughtBurn = Value; },
   get TrailEmissionAccumulatorSeconds() { return TrailEmissionAccumulatorSeconds; },
@@ -3107,6 +3133,8 @@ function resetGame() {
   ActivePointerIdentifier = null;
   KeyboardAimState = createKeyboardAimState();
   HasLaunchedOnce = false;
+  HasWalkedOnce = false;
+  WalkHintVisible = false;
   LaunchPulseLifeSeconds = 0;
   LaunchPulseDurationSeconds = 0.42;
   BreakerBurnFlareLifeSeconds = 0;
@@ -3123,7 +3151,7 @@ function resetGame() {
   RunnerVisualGroup.rotation.set(0, 0, 0);
   PlanningCameraScale = 1;
   releaseAimInteractionCamera();
-  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
+  GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting', 'is-ship-armed');
   ScoutButtonElement.textContent = 'Scout [C]';
   ScoutButtonElement.setAttribute('aria-pressed', 'false');
   ScoutZoomOutButtonElement.hidden = true;
@@ -3450,6 +3478,7 @@ function renderFrame() {
   updateStardustVisuals(ElapsedTimeSeconds);
   updateRouteLabels(CachedInstructionPanelTop);
   updatePullHint();
+  updateFirstRunCoach();
   updateFlightAudio();
   updateWorldLifeAudio();
   updatePersonalBestGhostVisibility();
@@ -3502,7 +3531,7 @@ function setPageActivity(IsActive) {
       ) {
         GameCanvas.releasePointerCapture(CanceledPointerIdentifier);
       }
-      GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
+      GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting', 'is-ship-armed');
       releaseAimInteractionCamera();
       clearTrajectoryPreview();
       WorldseedSound.endAim();

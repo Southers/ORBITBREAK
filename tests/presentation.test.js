@@ -71,6 +71,8 @@ import {
   shouldPlayOpeningBriefing,
   getWorldLandingAimLabel,
   getLaunchFacingPresentation,
+  getFirstRunCoachPresentation,
+  getLandedVerbHighlight,
   getLoopObjectivePresentation,
   getHiddenWardenRouteCoach,
   getPursuitRouteCoach,
@@ -790,6 +792,48 @@ test('the launch face names the neighbour this longitude looks toward', () => {
     alignment: 0,
     isFacing: false,
   });
+});
+
+test('first-run captions stay until walk, then until launch, then silence', () => {
+  const Opening = getFirstRunCoachPresentation({
+    gamePhase: 'attached',
+    hasWalkedOnce: false,
+    hasLaunchedOnce: false,
+  });
+  assert.equal(Opening.visible, true);
+  assert.equal(Opening.title, 'Drag the planet to walk');
+  const AfterWalk = getFirstRunCoachPresentation({
+    gamePhase: 'attached',
+    hasWalkedOnce: true,
+    hasLaunchedOnce: false,
+  });
+  assert.equal(AfterWalk.title, 'Pull the ship, then let go');
+  const AfterLaunch = getFirstRunCoachPresentation({
+    gamePhase: 'attached',
+    hasWalkedOnce: true,
+    hasLaunchedOnce: true,
+  });
+  assert.equal(AfterLaunch.visible, false);
+  assert.equal(getFirstRunCoachPresentation({
+    gamePhase: 'flying',
+    hasWalkedOnce: false,
+    hasLaunchedOnce: false,
+  }).visible, false);
+  const IdleHighlight = getLandedVerbHighlight({
+    gamePhase: 'attached',
+    hasWalkedOnce: false,
+    hasLaunchedOnce: false,
+  });
+  assert.equal(IdleHighlight.shipHalo, true);
+  assert.equal(IdleHighlight.worldWalkHalo, true);
+  assert.equal(IdleHighlight.pullHint, false);
+  const ReadyToLaunch = getLandedVerbHighlight({
+    gamePhase: 'attached',
+    hasWalkedOnce: true,
+    hasLaunchedOnce: false,
+  });
+  assert.equal(ReadyToLaunch.pullHint, true);
+  assert.equal(ReadyToLaunch.worldWalkHalo, false);
 });
 
 test('slingshot preview names a chain only after two distinct wells', () => {

@@ -5,18 +5,16 @@
 
 import { countRestoredWorlds } from './campaign.js';
 import { countLiveRelayWorlds, listRelayCircuits } from './network.js';
-import { getLoopObjectivePresentation } from './presentation.js';
+import { getFirstRunCoachPresentation, getLoopObjectivePresentation } from './presentation.js';
 
 const TaughtCaptionStorageKey = 'orbitbreak.taughtCaptions';
-const FirstRunCaptionKinds = new Set(['walk', 'aim', 'break', 'missed-port']);
+const FirstRunCaptionKinds = new Set(['break', 'missed-port']);
 
 function loadTaughtCaptions() {
   try {
     const Stored = JSON.parse(window.localStorage.getItem(TaughtCaptionStorageKey));
     if (Stored && typeof Stored === 'object') {
       return {
-        walk: Stored.walk === true,
-        aim: Stored.aim === true,
         break: Stored.break === true,
         'missed-port': Stored['missed-port'] === true,
       };
@@ -25,8 +23,6 @@ function loadTaughtCaptions() {
     // Ignore quota / private-mode failures and start untaught.
   }
   return {
-    walk: false,
-    aim: false,
     break: false,
     'missed-port': false,
   };
@@ -234,14 +230,15 @@ export function createHud(host) {
     PlayCaptionElement.classList.remove('is-fading');
     PlayCaptionTitleElement.textContent = '';
     PlayCaptionBodyElement.textContent = '';
+    delete PlayCaptionElement.dataset.coachKind;
   }
 
   /**
-   * First-run fading captions only. Later play calls no-op; toasts still fire separately.
+   * First-run fading captions for later verbs. Walk and launch stay on the sticky coach.
    *
    * @param {string} Title - Strong instruction line.
    * @param {string} Body - Supporting instruction line.
-   * @param {string} [CaptionKind] - One of walk, aim, break, missed-port.
+   * @param {string} [CaptionKind] - One of break, missed-port.
    */
   function showInstruction(Title, Body, CaptionKind = '') {
     const Kind = FirstRunCaptionKinds.has(CaptionKind) ? CaptionKind : '';
@@ -266,6 +263,42 @@ export function createHud(host) {
       PlayCaptionTimeoutIdentifier = null;
       hideInstruction();
     }, host.PrefersReducedMotion ? 4200 : 3200);
+  }
+
+  /** Stays on screen until the player actually walks, then until they launch, then silence. */
+  function updateFirstRunCoach() {
+    const Coach = getFirstRunCoachPresentation({
+      gamePhase: host.GamePhase,
+      hasWalkedOnce: host.HasWalkedOnce === true,
+      hasLaunchedOnce: host.HasLaunchedOnce === true,
+      isOpeningBriefingActive: host.IsOpeningBriefingActive === true,
+      runStatus: host.RunState?.status ?? 'active',
+    });
+    if (!Coach.visible) {
+      if (PlayCaptionElement.dataset.coachKind) {
+        delete PlayCaptionElement.dataset.coachKind;
+        if (!PlayCaptionElement.classList.contains('is-fading')) {
+          hideInstruction();
+        }
+      }
+      return;
+    }
+    const SameCaption = PlayCaptionElement.dataset.coachKind === Coach.kind
+      && PlayCaptionTitleElement.textContent === Coach.title
+      && PlayCaptionElement.hidden === false;
+    if (SameCaption) {
+      return;
+    }
+    if (PlayCaptionTimeoutIdentifier !== null) {
+      host.clearTimeout(PlayCaptionTimeoutIdentifier);
+      PlayCaptionTimeoutIdentifier = null;
+    }
+    PlayCaptionTitleElement.textContent = Coach.title;
+    PlayCaptionBodyElement.textContent = Coach.body;
+    PlayCaptionElement.hidden = false;
+    PlayCaptionElement.classList.remove('is-fading');
+    PlayCaptionElement.dataset.coachKind = Coach.kind;
+    announceLive(Coach.title);
   }
 
   function announceWarden(Message) {
@@ -294,6 +327,7 @@ export function createHud(host) {
     showStatusToast,
     showInstruction,
     hideInstruction,
+    updateFirstRunCoach,
     announceWarden,
     resetHud,
   };
