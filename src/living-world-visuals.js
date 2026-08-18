@@ -977,9 +977,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         applySphereInstance(
           ProsperityWindowTransform,
           getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.42),
-          Presence,
-          Presence * (IsDockLit ? 1.25 : 1),
-          Presence,
+          Presence * 0.55,
+          Presence * 0.45 * (IsDockLit ? 1.25 : 1),
+          Presence * 0.35,
         );
         ProsperityWindowMesh.setMatrixAt(WindowSlot, ProsperityWindowTransform.matrix);
         ProsperityWindowColor.setHex(ProsperityStage === 'circuit' ? 0xfff0c4 : 0xffd27a);
@@ -988,33 +988,10 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       } else {
         hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, WindowSlot);
       }
-      if (BuildingProfile.hasStreet) {
-        applySphereInstance(
-          ProsperityWindowTransform,
-          getWorldLifePlacement(Scar.worldDefinition, Scar.site, 0.02),
-          2.4 * Presence,
-          0.18 * Presence,
-          0.7 * Presence,
-        );
-        ProsperityWindowMesh.setMatrixAt(StreetSlot, ProsperityWindowTransform.matrix);
-        ProsperityWindowColor.setHex(0x6a5a48);
-        ProsperityWindowMesh.setColorAt(StreetSlot, ProsperityWindowColor);
-        NextVisibleWindowCount += 1;
-      } else {
-        hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, StreetSlot);
-      }
-      const GlowScale = Presence * (ProsperityStage === 'circuit' ? 4.2 : 3.4);
-      applySphereInstance(
-        ProsperityWindowTransform,
-        getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.72),
-        GlowScale,
-        GlowScale * 0.55,
-        GlowScale,
-      );
-      ProsperityWindowMesh.setMatrixAt(GlowSlot, ProsperityWindowTransform.matrix);
-      ProsperityWindowColor.setHex(ProsperityStage === 'circuit' ? 0xfff3c8 : 0xffc878);
-      ProsperityWindowMesh.setColorAt(GlowSlot, ProsperityWindowColor);
-      NextVisibleWindowCount += 1;
+      // Street and town-glow used stretched untextured boxes. Those read as
+      // blank plaques on Ember's crust. Keep only the tiny window lights.
+      hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, StreetSlot);
+      hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, GlowSlot);
     }
     for (const FamilyMesh of Object.values(ProsperityBuildingMeshes)) {
       if (FamilyMesh.count > 0) {

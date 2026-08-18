@@ -1874,6 +1874,17 @@ export function isCampaignStoryBoardReadyToPresent({
 export const DefaultRelayRevealHoldDurationSeconds = 0.85;
 export const LinkedRelayRevealHoldDurationSeconds = 1.7;
 export const LiberationCelebrateHoldSeconds = 1.05;
+export const CageClearPulseDurationSeconds = 1.08;
+export const CageClearPulseReducedMotionDurationSeconds = 0.18;
+
+/** Cage-clear wrap/bloom duration after the last Destroy. Reduced motion keeps a short flash. */
+export function getCageClearPulseDurationSeconds({
+  prefersReducedMotion = false,
+} = {}) {
+  return prefersReducedMotion === true
+    ? CageClearPulseReducedMotionDurationSeconds
+    : CageClearPulseDurationSeconds;
+}
 
 /** After the first live link, hold the committed chain longer. Reduced motion skips it. */
 export function getRelayRevealHoldDurationSeconds({

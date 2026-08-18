@@ -28,7 +28,11 @@ import {
   resolveHostileCut,
 } from './encounter.js';
 import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js';
-import { getLaunchFacingPresentation, shouldAssistCommandLock } from './presentation.js';
+import {
+  getCageClearPulseDurationSeconds,
+  getLaunchFacingPresentation,
+  shouldAssistCommandLock,
+} from './presentation.js';
 import { recordReplayBurn, recordReplayLaunch } from './replay.js';
 import { releaseRunLaunch } from './run.js';
 
@@ -820,6 +824,13 @@ function applyHostileCut(Origin, End) {
       WorldRuntime.restorationWaveMesh.visible = true;
       WorldRuntime.restorationUniforms.restorationProgress.value = 0;
     }
+    host.LiberationCelebrateUntilSeconds = Math.max(
+      host.LiberationCelebrateUntilSeconds ?? 0,
+      host.GameElapsedTimeSeconds
+        + getCageClearPulseDurationSeconds({
+          prefersReducedMotion: host.PrefersReducedMotion === true,
+        }),
+    );
     updateBreakerBurnInterface();
     showStatusToast('THE RIM IS CLEAR', 1350);
     showInstruction(

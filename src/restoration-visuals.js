@@ -12,6 +12,7 @@ import {
   getOccupiedAtmosphereOpacity,
   getRangeVeilStrength,
   getRelayRevealHoldDurationSeconds,
+  getCageClearPulseDurationSeconds,
   LiberationCelebrateHoldSeconds,
   getStillnessPresentation,
 } from './presentation.js';
@@ -351,7 +352,9 @@ export function createRestorationVisuals(THREE, host) {
       }
       if (WorldRuntime.cageClearPulseStartedAtSeconds != null) {
         const PulseElapsed = ElapsedTimeSeconds - WorldRuntime.cageClearPulseStartedAtSeconds;
-        const PulseDuration = host.PrefersReducedMotion ? 0.18 : 1.08;
+        const PulseDuration = getCageClearPulseDurationSeconds({
+          prefersReducedMotion: host.PrefersReducedMotion === true,
+        });
         if (PulseElapsed < PulseDuration) {
           const PulseLinear = THREE.MathUtils.clamp(PulseElapsed / PulseDuration, 0, 1);
           WorldRuntime.restorationWaveMesh.visible = true;
