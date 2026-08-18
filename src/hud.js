@@ -235,6 +235,7 @@ export function createHud(host) {
 
   /**
    * First-run fading captions for later verbs. Walk and launch stay on the sticky coach.
+   * Walk gets one prosper line so a skipped intro still names why you fly.
    *
    * @param {string} Title - Strong instruction line.
    * @param {string} Body - Supporting instruction line.
@@ -283,8 +284,11 @@ export function createHud(host) {
       }
       return;
     }
+    const CoachBody = Coach.body
+      || (Coach.kind === 'walk' ? 'Link a world and it wakes: lights, people, trade.' : '');
     const SameCaption = PlayCaptionElement.dataset.coachKind === Coach.kind
       && PlayCaptionTitleElement.textContent === Coach.title
+      && PlayCaptionBodyElement.textContent === CoachBody
       && PlayCaptionElement.hidden === false;
     if (SameCaption) {
       return;
@@ -294,11 +298,11 @@ export function createHud(host) {
       PlayCaptionTimeoutIdentifier = null;
     }
     PlayCaptionTitleElement.textContent = Coach.title;
-    PlayCaptionBodyElement.textContent = Coach.body;
+    PlayCaptionBodyElement.textContent = CoachBody;
     PlayCaptionElement.hidden = false;
     PlayCaptionElement.classList.remove('is-fading');
     PlayCaptionElement.dataset.coachKind = Coach.kind;
-    announceLive(Coach.title);
+    announceLive(CoachBody ? `${Coach.title}. ${CoachBody}` : Coach.title);
   }
 
   function announceWarden(Message) {
