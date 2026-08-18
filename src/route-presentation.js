@@ -12,6 +12,7 @@ import {
   getPlayfieldLabelVerticalBounds,
   getPursuitRouteCoach,
   getTacticalLabelHorizontalMargin,
+  getRouteLabelHorizontalMargin,
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
@@ -222,13 +223,14 @@ export function createRoutePresentation(THREE, host) {
     const IsCompactLayout = window.innerWidth <= 640;
     const IsShortLandscape = window.innerWidth >= window.innerHeight
       && window.innerHeight <= 520;
-    const HorizontalMargin = IsCompactLayout ? 48 : 58;
+    const WardenVisible = StatusToastElement.classList.contains('is-visible')
+      && StatusToastElement.classList.contains('is-warden');
     const LabelVerticalBounds = getPlayfieldLabelVerticalBounds({
       viewportHeight: window.innerHeight,
       instructionTop: InstructionTop,
       isCompact: IsCompactLayout,
       isShortLandscape: IsShortLandscape,
-      wardenVisible: false,
+      wardenVisible: WardenVisible,
       isTactical: false,
     });
     const LabelPositions = [];
@@ -254,7 +256,9 @@ export function createRoutePresentation(THREE, host) {
           ? (RouteLabelProjection.x > 0 ? '→ ' : '← ')
           : (RouteLabelProjection.y > 0 ? '↑ ' : '↓ ');
       }
-      writePlayfieldLabel(RouteLabelElement, DirectionPrefix + WorldDefinition.label);
+      const LabelText = DirectionPrefix + WorldDefinition.label;
+      writePlayfieldLabel(RouteLabelElement, LabelText);
+      const HorizontalMargin = getRouteLabelHorizontalMargin(LabelText);
       LabelPositions.push({
         x: Math.round(
           THREE.MathUtils.clamp(
@@ -271,7 +275,10 @@ export function createRoutePresentation(THREE, host) {
       });
     }
 
-    const RouteHorizontalMargin = IsShortLandscape ? 80 : HorizontalMargin;
+    const RouteHorizontalMargin = Math.max(
+      IsShortLandscape ? 80 : (IsCompactLayout ? 48 : 58),
+      64,
+    );
     const RouteLabelMinimumGap = IsShortLandscape ? 160 : 76;
     const ResolvedLabelPositions = separateOverlappingRouteLabels(LabelPositions, {
       minimumGap: RouteLabelMinimumGap,
@@ -454,7 +461,8 @@ export function createRoutePresentation(THREE, host) {
       instructionTop: InstructionTop,
       isCompact: IsCompactLayout,
       isShortLandscape: IsShortLandscape,
-      wardenVisible: false,
+      wardenVisible: StatusToastElement.classList.contains('is-visible')
+        && StatusToastElement.classList.contains('is-warden'),
       isTactical: true,
     });
     const ResolvedTacticalLabelPositions = separateOverlappingTacticalLabels(

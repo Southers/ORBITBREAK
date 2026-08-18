@@ -38,6 +38,7 @@ export function createFrameVisuals(THREE, host) {
     RunnerArmMeshes,
     RunnerLegMeshes,
     RunnerThrusterGroup,
+    ShipThrusterMesh,
     SeedHaloMesh,
     SeedHaloMaterial,
     LiberationFlashElement,
@@ -384,10 +385,25 @@ export function createFrameVisuals(THREE, host) {
 
     if (host.LaunchPulseLifeSeconds > 0) {
       host.LaunchPulseLifeSeconds = Math.max(0, host.LaunchPulseLifeSeconds - DeltaTimeSeconds);
-      const LaunchProgress = 1 - (host.LaunchPulseLifeSeconds / 0.42);
+      const PulseDuration = host.LaunchPulseDurationSeconds > 0
+        ? host.LaunchPulseDurationSeconds
+        : 0.42;
+      const LaunchProgress = 1 - (host.LaunchPulseLifeSeconds / PulseDuration);
       LaunchPulseMesh.scale.setScalar(1 + (LaunchProgress * 3.4));
       LaunchPulseMesh.material.opacity = (1 - LaunchProgress) * 0.68;
       LaunchPulseMesh.visible = host.LaunchPulseLifeSeconds > 0;
+    }
+
+    if (ShipThrusterMesh) {
+      if (host.BreakerBurnFlareLifeSeconds > 0) {
+        host.BreakerBurnFlareLifeSeconds = Math.max(
+          0,
+          host.BreakerBurnFlareLifeSeconds - DeltaTimeSeconds,
+        );
+      }
+      const FlareLife = host.BreakerBurnFlareLifeSeconds ?? 0;
+      const FlareScale = FlareLife > 0 ? 1 + ((FlareLife / 0.55) * 2.4) : 1;
+      ShipThrusterMesh.scale.setScalar(FlareScale);
     }
 
     if (host.ImpactPulseLifeSeconds > 0) {

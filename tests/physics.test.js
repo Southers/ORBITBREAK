@@ -16,7 +16,10 @@ import {
   OrbitTrapMinSteps,
   OrbitTrapRevolutions,
   applyBreakerBurn,
+  getBreakerBurnDirection,
   advanceOrbitTrap,
+  FlightStallTimeoutSteps,
+  FlightStallDisplacement,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
   calculateGravityAcceleration,
@@ -63,8 +66,18 @@ test('Breaker Burn adds one deterministic impulse along current heading', () => 
   assert.ok(Math.abs(Burned.velocity.y - (4 + (BreakerBurnImpulse * 0.8))) < 1e-12);
   assert.deepEqual(
     applyBreakerBurn({ position: createVector(1, 2, 0), velocity: createVector() }).velocity,
-    createVector(),
+    createVector(BreakerBurnImpulse, 0, 0),
   );
+  const EscapeBurn = applyBreakerBurn(
+    { position: createVector(4, 0, 0), velocity: createVector() },
+    BreakerBurnImpulse,
+    getBreakerBurnDirection(
+      { position: createVector(4, 0, 0), velocity: createVector() },
+      { x: 0, y: 0 },
+    ),
+  );
+  assert.ok(Math.abs(EscapeBurn.velocity.x - BreakerBurnImpulse) < 1e-12);
+  assert.ok(Math.abs(EscapeBurn.velocity.y) < 1e-12);
 });
 
 test('Breaker Burn can take a dragged direction without changing heading-only burns', () => {
@@ -1648,4 +1661,30 @@ test('orbit trap counts wrapped travel and ignores a short graze', () => {
   }
   assert.equal(advanceOrbitTrap(GrazeState, { x: 20, y: 0, z: 0 }, [World]), false);
   assert.equal(GrazeState.worldIdentifier, null);
+});
+
+test('a crawl that never completes a revolution still recovers after the stall timeout', () => {
+  const World = {
+    id: 'well',
+    radius: 1.6,
+    position: { x: 0, y: 0, z: 0 },
+  };
+  const StallState = createOrbitTrapState();
+  let Stalled = false;
+  let StepCount = 0;
+  while (!Stalled && StepCount < FlightStallTimeoutSteps + 2) {
+    Stalled = advanceOrbitTrap(StallState, { x: 3.2, y: 0, z: 0 }, [World]);
+    StepCount += 1;
+  }
+  assert.equal(Stalled, true);
+  assert.equal(StepCount, FlightStallTimeoutSteps + 1);
+
+  const MovingState = createOrbitTrapState();
+  for (let StepIndex = 0; StepIndex < FlightStallTimeoutSteps; StepIndex += 1) {
+    assert.equal(advanceOrbitTrap(MovingState, {
+      x: StepIndex * (FlightStallDisplacement + 0.01),
+      y: 20,
+      z: 0,
+    }, [World]), false);
+  }
 });

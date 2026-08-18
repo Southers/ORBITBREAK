@@ -44,10 +44,13 @@ The game remains one-pointer/touch accessible.
 - Drag the **globe** to walk. Drag the **ship** and pull away to aim and build a relay. The two gestures never share a grab. A ship pull commits aim even while the finger is still over the crust; the neighbourhood map waits until the pull leaves the cancel disk. Release on the ship, or press Escape, to cancel without spending the flight.
 - Q/E walk around, R/F walk over the poles. Walking is slow on purpose: one revolution takes several seconds. Keyboard and pointer reach the same sphere.
 - The face you stand on is the launch azimuth. Walk until this face looks toward the world you want; over the poles is the short path to the far side. Flattening for aim keeps flight in the orbital plane. The first walk gets a fading caption; after that the globe and aim line teach facing. Do not add surface pickups or extra destinations.
-- Drag empty space to pan. Pinch, −/+, or mouse wheel to zoom out from a landed world to the whole Reach. C snaps the camera back to the Runner.
+- Drag empty space to pan. Pinch, −/+, or mouse wheel to zoom out from a landed world to the whole Reach. C toggles Scout: the camera pulls back to read the neighbourhood, then returns to the Runner.
 - During flight, drag from the ship to **break** your line in any direction, then release. Space still breaks along heading. The preview cannot solve a future player-timed break at launch time.
 - On a caged world, drag from the ship through a clamp to **destroy** it. A longer drag can take more than one. Drag back onto the ship, or press Escape, to cancel. Misses do not spend the flight. No health bars.
-- Keyboard controls must reach the same deterministic actions as pointer controls.
+- Keyboard controls must reach the same deterministic actions as pointer controls. Enter launches from the surface after walking; it does not wait for an arrow key. On a caged world Space still Destroys, while Enter still leaves.
+- Reset and R during flight restart the current run without replaying the opening Warden intro. After that reset the camera frames the start world.
+- A stalled crawl that never intercepts recovers along the same orbit-trap path as a long loop, returning the Runner to the launch world after a short no-progress timeout. Space still Breaks; a rest heading burns away from the origin world so the verb is never a silent no-op.
+- Scout (C) pulls the camera back. Break flares the ship thruster. Neither adds a HUD widget.
 - During a run the canvas is the only surface. Remaining launches are lights on the Orbitbreaker and a quieter backpack row on the Runner. The Warden telegraphs with its vessel, forecast line and a pulse on the targeted world. Banked score lives on landing bursts and the victory card.
 - First walk, first aim, first Break and first missed port get a fading caption; later play stays silent except toasts. Route names appear only while aiming or scouting.
 - One 44px pause control, or Escape when not aiming, opens Scout, zoom, Ghost, Motion, Audio and Reset. Those keyboard shortcuts stay live during play so desktop never needs the sheet.

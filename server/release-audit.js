@@ -312,9 +312,11 @@ export function auditReleaseReadiness() {
   requireCondition(
     HudSource.includes('function refreshPlayfieldLabelBounds()')
       && MainSource.includes('updateRouteLabels(CachedInstructionPanelTop)')
-      && PresentationSource.includes('if (isShortLandscape) return 56;')
+      && PresentationSource.includes('if (isShortLandscape) return 56 + WardenReserve;')
       && PresentationSource.includes('Math.min(BaseMaximumY, instructionTop - 16)')
       && PresentationSource.includes('export function shouldShowPlayfieldWorldLabels({')
+      && PresentationSource.includes('export function shouldPlayOpeningBriefing({')
+      && PresentationSource.includes('export function getRouteLabelHorizontalMargin(')
       && RoutePresentationSource.includes('const LabelsActive = shouldShowPlayfieldWorldLabels({')
       && RoutePresentationSource.includes('function hidePlayfieldLabel(LabelElement)')
       && HudSource.includes("showInstruction(Title, Body, CaptionKind = '')"),

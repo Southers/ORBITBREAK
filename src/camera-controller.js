@@ -21,6 +21,8 @@ const CameraRigStiffness = 4.2;
 const AtmosphereBlendStiffness = 5;
 /** Peak positional amplitude of the landing impact shake. */
 const CameraShakeAmplitude = 0.055;
+/** Scout pullback is a camera move, not a HUD widget. */
+const ScoutPullbackScale = 1.62;
 
 export function createCameraController(THREE, host) {
   const {
@@ -54,6 +56,7 @@ export function createCameraController(THREE, host) {
     updateScannerInterface,
   } = host;
   const ActiveSystem = host.ActiveSystem;
+  let ScoutReturnZoomScale = 1;
 
   /**
    * Continuously blended camera rig. The camera is always expressed as a
@@ -334,6 +337,19 @@ function setScoutMode(Enabled, { snapToRunner = true } = {}) {
     ScoutCameraTarget.set(host.SeedPhysicsState.position.x, host.SeedPhysicsState.position.y, 0);
     CameraPanOffset.set(0, 0, 0);
   }
+  const EnteringScout = host.IsScoutMode && !WasScoutMode;
+  const LeavingScout = !host.IsScoutMode && WasScoutMode;
+  if (EnteringScout) {
+    ScoutReturnZoomScale = host.CameraZoomScale;
+    const MaximumScale = getActiveMaximumScoutZoomScale();
+    host.ScoutZoomScale = Math.min(
+      MaximumScale,
+      Math.max(host.ScoutZoomScale, ScoutPullbackScale),
+    );
+  } else if (LeavingScout && snapToRunner) {
+    host.CameraZoomScale = ScoutReturnZoomScale;
+    host.ScoutZoomScale = ScoutReturnZoomScale;
+  }
   const ShouldRestoreScoutButtonFocus = !host.IsScoutMode
     && (
       host.getActiveElement() === ScoutZoomOutButtonElement
@@ -579,7 +595,7 @@ function updateCamera(DeltaTimeSeconds) {
   const CameraFollowAlpha = host.PrefersReducedMotion
     ? 1
     : 1 - Math.exp(-DeltaTimeSeconds * (
-      host.GamePhase === 'flying' || StoryLookPoint
+      host.GamePhase === 'flying' || StoryLookPoint || host.IsScoutMode
         ? 8.6
         : (UsesExplorationCamera ? 3.8 : 2.6)
     ));

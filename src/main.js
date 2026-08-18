@@ -30,17 +30,17 @@ import { createWorldVisuals } from './world-geometry.js?v=20260818-ob100';
 import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob100';
 import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob100';
 import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob100';
-import { createStoryDirector } from './story-director.js?v=20260817-ob99';
+import { createStoryDirector } from './story-director.js?v=20260818-ob101';
 import { createHud } from './hud.js?v=20260818-ob100';
 import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
 import { createLandingDirector } from './landing-director.js?v=20260818-ob100';
-import { createCameraController } from './camera-controller.js?v=20260818-ob100';
-import { createInputController } from './input-controller.js?v=20260817-ob99';
+import { createCameraController } from './camera-controller.js?v=20260818-ob101';
+import { createInputController } from './input-controller.js?v=20260818-ob101';
 import { createHostileSurface } from './hostile-surface.js?v=20260817-ob99';
 import { createScanner } from './scanner.js?v=20260817-ob99';
-import { createRoutePresentation } from './route-presentation.js?v=20260818-ob100';
+import { createRoutePresentation } from './route-presentation.js?v=20260818-ob101';
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
-import { createFrameVisuals } from './frame-visuals.js?v=20260816-ob93';
+import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob101';
 import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob100';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
@@ -148,7 +148,8 @@ import {
   getStoryMusicStage,
   getWorldLifeStage,
   getWorldLandingAimLabel,
-} from './presentation.js?v=20260818-ob100';
+  getLandedCameraScale,
+} from './presentation.js?v=20260818-ob101';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -290,7 +291,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260818-ob100';
+GameCanvas.dataset.build = '20260818-ob101';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -491,6 +492,7 @@ let StatusToastTimeoutIdentifier = null;
 let WorldheartCompletionTimeoutIdentifier = null;
 let LeaderboardLoadSequence = 0;
 let HasLaunchedOnce = false;
+let HasCompletedOpeningBriefing = false;
 let OpeningBriefingPageIndex = 0;
 let IsOpeningBriefingActive = false;
 let ActiveStoryBoardId = null;
@@ -501,6 +503,8 @@ const ShownStoryBoardIds = new Set();
 let PendingRunResetAfterStoryBoard = false;
 let PendingVictoryAfterStoryBoard = false;
 let LaunchPulseLifeSeconds = 0;
+let LaunchPulseDurationSeconds = 0.42;
+let BreakerBurnFlareLifeSeconds = 0;
 let ImpactPulseLifeSeconds = 0;
 let CameraImpactLifeSeconds = 0;
 let LiberationFlashLifeSeconds = 0;
@@ -1691,6 +1695,7 @@ const StoryDirector = createStoryDirector({
   updatePauseChrome,
   showHostileEncounterInstruction,
   showRouteChoiceInstruction,
+  frameStartWorldCamera: () => centerLandedCamera({ snap: true }),
   get OpeningBriefingPageIndex() { return OpeningBriefingPageIndex; },
   set OpeningBriefingPageIndex(Value) { OpeningBriefingPageIndex = Value; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
@@ -1715,6 +1720,8 @@ const StoryDirector = createStoryDirector({
   get RelayRevealHoldUntilSeconds() { return RelayRevealHoldUntilSeconds; },
   get GameElapsedTimeSeconds() { return GameElapsedTimeSeconds; },
   get ActiveHostileEncounterState() { return ActiveHostileEncounterState; },
+  get HasCompletedOpeningBriefing() { return HasCompletedOpeningBriefing; },
+  set HasCompletedOpeningBriefing(Value) { HasCompletedOpeningBriefing = Value; },
 });
 const {
   hideStoryBoardOverlay,
@@ -2120,6 +2127,7 @@ const FrameVisuals = createFrameVisuals(THREE, {
   RunnerArmMeshes,
   RunnerLegMeshes,
   RunnerThrusterGroup,
+  ShipThrusterMesh,
   SeedHaloMesh,
   SeedHaloMaterial,
   LiberationFlashElement,
@@ -2154,6 +2162,10 @@ const FrameVisuals = createFrameVisuals(THREE, {
   set TrailEmissionAccumulatorSeconds(Value) { TrailEmissionAccumulatorSeconds = Value; },
   get LaunchPulseLifeSeconds() { return LaunchPulseLifeSeconds; },
   set LaunchPulseLifeSeconds(Value) { LaunchPulseLifeSeconds = Value; },
+  get LaunchPulseDurationSeconds() { return LaunchPulseDurationSeconds; },
+  set LaunchPulseDurationSeconds(Value) { LaunchPulseDurationSeconds = Value; },
+  get BreakerBurnFlareLifeSeconds() { return BreakerBurnFlareLifeSeconds; },
+  set BreakerBurnFlareLifeSeconds(Value) { BreakerBurnFlareLifeSeconds = Value; },
   get ImpactPulseLifeSeconds() { return ImpactPulseLifeSeconds; },
   set ImpactPulseLifeSeconds(Value) { ImpactPulseLifeSeconds = Value; },
   get HasLaunchedOnce() { return HasLaunchedOnce; },
@@ -2482,6 +2494,10 @@ const InputController = createInputController(THREE, {
   set TrailEmissionAccumulatorSeconds(Value) { TrailEmissionAccumulatorSeconds = Value; },
   get LaunchPulseLifeSeconds() { return LaunchPulseLifeSeconds; },
   set LaunchPulseLifeSeconds(Value) { LaunchPulseLifeSeconds = Value; },
+  get LaunchPulseDurationSeconds() { return LaunchPulseDurationSeconds; },
+  set LaunchPulseDurationSeconds(Value) { LaunchPulseDurationSeconds = Value; },
+  get BreakerBurnFlareLifeSeconds() { return BreakerBurnFlareLifeSeconds; },
+  set BreakerBurnFlareLifeSeconds(Value) { BreakerBurnFlareLifeSeconds = Value; },
   get ImpactPulseLifeSeconds() { return ImpactPulseLifeSeconds; },
   set ImpactPulseLifeSeconds(Value) { ImpactPulseLifeSeconds = Value; },
   get CameraImpactLifeSeconds() { return CameraImpactLifeSeconds; },
@@ -3069,6 +3085,8 @@ function resetGame() {
   KeyboardAimState = createKeyboardAimState();
   HasLaunchedOnce = false;
   LaunchPulseLifeSeconds = 0;
+  LaunchPulseDurationSeconds = 0.42;
+  BreakerBurnFlareLifeSeconds = 0;
   ImpactPulseLifeSeconds = 0;
   CameraImpactLifeSeconds = 0;
   LiberationFlashLifeSeconds = 0;
@@ -3080,9 +3098,6 @@ function resetGame() {
   RunnerVisualGroup.visible = true;
   ShipVisualGroup.visible = false;
   RunnerVisualGroup.rotation.set(0, 0, 0);
-  Camera.position.x = 0;
-  Camera.position.y = 0;
-  CameraDistanceScale = 1;
   PlanningCameraScale = 1;
   releaseAimInteractionCamera();
   GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
@@ -3096,6 +3111,7 @@ function resetGame() {
   VictoryPanelElement.hidden = true;
   StatusToastElement.classList.remove('is-visible');
   StatusToastElement.classList.remove('is-memory');
+  StatusToastElement.classList.remove('is-warden');
   StatusToastElement.textContent = '';
   WorldseedSound.reset();
   resetFlightFeedback();
@@ -3200,6 +3216,12 @@ function resetGame() {
   };
   SeedGroup.position.set(StartingSeedPosition.x, StartingSeedPosition.y, 0);
   CurrentWorldIdentifier = StartingWorldIdentifier;
+  CameraDistanceScale = getLandedCameraScale({
+    worldRadius: StartingWorldDefinition.radius,
+    viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
+  });
+  CameraZoomScale = 1;
+  ScoutZoomScale = 1;
   if (ActiveSystem.camera?.followPlayer === true) {
     centerLandedCamera({ snap: true });
   }
@@ -3290,7 +3312,7 @@ function resetGame() {
       'Choose ' + OpeningRouteChoices[0].label + ' or ' + OpeningRouteChoices[1].label,
       ActiveSystem.openingBody,
     );
-    if (ActiveSystem.openingBroadcast) {
+    if (!HasCompletedOpeningBriefing && ActiveSystem.openingBroadcast) {
       showStatusToast(ActiveSystem.openingBroadcast, 2200, 'warden');
     }
     if (ShouldRestoreCanvasFocus) {
@@ -3675,7 +3697,12 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     return;
   }
   const PressedKey = KeyboardEventData.key.toLowerCase();
-  if ((PressedKey === ' ' || PressedKey === 'enter') && ActiveHostileEncounterState) {
+  if (
+    PressedKey === ' '
+    && ActiveHostileEncounterState
+    && GamePhase === 'attached'
+    && !IsKeyboardAiming
+  ) {
     KeyboardEventData.preventDefault();
     if (IsCutAiming) fireHostileCutFromPreview();
     else fireNearestHostileCut();

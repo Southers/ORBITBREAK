@@ -8,6 +8,7 @@ import {
   isCampaignStoryBoardReadyToPresent,
   isCriticalStoryBoard,
   getStoryBoardCameraFocus,
+  shouldPlayOpeningBriefing,
 } from './presentation.js';
 import { getRouteChoices } from './campaign.js';
 
@@ -238,7 +239,13 @@ export function createStoryDirector(host) {
     host.ShownStoryBoardIds.clear();
     host.PendingRunResetAfterStoryBoard = false;
     host.PendingVictoryAfterStoryBoard = false;
-    if ((ActiveSystem.openingBriefing ?? []).length < 1 || host.ReplayPlaybackState !== null) {
+    if (
+      (ActiveSystem.openingBriefing ?? []).length < 1
+      || !shouldPlayOpeningBriefing({
+        hasCompletedOpeningBriefing: host.HasCompletedOpeningBriefing === true,
+        replayActive: host.ReplayPlaybackState !== null,
+      })
+    ) {
       hideOpeningBriefing();
       return false;
     }
@@ -265,6 +272,7 @@ export function createStoryDirector(host) {
     WorldseedSound.ensureStarted();
     WorldseedSound.stopTransients();
     if (host.ActiveStoryBoardId === 'opening') {
+      host.HasCompletedOpeningBriefing = true;
       hideStoryBoardOverlay();
       const OpeningRouteChoices = getRouteChoices(
         CampaignNodeDefinitions,
@@ -279,6 +287,7 @@ export function createStoryDirector(host) {
       if (ActiveSystem.openingBroadcast) {
         showStatusToast(ActiveSystem.openingBroadcast, 2200, 'warden');
       }
+      host.frameStartWorldCamera?.();
       GameCanvas.focus({ preventScroll: true });
       return;
     }

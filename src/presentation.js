@@ -1272,6 +1272,22 @@ export function getTacticalLabelHorizontalMargin(LabelText) {
   return Math.max(64, Math.ceil([...LabelText].length * 4) + 4);
 }
 
+/** Route chips use the same half-width clamp so they are not cut in half at the edge. */
+export function getRouteLabelHorizontalMargin(LabelText) {
+  return getTacticalLabelHorizontalMargin(LabelText);
+}
+
+/** Opening plays once per session; later Reset/R restarts the run without the Warden intro. */
+export function shouldPlayOpeningBriefing({
+  hasCompletedOpeningBriefing = false,
+  replayActive = false,
+} = {}) {
+  if (replayActive === true) {
+    return false;
+  }
+  return hasCompletedOpeningBriefing !== true;
+}
+
 /** Describes the visual scanner without turning moving coordinates into live announcements. */
 export function getScannerAccessibleLabel({
   runnerLocation,
@@ -1324,9 +1340,10 @@ export function getPlayfieldLabelTopMargin({
   ) {
     throw new Error('Playfield label margin requires boolean layout state.');
   }
-  if (isShortLandscape) return 56;
-  if (isCompact) return isTactical ? 64 : 72;
-  return isTactical ? 56 : 64;
+  const WardenReserve = wardenVisible ? (isShortLandscape ? 72 : 88) : 0;
+  if (isShortLandscape) return 56 + WardenReserve;
+  if (isCompact) return (isTactical ? 64 : 72) + WardenReserve;
+  return (isTactical ? 56 : 64) + WardenReserve;
 }
 
 /** Keeps projected chips inside the playfield when HTML labels are active. */

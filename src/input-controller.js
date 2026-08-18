@@ -27,7 +27,7 @@ import {
   getRemainingClamps,
   resolveHostileCut,
 } from './encounter.js';
-import { applyBreakerBurn, createOrbitTrapState, createVector, predictTrajectory } from './physics.js';
+import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js';
 import { getLaunchFacingPresentation, shouldAssistCommandLock } from './presentation.js';
 import { recordReplayBurn, recordReplayLaunch } from './replay.js';
 import { releaseRunLaunch } from './run.js';
@@ -433,7 +433,7 @@ function createSuggestedKeyboardAimState(SuggestedTarget) {
 function beginKeyboardAim() {
   if (
     host.GamePhase !== 'attached'
-    || host.ActiveHostileEncounterState !== null
+    || host.IsCutAiming
     || host.RunState.status !== 'active'
     || host.ReplayPlaybackState !== null
     || host.IsPointerAiming
@@ -444,6 +444,7 @@ function beginKeyboardAim() {
 
   flattenRunnerToEquator('keyboard');
   clearWalkFacingDataset();
+  clearAimScreenDistance();
   const SuggestedTarget = getCurrentRouteChoices(1)[0];
   const SuggestedTargetPosition = SuggestedTarget?.position ?? {
     x: host.SeedPhysicsState.position.x + 1,
@@ -463,6 +464,7 @@ function beginKeyboardAim() {
   WorldseedSound.beginAim();
   GameCanvas.classList.add('is-aiming');
   PullGuideLine.visible = false;
+  syncKeyboardLaunchVectors();
   updateKeyboardAimPreview();
   commitAimPlanningCamera();
   showInstruction(
@@ -470,7 +472,19 @@ function beginKeyboardAim() {
     'Gold locks a landing. Drag back onto the ship to cancel.',
     'aim',
   );
+  GameCanvas.focus({ preventScroll: true });
   return true;
+}
+
+/** Copies keyboard aim into the same drag/velocity vectors the pointer path uses. */
+function syncKeyboardLaunchVectors() {
+  if (!host.IsKeyboardAiming || !host.KeyboardAimState) {
+    return;
+  }
+  const DragVector = getKeyboardAimDragVector(host.KeyboardAimState, MaximumDragDistance);
+  AimDragVector.set(DragVector.x, DragVector.y, 0);
+  AimLaunchVelocity.copy(AimDragVector).multiplyScalar(LaunchVelocityPerDragUnit);
+  host.LastAimScreenDistancePixels = Number.POSITIVE_INFINITY;
 }
 
 /** Cancels pointer or keyboard aim without spending a launch. */
@@ -584,57 +598,60 @@ function handleKeyboardAimKey(KeyboardEventData) {
     }
     return true;
   }
-  if (host.ActiveHostileEncounterState && host.GamePhase === 'attached') {
-    if (!IsLaunchKey && RotationDirection === 0 && PowerDirection === 0) {
+  if (host.ActiveHostileEncounterState && host.GamePhase === 'attached' && !host.IsKeyboardAiming) {
+    const IsCutKey = PressedKey === ' ';
+    if (!IsCutKey && PressedKey !== 'enter' && RotationDirection === 0 && PowerDirection === 0) {
       return false;
     }
-    KeyboardEventData.preventDefault();
-    if (IsLaunchKey) {
-      if (KeyboardEventData.repeat) return true;
-      if (host.IsCutAiming) fireHostileCutFromPreview();
-      else fireNearestHostileCut();
+    if (IsCutKey || RotationDirection !== 0 || PowerDirection !== 0) {
+      KeyboardEventData.preventDefault();
+      if (IsCutKey) {
+        if (KeyboardEventData.repeat) return true;
+        if (host.IsCutAiming) fireHostileCutFromPreview();
+        else fireNearestHostileCut();
+        return true;
+      }
+      const AttachedWorld = getCurrentAttachedWorld();
+      const Origin = getShipCutOrigin();
+      const BasisPointer = host.CutAimPointer ?? (
+        AttachedWorld
+          ? getNearestClampCut(
+            host.ActiveHostileEncounterState,
+            Origin,
+            AttachedWorld,
+            getRunnerSurfaceAngle(AttachedWorld),
+          )?.end
+          : null
+      ) ?? { x: Origin.x + 1, y: Origin.y };
+      host.KeyboardAimState = createKeyboardAimState({
+        directionX: BasisPointer.x - Origin.x,
+        directionY: BasisPointer.y - Origin.y,
+        powerRatio: Math.min(
+          1,
+          Math.max(
+            0.2,
+            Math.hypot(BasisPointer.x - Origin.x, BasisPointer.y - Origin.y)
+              / host.ActiveHostileEncounterState.maxCutLength,
+          ),
+        ),
+      });
+      host.IsCutAiming = true;
+      GameCanvas.classList.add('is-aiming');
+      host.KeyboardAimState = adjustKeyboardAimState(host.KeyboardAimState, {
+        rotationDirection: RotationDirection,
+        powerDirection: PowerDirection,
+        fine: KeyboardEventData.shiftKey,
+      });
+      const Drag = getKeyboardAimDragVector(
+        host.KeyboardAimState,
+        host.ActiveHostileEncounterState.maxCutLength,
+      );
+      updateCutAimPreview({
+        x: Origin.x + Drag.x,
+        y: Origin.y + Drag.y,
+      });
       return true;
     }
-    const AttachedWorld = getCurrentAttachedWorld();
-    const Origin = getShipCutOrigin();
-    const BasisPointer = host.CutAimPointer ?? (
-      AttachedWorld
-        ? getNearestClampCut(
-          host.ActiveHostileEncounterState,
-          Origin,
-          AttachedWorld,
-          getRunnerSurfaceAngle(AttachedWorld),
-        )?.end
-        : null
-    ) ?? { x: Origin.x + 1, y: Origin.y };
-    host.KeyboardAimState = createKeyboardAimState({
-      directionX: BasisPointer.x - Origin.x,
-      directionY: BasisPointer.y - Origin.y,
-      powerRatio: Math.min(
-        1,
-        Math.max(
-          0.2,
-          Math.hypot(BasisPointer.x - Origin.x, BasisPointer.y - Origin.y)
-            / host.ActiveHostileEncounterState.maxCutLength,
-        ),
-      ),
-    });
-    host.IsCutAiming = true;
-    GameCanvas.classList.add('is-aiming');
-    host.KeyboardAimState = adjustKeyboardAimState(host.KeyboardAimState, {
-      rotationDirection: RotationDirection,
-      powerDirection: PowerDirection,
-      fine: KeyboardEventData.shiftKey,
-    });
-    const Drag = getKeyboardAimDragVector(
-      host.KeyboardAimState,
-      host.ActiveHostileEncounterState.maxCutLength,
-    );
-    updateCutAimPreview({
-      x: Origin.x + Drag.x,
-      y: Origin.y + Drag.y,
-    });
-    return true;
   }
   if (!IsLaunchKey && RotationDirection === 0 && PowerDirection === 0) {
     return false;
@@ -643,6 +660,9 @@ function handleKeyboardAimKey(KeyboardEventData) {
     KeyboardEventData.preventDefault();
     return true;
   }
+  if (PressedKey === 'enter' && host.IsCutAiming) {
+    cancelCutAim({ announce: false });
+  }
   if (!host.IsKeyboardAiming && !beginKeyboardAim()) {
     return false;
   }
@@ -650,6 +670,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
   KeyboardEventData.preventDefault();
   if (IsLaunchKey) {
     if (host.IsKeyboardAiming) {
+      syncKeyboardLaunchVectors();
       releaseAimedLaunch();
     }
     return true;
@@ -1197,6 +1218,25 @@ function handlePointerMove(PointerEventData) {
 
 /** Launches the current pointer or keyboard aim through the shared deterministic path. */
 function releaseAimedLaunch() {
+  if (host.IsKeyboardAiming) {
+    syncKeyboardLaunchVectors();
+  }
+  if (AimDragVector.length() < MinimumLaunchDragDistance) {
+    host.IsPointerAiming = false;
+    host.IsPointerWalking = false;
+    host.IsPointerScouting = false;
+    host.PointerGestureMode = SurfaceGestureModes.pending;
+    host.IsKeyboardAiming = false;
+    host.ActivePointerIdentifier = null;
+    GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
+    releaseAimInteractionCamera();
+    clearCommittedAimCamera();
+    clearTrajectoryPreview();
+    WorldseedSound.endAim();
+    showInstruction('Pull to aim', 'Gold locks a landing. Drag back onto the ship to cancel.', 'aim');
+    return false;
+  }
+
   host.IsPointerAiming = false;
   host.IsPointerWalking = false;
   host.IsPointerScouting = false;
@@ -1210,13 +1250,6 @@ function releaseAimedLaunch() {
   GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting');
   releaseAimInteractionCamera();
   clearCommittedAimCamera();
-
-  if (AimDragVector.length() < MinimumLaunchDragDistance) {
-    clearTrajectoryPreview();
-    WorldseedSound.endAim();
-    showInstruction('Pull to aim', 'Gold locks a landing. Drag back onto the ship to cancel.', 'aim');
-    return false;
-  }
 
   applySectorPlanningCamera();
 
@@ -1266,6 +1299,7 @@ function releaseAimedLaunch() {
   LaunchPulseMesh.position.copy(SeedGroup.position);
   LaunchPulseMesh.scale.setScalar(1);
   LaunchPulseMesh.visible = true;
+  host.LaunchPulseDurationSeconds = 0.42;
   host.LaunchPulseLifeSeconds = 0.42;
   host.TrailEmissionAccumulatorSeconds = 0;
   WorldseedSound.launch(THREE.MathUtils.clamp(
@@ -1326,7 +1360,15 @@ function requestBreakerBurn() {
 
 function applyBreakerBurnAtCurrentStep({ record = false } = {}) {
   if (!host.IsBreakerBurnAvailable) return false;
-  host.SeedPhysicsState = applyBreakerBurn(host.SeedPhysicsState, undefined, host.BurnAimDirection);
+  let BurnDirection = host.BurnAimDirection;
+  if (!BurnDirection) {
+    const OriginWorld = WorldDefinitions.find((WorldDefinition) => (
+      WorldDefinition.id === host.FlightOriginWorldIdentifier
+      || WorldDefinition.id === host.LaunchIgnoredWorldIdentifier
+    ));
+    BurnDirection = getBreakerBurnDirection(host.SeedPhysicsState, OriginWorld?.position ?? null);
+  }
+  host.SeedPhysicsState = applyBreakerBurn(host.SeedPhysicsState, undefined, BurnDirection);
   host.IsBreakerBurnAvailable = false;
   host.IsBreakerBurnPending = false;
   host.CommittedPredictionPoints = null;
@@ -1334,8 +1376,8 @@ function applyBreakerBurnAtCurrentStep({ record = false } = {}) {
   if (record) {
     host.ReplayState = recordReplayBurn(host.ReplayState, {
       stepIndex: Math.round(host.PhysicsElapsedTimeSeconds * FixedPhysicsStepHertz),
-      directionX: host.BurnAimDirection?.x ?? null,
-      directionY: host.BurnAimDirection?.y ?? null,
+      directionX: BurnDirection?.x ?? null,
+      directionY: BurnDirection?.y ?? null,
     });
   }
   GameCanvas.dataset.breakerBurnStep = String(
@@ -1348,7 +1390,9 @@ function applyBreakerBurnAtCurrentStep({ record = false } = {}) {
   LaunchPulseMesh.position.copy(SeedGroup.position);
   LaunchPulseMesh.scale.setScalar(1.3);
   LaunchPulseMesh.visible = true;
+  host.LaunchPulseDurationSeconds = 0.5;
   host.LaunchPulseLifeSeconds = 0.5;
+  host.BreakerBurnFlareLifeSeconds = 0.55;
   WorldseedSound.breakerBurn();
   showStatusToast('BREAK · COURSE CHANGED', 850);
   host.BurnAimDirection = null;

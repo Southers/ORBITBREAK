@@ -60,6 +60,8 @@ import {
   getWorldSurfaceFinish,
   shouldShowPlayfieldWorldLabels,
   getTacticalLabelHorizontalMargin,
+  getRouteLabelHorizontalMargin,
+  shouldPlayOpeningBriefing,
   getWorldLandingAimLabel,
   getLaunchFacingPresentation,
   getLoopObjectivePresentation,
@@ -515,16 +517,22 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
     isCompact: true,
     wardenVisible: true,
     isTactical: true,
-  }), 64);
+  }), 152);
   assert.equal(getPlayfieldLabelTopMargin({
     isCompact: false,
     wardenVisible: true,
     isTactical: false,
-  }), 64);
+  }), 152);
   assert.equal(getPlayfieldLabelTopMargin({
     isCompact: true,
     isShortLandscape: true,
     wardenVisible: true,
+    isTactical: true,
+  }), 128);
+  assert.equal(getPlayfieldLabelTopMargin({
+    isCompact: true,
+    isShortLandscape: true,
+    wardenVisible: false,
     isTactical: true,
   }), 56);
   assert.throws(
@@ -537,6 +545,8 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
   );
   assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · 1 USE'), 72);
   assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · MOVING · 1 USE'), 108);
+  assert.equal(getRouteLabelHorizontalMargin('GROVE'), 64);
+  assert.equal(getRouteLabelHorizontalMargin('→ GROVE'), 64);
   assert.throws(() => getTacticalLabelHorizontalMargin(' '), /requires visible text/);
   assert.deepEqual(getPlayfieldLabelVerticalBounds({
     viewportHeight: 320,
@@ -545,7 +555,7 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
     isShortLandscape: true,
     wardenVisible: true,
     isTactical: true,
-  }), { minimumY: 56, maximumY: 224 });
+  }), { minimumY: 128, maximumY: 224 });
   assert.deepEqual(getPlayfieldLabelVerticalBounds({
     viewportHeight: 844,
     instructionTop: 844,
@@ -553,7 +563,7 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
     isShortLandscape: false,
     wardenVisible: true,
     isTactical: true,
-  }), { minimumY: 64, maximumY: 748 });
+  }), { minimumY: 152, maximumY: 748 });
   assert.throws(() => getPlayfieldLabelVerticalBounds({
     viewportHeight: Number.NaN,
     instructionTop: 100,
@@ -1131,6 +1141,9 @@ test('occupied atmospheres and surface finishes keep Ember, Grove and Frost dist
     toastVisible: true,
   }), false);
   assert.equal(shouldShowPlayfieldWorldLabels({}), false);
+  assert.equal(shouldPlayOpeningBriefing({}), true);
+  assert.equal(shouldPlayOpeningBriefing({ hasCompletedOpeningBriefing: true }), false);
+  assert.equal(shouldPlayOpeningBriefing({ replayActive: true }), false);
 });
 
 test('pursuit coach treats a launch as the turn and a return flight as the loop', () => {
