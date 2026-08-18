@@ -54,11 +54,13 @@ export function getRunnerForm(GamePhase, FlightElapsedSeconds = 0) {
 
 /**
  * First-run pointer coaching stays until the verb is done, then goes silent.
- * Walk is taught before launch so a stranger can drag the planet, then pull the ship.
+ * The walk line holds until the player actually grabs the ship, so finishing a
+ * walk drag never reads as entering aim mode; the aim line then holds until the
+ * first launch.
  */
 export function getFirstRunCoachPresentation({
   gamePhase = 'attached',
-  hasWalkedOnce = false,
+  hasGrabbedShipOnce = false,
   hasLaunchedOnce = false,
   isOpeningBriefingActive = false,
   runStatus = 'active',
@@ -67,10 +69,11 @@ export function getFirstRunCoachPresentation({
     gamePhase !== 'attached'
     || isOpeningBriefingActive === true
     || runStatus !== 'active'
+    || hasLaunchedOnce === true
   ) {
     return { visible: false, kind: '', title: '', body: '' };
   }
-  if (hasWalkedOnce !== true && hasLaunchedOnce !== true) {
+  if (hasGrabbedShipOnce !== true) {
     return {
       visible: true,
       kind: 'walk',
@@ -78,15 +81,12 @@ export function getFirstRunCoachPresentation({
       body: '',
     };
   }
-  if (hasLaunchedOnce !== true) {
-    return {
-      visible: true,
-      kind: 'aim',
-      title: 'Pull the ship, then let go',
-      body: '',
-    };
-  }
-  return { visible: false, kind: '', title: '', body: '' };
+  return {
+    visible: true,
+    kind: 'aim',
+    title: 'Pull the ship, then let go',
+    body: '',
+  };
 }
 
 /** Ship halo vs planet rim so walk and aim look different before the drag commits. */
@@ -111,7 +111,7 @@ export function getLandedVerbHighlight({
       || hasWalkedOnce !== true
     ),
     walkCursor: IsAttached && (isWalking === true || isWalkReady === true),
-    pullHint: IsAttached && hasWalkedOnce === true && hasLaunchedOnce !== true,
+    pullHint: IsAttached && hasWalkedOnce === true && hasLaunchedOnce !== true && !ShipCharge,
   };
 }
 

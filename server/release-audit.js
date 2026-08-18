@@ -150,7 +150,7 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     ControlsSource.includes('export function classifyLandedPointerStart(')
-      && ControlsSource.includes('SeedScreenGrabRadiusPixels = 72')
+      && ControlsSource.includes('SeedScreenGrabRadiusPixels = 96')
       && PresentationSource.includes("title: 'Drag the planet to walk'")
       && PresentationSource.includes("title: 'Pull the ship, then let go'")
       && HudSource.includes('function updateFirstRunCoach(')

@@ -501,6 +501,7 @@ let WorldheartCompletionTimeoutIdentifier = null;
 let LeaderboardLoadSequence = 0;
 let HasLaunchedOnce = false;
 let HasWalkedOnce = false;
+let HasGrabbedShipOnce = false;
 let HasCompletedOpeningBriefing = false;
 let OpeningBriefingPageIndex = 0;
 let IsOpeningBriefingActive = false;
@@ -797,19 +798,27 @@ function publishWardenState() {
 
 const PullHintShipProjection = new THREE.Vector3();
 const PullHintPullProjection = new THREE.Vector3();
+let PullHintHoldUntilSeconds = 0;
+const PullHintBeatSeconds = 1.1;
 
 /** Animated first-launch coach: chevrons marching along the pull direction from the ship. */
-function updatePullHint() {
+function updatePullHint(ElapsedTimeSeconds = 0) {
+  // A short beat after every walk drag so finishing a walk never reads as entering aim.
+  if (IsPointerWalking || RunnerWalkLifeSeconds > 0) {
+    PullHintHoldUntilSeconds = ElapsedTimeSeconds + PullHintBeatSeconds;
+  }
   const ShouldShow = GamePhase === 'attached'
     && HasWalkedOnce
     && !HasLaunchedOnce
     && !IsPointerAiming
     && !IsKeyboardAiming
+    && !GameCanvas.classList.contains('is-ship-armed')
     && !IsOpeningBriefingActive
     && !IsScoutMode
     && ReplayPlaybackState === null
     && ActiveHostileEncounterState === null
-    && RunState.status === 'active';
+    && RunState.status === 'active'
+    && ElapsedTimeSeconds >= PullHintHoldUntilSeconds;
   if (!ShouldShow) {
     PullHintElement.hidden = true;
     return;
@@ -927,6 +936,7 @@ const Hud = createHud({
   get GamePhase() { return GamePhase; },
   get HasWalkedOnce() { return HasWalkedOnce; },
   get HasLaunchedOnce() { return HasLaunchedOnce; },
+  get HasGrabbedShipOnce() { return HasGrabbedShipOnce; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
 });
 const {
@@ -2539,6 +2549,8 @@ const InputController = createInputController(THREE, {
   set HasLaunchedOnce(Value) { HasLaunchedOnce = Value; },
   get HasWalkedOnce() { return HasWalkedOnce; },
   set HasWalkedOnce(Value) { HasWalkedOnce = Value; },
+  get HasGrabbedShipOnce() { return HasGrabbedShipOnce; },
+  set HasGrabbedShipOnce(Value) { HasGrabbedShipOnce = Value; },
   WalkHintPosition,
   get WalkHintVisible() { return WalkHintVisible; },
   set WalkHintVisible(Value) { WalkHintVisible = Value; },
@@ -3156,6 +3168,8 @@ function resetGame() {
   KeyboardAimState = createKeyboardAimState();
   HasLaunchedOnce = false;
   HasWalkedOnce = false;
+  HasGrabbedShipOnce = false;
+  PullHintHoldUntilSeconds = 0;
   WalkHintVisible = false;
   LaunchPulseLifeSeconds = 0;
   LaunchPulseDurationSeconds = 0.42;
@@ -3506,7 +3520,7 @@ function renderFrame() {
   updateTacticalBodies(ElapsedTimeSeconds, CachedInstructionPanelTop);
   updateStardustVisuals(ElapsedTimeSeconds);
   updateRouteLabels(CachedInstructionPanelTop);
-  updatePullHint();
+  updatePullHint(ElapsedTimeSeconds);
   updateFirstRunCoach();
   updateFlightAudio();
   updateWorldLifeAudio();

@@ -29,8 +29,12 @@ export function classifyLandedPointerStart({
   return LandedPointerTargets.space;
 }
 
-/** Generous screen halo around the ship, larger than the tiny diorama mesh. */
-export const SeedScreenGrabRadiusPixels = 72;
+/**
+ * Generous screen halo around the ship, larger than the tiny diorama mesh.
+ * Ship-first classification means a miss inside this halo still aims instead of
+ * walking, so first-timers stop fumbling grabs against the terminator glow.
+ */
+export const SeedScreenGrabRadiusPixels = 96;
 
 function normalizeAngle(AngleRadians) {
   return ((AngleRadians + Math.PI) % FullCircleRadians + FullCircleRadians) % FullCircleRadians

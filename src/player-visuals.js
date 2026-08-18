@@ -398,7 +398,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   /**
    * An enlarged invisible sphere makes pointer acquisition forgiving on touchscreens.
    */
-  const SeedPointerHitGeometry = new THREE.SphereGeometry(SeedRadius * 2.2, 12, 8);
+  const SeedPointerHitGeometry = new THREE.SphereGeometry(SeedRadius * 3.2, 12, 8);
   const SeedPointerHitMaterial = new THREE.MeshBasicMaterial({
     transparent: true,
     opacity: 0,

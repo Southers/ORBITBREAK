@@ -468,6 +468,7 @@ function beginKeyboardAim() {
       directionY: SuggestedTargetPosition.y - host.SeedPhysicsState.position.y,
       powerRatio: 1,
     });
+  host.HasGrabbedShipOnce = true;
   host.IsKeyboardAiming = true;
   CameraPanOffset.set(0, 0, 0);
   host.AimZoomScale = 1;
@@ -998,6 +999,7 @@ function releaseBurnAim() {
 
 function beginLaunchAim(WorldPosition, PointerEventData = null) {
   flattenRunnerToEquator('pointer');
+  host.HasGrabbedShipOnce = true;
   host.PointerGestureMode = SurfaceGestureModes.aim;
   host.HasCommittedAimCamera = false;
   GameCanvas.dataset.aimCamera = getAimCameraStage({
@@ -1102,6 +1104,7 @@ function handlePointerDown(PointerEventData) {
   });
   if (PointerStartTarget === LandedPointerTargets.ship) {
     setScoutMode(false);
+    host.HasGrabbedShipOnce = true;
     host.PointerGestureMode = SurfaceGestureModes.aim;
     host.IsPointerWalking = false;
     host.WalkHintVisible = false;
