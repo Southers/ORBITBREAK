@@ -37,13 +37,13 @@ import { createStoryDirector } from './story-director.js?v=20260818-ob104';
 import { createHud } from './hud.js?v=20260818-ob110';
 import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
 import { createLandingDirector } from './landing-director.js?v=20260818-ob115';
-import { createCameraController } from './camera-controller.js?v=20260818-ob107';
+import { createCameraController } from './camera-controller.js?v=20260818-ob120';
 import { createInputController } from './input-controller.js?v=20260818-ob110';
 import { createHostileSurface } from './hostile-surface.js?v=20260817-ob99';
 import { createScanner } from './scanner.js?v=20260817-ob99';
 import { createRoutePresentation } from './route-presentation.js?v=20260818-ob112';
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
-import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob119';
+import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob120';
 import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob112';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
@@ -152,7 +152,7 @@ import {
   getWorldLifeStage,
   getWorldLandingAimLabel,
   getLandedCameraScale,
-} from './presentation.js?v=20260818-ob119';
+} from './presentation.js?v=20260818-ob120';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -294,7 +294,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260818-ob119';
+GameCanvas.dataset.build = '20260818-ob120';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -373,6 +373,7 @@ Renderer.shadowMap.enabled = false;
 Renderer.shadowMap.type = THREE.PCFShadowMap;
 
 const Camera = new THREE.PerspectiveCamera(42, 1, 0.1, 480);
+Camera.up.set(0, 0, 1);
 Camera.position.set(0, 0, 42);
 Camera.lookAt(0, 0, 0);
 
@@ -3632,6 +3633,7 @@ function applyMotionPreference({ persist = false } = {}) {
     Camera.position.x = 0;
     Camera.position.y = 0;
   }
+  Camera.up.set(0, 0, 1);
   Camera.lookAt(CameraLookTarget);
 }
 

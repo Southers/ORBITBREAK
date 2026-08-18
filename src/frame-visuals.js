@@ -405,19 +405,12 @@ export function createFrameVisuals(THREE, host) {
           RunnerVisualGroup.quaternion.setFromUnitVectors(SurfaceStandFrom, SurfaceStandTo);
         }
       }
-      const PoleLock = HasSurfaceNormal && Math.abs(SurfaceStandTo.z) > 0.92;
       const ViewUpX = 0;
-      const ViewUpY = PoleLock ? 1 : 0;
-      const ViewUpZ = PoleLock ? 0 : 1;
-      const ViewRightX = HasSurfaceNormal
-        ? ((-SurfaceStandTo.y) * ViewUpZ) - ((-SurfaceStandTo.z) * ViewUpY)
-        : 1;
-      const ViewRightY = HasSurfaceNormal
-        ? ((-SurfaceStandTo.z) * ViewUpX) - ((-SurfaceStandTo.x) * ViewUpZ)
-        : 0;
-      const ViewRightZ = HasSurfaceNormal
-        ? ((-SurfaceStandTo.x) * ViewUpY) - ((-SurfaceStandTo.y) * ViewUpX)
-        : 0;
+      const ViewUpY = 0;
+      const ViewUpZ = 1;
+      const ViewRightX = 1;
+      const ViewRightY = 0;
+      const ViewRightZ = 0;
       const ParkedShip = getParkedShipPresentation(
         HasSurfaceNormal
           ? {

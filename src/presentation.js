@@ -790,9 +790,12 @@ export function getExtractionFreighterTravelProgress(
 }
 
 /**
- * Sits outside the Runner's current face of the globe so walking traverses 3D
- * rotational space. Reduced motion keeps the current top-down follow. Launch
- * still flattens into the orbital plane.
+ * Stable high +Z view of the current planet. The Runner walks under a camera
+ * that stays over the world instead of orbiting the globe. Scout, aim and
+ * flight share this same world-up so lookAt never flips. Reduced motion uses
+ * the same pose and snaps instead of easing. Launch still flattens into the
+ * orbital plane. Runner coordinates stay required so callers keep a finite
+ * surface sample even though the camera no longer tracks the walking heading.
  */
 export function getLandedSurfaceCameraPose({
   worldX,
@@ -821,46 +824,18 @@ export function getLandedSurfaceCameraPose({
   if (!Number.isFinite(baseCameraDistance) || baseCameraDistance <= 0) {
     throw new Error('Landed camera pose requires a positive base camera distance.');
   }
-  if (reducedMotion) {
-    return {
-      cameraX: runnerX,
-      cameraY: runnerY,
-      cameraZ: baseCameraDistance * cameraScale,
-      lookAtX: runnerX,
-      lookAtY: runnerY,
-      lookAtZ: 0,
-      upX: 0,
-      upY: 0,
-      upZ: 1,
-    };
-  }
-  const OffsetX = runnerX - worldX;
-  const OffsetY = runnerY - worldY;
-  const OffsetZ = runnerZ - worldZ;
-  const OffsetDistance = Math.hypot(OffsetX, OffsetY, OffsetZ) || 1;
-  const DirectionX = OffsetX / OffsetDistance;
-  const DirectionY = OffsetY / OffsetDistance;
-  const DirectionZ = OffsetZ / OffsetDistance;
-  const PoleLock = Math.abs(DirectionZ) > 0.92;
-  const LiftedZ = PoleLock ? DirectionZ : DirectionZ + 0.38;
-  const LiftedDistance = Math.hypot(DirectionX, DirectionY, LiftedZ) || 1;
-  const CameraDirectionX = DirectionX / LiftedDistance;
-  const CameraDirectionY = DirectionY / LiftedDistance;
-  const CameraDirectionZ = LiftedZ / LiftedDistance;
-  const ClosePull = worldRadius * 1.22;
-  const ZoomPull = baseCameraDistance * cameraScale;
-  const RadialPull = Math.max(ClosePull, ZoomPull);
-  const LookAlongRadius = worldRadius * 0.28;
+  void reducedMotion;
+  const Height = baseCameraDistance * cameraScale;
   return {
-    cameraX: worldX + (CameraDirectionX * RadialPull),
-    cameraY: worldY + (CameraDirectionY * RadialPull),
-    cameraZ: worldZ + (CameraDirectionZ * RadialPull),
-    lookAtX: worldX + (DirectionX * LookAlongRadius),
-    lookAtY: worldY + (DirectionY * LookAlongRadius),
-    lookAtZ: worldZ + (DirectionZ * LookAlongRadius),
+    cameraX: worldX,
+    cameraY: worldY,
+    cameraZ: worldZ + Height,
+    lookAtX: worldX,
+    lookAtY: worldY,
+    lookAtZ: worldZ,
     upX: 0,
-    upY: PoleLock ? 1 : 0,
-    upZ: PoleLock ? 0 : 1,
+    upY: 0,
+    upZ: 1,
   };
 }
 
@@ -912,7 +887,8 @@ export function getFlightCameraScale({
 
 /**
  * Keeps the ship in frame after a Break or void miss by looking ahead of
- * velocity and biasing slightly toward the next world.
+ * velocity. Predicted-world chase stays out of the look point so the frame
+ * cannot bounce between two bodies. Distance still widens with target range.
  */
 export function getFlightFollowFrame({
   shipX,
@@ -938,13 +914,9 @@ export function getFlightFollowFrame({
     lookX += (VelocityX / Speed) * Lookahead;
     lookY += (VelocityY / Speed) * Lookahead;
   }
-  let targetDistance = 0;
-  if (Number.isFinite(targetX) && Number.isFinite(targetY)) {
-    targetDistance = Math.hypot(targetX - shipX, targetY - shipY);
-    const FrameBlend = Math.min(0.28, targetDistance / 42);
-    lookX += (targetX - lookX) * FrameBlend;
-    lookY += (targetY - lookY) * FrameBlend;
-  }
+  const targetDistance = Number.isFinite(targetX) && Number.isFinite(targetY)
+    ? Math.hypot(targetX - shipX, targetY - shipY)
+    : 0;
   return {
     lookX,
     lookY,

@@ -16,8 +16,10 @@ import {
   shouldHoldCommittedPrediction,
 } from './presentation.js';
 
-/** How quickly the camera rig (position offset + up vector) eases between modes. */
+/** How quickly the camera height eases between landed, Scout and flight. */
 const CameraRigStiffness = 4.2;
+/** World +Z is the only camera up. Never blend through a surface-normal facing up. */
+const WorldCameraUp = Object.freeze({ x: 0, y: 0, z: 1 });
 /** How quickly fog density and exposure ease when entering or leaving the aim frame. */
 const AtmosphereBlendStiffness = 5;
 /** Peak positional amplitude of the landing impact shake. */
@@ -59,17 +61,17 @@ export function createCameraController(THREE, host) {
   let ScoutReturnZoomScale = 1;
 
   /**
-   * Continuously blended camera rig. The camera is always expressed as a
-   * smoothed offset from the smoothed look target plus a smoothed up vector,
-   * so switching between the landed-facing rig, the top-down planning rig and
-   * the flight follow rig eases instead of snapping. Only run resets and
-   * reduced motion write the rig directly.
+   * Continuously blended camera height. Look target eases, but Camera.up stays
+   * world +Z in every mode so landed, Scout, aim and flight cannot flip the
+   * horizon. Only run resets and reduced motion write the rig directly.
    */
   const CameraRigOffset = new THREE.Vector3(0, 0, 1);
-  const CameraRigUp = new THREE.Vector3(0, 0, 1);
   const DesiredCameraOffset = new THREE.Vector3();
-  const DesiredCameraUp = new THREE.Vector3(0, 0, 1);
   let IsCameraRigInitialized = false;
+
+  function applyWorldCameraUp() {
+    Camera.up.set(WorldCameraUp.x, WorldCameraUp.y, WorldCameraUp.z);
+  }
 
   function snapCameraRigToCurrentCamera() {
     CameraRigOffset.set(
@@ -77,7 +79,7 @@ export function createCameraController(THREE, host) {
       Camera.position.y - CameraLookTarget.y,
       Camera.position.z - CameraLookTarget.z,
     );
-    CameraRigUp.copy(Camera.up).normalize();
+    applyWorldCameraUp();
     IsCameraRigInitialized = true;
   }
 
@@ -229,7 +231,7 @@ function snapLiveCameraToPlanningView() {
     CameraLookTarget.y,
     host.BaseCameraDistance * host.CameraDistanceScale,
   );
-  Camera.up.set(0, 0, 1);
+  applyWorldCameraUp();
   Camera.lookAt(CameraLookTarget);
   snapCameraRigToCurrentCamera();
 }
@@ -466,7 +468,7 @@ function centerLandedCamera({ snap = true } = {}) {
   CameraPanOffset.set(0, 0, 0);
   const Point = host.SeedPhysicsState.position;
   const LandedWorld = getLandedCameraWorld();
-  if (LandedWorld && !host.PrefersReducedMotion) {
+  if (LandedWorld) {
     const LandedPose = getLandedSurfaceCameraPose({
       worldX: LandedWorld.position.x,
       worldY: LandedWorld.position.y,
@@ -477,13 +479,13 @@ function centerLandedCamera({ snap = true } = {}) {
       runnerZ: Point.z ?? 0,
       cameraScale: host.CameraDistanceScale || 0.5,
       baseCameraDistance: host.BaseCameraDistance,
-      reducedMotion: false,
+      reducedMotion: host.PrefersReducedMotion,
     });
     DesiredCameraLookTarget.set(LandedPose.lookAtX, LandedPose.lookAtY, LandedPose.lookAtZ);
     if (snap) {
       CameraLookTarget.copy(DesiredCameraLookTarget);
       Camera.position.set(LandedPose.cameraX, LandedPose.cameraY, LandedPose.cameraZ);
-      Camera.up.set(LandedPose.upX, LandedPose.upY, LandedPose.upZ);
+      applyWorldCameraUp();
       Camera.lookAt(CameraLookTarget);
       snapCameraRigToCurrentCamera();
     }
@@ -493,7 +495,7 @@ function centerLandedCamera({ snap = true } = {}) {
       CameraLookTarget.copy(DesiredCameraLookTarget);
       Camera.position.x = Point.x;
       Camera.position.y = Point.y;
-      Camera.up.set(0, 0, 1);
+      applyWorldCameraUp();
       snapCameraRigToCurrentCamera();
     }
   }
@@ -548,7 +550,6 @@ function updateCamera(DeltaTimeSeconds) {
   } else if (
     UsesExplorationCamera
     && (host.GamePhase === 'attached' || host.GamePhase === 'restoring')
-    && !host.PrefersReducedMotion
   ) {
     const LandedWorld = getLandedCameraWorld();
     if (LandedWorld) {
@@ -562,7 +563,7 @@ function updateCamera(DeltaTimeSeconds) {
         runnerZ: host.SeedPhysicsState.position.z ?? 0,
         cameraScale: host.CameraDistanceScale,
         baseCameraDistance: host.BaseCameraDistance,
-        reducedMotion: false,
+        reducedMotion: host.PrefersReducedMotion,
       });
       DesiredCameraLookTarget.set(
         LandedLookPose.lookAtX + CameraPanOffset.x,
@@ -645,64 +646,28 @@ function updateCamera(DeltaTimeSeconds) {
   } else {
     host.CameraImpactLifeSeconds = 0;
   }
-  const UsesLandedFacingCamera = UsesExplorationCamera
-    && !UsesPlanningCamera
-    && !host.IsScoutMode
-    && !StoryLookPoint
-    && !RevealPanActive
-    && (host.GamePhase === 'attached' || host.GamePhase === 'restoring')
-    && host.CameraZoomScale <= 1.05;
-  const LandedWorld = UsesLandedFacingCamera
-    ? getLandedCameraWorld()
-    : null;
-  const LandedCameraPose = LandedWorld
-    ? getLandedSurfaceCameraPose({
-      worldX: LandedWorld.position.x,
-      worldY: LandedWorld.position.y,
-      worldZ: LandedWorld.position.z ?? 0,
-      worldRadius: LandedWorld.radius,
-      runnerX: host.SeedPhysicsState.position.x,
-      runnerY: host.SeedPhysicsState.position.y,
-      runnerZ: host.SeedPhysicsState.position.z ?? 0,
-      cameraScale: host.CameraDistanceScale,
-      baseCameraDistance: host.BaseCameraDistance,
-      reducedMotion: host.PrefersReducedMotion,
-    })
-    : null;
-  const UsesLandedFacingRig = Boolean(LandedCameraPose) && !host.PrefersReducedMotion;
-  if (UsesLandedFacingRig) {
-    DesiredCameraOffset.set(
-      LandedCameraPose.cameraX - LandedCameraPose.lookAtX,
-      LandedCameraPose.cameraY - LandedCameraPose.lookAtY,
-      LandedCameraPose.cameraZ - LandedCameraPose.lookAtZ,
-    );
-    DesiredCameraUp.set(LandedCameraPose.upX, LandedCameraPose.upY, LandedCameraPose.upZ);
-  } else {
-    DesiredCameraOffset.set(
-      UsesExplorationCamera ? 0 : -CameraLookTarget.x,
-      UsesExplorationCamera ? 0 : -CameraLookTarget.y,
-      (host.BaseCameraDistance * host.CameraDistanceScale) - CameraLookTarget.z,
-    );
-    DesiredCameraUp.set(0, 0, 1);
-  }
+  DesiredCameraOffset.set(
+    UsesExplorationCamera ? 0 : -CameraLookTarget.x,
+    UsesExplorationCamera ? 0 : -CameraLookTarget.y,
+    (host.BaseCameraDistance * host.CameraDistanceScale) - CameraLookTarget.z,
+  );
   const RigBlendAlpha = host.PrefersReducedMotion
     ? 1
     : 1 - Math.exp(-DeltaTimeSeconds * CameraRigStiffness);
   if (!IsCameraRigInitialized) {
     CameraRigOffset.copy(DesiredCameraOffset);
-    CameraRigUp.copy(DesiredCameraUp);
     IsCameraRigInitialized = true;
   } else {
     CameraRigOffset.lerp(DesiredCameraOffset, RigBlendAlpha);
-    CameraRigUp.lerp(DesiredCameraUp, RigBlendAlpha).normalize();
   }
   Camera.position.set(
     CameraLookTarget.x + CameraRigOffset.x + CameraShakeX,
     CameraLookTarget.y + CameraRigOffset.y + CameraShakeY,
     CameraLookTarget.z + CameraRigOffset.z,
   );
-  Camera.up.copy(CameraRigUp);
-  GameCanvas.dataset.landedFacingCamera = String(UsesLandedFacingRig);
+  applyWorldCameraUp();
+  GameCanvas.dataset.landedFacingCamera = 'false';
+  GameCanvas.dataset.cameraUp = 'world-z';
   Camera.lookAt(CameraLookTarget);
   updateScannerInterface();
 }

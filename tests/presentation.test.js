@@ -1257,13 +1257,13 @@ test('landed close-up may zoom one extra notch while Scout stays a sector view',
   assert.equal(getActiveViewZoomMinimumScale({}), LandedMinimumZoomScale);
 });
 
-test('landed facing camera keeps the Runner on the near face and reduced motion stays overhead', () => {
+test('landed camera stays a high +Z view over the planet instead of orbiting the globe', () => {
   const World = { x: 4, y: -2, radius: 3.2 };
   const Runner = {
     x: World.x + World.radius,
     y: World.y,
   };
-  const Facing = getLandedSurfaceCameraPose({
+  const Overhead = getLandedSurfaceCameraPose({
     worldX: World.x,
     worldY: World.y,
     worldRadius: World.radius,
@@ -1272,30 +1272,26 @@ test('landed facing camera keeps the Runner on the near face and reduced motion 
     cameraScale: 0.5,
     baseCameraDistance: 42,
   });
-  assert.ok(Facing.cameraX > Runner.x);
-  assert.ok(Facing.lookAtX < Runner.x);
-  assert.ok(Facing.cameraZ > 1);
-  const CloseDistance = Math.hypot(
-    Facing.cameraX - World.x,
-    Facing.cameraY - World.y,
-    Facing.cameraZ,
-  );
-  assert.ok(CloseDistance > World.radius * 4);
-  const Far = getLandedSurfaceCameraPose({
+  assert.equal(Overhead.cameraX, World.x);
+  assert.equal(Overhead.cameraY, World.y);
+  assert.equal(Overhead.lookAtX, World.x);
+  assert.equal(Overhead.lookAtY, World.y);
+  assert.equal(Overhead.upX, 0);
+  assert.equal(Overhead.upY, 0);
+  assert.equal(Overhead.upZ, 1);
+  assert.equal(Overhead.cameraZ, 21);
+  const FarSide = getLandedSurfaceCameraPose({
     worldX: World.x,
     worldY: World.y,
     worldRadius: World.radius,
-    runnerX: Runner.x,
-    runnerY: Runner.y,
-    cameraScale: 1.2,
+    runnerX: World.x - World.radius,
+    runnerY: World.y,
+    cameraScale: 0.5,
     baseCameraDistance: 42,
   });
-  const FarDistance = Math.hypot(
-    Far.cameraX - World.x,
-    Far.cameraY - World.y,
-    Far.cameraZ,
-  );
-  assert.ok(FarDistance > CloseDistance + 8);
+  assert.equal(FarSide.cameraX, Overhead.cameraX);
+  assert.equal(FarSide.cameraY, Overhead.cameraY);
+  assert.equal(FarSide.upZ, 1);
   const Pole = getLandedSurfaceCameraPose({
     worldX: World.x,
     worldY: World.y,
@@ -1307,9 +1303,12 @@ test('landed facing camera keeps the Runner on the near face and reduced motion 
     cameraScale: 0.5,
     baseCameraDistance: 42,
   });
-  assert.ok(Pole.cameraZ > World.radius);
-  assert.ok(Math.abs(Pole.cameraX - World.x) < 0.01);
-  const Overhead = getLandedSurfaceCameraPose({
+  assert.equal(Pole.upX, 0);
+  assert.equal(Pole.upY, 0);
+  assert.equal(Pole.upZ, 1);
+  assert.equal(Pole.cameraX, World.x);
+  assert.equal(Pole.cameraY, World.y);
+  const ReducedMotion = getLandedSurfaceCameraPose({
     worldX: World.x,
     worldY: World.y,
     worldRadius: World.radius,
@@ -1319,9 +1318,7 @@ test('landed facing camera keeps the Runner on the near face and reduced motion 
     baseCameraDistance: 42,
     reducedMotion: true,
   });
-  assert.equal(Overhead.cameraX, Runner.x);
-  assert.equal(Overhead.cameraY, Runner.y);
-  assert.equal(Overhead.lookAtX, Runner.x);
+  assert.deepEqual(ReducedMotion, Overhead);
 });
 
 test('flight camera follows wider than a landing but tighter than the planning map', () => {
@@ -1428,6 +1425,12 @@ test('empty playfield labels have zero box and no background', () => {
     StyleSheet,
     /\.status-toast:not\(\.is-visible\)[\s\S]*?background:\s*none !important;/,
   );
+  assert.match(StyleSheet, /html,\s*body,\s*#GameShell \{[\s\S]*?user-select:\s*none;/);
+  assert.match(StyleSheet, /html,\s*body,\s*#GameShell \{[\s\S]*?-webkit-user-select:\s*none;/);
+  assert.match(StyleSheet, /#GameCanvas \{[\s\S]*?touch-action:\s*none;/);
+  assert.match(StyleSheet, /#GameCanvas \{[\s\S]*?user-select:\s*none;/);
+  assert.match(StyleSheet, /#GameCanvas \{[\s\S]*?-webkit-user-select:\s*none;/);
+  assert.match(StyleSheet, /\.play-caption,[\s\S]*?user-select:\s*none;/);
 });
 
 test('pursuit coach treats a launch as the turn and a return flight as the loop', () => {

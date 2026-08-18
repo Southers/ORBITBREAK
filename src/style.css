@@ -28,12 +28,15 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 body {
   overscroll-behavior: none;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 button {
@@ -66,6 +69,9 @@ button[aria-disabled='true'] {
   height: 100%;
   display: block;
   cursor: default;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #GameCanvas.is-grab-ready {
@@ -138,6 +144,31 @@ button[aria-disabled='true'] {
   color: transparent !important;
   text-shadow: none !important;
   opacity: 0 !important;
+}
+
+.play-caption,
+.route-label,
+.tactical-label,
+.status-toast,
+.pull-hint,
+.replay-indicator,
+.instruction-panel,
+.hud,
+.objective-panel,
+.warden-panel,
+.scanner-panel,
+.flight-score,
+.aim-panel,
+.score-burst,
+.play-caption strong,
+.play-caption span {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.leaderboard-form input {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .pause-button {
