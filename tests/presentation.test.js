@@ -794,29 +794,35 @@ test('the launch face names the neighbour this longitude looks toward', () => {
   });
 });
 
-test('first-run captions stay until walk, then until launch, then silence', () => {
+test('first-run captions stay until the ship is grabbed, then until launch, then silence', () => {
   const Opening = getFirstRunCoachPresentation({
     gamePhase: 'attached',
-    hasWalkedOnce: false,
+    hasGrabbedShipOnce: false,
     hasLaunchedOnce: false,
   });
   assert.equal(Opening.visible, true);
   assert.equal(Opening.title, 'Drag the planet to walk');
-  const AfterWalk = getFirstRunCoachPresentation({
+  const AfterWalkBeforeGrab = getFirstRunCoachPresentation({
     gamePhase: 'attached',
-    hasWalkedOnce: true,
+    hasGrabbedShipOnce: false,
     hasLaunchedOnce: false,
   });
-  assert.equal(AfterWalk.title, 'Pull the ship, then let go');
+  assert.equal(AfterWalkBeforeGrab.title, 'Drag the planet to walk');
+  const AfterGrab = getFirstRunCoachPresentation({
+    gamePhase: 'attached',
+    hasGrabbedShipOnce: true,
+    hasLaunchedOnce: false,
+  });
+  assert.equal(AfterGrab.title, 'Pull the ship, then let go');
   const AfterLaunch = getFirstRunCoachPresentation({
     gamePhase: 'attached',
-    hasWalkedOnce: true,
+    hasGrabbedShipOnce: true,
     hasLaunchedOnce: true,
   });
   assert.equal(AfterLaunch.visible, false);
   assert.equal(getFirstRunCoachPresentation({
     gamePhase: 'flying',
-    hasWalkedOnce: false,
+    hasGrabbedShipOnce: false,
     hasLaunchedOnce: false,
   }).visible, false);
   const IdleHighlight = getLandedVerbHighlight({
@@ -830,10 +836,26 @@ test('first-run captions stay until walk, then until launch, then silence', () =
   const ReadyToLaunch = getLandedVerbHighlight({
     gamePhase: 'attached',
     hasWalkedOnce: true,
+    hasGrabbedShipOnce: false,
     hasLaunchedOnce: false,
   });
-  assert.equal(ReadyToLaunch.pullHint, true);
+  assert.equal(ReadyToLaunch.pullHint, false);
   assert.equal(ReadyToLaunch.worldWalkHalo, false);
+  const AfterGrabHighlight = getLandedVerbHighlight({
+    gamePhase: 'attached',
+    hasWalkedOnce: true,
+    hasGrabbedShipOnce: true,
+    hasLaunchedOnce: false,
+  });
+  assert.equal(AfterGrabHighlight.pullHint, true);
+  const GrabbedWhileWalked = getLandedVerbHighlight({
+    gamePhase: 'attached',
+    hasWalkedOnce: true,
+    hasGrabbedShipOnce: true,
+    hasLaunchedOnce: false,
+    isShipArmed: true,
+  });
+  assert.equal(GrabbedWhileWalked.pullHint, false);
 });
 
 test('slingshot preview names a chain only after two distinct wells', () => {

@@ -94,12 +94,14 @@ export function createLandingDirector(THREE, host) {
     WorldRuntime.restorationStartedAtSeconds = host.GameElapsedTimeSeconds;
     WorldRuntime.cageClearPulseStartedAtSeconds = null;
     WorldRuntime.restorationWaveMesh.visible = true;
+    // The wave animates over the full authored duration even under reduced
+    // motion, so the story-board gate must always cover duration plus hold or
+    // the modal can fire mid-bloom.
     host.LiberationCelebrateUntilSeconds = Math.max(
       host.LiberationCelebrateUntilSeconds ?? 0,
       host.GameElapsedTimeSeconds
-        + (host.PrefersReducedMotion === true
-          ? LiberationCelebrateHoldSeconds
-          : WorldDefinition.restoration.durationSeconds + LiberationCelebrateHoldSeconds),
+        + WorldDefinition.restoration.durationSeconds
+        + LiberationCelebrateHoldSeconds,
     );
     WorldRuntime.contourRingGroup.visible = true;
     RouteLabelProjection.set(ImpactPosition.x, ImpactPosition.y, ImpactPosition.z).project(Camera);

@@ -265,11 +265,11 @@ export function createHud(host) {
     }, host.PrefersReducedMotion ? 4200 : 3200);
   }
 
-  /** Stays on screen until the player actually walks, then until they launch, then silence. */
+  /** Walk line holds until the ship is first grabbed, aim line until first launch, then silence. */
   function updateFirstRunCoach() {
     const Coach = getFirstRunCoachPresentation({
       gamePhase: host.GamePhase,
-      hasWalkedOnce: host.HasWalkedOnce === true,
+      hasGrabbedShipOnce: host.HasGrabbedShipOnce === true,
       hasLaunchedOnce: host.HasLaunchedOnce === true,
       isOpeningBriefingActive: host.IsOpeningBriefingActive === true,
       runStatus: host.RunState?.status ?? 'active',

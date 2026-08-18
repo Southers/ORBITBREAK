@@ -391,14 +391,14 @@ export function createPlayerVisuals(THREE, Scene, host) {
   WalkCursorMesh.renderOrder = 7;
   Scene.add(WalkCursorMesh);
 
-  const SeedPointLight = new THREE.PointLight(0x72dcff, 2.1, 6, 2);
+  const SeedPointLight = new THREE.PointLight(0x72dcff, 0.72, 2.4, 2);
   SeedGroup.add(SeedPointLight);
   Scene.add(SeedGroup);
 
   /**
    * An enlarged invisible sphere makes pointer acquisition forgiving on touchscreens.
    */
-  const SeedPointerHitGeometry = new THREE.SphereGeometry(SeedRadius * 2.2, 12, 8);
+  const SeedPointerHitGeometry = new THREE.SphereGeometry(SeedRadius * 3.2, 12, 8);
   const SeedPointerHitMaterial = new THREE.MeshBasicMaterial({
     transparent: true,
     opacity: 0,

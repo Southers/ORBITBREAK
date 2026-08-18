@@ -394,6 +394,7 @@ export function createFrameVisuals(THREE, host) {
     const VerbHighlight = getLandedVerbHighlight({
       gamePhase: host.GamePhase,
       hasWalkedOnce: host.HasWalkedOnce === true,
+      hasGrabbedShipOnce: host.HasGrabbedShipOnce === true,
       hasLaunchedOnce: host.HasLaunchedOnce === true,
       isGrabReady: HasCanvasClass('is-grab-ready'),
       isShipArmed: HasCanvasClass('is-ship-armed'),
@@ -415,7 +416,7 @@ export function createFrameVisuals(THREE, host) {
     }
     const HaloRestOpacity = RunnerAnimationState === 'liberating'
       ? 0.2
-      : (VerbHighlight.shipHalo ? 0.22 : 0.08);
+      : (VerbHighlight.shipHalo ? 0.24 : 0.08);
     SeedHaloMaterial.opacity = (VerbHighlight.shipHaloCharge ? 0.48 : HaloRestOpacity)
       + (Math.sin(ElapsedTimeSeconds * 4.2) * (VerbHighlight.shipHaloCharge ? 0.08 : 0.03));
 
