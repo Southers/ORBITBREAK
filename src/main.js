@@ -26,10 +26,10 @@ import {
   getViewportPixelRatioCap,
 } from './performance.js?v=20260814-ob13';
 import { addEnvironment } from './environment.js?v=20260818-ob103';
-import { createWorldVisuals } from './world-geometry.js?v=20260818-ob102';
-import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob105';
-import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob100';
-import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob102';
+import { createWorldVisuals } from './world-geometry.js?v=20260818-ob106';
+import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob106';
+import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob106';
+import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob106';
 import { createStoryDirector } from './story-director.js?v=20260818-ob104';
 import { createHud } from './hud.js?v=20260818-ob105';
 import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
@@ -149,7 +149,7 @@ import {
   getWorldLifeStage,
   getWorldLandingAimLabel,
   getLandedCameraScale,
-} from './presentation.js?v=20260818-ob105';
+} from './presentation.js?v=20260818-ob106';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -291,7 +291,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260818-ob105';
+GameCanvas.dataset.build = '20260818-ob106';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);

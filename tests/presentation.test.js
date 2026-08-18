@@ -946,6 +946,12 @@ test('prosperity densifies from a first link to busy routes and circuits', () =>
   assert.equal(getProsperityBuildingKind('circuit', 2), 'dock');
   assert.equal(getProsperityBuildingKind('isolated', 0), null);
   assert.equal(getProsperityBuildingProfile('dock').height < getProsperityBuildingProfile('house').height, true);
+  assert.ok(getProsperityBuildingProfile('workshop').height > getProsperityBuildingProfile('house').height);
+  assert.ok(getProsperityBuildingProfile('house').height < 0.4);
+  assert.ok(getProsperityBuildingProfile('workshop').height < 0.5);
+  assert.ok(getInhabitantSilhouette(0).scale.y < getProsperityBuildingProfile('house').height);
+  assert.ok(getInhabitantSilhouette(2).scale.y < getProsperityBuildingProfile('house').height);
+  assert.ok(getTradeHullScale('barge').x < 0.7);
   assert.equal(getProsperityBuildingFamily('ember'), 'furnace');
   assert.equal(getProsperityBuildingFamily('grove'), 'canopy');
   assert.equal(getProsperityBuildingFamily('meadow'), 'cottage');

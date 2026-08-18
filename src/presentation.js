@@ -252,12 +252,12 @@ export function getTradeHullFamily(kind) {
 
 export function getTradeHullScale(kind) {
   const Scales = {
-    barge: { x: 1.7, y: 0.42, z: 0.82 },
-    sail: { x: 0.55, y: 1.45, z: 0.38 },
-    sled: { x: 1.45, y: 0.32, z: 0.58 },
-    hull: { x: 1.05, y: 0.7, z: 0.7 },
-    spine: { x: 0.7, y: 1.2, z: 0.45 },
-    boat: { x: 1, y: 0.55, z: 0.62 },
+    barge: { x: 0.5, y: 0.14, z: 0.26 },
+    sail: { x: 0.18, y: 0.42, z: 0.14 },
+    sled: { x: 0.42, y: 0.12, z: 0.2 },
+    hull: { x: 0.32, y: 0.22, z: 0.22 },
+    spine: { x: 0.22, y: 0.36, z: 0.16 },
+    boat: { x: 0.3, y: 0.18, z: 0.2 },
   };
   return Scales[kind] ?? Scales.boat;
 }
@@ -305,11 +305,12 @@ export function getProsperityBuildingKind(stage, patternIndex = 0) {
   return ['house', 'workshop', 'dock'][patternIndex % 3];
 }
 
+/** Houses, workshops and docks stay toy-diorama props, much smaller than world radii. */
 export function getProsperityBuildingProfile(kind) {
   const Profiles = {
-    house: { height: 0.92, width: 1, depth: 0.9, hasWindow: true, hasStreet: true },
-    workshop: { height: 1.42, width: 0.62, depth: 0.72, hasWindow: true, hasStreet: false },
-    dock: { height: 0.34, width: 1.62, depth: 0.7, hasWindow: false, hasStreet: false },
+    house: { height: 0.32, width: 0.34, depth: 0.31, hasWindow: true, hasStreet: true },
+    workshop: { height: 0.44, width: 0.22, depth: 0.24, hasWindow: true, hasStreet: false },
+    dock: { height: 0.26, width: 0.36, depth: 0.32, hasWindow: false, hasStreet: false },
   };
   return Profiles[kind] ?? null;
 }
@@ -511,9 +512,9 @@ export function getInhabitantSilhouette(slotIndex) {
   const Variants = ['worker', 'child', 'pack'];
   const Kind = Variants[slotIndex % 3];
   const Scales = {
-    worker: { x: 1.28, y: 1.36, z: 1.22 },
-    child: { x: 0.88, y: 0.82, z: 0.86 },
-    pack: { x: 1.48, y: 1.12, z: 1.72 },
+    worker: { x: 0.18, y: 0.2, z: 0.17 },
+    child: { x: 0.12, y: 0.12, z: 0.12 },
+    pack: { x: 0.22, y: 0.16, z: 0.26 },
   };
   return { kind: Kind, scale: Scales[Kind] };
 }

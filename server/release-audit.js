@@ -152,8 +152,11 @@ export function auditReleaseReadiness() {
       && LivingWorldSource.includes('OccupationFumeMesh')
       && LivingWorldSource.includes('ExtractionFreighterMesh')
       && LivingWorldSource.includes('visiblePrisonerCount')
-      && PlayerSource.includes('RunnerPresentationScale = 0.52')
-      && CameraSource.includes('getLandedCameraScale('),
+      && PlayerSource.includes('RunnerPresentationScale = 0.34')
+      && CameraSource.includes('getLandedCameraScale(')
+      && PresentationSource.includes('house: { height: 0.32')
+      && PresentationSource.includes('workshop: { height: 0.44')
+      && PresentationSource.includes('worker: { x: 0.18, y: 0.2, z: 0.17 }'),
     'Occupied worlds must show tyrant extraction, held people and a tiny Runner so living contrast can read.',
   );
   requireCondition(

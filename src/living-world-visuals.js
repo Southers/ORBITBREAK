@@ -468,24 +468,25 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   }
 
   /** Instanced mines, clamps, fumes and haulers make Warden-owned worlds look eaten, not merely clamped. */
+  // Toy-diorama occupation kit: pylons stay readable at Scout, mines stay smaller than the globe.
   const OccupationScarProfiles = {
-    meadow: { height: 0.9, width: 0.82, depth: 0.82 },
-    ember: { height: 1.42, width: 0.7, depth: 0.86 },
-    grove: { height: 0.78, width: 1.18, depth: 0.72 },
-    tide: { height: 0.92, width: 1.3, depth: 0.68 },
-    frost: { height: 1.22, width: 0.72, depth: 0.88 },
-    vault: { height: 1.48, width: 0.78, depth: 0.92 },
-    loom: { height: 0.86, width: 1.12, depth: 0.7 },
-    kiln: { height: 1.36, width: 0.74, depth: 0.88 },
-    shard: { height: 1.28, width: 0.7, depth: 0.94 },
-    relay: { height: 0.9, width: 0.82, depth: 0.82 },
-    drift: { height: 0.92, width: 1.3, depth: 0.68 },
-    bower: { height: 0.9, width: 0.82, depth: 0.82 },
-    lantern: { height: 1.36, width: 0.74, depth: 0.88 },
-    canopy: { height: 0.78, width: 1.18, depth: 0.72 },
-    crown: { height: 1.48, width: 0.78, depth: 0.92 },
-    dew: { height: 0.92, width: 1.3, depth: 0.68 },
-    nest: { height: 1.22, width: 0.72, depth: 0.88 },
+    meadow: { height: 0.22, width: 0.34, depth: 0.34 },
+    ember: { height: 0.32, width: 0.3, depth: 0.36 },
+    grove: { height: 0.2, width: 0.42, depth: 0.3 },
+    tide: { height: 0.22, width: 0.46, depth: 0.28 },
+    frost: { height: 0.28, width: 0.3, depth: 0.36 },
+    vault: { height: 0.34, width: 0.32, depth: 0.38 },
+    loom: { height: 0.22, width: 0.4, depth: 0.3 },
+    kiln: { height: 0.3, width: 0.32, depth: 0.36 },
+    shard: { height: 0.28, width: 0.3, depth: 0.38 },
+    relay: { height: 0.22, width: 0.34, depth: 0.34 },
+    drift: { height: 0.22, width: 0.46, depth: 0.28 },
+    bower: { height: 0.22, width: 0.34, depth: 0.34 },
+    lantern: { height: 0.3, width: 0.32, depth: 0.36 },
+    canopy: { height: 0.2, width: 0.42, depth: 0.3 },
+    crown: { height: 0.34, width: 0.32, depth: 0.38 },
+    dew: { height: 0.22, width: 0.46, depth: 0.28 },
+    nest: { height: 0.28, width: 0.3, depth: 0.36 },
   };
   const OccupationFumeColors = {
     meadow: new THREE.Color(0x8a6a40),
@@ -513,7 +514,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       patternIndex: PatternIndex,
       buildingFamily: getProsperityBuildingFamily(WorldDefinition.visualKey),
       profile: OccupationScarProfiles[WorldDefinition.visualKey]
-        ?? { height: 0.85, width: 0.8, depth: 0.8 },
+        ?? { height: 0.24, width: 0.32, depth: 0.32 },
       fumeColor: OccupationFumeColors[WorldDefinition.visualKey] ?? OccupationFumeColors.vault,
     }))
   ));
@@ -542,7 +543,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     OccupationScarCapacity,
   );
   const OccupationClampMesh = new THREE.InstancedMesh(
-    new THREE.CylinderGeometry(0.07, 0.09, 0.28, 6),
+    new THREE.CylinderGeometry(0.05, 0.065, 0.38, 6),
     OccupationScarMaterial,
     OccupationScarCapacity,
   );
@@ -651,10 +652,10 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         : 1 + (Math.sin((ElapsedTimeSeconds * 1.7) + Scar.patternIndex) * 0.18);
       applySphereInstance(
         OccupationScarTransform,
-        getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.92),
-        ScarStrength * FumePulse,
-        ScarStrength * (1.15 + ((Scar.patternIndex % 2) * 0.25)) * FumePulse,
-        ScarStrength * FumePulse,
+        getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.55),
+        ScarStrength * 0.42 * FumePulse,
+        ScarStrength * 0.5 * (1.05 + ((Scar.patternIndex % 2) * 0.18)) * FumePulse,
+        ScarStrength * 0.42 * FumePulse,
       );
       OccupationFumeMesh.setMatrixAt(ScarIndex, OccupationScarTransform.matrix);
       OccupationFumeColor.copy(Scar.fumeColor);
@@ -968,9 +969,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         applySphereInstance(
           ProsperityWindowTransform,
           getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.42),
-          Presence * 0.55,
-          Presence * 0.45 * (IsDockLit ? 1.25 : 1),
-          Presence * 0.35,
+          Presence * 0.18,
+          Presence * 0.15 * (IsDockLit ? 1.25 : 1),
+          Presence * 0.12,
         );
         ProsperityWindowMesh.setMatrixAt(NextVisibleWindowCount, ProsperityWindowTransform.matrix);
         ProsperityWindowColor.setHex(ProsperityStage === 'circuit' ? 0xfff0c4 : 0xffd27a);

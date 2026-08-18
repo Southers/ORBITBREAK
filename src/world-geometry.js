@@ -318,8 +318,8 @@ export function createWorldVisuals(THREE, Scene, {
     ScatterGroup.add(createScatterInstances(FloraGeometry, FloraMaterial, WorldDefinition, {
       count: FloraCount,
       nextRandomValue,
-      minimumScale: IsGroundCover ? 0.85 : 1.55,
-      maximumScale: IsGroundCover ? 1.45 : 2.4,
+      minimumScale: IsGroundCover ? 0.32 : 0.48,
+      maximumScale: IsGroundCover ? 0.52 : 0.78,
     }));
 
     const GlowGeometry = createScatterLanternGeometry();
@@ -340,8 +340,8 @@ export function createWorldVisuals(THREE, Scene, {
     ScatterGroup.add(createScatterInstances(GlowGeometry, GlowMaterial, WorldDefinition, {
       count: GlowCount,
       nextRandomValue,
-      minimumScale: 1.05,
-      maximumScale: 1.7,
+      minimumScale: 0.38,
+      maximumScale: 0.58,
     }));
 
     return ScatterGroup;
@@ -685,6 +685,7 @@ export function createWorldVisuals(THREE, Scene, {
   }
 
   /** Places a local-Y-up prop against a spherical surface and registers wave metadata. */
+  const SurfacePropDioramaScale = 0.34;
   function placeSurfaceProp(
     PropObject,
     SurfaceDirection,
@@ -693,12 +694,13 @@ export function createWorldVisuals(THREE, Scene, {
     SurfaceOffset = 0,
   ) {
     const NormalizedDirection = SurfaceDirection.clone().normalize();
+    const PropScale = BaseScale * SurfacePropDioramaScale;
     PropObject.position.copy(NormalizedDirection).multiplyScalar(WorldRadius + SurfaceOffset);
     PropObject.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), NormalizedDirection);
     PropObject.userData.baseQuaternion = PropObject.quaternion.clone();
-    PropObject.scale.setScalar(BaseScale);
+    PropObject.scale.setScalar(PropScale);
     PropObject.userData.surfaceDirection = NormalizedDirection;
-    PropObject.userData.baseScale = BaseScale;
+    PropObject.userData.baseScale = PropScale;
     PropObject.userData.restorationDistance = 1;
     return PropObject;
   }
@@ -793,6 +795,7 @@ export function createWorldVisuals(THREE, Scene, {
   }
 
   /** Places one geometry on a spherical surface before it enters a merged one-call landmark. */
+  const MergedLandmarkDioramaScale = 0.36;
   function createPlacedLandmarkGeometry(
     SourceGeometry,
     SurfaceDirection,
@@ -808,7 +811,7 @@ export function createWorldVisuals(THREE, Scene, {
     Placement.position.copy(NormalizedDirection).multiplyScalar(WorldRadius);
     Placement.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), NormalizedDirection);
     Placement.rotateY(TangentRotationRadians);
-    Placement.scale.setScalar(Scale);
+    Placement.scale.setScalar(Scale * MergedLandmarkDioramaScale);
     Placement.updateMatrix();
     LandmarkGeometry.applyMatrix4(Placement.matrix);
     addRestorationGeometryAttributes(LandmarkGeometry, NormalizedDirection, 1);
@@ -831,7 +834,7 @@ export function createWorldVisuals(THREE, Scene, {
     const Placement = new THREE.Object3D();
     Placement.position.set(OffsetX, OffsetY, WorldRadius);
     Placement.rotation.z = RotationRadians;
-    Placement.scale.setScalar(Scale);
+    Placement.scale.setScalar(Scale * MergedLandmarkDioramaScale);
     Placement.updateMatrix();
     LandmarkGeometry.applyMatrix4(Placement.matrix);
     LandmarkGeometry.rotateY(SurfaceYawRadians);
