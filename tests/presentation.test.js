@@ -836,13 +836,22 @@ test('first-run captions stay until the ship is grabbed, then until launch, then
   const ReadyToLaunch = getLandedVerbHighlight({
     gamePhase: 'attached',
     hasWalkedOnce: true,
+    hasGrabbedShipOnce: false,
     hasLaunchedOnce: false,
   });
-  assert.equal(ReadyToLaunch.pullHint, true);
+  assert.equal(ReadyToLaunch.pullHint, false);
   assert.equal(ReadyToLaunch.worldWalkHalo, false);
+  const AfterGrabHighlight = getLandedVerbHighlight({
+    gamePhase: 'attached',
+    hasWalkedOnce: true,
+    hasGrabbedShipOnce: true,
+    hasLaunchedOnce: false,
+  });
+  assert.equal(AfterGrabHighlight.pullHint, true);
   const GrabbedWhileWalked = getLandedVerbHighlight({
     gamePhase: 'attached',
     hasWalkedOnce: true,
+    hasGrabbedShipOnce: true,
     hasLaunchedOnce: false,
     isShipArmed: true,
   });

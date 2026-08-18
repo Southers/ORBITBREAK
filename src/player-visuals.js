@@ -391,7 +391,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   WalkCursorMesh.renderOrder = 7;
   Scene.add(WalkCursorMesh);
 
-  const SeedPointLight = new THREE.PointLight(0x72dcff, 2.1, 6, 2);
+  const SeedPointLight = new THREE.PointLight(0x72dcff, 0.72, 2.4, 2);
   SeedGroup.add(SeedPointLight);
   Scene.add(SeedGroup);
 

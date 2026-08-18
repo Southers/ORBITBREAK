@@ -809,6 +809,7 @@ function updatePullHint(ElapsedTimeSeconds = 0) {
   }
   const ShouldShow = GamePhase === 'attached'
     && HasWalkedOnce
+    && HasGrabbedShipOnce
     && !HasLaunchedOnce
     && !IsPointerAiming
     && !IsKeyboardAiming

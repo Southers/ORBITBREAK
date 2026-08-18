@@ -93,6 +93,7 @@ export function getFirstRunCoachPresentation({
 export function getLandedVerbHighlight({
   gamePhase = 'attached',
   hasWalkedOnce = false,
+  hasGrabbedShipOnce = false,
   hasLaunchedOnce = false,
   isGrabReady = false,
   isShipArmed = false,
@@ -111,7 +112,11 @@ export function getLandedVerbHighlight({
       || hasWalkedOnce !== true
     ),
     walkCursor: IsAttached && (isWalking === true || isWalkReady === true),
-    pullHint: IsAttached && hasWalkedOnce === true && hasLaunchedOnce !== true && !ShipCharge,
+    pullHint: IsAttached
+      && hasWalkedOnce === true
+      && hasGrabbedShipOnce === true
+      && hasLaunchedOnce !== true
+      && !ShipCharge,
   };
 }
 
