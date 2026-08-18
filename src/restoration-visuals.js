@@ -8,6 +8,7 @@
 
 import { getLeftoverHostileEncounter } from './encounter.js';
 import { countLiveRelayWorlds } from './network.js';
+import { consumePendingDiscoveryToast } from './discoveries.js?v=20260818-ob122';
 import {
   getOccupiedAtmosphereOpacity,
   getAtmosphereDistanceFade,
@@ -109,6 +110,10 @@ export function createRestorationVisuals(THREE, host) {
    * @param {number} ElapsedTimeSeconds - Total elapsed game time.
    */
   function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
+    const DiscoveryToast = consumePendingDiscoveryToast();
+    if (DiscoveryToast) {
+      showStatusToast(DiscoveryToast, 1450);
+    }
     const InnerClusterLive = isLiveInnerCluster();
     const VeiledWorldIdentifiers = [];
     GameCanvas.dataset.innerClusterLive = String(InnerClusterLive);

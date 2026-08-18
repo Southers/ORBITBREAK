@@ -36,7 +36,14 @@ import {
   listRelayCircuits,
   listRelayLinks,
 } from './network.js';
-import { getSlingshotBandRadii } from './scoring.js';
+import { getSlingshotBandRadii, addDiscoveryBonus } from './scoring.js';
+import {
+  consumePendingDiscoveryBank,
+  getLiveDiscoveryState,
+  isDiscoveryCollected,
+  listWorldDiscoveries,
+  resetLiveDiscoveryState,
+} from './discoveries.js?v=20260818-ob122';
 
 export function createLivingWorldVisuals(THREE, Scene, host) {
   const {
@@ -219,6 +226,48 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, -0.16], color: 0x5a4030 },
       { geometry: new THREE.CylinderGeometry(0.04, 0.05, 0.16, 6), position: [0.48, 0.26, 0], color: 0xc9a078 },
     ]);
+  }
+
+  function getDisplayedProsperityPresence(stage) {
+    const NetworkPresence = getProsperityPresence(stage);
+    if (NetworkPresence > 0) {
+      return NetworkPresence;
+    }
+    if (stage === 'isolated') {
+      return 0.72;
+    }
+    if (stage === 'tyrant') {
+      return 0.54;
+    }
+    return 0;
+  }
+
+  function getDisplayedBuildingKind(stage, patternIndex, satelliteIndex = 0) {
+    const NetworkKind = getProsperityBuildingKind(stage, patternIndex);
+    if (NetworkKind) {
+      return satelliteIndex === 0 ? NetworkKind : 'house';
+    }
+    if (stage === 'isolated') {
+      return satelliteIndex === 1 ? 'dock' : 'house';
+    }
+    if (stage === 'tyrant') {
+      return satelliteIndex === 0 ? 'workshop' : 'house';
+    }
+    return null;
+  }
+
+  function shouldShowDisplayedInhabitant(lifeStage, prosperityStage, slotIndex) {
+    if (lifeStage === 'tyrant') {
+      return slotIndex < 10;
+    }
+    if (lifeStage === 'isolated') {
+      return slotIndex < 8;
+    }
+    return shouldShowInhabitantSlot({
+      lifeStage,
+      prosperityStage,
+      slotIndex,
+    });
   }
 
   function hideInstance(Transform, Mesh, InstanceIndex) {
@@ -787,9 +836,33 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     vertexColors: true,
   });
   const ProsperityFamilyCounts = { cottage: 0, furnace: 0, canopy: 0, jetty: 0 };
-  for (const Scar of OccupationScarInstances) {
-    Scar.familyIndex = ProsperityFamilyCounts[Scar.buildingFamily];
-    ProsperityFamilyCounts[Scar.buildingFamily] += 1;
+  const ProsperityBuildingInstances = OccupationScarInstances.flatMap((Scar) => {
+    const Satellites = [
+      { site: Scar.site, satelliteIndex: 0 },
+      {
+        site: {
+          longitude: Scar.site.longitude + 0.22,
+          latitude: Math.max(-1.15, Math.min(1.15, Scar.site.latitude + 0.16)),
+        },
+        satelliteIndex: 1,
+      },
+      {
+        site: {
+          longitude: Scar.site.longitude - 0.18,
+          latitude: Math.max(-1.15, Math.min(1.15, Scar.site.latitude - 0.14)),
+        },
+        satelliteIndex: 2,
+      },
+    ];
+    return Satellites.map((Satellite) => ({
+      ...Scar,
+      site: Satellite.site,
+      satelliteIndex: Satellite.satelliteIndex,
+    }));
+  });
+  for (const Building of ProsperityBuildingInstances) {
+    Building.familyIndex = ProsperityFamilyCounts[Building.buildingFamily];
+    ProsperityFamilyCounts[Building.buildingFamily] += 1;
   }
   function createProsperityFamilyMesh(Geometry, FamilyCount) {
     const FamilyMesh = new THREE.InstancedMesh(
@@ -830,7 +903,8 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   const ProsperityBuildingColor = new THREE.Color();
   const ProsperityCircuitWarmColor = new THREE.Color(0xffe7b0);
   const ProsperityDockLitColor = new THREE.Color(0xfff4c8);
-  const ProsperityWindowCapacity = Math.max(1, OccupationScarCapacity);
+  const ProsperityTyrantColor = new THREE.Color(0x6a3a32);
+  const ProsperityWindowCapacity = Math.max(1, ProsperityBuildingInstances.length);
   const ProsperityWindowMaterial = new THREE.MeshBasicMaterial({
     color: 0xffe29a,
     transparent: true,
@@ -857,7 +931,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   const DockedWorldIdentifiers = new Set();
   const DockGatherSiteByWorldId = new Map();
   let LastPublishedDockedWorlds = null;
-  GameCanvas.dataset.prosperityBuildingCount = String(OccupationScarInstances.length);
+  GameCanvas.dataset.prosperityBuildingCount = String(ProsperityBuildingInstances.length);
 
   function getTradeCourierDwellRatio() {
     const {
@@ -959,60 +1033,79 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     let NextVisibleWindowCount = 0;
     const ProsperityKinds = [];
     const BuildingFamilies = [];
-    for (let ScarIndex = 0; ScarIndex < OccupationScarInstances.length; ScarIndex += 1) {
-      const Scar = OccupationScarInstances[ScarIndex];
-      const FamilyMesh = ProsperityBuildingMeshes[Scar.buildingFamily];
-      const LiveLinkCount = getRelayDegree(RelayNetworkState, Scar.worldDefinition.id);
+    bankPendingDiscoveries();
+    updateDiscoveryMarkerVisuals(ElapsedTimeSeconds);
+    updateLocalCraftVisuals(ElapsedTimeSeconds);
+    for (let BuildingIndex = 0; BuildingIndex < ProsperityBuildingInstances.length; BuildingIndex += 1) {
+      const Building = ProsperityBuildingInstances[BuildingIndex];
+      const FamilyMesh = ProsperityBuildingMeshes[Building.buildingFamily];
+      const LiveLinkCount = getRelayDegree(RelayNetworkState, Building.worldDefinition.id);
       const ProsperityStage = getProsperityStage({
-        restored: Scar.worldDefinition.restored,
+        restored: Building.worldDefinition.restored,
         liveLinkCount: LiveLinkCount,
-        inLiveCircuit: isWorldInLiveCircuit(Scar.worldDefinition.id),
+        inLiveCircuit: isWorldInLiveCircuit(Building.worldDefinition.id),
       });
-      const Presence = getProsperityPresence(ProsperityStage);
-      const BuildingKind = getProsperityBuildingKind(ProsperityStage, Scar.patternIndex);
+      const Presence = getDisplayedProsperityPresence(ProsperityStage)
+        * (Building.satelliteIndex === 0 ? 1 : 0.82);
+      const BuildingKind = getDisplayedBuildingKind(
+        ProsperityStage,
+        Building.patternIndex,
+        Building.satelliteIndex,
+      );
       const BuildingProfile = getProsperityBuildingProfile(BuildingKind);
-      if (Scar.patternIndex === 0) {
-        ProsperityKinds.push(`${Scar.worldDefinition.id}:${ProsperityStage}:${BuildingKind ?? 'none'}`);
-        BuildingFamilies.push(`${Scar.worldDefinition.id}:${Scar.buildingFamily}`);
+      if (Building.patternIndex === 0 && Building.satelliteIndex === 0) {
+        ProsperityKinds.push(`${Building.worldDefinition.id}:${ProsperityStage}:${BuildingKind ?? 'none'}`);
+        BuildingFamilies.push(`${Building.worldDefinition.id}:${Building.buildingFamily}`);
       }
       const HideBuilding = Presence <= 0.04 || !BuildingProfile;
       if (HideBuilding) {
-        hideInstance(ProsperityBuildingTransform, FamilyMesh, Scar.familyIndex);
+        hideInstance(ProsperityBuildingTransform, FamilyMesh, Building.familyIndex);
         continue;
       }
       NextVisibleProsperityBuildingCount += 1;
+      const StanceScale = 1.22;
       const Height = BuildingProfile.height
         * Presence
-        * (1 + ((Scar.patternIndex % 3) * 0.08));
+        * StanceScale
+        * (1 + ((Building.patternIndex % 3) * 0.08));
       const IsDockLit = BuildingKind === 'dock'
-        && DockedWorldIdentifiers.has(Scar.worldDefinition.id);
+        && DockedWorldIdentifiers.has(Building.worldDefinition.id);
       applySphereInstance(
         ProsperityBuildingTransform,
-        getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.08),
-        BuildingProfile.width * Presence,
+        getWorldLifePlacement(Building.worldDefinition, Building.site, Height * 0.08),
+        BuildingProfile.width * Presence * StanceScale,
         Height,
-        BuildingProfile.depth * Presence,
+        BuildingProfile.depth * Presence * StanceScale,
       );
-      FamilyMesh.setMatrixAt(Scar.familyIndex, ProsperityBuildingTransform.matrix);
-      ProsperityBuildingColor.set(Scar.worldDefinition.restoration.waveColor);
+      FamilyMesh.setMatrixAt(Building.familyIndex, ProsperityBuildingTransform.matrix);
+      ProsperityBuildingColor.set(Building.worldDefinition.restoration.waveColor);
       if (ProsperityStage === 'circuit') {
         ProsperityBuildingColor.lerp(ProsperityCircuitWarmColor, 0.35);
+      }
+      if (ProsperityStage === 'tyrant') {
+        ProsperityBuildingColor.lerp(ProsperityTyrantColor, 0.45);
       }
       if (IsDockLit) {
         ProsperityBuildingColor.lerp(ProsperityDockLitColor, 0.55);
       }
-      FamilyMesh.setColorAt(Scar.familyIndex, ProsperityBuildingColor);
+      FamilyMesh.setColorAt(Building.familyIndex, ProsperityBuildingColor);
 
       if (BuildingProfile.hasWindow) {
         applySphereInstance(
           ProsperityWindowTransform,
-          getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.42),
-          Presence * 0.13,
-          Presence * 0.11 * (IsDockLit ? 1.25 : 1),
-          Presence * 0.09,
+          getWorldLifePlacement(Building.worldDefinition, Building.site, Height * 0.42),
+          Presence * 0.16,
+          Presence * 0.13 * (IsDockLit ? 1.25 : 1),
+          Presence * 0.11,
         );
         ProsperityWindowMesh.setMatrixAt(NextVisibleWindowCount, ProsperityWindowTransform.matrix);
-        ProsperityWindowColor.setHex(ProsperityStage === 'circuit' ? 0xfff0c4 : 0xffd27a);
+        ProsperityWindowColor.setHex(
+          ProsperityStage === 'circuit'
+            ? 0xfff0c4
+            : ProsperityStage === 'tyrant'
+              ? 0xff7a38
+              : 0xffd27a,
+        );
         ProsperityWindowMesh.setColorAt(NextVisibleWindowCount, ProsperityWindowColor);
         NextVisibleWindowCount += 1;
       }
@@ -1025,7 +1118,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         }
       }
     }
-    if (OccupationScarInstances.length > 0) {
+    if (ProsperityBuildingInstances.length > 0) {
       ProsperityWindowMesh.instanceMatrix.needsUpdate = true;
       if (ProsperityWindowMesh.instanceColor) {
         ProsperityWindowMesh.instanceColor.needsUpdate = true;
@@ -1080,7 +1173,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     if (Sites.length === 0) {
       return [];
     }
-    return Array.from({ length: 12 }, (_, InhabitantIndex) => {
+    return Array.from({ length: 16 }, (_, InhabitantIndex) => {
       const Silhouette = getInhabitantSilhouette(InhabitantIndex);
       return {
         worldDefinition: WorldDefinition,
@@ -1177,15 +1270,15 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         Inhabitant.worldDefinition.restored,
         RestorationProgress,
       );
-      const IsolatedVisible = shouldShowInhabitantSlot({
-        lifeStage: LifeStage,
-        prosperityStage: getProsperityStage({
+      const IsolatedVisible = shouldShowDisplayedInhabitant(
+        LifeStage,
+        getProsperityStage({
           restored: Inhabitant.worldDefinition.restored,
           liveLinkCount: LiveLinkCount,
           inLiveCircuit: isWorldInLiveCircuit(Inhabitant.worldDefinition.id),
         }),
-        slotIndex: Inhabitant.slotIndex,
-      });
+        Inhabitant.slotIndex,
+      );
       const FreeEmergence = Inhabitant.worldDefinition.restored && IsolatedVisible
         ? THREE.MathUtils.smoothstep(Math.max(0, RestorationProgress), 0.54, 0.96)
         : 0;
@@ -1318,6 +1411,151 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   const TradeShipTransform = new THREE.Object3D();
   const TradeShipColor = new THREE.Color();
   const TradeShipDockTintColor = new THREE.Color(0xfff4c8);
+
+  const LocalCraftWorlds = WorldDefinitions.filter(
+    (WorldDefinition) => listOccupationSites(WorldDefinition).length > 0,
+  );
+  const LocalCraftCapacity = Math.max(1, LocalCraftWorlds.length * 2);
+  const LocalCraftMesh = createTradeHullMesh(new THREE.CapsuleGeometry(0.05, 0.22, 3, 6));
+  LocalCraftMesh.count = LocalCraftCapacity;
+  const LocalCraftTransform = new THREE.Object3D();
+  const LocalCraftColor = new THREE.Color();
+
+  const DiscoveryMarkerInstances = WorldDefinitions.flatMap((WorldDefinition) => (
+    listWorldDiscoveries(WorldDefinition.id).map((Discovery) => ({
+      worldDefinition: WorldDefinition,
+      discovery: Discovery,
+    }))
+  ));
+  const DiscoveryMarkerGeometry = mergePrimitiveParts([
+    { geometry: new THREE.CylinderGeometry(0.045, 0.06, 0.12, 6), position: [0, 0.06, 0], color: 0xd8c4a0 },
+    { geometry: new THREE.SphereGeometry(0.055, 8, 6), position: [0, 0.16, 0], color: 0xffe29a },
+  ]);
+  const DiscoveryMarkerMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xffd27a,
+    emissiveIntensity: 0.7,
+    roughness: 0.45,
+    metalness: 0.08,
+    vertexColors: true,
+  });
+  const DiscoveryMarkerMesh = new THREE.InstancedMesh(
+    DiscoveryMarkerGeometry,
+    DiscoveryMarkerMaterial,
+    Math.max(1, DiscoveryMarkerInstances.length),
+  );
+  DiscoveryMarkerMesh.count = DiscoveryMarkerInstances.length;
+  DiscoveryMarkerMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  DiscoveryMarkerMesh.frustumCulled = false;
+  DiscoveryMarkerMesh.renderOrder = 12;
+  Scene.add(DiscoveryMarkerMesh);
+  const DiscoveryMarkerTransform = new THREE.Object3D();
+  const DiscoveryMarkerColor = new THREE.Color();
+  const DiscoveryCollectedColor = new THREE.Color(0x8aa0a8);
+  GameCanvas.dataset.discoveryMarkerCount = String(DiscoveryMarkerInstances.length);
+
+  function bankPendingDiscoveries() {
+    const Pending = consumePendingDiscoveryBank();
+    if (Pending.length === 0) {
+      return;
+    }
+    for (const Event of Pending) {
+      addDiscoveryBonus(host.ScoreState, Event.points);
+    }
+    GameCanvas.dataset.discoveryScore = String(host.ScoreState.discoveryScore);
+    GameCanvas.dataset.score = String(
+      host.ScoreState.bankedScore + host.ScoreState.discoveryScore,
+    );
+    const Progress = WorldDefinitions.map((WorldDefinition) => {
+      const WorldDiscoveries = listWorldDiscoveries(WorldDefinition.id);
+      if (WorldDiscoveries.length === 0) {
+        return null;
+      }
+      const FoundCount = WorldDiscoveries.filter((Discovery) => (
+        isDiscoveryCollected(WorldDefinition.id, Discovery.id)
+      )).length;
+      return `${WorldDefinition.id}:${FoundCount}/${WorldDiscoveries.length}`;
+    }).filter(Boolean);
+    GameCanvas.dataset.discoveries = Progress.join(',');
+  }
+
+  function updateDiscoveryMarkerVisuals(ElapsedTimeSeconds) {
+    const CollectedIds = getLiveDiscoveryState().collectedIds;
+    const Pulse = host.PrefersReducedMotion
+      ? 1
+      : 1 + (Math.sin(ElapsedTimeSeconds * 2.6) * 0.12);
+    for (let MarkerIndex = 0; MarkerIndex < DiscoveryMarkerInstances.length; MarkerIndex += 1) {
+      const Marker = DiscoveryMarkerInstances[MarkerIndex];
+      const Collected = CollectedIds.has(
+        `${Marker.worldDefinition.id}:${Marker.discovery.id}`,
+      );
+      applySphereInstance(
+        DiscoveryMarkerTransform,
+        getWorldLifePlacement(Marker.worldDefinition, Marker.discovery, Collected ? 0.02 : 0.05),
+        Collected ? 0.55 : 0.85 * Pulse,
+        Collected ? 0.45 : 0.95 * Pulse,
+        Collected ? 0.55 : 0.85 * Pulse,
+      );
+      DiscoveryMarkerMesh.setMatrixAt(MarkerIndex, DiscoveryMarkerTransform.matrix);
+      if (Collected) {
+        DiscoveryMarkerColor.copy(DiscoveryCollectedColor);
+      } else {
+        DiscoveryMarkerColor.set(Marker.worldDefinition.restoration.waveColor);
+      }
+      DiscoveryMarkerMesh.setColorAt(MarkerIndex, DiscoveryMarkerColor);
+    }
+    if (DiscoveryMarkerInstances.length > 0) {
+      DiscoveryMarkerMesh.instanceMatrix.needsUpdate = true;
+      if (DiscoveryMarkerMesh.instanceColor) {
+        DiscoveryMarkerMesh.instanceColor.needsUpdate = true;
+      }
+    }
+    DiscoveryMarkerMaterial.emissiveIntensity = host.PrefersReducedMotion ? 0.42 : 0.62 + (Math.sin(ElapsedTimeSeconds * 3.1) * 0.18);
+  }
+
+  function updateLocalCraftVisuals(ElapsedTimeSeconds) {
+    const PulseTime = host.PrefersReducedMotion ? 0 : ElapsedTimeSeconds;
+    for (let WorldIndex = 0; WorldIndex < LocalCraftWorlds.length; WorldIndex += 1) {
+      const WorldDefinition = LocalCraftWorlds[WorldIndex];
+      const OrbitRadius = WorldDefinition.radius + 0.42;
+      for (let CraftSlot = 0; CraftSlot < 2; CraftSlot += 1) {
+        const InstanceIndex = (WorldIndex * 2) + CraftSlot;
+        const Phase = PulseTime * (0.18 + (CraftSlot * 0.07)) + (WorldIndex * 0.9) + (CraftSlot * 2.4);
+        const Height = 0.22 + (Math.sin(Phase * 1.4) * 0.08);
+        LocalCraftTransform.position.set(
+          WorldDefinition.position.x + (Math.cos(Phase) * OrbitRadius),
+          WorldDefinition.position.y + (Math.sin(Phase) * OrbitRadius),
+          Height,
+        );
+        LocalCraftTransform.rotation.set(0, 0, Phase + (Math.PI * 0.5));
+        LocalCraftTransform.scale.set(0.85, 0.7, 0.7);
+        LocalCraftTransform.updateMatrix();
+        LocalCraftMesh.setMatrixAt(InstanceIndex, LocalCraftTransform.matrix);
+        LocalCraftColor.setHex(
+          WorldDefinition.visualKey === 'ember' || WorldDefinition.visualKey === 'kiln'
+            ? 0xff8a3a
+            : WorldDefinition.visualKey === 'grove' || WorldDefinition.visualKey === 'canopy'
+              ? 0x7dcc74
+              : WorldDefinition.visualKey === 'frost'
+                ? 0xe7f6ff
+                : WorldDefinition.visualKey === 'tide'
+                  ? 0x5fb8c9
+                  : WorldDefinition.visualKey === 'vault'
+                    ? 0xc9a0ff
+                    : 0xffd98a,
+        );
+        LocalCraftMesh.setColorAt(InstanceIndex, LocalCraftColor);
+      }
+    }
+    if (LocalCraftWorlds.length > 0) {
+      LocalCraftMesh.count = LocalCraftCapacity;
+      LocalCraftMesh.instanceMatrix.needsUpdate = true;
+      if (LocalCraftMesh.instanceColor) {
+        LocalCraftMesh.instanceColor.needsUpdate = true;
+      }
+    }
+    GameCanvas.dataset.localCraftCount = String(LocalCraftWorlds.length * 2);
+  }
 
   function publishRelayNetworkState() {
     const {
@@ -1583,6 +1821,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     GameCanvas.dataset.circuitBeaconLink = '';
     DockedWorldIdentifiers.clear();
     DockGatherSiteByWorldId.clear();
+    resetLiveDiscoveryState();
+    GameCanvas.dataset.discoveryScore = '0';
+    GameCanvas.dataset.discoveries = '';
   }
 
   function updateLivingWorldVisuals(ElapsedTimeSeconds) {

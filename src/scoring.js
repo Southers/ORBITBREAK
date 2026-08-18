@@ -41,6 +41,7 @@ export function createScoreState() {
     circuitScore: 0,
     victoryScore: 0,
     completionBonus: 0,
+    discoveryScore: 0,
     flightScore: 0,
     chainCount: 0,
     activePasses: new Map(),
@@ -153,6 +154,16 @@ export function bankFlightScore(ScoreState, { landingBonus = 0 } = {}) {
     bankedPoints: BankedPoints,
     totalScore: ScoreState.bankedScore,
   };
+}
+
+/**
+ * Banks one crust discovery. Live walking only; ranked replay validation never
+ * calls this, so exploring cannot desync a verified route.
+ */
+export function addDiscoveryBonus(ScoreState, DiscoveryValue) {
+  const Bonus = Math.max(0, Number.isFinite(DiscoveryValue) ? Math.round(DiscoveryValue) : 0);
+  ScoreState.discoveryScore += Bonus;
+  return Bonus;
 }
 
 /** Awards one already-canonical first circuit closure without making repairs farmable. */

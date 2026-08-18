@@ -17,6 +17,7 @@ import {
   getWorldCrustWalkQuaternion,
   shouldSpinWorldCrustUnderWalker,
 } from './presentation.js';
+import { sampleLiveDiscoveries } from './discoveries.js?v=20260818-ob122';
 
 export function createFrameVisuals(THREE, host) {
   const {
@@ -343,6 +344,33 @@ export function createFrameVisuals(THREE, host) {
         FrostRuntime.ambientMoteGroup.rotation.x += DeltaTimeSeconds * 0.018;
       }
     }
+
+    for (const VisualKey of ['grove', 'tide', 'vault', 'canopy']) {
+      for (const WorldRuntime of (
+        WorldRuntimesByVisualKey.get(VisualKey) ?? EmptyWorldRuntimeList
+      )) {
+        if (WorldRuntime.ambientMoteGroup) {
+          WorldRuntime.ambientMoteGroup.rotation.y += DeltaTimeSeconds * (
+            VisualKey === 'tide' ? 0.16 : 0.06
+          );
+        }
+        for (const SurfacePropObject of WorldRuntime.surfaceMarkerGroup.children) {
+          if (SurfacePropObject.userData.swayAmount) {
+            const SwayAngle = Math.sin(
+              (ElapsedTimeSeconds * 1.35) + SurfacePropObject.userData.swayPhase,
+            ) * SurfacePropObject.userData.swayAmount;
+            SurfaceSwayQuaternion.setFromAxisAngle(LocalSwayAxis, SwayAngle);
+            SurfacePropObject.quaternion.copy(SurfacePropObject.userData.baseQuaternion).multiply(
+              SurfaceSwayQuaternion,
+            );
+          }
+          if (SurfacePropObject.userData.kind === 'cottage' && SurfacePropObject.userData.windowMaterial) {
+            SurfacePropObject.userData.windowMaterial.emissiveIntensity = 0.7
+              + (Math.sin((ElapsedTimeSeconds * 2.1) + 0.6) * 0.08);
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -353,6 +381,20 @@ export function createFrameVisuals(THREE, host) {
    */
   function updateSeedVisuals(DeltaTimeSeconds, ElapsedTimeSeconds) {
     applyOccupiedWorldCrust();
+    const AttachedDiscoveryWorld = getAttachedVisualWorld();
+    if (AttachedDiscoveryWorld?.position) {
+      sampleLiveDiscoveries({
+        gamePhase: host.GamePhase,
+        worldId: AttachedDiscoveryWorld.id,
+        worldLabel: AttachedDiscoveryWorld.label,
+        runnerX: host.SeedPhysicsState.position.x,
+        runnerY: host.SeedPhysicsState.position.y,
+        runnerZ: host.SeedPhysicsState.position.z ?? 0,
+        worldX: AttachedDiscoveryWorld.position.x,
+        worldY: AttachedDiscoveryWorld.position.y,
+        worldZ: AttachedDiscoveryWorld.position.z ?? 0,
+      });
+    }
     const IsLanded = host.GamePhase === 'attached' || host.GamePhase === 'restoring';
     const AttachedBody = getAttachedVisualWorld();
     if (IsLanded && AttachedBody?.position && AttachedBody.radius > 0) {
