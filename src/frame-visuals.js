@@ -36,6 +36,7 @@ export function createFrameVisuals(THREE, host) {
     updateTrailParticleInstance,
     RunnerVisualGroup,
     ShipVisualGroup,
+    ShipLieGroup,
     ShipPresentationScale,
     RunnerArmMeshes,
     RunnerLegMeshes,
@@ -68,9 +69,9 @@ export function createFrameVisuals(THREE, host) {
   let NextTrailParticleIndex = 0;
   const SurfaceStandFrom = new THREE.Vector3(0, 1, 0);
   const SurfaceStandTo = new THREE.Vector3();
-  const ParkedShipStarboard = new THREE.Vector3();
-  const ParkedShipNose = new THREE.Vector3();
-  const ParkedShipDorsal = new THREE.Vector3();
+  const ParkedShipParentX = new THREE.Vector3();
+  const ParkedShipParentY = new THREE.Vector3();
+  const ParkedShipParentZ = new THREE.Vector3();
   const ParkedShipBasis = new THREE.Matrix4();
 
   let LastStardustSignature = '';
@@ -360,6 +361,9 @@ export function createFrameVisuals(THREE, host) {
     }
 
     if (host.GamePhase === 'flying') {
+      if (ShipLieGroup) {
+        ShipLieGroup.rotation.set(0, 0, 0);
+      }
       ShipVisualGroup.position.set(0, 0, 0);
       ShipVisualGroup.quaternion.identity();
       const FlightAngle = Math.atan2(
@@ -395,41 +399,68 @@ export function createFrameVisuals(THREE, host) {
           RunnerVisualGroup.quaternion.setFromUnitVectors(SurfaceStandFrom, SurfaceStandTo);
         }
       }
+      const PoleLock = HasSurfaceNormal && Math.abs(SurfaceStandTo.z) > 0.92;
+      const ViewUpX = 0;
+      const ViewUpY = PoleLock ? 1 : 0;
+      const ViewUpZ = PoleLock ? 0 : 1;
+      const ViewRightX = HasSurfaceNormal
+        ? ((-SurfaceStandTo.y) * ViewUpZ) - ((-SurfaceStandTo.z) * ViewUpY)
+        : 1;
+      const ViewRightY = HasSurfaceNormal
+        ? ((-SurfaceStandTo.z) * ViewUpX) - ((-SurfaceStandTo.x) * ViewUpZ)
+        : 0;
+      const ViewRightZ = HasSurfaceNormal
+        ? ((-SurfaceStandTo.x) * ViewUpY) - ((-SurfaceStandTo.y) * ViewUpX)
+        : 0;
       const ParkedShip = getParkedShipPresentation(
         HasSurfaceNormal
           ? {
             surfaceNormalX: SurfaceStandTo.x,
             surfaceNormalY: SurfaceStandTo.y,
             surfaceNormalZ: SurfaceStandTo.z,
-            cameraUpX: Camera.up.x,
-            cameraUpY: Camera.up.y,
-            cameraUpZ: Camera.up.z,
+            viewUpX: ViewUpX,
+            viewUpY: ViewUpY,
+            viewUpZ: ViewUpZ,
+            viewRightX: ViewRightX,
+            viewRightY: ViewRightY,
+            viewRightZ: ViewRightZ,
           }
           : {
-            cameraUpX: Camera.up.x,
-            cameraUpY: Camera.up.y,
-            cameraUpZ: Camera.up.z,
+            viewUpX: 0,
+            viewUpY: 0,
+            viewUpZ: 1,
+            viewRightX: 1,
+            viewRightY: 0,
+            viewRightZ: 0,
           },
       );
-      ParkedShipStarboard.set(
-        ParkedShip.starboard.x,
-        ParkedShip.starboard.y,
-        ParkedShip.starboard.z,
+      if (ShipLieGroup) {
+        ShipLieGroup.rotation.set(ParkedShip.lieDownX, 0, 0);
+      }
+      ShipVisualGroup.rotation.set(0, 0, 0);
+      ParkedShipParentX.set(
+        ParkedShip.parentX.x,
+        ParkedShip.parentX.y,
+        ParkedShip.parentX.z,
       );
-      ParkedShipNose.set(ParkedShip.nose.x, ParkedShip.nose.y, ParkedShip.nose.z);
-      ParkedShipDorsal.set(ParkedShip.dorsal.x, ParkedShip.dorsal.y, ParkedShip.dorsal.z);
-      ParkedShipBasis.makeBasis(ParkedShipStarboard, ParkedShipNose, ParkedShipDorsal);
+      ParkedShipParentY.set(
+        ParkedShip.parentY.x,
+        ParkedShip.parentY.y,
+        ParkedShip.parentY.z,
+      );
+      ParkedShipParentZ.set(
+        ParkedShip.parentZ.x,
+        ParkedShip.parentZ.y,
+        ParkedShip.parentZ.z,
+      );
+      ParkedShipBasis.makeBasis(ParkedShipParentX, ParkedShipParentY, ParkedShipParentZ);
       ShipVisualGroup.quaternion.setFromRotationMatrix(ParkedShipBasis);
       ShipVisualGroup.position.set(
         ParkedShip.offset.x,
         ParkedShip.offset.y,
         ParkedShip.offset.z,
       );
-      ShipVisualGroup.scale.set(
-        ParkedShip.scaleX * ShipPresentationScale,
-        ParkedShip.scaleY * ShipPresentationScale,
-        ParkedShip.scaleZ * ShipPresentationScale,
-      );
+      ShipVisualGroup.scale.setScalar(ParkedShip.scale);
     }
     const CanvasClassList = GameCanvas.classList;
     const HasCanvasClass = (Name) => (
@@ -448,11 +479,10 @@ export function createFrameVisuals(THREE, host) {
       isWalking: host.PointerGestureMode === SurfaceGestureModes.walk
         || host.IsPointerWalking === true,
     });
-    const ShowShipCue = VerbHighlight.shipHaloCharge === true
-      || RunnerAnimationState === 'recovering';
+    const ShowShipCue = VerbHighlight.shipHaloCharge === true;
     SeedHaloMesh.visible = ShowShipCue;
     if (ShowShipCue) {
-      SeedHaloMesh.position.copy(ShipVisualGroup.position);
+      SeedHaloMesh.position.set(0, 0, 0);
       SeedHaloMesh.lookAt(Camera.position);
       SeedHaloMesh.scale.setScalar(
         1 + (Math.sin(ElapsedTimeSeconds * (VerbHighlight.shipHaloCharge ? 7.4 : 4.2)) * 0.04),
@@ -460,7 +490,11 @@ export function createFrameVisuals(THREE, host) {
       if (RunnerAnimationState === 'recovering') {
         SeedHaloMaterial.color.setHex(0xff766d);
       } else {
+        if (RunnerAnimationState === 'recovering') {
+        SeedHaloMaterial.color.setHex(0xff766d);
+      } else {
         SeedHaloMaterial.color.setHex(0xc4f7a6);
+      }
       }
       SeedHaloMaterial.opacity = 0.38
         + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.05);
@@ -548,7 +582,7 @@ export function createFrameVisuals(THREE, host) {
       && !host.HasLaunchedOnce
       && !host.IsOpeningBriefingActive;
     PullGuideLine.visible = false;
-    PullGuideRibbon.mesh.visible = IsOpeningCoachVisible;
+    PullGuideRibbon.mesh.visible = false;
     updateTargetBeacons(ElapsedTimeSeconds);
     if (IsOpeningCoachVisible) {
       PullGuideMaterial.dashOffset -= DeltaTimeSeconds * 0.9;

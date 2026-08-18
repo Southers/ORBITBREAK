@@ -32,7 +32,7 @@ import { addEnvironment } from './environment.js?v=20260818-ob109';
 import { createWorldVisuals } from './world-geometry.js?v=20260818-ob115';
 import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob109';
 import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob107';
-import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob115';
+import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob117';
 import { createStoryDirector } from './story-director.js?v=20260818-ob104';
 import { createHud } from './hud.js?v=20260818-ob110';
 import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
@@ -43,7 +43,7 @@ import { createHostileSurface } from './hostile-surface.js?v=20260817-ob99';
 import { createScanner } from './scanner.js?v=20260817-ob99';
 import { createRoutePresentation } from './route-presentation.js?v=20260818-ob112';
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
-import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob115';
+import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob117';
 import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob112';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
@@ -152,7 +152,7 @@ import {
   getWorldLifeStage,
   getWorldLandingAimLabel,
   getLandedCameraScale,
-} from './presentation.js?v=20260818-ob115';
+} from './presentation.js?v=20260818-ob117';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -294,7 +294,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260818-ob115';
+GameCanvas.dataset.build = '20260818-ob117';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -1333,6 +1333,7 @@ const {
   RunnerAntennaStem,
   RunnerAntennaLight,
   ShipVisualGroup,
+  ShipLieGroup,
   updateFuelLightVisuals,
   ShipHullMaterial,
   ShipAccentMaterial,
@@ -2161,6 +2162,7 @@ const FrameVisuals = createFrameVisuals(THREE, {
   updateTrailParticleInstance,
   RunnerVisualGroup,
   ShipVisualGroup,
+  ShipLieGroup,
   ShipPresentationScale,
   RunnerArmMeshes,
   RunnerLegMeshes,
@@ -3384,7 +3386,7 @@ function resetGame() {
   PullGuideGeometry.setFromPoints([PullGuideStart, PullGuideEnd]);
   PullGuideLine.computeLineDistances();
   PullGuideLine.visible = false;
-  writePlanarRibbon(PullGuideRibbon, [PullGuideStart, PullGuideEnd], 0.1);
+  PullGuideRibbon.mesh.visible = false;
 
   updateWorldCounter();
   updateFuelLights();

@@ -213,10 +213,12 @@ export function createPlayerVisuals(THREE, Scene, host) {
 
   /**
    * The Orbitbreaker unfolds around the same physics body; only its silhouette
-   * changes. Local +Y is the nose and +Z is dorsal. Landed close-ups lie that
-   * hull on the crust in frame-visuals so it reads as a courier, not a pole.
+   * changes. Local +Y is the nose and +Z is dorsal in flight. ShipLieGroup
+   * rotates -90° on X when parked so that Y-up capsule lies on the crust.
    */
   const ShipVisualGroup = new THREE.Group();
+  const ShipLieGroup = new THREE.Group();
+  ShipVisualGroup.add(ShipLieGroup);
   const ShipHullMaterial = new THREE.MeshStandardMaterial({
     color: 0xddecef,
     emissive: 0x2a7f99,
@@ -232,26 +234,26 @@ export function createPlayerVisuals(THREE, Scene, host) {
     metalness: 0.34,
   });
   const ShipHullMesh = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.26, 0.28, 6, 12),
+    new THREE.CapsuleGeometry(0.2, 0.14, 6, 12),
     ShipHullMaterial,
   );
-  ShipHullMesh.scale.set(1.05, 1, 0.78);
+  ShipHullMesh.scale.set(1.45, 1, 0.62);
   ShipHullMesh.castShadow = true;
-  ShipVisualGroup.add(ShipHullMesh);
+  ShipLieGroup.add(ShipHullMesh);
   const ShipNoseMesh = new THREE.Mesh(
-    new THREE.ConeGeometry(0.22, 0.28, 12),
+    new THREE.ConeGeometry(0.16, 0.22, 12),
     ShipAccentMaterial,
   );
-  ShipNoseMesh.position.y = 0.38;
-  ShipVisualGroup.add(ShipNoseMesh);
+  ShipNoseMesh.position.y = 0.24;
+  ShipLieGroup.add(ShipNoseMesh);
   for (const Side of [-1, 1]) {
     const WingMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.52, 0.18, 0.07),
+      new THREE.BoxGeometry(0.98, 0.18, 0.08),
       ShipHullMaterial,
     );
-    WingMesh.position.set(Side * 0.36, -0.08, 0);
-    WingMesh.rotation.z = Side * -0.18;
-    ShipVisualGroup.add(WingMesh);
+    WingMesh.position.set(Side * 0.46, -0.02, 0);
+    WingMesh.rotation.z = Side * -0.1;
+    ShipLieGroup.add(WingMesh);
   }
   const ShipWindowMesh = new THREE.Mesh(
     new THREE.SphereGeometry(0.13, 12, 8),
@@ -259,20 +261,20 @@ export function createPlayerVisuals(THREE, Scene, host) {
   );
   ShipWindowMesh.position.set(0, 0.16, 0.2);
   ShipWindowMesh.scale.set(1, 1.18, 0.38);
-  ShipVisualGroup.add(ShipWindowMesh);
+  ShipLieGroup.add(ShipWindowMesh);
   const ShipTailMesh = new THREE.Mesh(
     new THREE.BoxGeometry(0.08, 0.28, 0.16),
     ShipAccentMaterial,
   );
   ShipTailMesh.position.set(0, -0.28, -0.16);
-  ShipVisualGroup.add(ShipTailMesh);
+  ShipLieGroup.add(ShipTailMesh);
   const ShipThrusterMesh = new THREE.Mesh(
     new THREE.ConeGeometry(0.12, 0.44, 10),
     RunnerThrusterMaterial,
   );
   ShipThrusterMesh.position.y = -0.56;
   ShipThrusterMesh.rotation.z = Math.PI;
-  ShipVisualGroup.add(ShipThrusterMesh);
+  ShipLieGroup.add(ShipThrusterMesh);
   ShipVisualGroup.visible = false;
   SeedGroup.add(ShipVisualGroup);
 
@@ -311,7 +313,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
     RunnerFuelPips.push(RunnerPip);
   }
   ShipFuelPipGroup.position.set(0, -0.28, 0.22);
-  ShipVisualGroup.add(ShipFuelPipGroup);
+  ShipLieGroup.add(ShipFuelPipGroup);
   RunnerFuelPipGroup.position.set(0, 0.02, 0.12);
   RunnerBackpackMesh.add(RunnerFuelPipGroup);
 
@@ -365,7 +367,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   SeedHaloMesh.visible = false;
   SeedHaloMesh.frustumCulled = false;
   SeedHaloMesh.renderOrder = 8;
-  SeedGroup.add(SeedHaloMesh);
+  ShipVisualGroup.add(SeedHaloMesh);
 
   const WorldWalkHaloMaterial = new THREE.MeshBasicMaterial({
     color: 0xffe7a0,
@@ -585,6 +587,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
     RunnerAntennaStem,
     RunnerAntennaLight,
     ShipVisualGroup,
+    ShipLieGroup,
     ShipFuelPipGroup,
     RunnerFuelPipGroup,
     updateFuelLightVisuals,
