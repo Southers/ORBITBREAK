@@ -326,12 +326,18 @@ export function createFrameVisuals(THREE, host) {
     GameCanvas.dataset.parkedShip = String(ShowParkedShip);
     if (RunnerForm === 'launch-craft') {
       const UnfoldProgress = THREE.MathUtils.clamp(host.FlightElapsedSeconds / 0.28, 0, 1);
+      if (ShipLieGroup) {
+        ShipLieGroup.rotation.set(0, 0, 0);
+      }
       ShipVisualGroup.scale.set(
         THREE.MathUtils.lerp(0.62, 1.08, UnfoldProgress) * ShipPresentationScale,
         THREE.MathUtils.lerp(0.82, 1, UnfoldProgress) * ShipPresentationScale,
         ShipPresentationScale,
       );
     } else if (!ShowParkedShip) {
+      if (ShipLieGroup) {
+        ShipLieGroup.rotation.set(0, 0, 0);
+      }
       ShipVisualGroup.scale.set(
         1.08 * ShipPresentationScale,
         ShipPresentationScale,
@@ -435,7 +441,7 @@ export function createFrameVisuals(THREE, host) {
           },
       );
       if (ShipLieGroup) {
-        ShipLieGroup.rotation.set(ParkedShip.lieDownX, 0, 0);
+        ShipLieGroup.rotation.set(0, 0, 0);
       }
       ShipVisualGroup.rotation.set(0, 0, 0);
       ParkedShipParentX.set(
