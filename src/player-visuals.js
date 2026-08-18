@@ -213,8 +213,8 @@ export function createPlayerVisuals(THREE, Scene, host) {
 
   /**
    * The Orbitbreaker unfolds around the same physics body; only its silhouette
-   * changes. Local +Y is the nose and +Z is dorsal in flight. ShipLieGroup
-   * rotates -90° on X when parked so that Y-up capsule lies on the crust.
+   * changes. Local +Y is the nose and +Z is dorsal in flight. Parked basis
+   * maps those same local axes in world space; ShipLieGroup stays identity.
    */
   const ShipVisualGroup = new THREE.Group();
   const ShipLieGroup = new THREE.Group();

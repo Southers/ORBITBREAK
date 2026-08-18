@@ -977,8 +977,8 @@ test('parked Orbitbreaker lies on the crust instead of standing as a pole', () =
     viewUpZ: 1,
   });
   assert.equal(NearFace.dorsal.z, 1);
-  assert.equal(NearFace.lieDownX, -Math.PI / 2);
-  assert.equal(NearFace.scale, 0.2);
+  assert.equal(NearFace.lieDownX, 0);
+  assert.equal(NearFace.scale, 0.12);
   assert.ok(NearFace.scale < 0.26, 'parked courier must be smaller than the Runner');
   assert.ok(Math.abs(NearFace.nose.z) < 0.08);
   assert.ok(
@@ -986,6 +986,16 @@ test('parked Orbitbreaker lies on the crust instead of standing as a pole', () =
     'Z-up close-up must not use world +Y as the hull axis',
   );
   assert.ok(Math.abs(NearFace.nose.x) > 0.9, 'Z-up close-up nose must follow view X');
+  assert.equal(NearFace.parentY.x, NearFace.nose.x);
+  assert.equal(NearFace.parentY.y, NearFace.nose.y);
+  assert.equal(NearFace.parentY.z, NearFace.nose.z);
+  assert.equal(NearFace.parentZ.x, NearFace.dorsal.x);
+  assert.equal(NearFace.parentZ.y, NearFace.dorsal.y);
+  assert.equal(NearFace.parentZ.z, NearFace.dorsal.z);
+  assert.ok(
+    Math.abs(NearFace.parentY.z) < 0.08,
+    'local +Y must not follow the surface normal',
+  );
   const NoseDotDorsal = (
     (NearFace.nose.x * NearFace.dorsal.x)
     + (NearFace.nose.y * NearFace.dorsal.y)
@@ -997,7 +1007,7 @@ test('parked Orbitbreaker lies on the crust instead of standing as a pole', () =
     + (NearFace.offset.y * NearFace.dorsal.y)
     + (NearFace.offset.z * NearFace.dorsal.z)
   );
-  assert.ok(OffsetDotDorsal < -0.2, 'parked hull must sit down on the crust');
+  assert.ok(OffsetDotDorsal < -0.1, 'parked hull must sit down on the crust');
 
   const DegenerateZUp = getParkedShipPresentation({
     surfaceNormalX: 0,
@@ -1030,8 +1040,8 @@ test('parked Orbitbreaker lies on the crust instead of standing as a pole', () =
     'landed equator hull must not stand along view-up',
   );
   assert.ok(Math.abs(LandedEquator.nose.y) > 0.9);
-  assert.equal(LandedEquator.parentY.x, LandedEquator.dorsal.x);
-  assert.equal(LandedEquator.parentZ.x, -LandedEquator.nose.x);
+  assert.equal(LandedEquator.parentY.y, LandedEquator.nose.y);
+  assert.equal(LandedEquator.parentZ.x, LandedEquator.dorsal.x);
   assert.throws(() => getParkedShipPresentation({
     surfaceNormalX: 0,
     surfaceNormalY: 0,

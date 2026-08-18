@@ -53,14 +53,19 @@ export function getRunnerForm(GamePhase, FlightElapsedSeconds = 0) {
 }
 
 /**
- * Parked Orbitbreaker sits on the crust as a tiny courier, not a Y-up slab.
- * The hull is lain down in local X first (lieDownX) so local Y is dorsal.
- * Parent Y then follows the surface normal and parent Z is the reverse of
- * the screen-horizontal tangent (view-up × normal). Long axis is tangent.
+ * Parked Orbitbreaker sits on the crust as a tiny courier.
+ * The mesh is Y-up: local +Y is the capsule long axis / nose, local +Z is
+ * dorsal. SeedGroup does not stand the ship, so this basis must map those
+ * local axes in world space:
+ *   parentY = tangent nose (screen-horizontal, never the surface normal)
+ *   parentZ = dorsal = surface normal
+ *   parentX = starboard = nose × dorsal
+ * ShipLieGroup stays at identity while landed. Do not map local +Y to the
+ * normal; that stands the hull out of the crust.
  *
  * When view-up is parallel to the normal (landed Z-up close-up) the cross
  * product vanishes. Fall back to camera-right / view X projected on the
- * tangent plane — never world +Y, which stands the hull as a screen pole.
+ * tangent plane — never world +Y.
  */
 export function getParkedShipPresentation({
   surfaceNormalX = 0,
@@ -138,21 +143,21 @@ export function getParkedShipPresentation({
   NoseY = (DorsalZ * StarboardX) - (DorsalX * StarboardZ);
   NoseZ = (DorsalX * StarboardY) - (DorsalY * StarboardX);
 
-  const SideOffset = 0.22;
-  const RadialDrop = 0.28;
+  const SideOffset = 0.18;
+  const RadialDrop = 0.16;
   return {
     dorsal: { x: DorsalX, y: DorsalY, z: DorsalZ },
     nose: { x: NoseX, y: NoseY, z: NoseZ },
     parentX: { x: StarboardX, y: StarboardY, z: StarboardZ },
-    parentY: { x: DorsalX, y: DorsalY, z: DorsalZ },
-    parentZ: { x: -NoseX, y: -NoseY, z: -NoseZ },
-    lieDownX: -Math.PI / 2,
+    parentY: { x: NoseX, y: NoseY, z: NoseZ },
+    parentZ: { x: DorsalX, y: DorsalY, z: DorsalZ },
+    lieDownX: 0,
     offset: {
       x: (NoseX * SideOffset) - (DorsalX * RadialDrop),
       y: (NoseY * SideOffset) - (DorsalY * RadialDrop),
       z: (NoseZ * SideOffset) - (DorsalZ * RadialDrop),
     },
-    scale: 0.2,
+    scale: 0.12,
   };
 }
 
