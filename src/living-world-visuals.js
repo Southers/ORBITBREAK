@@ -977,6 +977,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         ProsperityWindowMesh.setColorAt(NextVisibleWindowCount, ProsperityWindowColor);
         NextVisibleWindowCount += 1;
       }
+    }
     for (const FamilyMesh of Object.values(ProsperityBuildingMeshes)) {
       if (FamilyMesh.count > 0) {
         FamilyMesh.instanceMatrix.needsUpdate = true;
