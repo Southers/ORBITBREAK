@@ -804,6 +804,21 @@ export function shouldShowPlayfieldWorldLabels({
     && toastVisible !== true;
 }
 
+/** Close-up cameras keep space dark; scout can keep more nebula without washing planets. */
+export function getCloseViewPresentation(cameraDistanceScale = 1) {
+  if (!Number.isFinite(cameraDistanceScale) || cameraDistanceScale <= 0) {
+    throw new Error('Close view presentation requires a positive camera scale.');
+  }
+  const CloseFade = Math.max(0, Math.min(1, (1.05 - cameraDistanceScale) / 0.7));
+  return {
+    closeFade: CloseFade,
+    nebulaIntensity: 0.58 - (CloseFade * 0.22),
+    dustOpacityScale: 0.4 + ((1 - CloseFade) * 0.6),
+    bloomStrength: 0.32 + ((1 - CloseFade) * 0.2),
+    bloomThreshold: 0.76 + (CloseFade * 0.14),
+  };
+}
+
 /** Hides a projected chip that has collapsed onto the current world's disc. */
 export function isProjectedLabelInsideWorldDisc({
   labelNdcX,
@@ -1835,10 +1850,16 @@ export function isCampaignStoryBoardReadyToPresent({
   replayActive = false,
   gamePhase = 'attached',
   relayRevealActive = false,
+  liberationCelebrateActive = false,
   hostileEncounterActive = false,
   boardId = '',
 } = {}) {
-  if (briefingActive === true || replayActive === true || relayRevealActive === true) {
+  if (
+    briefingActive === true
+    || replayActive === true
+    || relayRevealActive === true
+    || liberationCelebrateActive === true
+  ) {
     return false;
   }
   if (
@@ -1852,6 +1873,7 @@ export function isCampaignStoryBoardReadyToPresent({
 
 export const DefaultRelayRevealHoldDurationSeconds = 0.85;
 export const LinkedRelayRevealHoldDurationSeconds = 1.7;
+export const LiberationCelebrateHoldSeconds = 1.05;
 
 /** After the first live link, hold the committed chain longer. Reduced motion skips it. */
 export function getRelayRevealHoldDurationSeconds({

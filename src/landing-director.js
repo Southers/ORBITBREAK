@@ -10,6 +10,7 @@ import { connectRelayWorlds } from './network.js';
 import { createVector } from './physics.js';
 import {
   getRelayRevealLookTarget,
+  LiberationCelebrateHoldSeconds,
   getStillnessPresentation,
   getTriggeredCampaignStoryBoardIds,
 } from './presentation.js';
@@ -93,6 +94,13 @@ export function createLandingDirector(THREE, host) {
     WorldRuntime.restorationStartedAtSeconds = host.GameElapsedTimeSeconds;
     WorldRuntime.cageClearPulseStartedAtSeconds = null;
     WorldRuntime.restorationWaveMesh.visible = true;
+    host.LiberationCelebrateUntilSeconds = Math.max(
+      host.LiberationCelebrateUntilSeconds ?? 0,
+      host.GameElapsedTimeSeconds
+        + (host.PrefersReducedMotion === true
+          ? LiberationCelebrateHoldSeconds
+          : WorldDefinition.restoration.durationSeconds + LiberationCelebrateHoldSeconds),
+    );
     WorldRuntime.contourRingGroup.visible = true;
     RouteLabelProjection.set(ImpactPosition.x, ImpactPosition.y, ImpactPosition.z).project(Camera);
     LiberationFlashElement.style.setProperty(

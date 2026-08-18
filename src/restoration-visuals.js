@@ -12,6 +12,7 @@ import {
   getOccupiedAtmosphereOpacity,
   getRangeVeilStrength,
   getRelayRevealHoldDurationSeconds,
+  LiberationCelebrateHoldSeconds,
   getStillnessPresentation,
 } from './presentation.js';
 import {
@@ -273,6 +274,10 @@ export function createRestorationVisuals(THREE, host) {
         if (!WorldRuntime.restorationCompleted) {
           WorldRuntime.restorationCompleted = true;
           WorldseedSound.restorationComplete(WorldDefinition.id);
+          host.LiberationCelebrateUntilSeconds = Math.max(
+            host.LiberationCelebrateUntilSeconds ?? 0,
+            ElapsedTimeSeconds + LiberationCelebrateHoldSeconds,
+          );
           if (host.CurrentWorldIdentifier === WorldDefinition.id) {
             const ShouldPreserveWardenReveal = (
               host.WardenPursuitState.lastEvent === WardenPursuitEvents.revealed

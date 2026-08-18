@@ -25,23 +25,23 @@ import {
   getAdaptivePresentationTier,
   getViewportPixelRatioCap,
 } from './performance.js?v=20260814-ob13';
-import { addEnvironment } from './environment.js?v=20260818-ob102';
+import { addEnvironment } from './environment.js?v=20260818-ob103';
 import { createWorldVisuals } from './world-geometry.js?v=20260818-ob102';
-import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob100';
+import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob103';
 import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob100';
 import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob102';
-import { createStoryDirector } from './story-director.js?v=20260818-ob101';
+import { createStoryDirector } from './story-director.js?v=20260818-ob103';
 import { createHud } from './hud.js?v=20260818-ob100';
 import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
-import { createLandingDirector } from './landing-director.js?v=20260818-ob102';
+import { createLandingDirector } from './landing-director.js?v=20260818-ob103';
 import { createCameraController } from './camera-controller.js?v=20260818-ob101';
-import { createInputController } from './input-controller.js?v=20260818-ob102';
+import { createInputController } from './input-controller.js?v=20260818-ob103';
 import { createHostileSurface } from './hostile-surface.js?v=20260817-ob99';
 import { createScanner } from './scanner.js?v=20260817-ob99';
-import { createRoutePresentation } from './route-presentation.js?v=20260818-ob102';
+import { createRoutePresentation } from './route-presentation.js?v=20260818-ob103';
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
 import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob102';
-import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob102';
+import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob103';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
 import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=0.179.1';
@@ -291,7 +291,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260818-ob102';
+GameCanvas.dataset.build = '20260818-ob103';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -381,7 +381,7 @@ Camera.lookAt(0, 0, 0);
  */
 const Composer = new EffectComposer(Renderer);
 const ScenePass = new RenderPass(Scene, Camera);
-const BloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.64, 0.52, 0.7);
+const BloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.36, 0.52, 0.88);
 const CompositeOutputPass = new OutputPass();
 Composer.addPass(ScenePass);
 Composer.addPass(BloomPass);
@@ -462,6 +462,7 @@ let KeyboardAimState = createKeyboardAimState();
 let IsScoutMode = false;
 let RelayRevealLookTarget = null;
 let RelayRevealHoldUntilSeconds = 0;
+let LiberationCelebrateUntilSeconds = 0;
 let LastPlanningPathPoints = [];
 let LastPredictedBodyIdentifier = '';
 let CommittedPredictionPoints = null;
@@ -1721,6 +1722,7 @@ const StoryDirector = createStoryDirector({
   set GamePhase(Value) { GamePhase = Value; },
   get RelayRevealLookTarget() { return RelayRevealLookTarget; },
   get RelayRevealHoldUntilSeconds() { return RelayRevealHoldUntilSeconds; },
+  get LiberationCelebrateUntilSeconds() { return LiberationCelebrateUntilSeconds; },
   get GameElapsedTimeSeconds() { return GameElapsedTimeSeconds; },
   get ActiveHostileEncounterState() { return ActiveHostileEncounterState; },
   get HasCompletedOpeningBriefing() { return HasCompletedOpeningBriefing; },
@@ -1922,6 +1924,8 @@ const LandingDirector = createLandingDirector(THREE, {
   get GamePhase() { return GamePhase; },
   set GamePhase(Value) { GamePhase = Value; },
   get GameElapsedTimeSeconds() { return GameElapsedTimeSeconds; },
+  get LiberationCelebrateUntilSeconds() { return LiberationCelebrateUntilSeconds; },
+  set LiberationCelebrateUntilSeconds(Value) { LiberationCelebrateUntilSeconds = Value; },
   get LiberationFlashLifeSeconds() { return LiberationFlashLifeSeconds; },
   set LiberationFlashLifeSeconds(Value) { LiberationFlashLifeSeconds = Value; },
   get CameraImpactLifeSeconds() { return CameraImpactLifeSeconds; },
@@ -2867,6 +2871,8 @@ const RestorationVisuals = createRestorationVisuals(THREE, {
   get RelayRevealLookTarget() { return RelayRevealLookTarget; },
   set RelayRevealLookTarget(Value) { RelayRevealLookTarget = Value; },
   set RelayRevealHoldUntilSeconds(Value) { RelayRevealHoldUntilSeconds = Value; },
+  get LiberationCelebrateUntilSeconds() { return LiberationCelebrateUntilSeconds; },
+  set LiberationCelebrateUntilSeconds(Value) { LiberationCelebrateUntilSeconds = Value; },
   get PendingRecaptureCutWorldIdentifier() { return PendingRecaptureCutWorldIdentifier; },
   set PendingRecaptureCutWorldIdentifier(Value) { PendingRecaptureCutWorldIdentifier = Value; },
   set RecaptureCutGiftAvailable(Value) { RecaptureCutGiftAvailable = Value; },
@@ -3284,6 +3290,7 @@ function resetGame() {
   GameElapsedTimeSeconds = 0;
   RelayRevealLookTarget = null;
   RelayRevealHoldUntilSeconds = 0;
+  LiberationCelebrateUntilSeconds = 0;
   StoryLookFocus = null;
   CourierStartTimesByLinkId.clear();
   GameCanvas.dataset.relayReveal = '';
@@ -3384,7 +3391,9 @@ function renderFrame() {
     const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
     updateCamera(DeltaTimeSeconds);
     updateControlModeInterface();
-    updateEnvironmentBackdrop(DeltaTimeSeconds, CameraDistanceScale);
+    const CloseView = updateEnvironmentBackdrop(DeltaTimeSeconds, CameraDistanceScale);
+    BloomPass.strength = CloseView.bloomStrength;
+    BloomPass.threshold = CloseView.bloomThreshold;
     renderScene();
     return;
   }
@@ -3424,6 +3433,13 @@ function renderFrame() {
     GameCanvas.dataset.relayReveal = '';
     flushQueuedStoryBoardsIfReady();
   }
+  if (
+    LiberationCelebrateUntilSeconds > 0
+    && ElapsedTimeSeconds >= LiberationCelebrateUntilSeconds
+  ) {
+    LiberationCelebrateUntilSeconds = 0;
+    flushQueuedStoryBoardsIfReady();
+  }
   updateCamera(DeltaTimeSeconds);
   updateControlModeInterface();
   refreshInstructionPanelBounds();
@@ -3434,7 +3450,9 @@ function renderFrame() {
   updateFlightAudio();
   updateWorldLifeAudio();
   updatePersonalBestGhostVisibility();
-  updateEnvironmentBackdrop(DeltaTimeSeconds, CameraDistanceScale);
+  const CloseView = updateEnvironmentBackdrop(DeltaTimeSeconds, CameraDistanceScale);
+  BloomPass.strength = CloseView.bloomStrength;
+  BloomPass.threshold = CloseView.bloomThreshold;
 
   renderScene();
   updatePerformanceBudget(DeltaTimeSeconds);
@@ -3767,6 +3785,11 @@ window.addEventListener('keydown', (KeyboardEventData) => {
       return;
     }
   }
+  if (PressedKey === 'r' && !KeyboardEventData.repeat) {
+    KeyboardEventData.preventDefault();
+    resetGame();
+    return;
+  }
   if (handleKeyboardAimKey(KeyboardEventData)) {
     return;
   }
@@ -3779,10 +3802,7 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     return;
   }
 
-  if (PressedKey === 'r') {
-    KeyboardEventData.preventDefault();
-    resetGame();
-  } else if (PressedKey === 'm') {
+  if (PressedKey === 'm') {
     KeyboardEventData.preventDefault();
     toggleAudioPreference();
   } else if (PressedKey === 'p') {

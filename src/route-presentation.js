@@ -199,6 +199,7 @@ export function createRoutePresentation(THREE, host) {
     LabelElement.style.left = '';
     LabelElement.style.top = '';
     LabelElement.style.display = 'none';
+    LabelElement.style.visibility = 'hidden';
     LabelElement.style.background = 'none';
     LabelElement.style.border = '0';
     LabelElement.style.padding = '0';
@@ -216,6 +217,7 @@ export function createRoutePresentation(THREE, host) {
     LabelElement.hidden = false;
     LabelElement.dataset.visible = 'true';
     LabelElement.style.display = '';
+    LabelElement.style.visibility = '';
     LabelElement.style.background = 'none';
     LabelElement.style.border = '0';
     LabelElement.style.padding = '0';

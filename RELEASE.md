@@ -34,7 +34,7 @@ Every successful route leaves a relay behind. Close two unique circuits before t
 ## Controls copy
 
 - Pointer/touch: trace around a world to walk; pull backwards from the Runner and release to launch; grab the ship in flight to Burn once.
-- Keyboard: Q/E walks; left/right or A/D steers; up/down or W/S sets power; Shift enables fine control; Enter/Space launches; Space Burns in flight; Escape cancels an aim or opens pause.
+- Keyboard: Q/E walks around, T/F walks over the poles; left/right or A/D steers; up/down or W/S sets power; Shift enables fine control; Enter/Space launches; Space Burns in flight; Escape cancels an aim or opens pause.
 - C toggles Scout view; wheel, plus/minus or the pause-sheet zoom buttons adjust it. G toggles the verified local-best ghost when available.
 - R resets the attempt. M toggles audio. P cycles System, Reduced and Full motion. The pause sheet provides the same actions on touch screens.
 
@@ -84,8 +84,8 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260818-ob102` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (pause sheet, ship fuel lights, Warden vessel telegraph).
-- Look leftovers after the PR 47 playtest: Ember's empty black name slab is gone (text-only chips, hidden when empty or landed); bright cyan pickups/stars are soft discs instead of rotated squares; gameplay nebula/dust rise when zoomed in; liberation holds a wrapping wave plus atmosphere bloom on full cage clear; the aim tether is a tapered glow ribbon. Keyboard aim focuses the canvas so A/D W/S Enter work without a prior click.
+- Build `20260818-ob103` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (pause sheet, ship fuel lights, Warden vessel telegraph).
+- Look leftovers after the PR 47 playtest: Ember's empty black name plaque is a hidden occupation pylon instead of a box slab; empty/untextured name chips stay fully collapsed; R always resets while T/F walk the poles; close-up nebula and bloom are capped so landed/in-flight cameras still read as space on software and hardware WebGL; liberation story boards wait until the wrap/bloom money shot finishes.
 - FUN reliability after the live Pages playtest: stalled crawls recover after a 3s no-progress orbit trap; Enter launches after a walk without an arrow key first; Reset/R skips the opening Warden intro and reframes Haven; Scout pullback and Break thruster flare stay diegetic; world chips keep their full pills and the Warden broadcast sits at the top edge instead of through the globe.
 - Tiny Worlds look pass after the live Pages playtest: per-world atmosphere/rim and biome surface identity, round star sprites, ring gravity wells, on-world cage-break/atmosphere bloom during liberation, flight follow with velocity lookahead, and world pills that clear after landing instead of leaving an empty black label.
 - Jam salvage checkpoints: one continuously-blended camera rig with zero hard snaps, selective bloom over a per-sector nebula skydome, dense instanced world life with ember dead worlds, mandatory-slingshot gravity (`breaker-reach-9`), relay-port precision landings, a two-card opening with first-run captions then silence, diegetic ship fuel lights, Warden vessel/forecast/target-world pulse telegraph, a pause sheet for Scout and settings, and an animated first-launch `PULL THE SHIP` hint.

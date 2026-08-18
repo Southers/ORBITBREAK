@@ -540,7 +540,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
   const PressedKey = KeyboardEventData.key.toLowerCase();
   if (
     !host.IsKeyboardAiming
-    && (PressedKey === 'q' || PressedKey === 'e' || PressedKey === 'r' || PressedKey === 'f')
+    && (PressedKey === 'q' || PressedKey === 'e' || PressedKey === 't' || PressedKey === 'f')
     && host.GamePhase === 'attached'
     && host.ReplayPlaybackState === null
   ) {
@@ -558,7 +558,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
     }
     const DidMove = moveRunnerOnSurface({
       east: PressedKey === 'q' ? 1 : (PressedKey === 'e' ? -1 : 0),
-      north: PressedKey === 'r' ? 1 : (PressedKey === 'f' ? -1 : 0),
+      north: PressedKey === 't' ? 1 : (PressedKey === 'f' ? -1 : 0),
       fine: KeyboardEventData.shiftKey,
     });
     if (DidMove) {

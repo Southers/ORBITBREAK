@@ -172,41 +172,41 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   /** Cottage: walls, pitched roof, chimney and a door that reads from orbit. */
   function createCottageBuildingGeometry() {
     return mergePrimitiveParts([
-      { geometry: new THREE.BoxGeometry(0.72, 0.42, 0.58), position: [0, 0.21, 0] },
-      { geometry: new THREE.ConeGeometry(0.58, 0.38, 4), position: [0, 0.58, 0], rotation: [0, Math.PI * 0.25, 0] },
-      { geometry: new THREE.BoxGeometry(0.12, 0.22, 0.12), position: [0.18, 0.7, -0.08] },
-      { geometry: new THREE.BoxGeometry(0.16, 0.26, 0.05), position: [0, 0.16, 0.3] },
+      { geometry: new THREE.BoxGeometry(0.72, 0.42, 0.58), position: [0, 0.21, 0], color: 0xe4c49a },
+      { geometry: new THREE.ConeGeometry(0.58, 0.38, 4), position: [0, 0.58, 0], rotation: [0, Math.PI * 0.25, 0], color: 0xb24a3a },
+      { geometry: new THREE.BoxGeometry(0.12, 0.22, 0.12), position: [0.18, 0.7, -0.08], color: 0x7a5344 },
+      { geometry: new THREE.BoxGeometry(0.16, 0.26, 0.05), position: [0, 0.16, 0.3], color: 0x4a2e24 },
     ]);
   }
 
   /** Furnace: kiln body, stack and a mouth so workshops read as industry. */
   function createFurnaceBuildingGeometry() {
     return mergePrimitiveParts([
-      { geometry: new THREE.CylinderGeometry(0.22, 0.26, 0.38, 8), position: [0, 0.19, 0] },
-      { geometry: new THREE.CylinderGeometry(0.1, 0.12, 0.52, 6), position: [0, 0.62, 0] },
-      { geometry: new THREE.BoxGeometry(0.16, 0.14, 0.08), position: [0, 0.18, 0.24] },
-      { geometry: new THREE.BoxGeometry(0.36, 0.08, 0.36), position: [0, 0.04, 0] },
+      { geometry: new THREE.CylinderGeometry(0.22, 0.26, 0.38, 8), position: [0, 0.19, 0], color: 0xb76545 },
+      { geometry: new THREE.CylinderGeometry(0.1, 0.12, 0.52, 6), position: [0, 0.62, 0], color: 0x5a3a32 },
+      { geometry: new THREE.BoxGeometry(0.16, 0.14, 0.08), position: [0, 0.18, 0.24], color: 0xff7b32 },
+      { geometry: new THREE.BoxGeometry(0.36, 0.08, 0.36), position: [0, 0.04, 0], color: 0x4a2c24 },
     ]);
   }
 
   /** Canopy hall: trunk plus two leaf masses, a tree-building not a lathe blob. */
   function createCanopyBuildingGeometry() {
     return mergePrimitiveParts([
-      { geometry: new THREE.CylinderGeometry(0.08, 0.11, 0.36, 6), position: [0, 0.18, 0] },
-      { geometry: new THREE.SphereGeometry(0.28, 8, 6), position: [0, 0.42, 0] },
-      { geometry: new THREE.ConeGeometry(0.32, 0.34, 6), position: [0, 0.68, 0] },
+      { geometry: new THREE.CylinderGeometry(0.08, 0.11, 0.36, 6), position: [0, 0.18, 0], color: 0x6a4a36 },
+      { geometry: new THREE.SphereGeometry(0.28, 8, 6), position: [0, 0.42, 0], color: 0x4e7a44 },
+      { geometry: new THREE.ConeGeometry(0.32, 0.34, 6), position: [0, 0.68, 0], color: 0x3d6a38 },
     ]);
   }
 
   /** Jetty: deck, pilings and a bollard so docks read as harbour, not a plank. */
   function createJettyBuildingGeometry() {
     return mergePrimitiveParts([
-      { geometry: new THREE.BoxGeometry(1.42, 0.1, 0.48), position: [0, 0.16, 0] },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, 0.16] },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, 0.16] },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, -0.16] },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, -0.16] },
-      { geometry: new THREE.CylinderGeometry(0.04, 0.05, 0.16, 6), position: [0.48, 0.26, 0] },
+      { geometry: new THREE.BoxGeometry(1.42, 0.1, 0.48), position: [0, 0.16, 0], color: 0x8a6a48 },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, 0.16], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, 0.16], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, -0.16], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, -0.16], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.04, 0.05, 0.16, 6), position: [0.48, 0.26, 0], color: 0xc9a078 },
     ]);
   }
 
@@ -542,7 +542,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     OccupationScarCapacity,
   );
   const OccupationClampMesh = new THREE.InstancedMesh(
-    new THREE.BoxGeometry(0.68, 0.1, 0.16),
+    new THREE.CylinderGeometry(0.07, 0.09, 0.28, 6),
     OccupationScarMaterial,
     OccupationScarCapacity,
   );
@@ -621,6 +621,12 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         RestorationProgress,
       );
       if (ScarStrength > 0.01) NextVisibleOccupationScarCount += 1;
+      if (ScarStrength <= 0.01) {
+        hideInstance(OccupationScarTransform, OccupationMineMesh, ScarIndex);
+        hideInstance(OccupationScarTransform, OccupationClampMesh, ScarIndex);
+        hideInstance(OccupationScarTransform, OccupationFumeMesh, ScarIndex);
+        continue;
+      }
       const Height = Scar.profile.height * (1 + ((Scar.patternIndex % 2) * 0.12));
       applySphereInstance(
         OccupationScarTransform,

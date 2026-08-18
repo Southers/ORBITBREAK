@@ -225,6 +225,7 @@ export function createStoryDirector(host) {
         host.RelayRevealLookTarget
         && host.RelayRevealHoldUntilSeconds > host.GameElapsedTimeSeconds
       ),
+      liberationCelebrateActive: host.LiberationCelebrateUntilSeconds > host.GameElapsedTimeSeconds,
       hostileEncounterActive: host.ActiveHostileEncounterState !== null,
       boardId: NextBoardId,
     })) {
