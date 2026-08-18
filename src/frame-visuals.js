@@ -659,7 +659,6 @@ export function createFrameVisuals(THREE, host) {
     SeedHaloMesh.visible = ShowShipCue;
     if (ShowShipCue) {
       SeedHaloMesh.position.set(0, 0, 0);
-      SeedHaloMesh.lookAt(Camera.position);
       SeedHaloMesh.scale.setScalar(
         1 + (Math.sin(ElapsedTimeSeconds * (VerbHighlight.shipHaloCharge ? 7.4 : 4.2)) * 0.04),
       );

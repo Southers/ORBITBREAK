@@ -13,6 +13,7 @@ import {
   getNearestRemainingClamp,
   getPointToSegmentDistance,
   getRemainingClamps,
+  resolveClampTap,
   resolveHostileCut,
 } from '../src/encounter.js';
 
@@ -185,4 +186,19 @@ test('leftover Destroy is a single cage, not a Bastion cage', () => {
   });
   assert.equal(State.clamps.length, 1);
   assert.equal(Leftover.clampOffsetsRadians.length, 1);
+});
+
+test('tapping a cage shears only that clamp and a miss spends nothing', () => {
+  const State = createHostileEncounterState({
+    worldIdentifier: 'ember',
+    runnerSurfaceAngle: 0,
+    clampOffsetsRadians: [0.55],
+  });
+  const Miss = resolveClampTap(State, 4);
+  assert.equal(Miss.state, State);
+  assert.deepEqual(Miss.hitIds, []);
+  const Hit = resolveClampTap(State, 0);
+  assert.equal(Hit.state.completed, true);
+  assert.deepEqual(Hit.hitIds, [0]);
+  assert.equal(getRemainingClamps(Hit.state).length, 0);
 });

@@ -11,7 +11,7 @@ export function createWardenVisuals(THREE, Scene, host) {
   } = host;
   const TemporaryThreeVector = new THREE.Vector3();
 
-  /** Spread cage cells on a hostile rim. Drag through them to tear the cage. */
+  /** Spread cage cells on a hostile rim. Tap a cage to tear it. */
   const HostilePylonGroup = new THREE.Group();
   const HostilePylonTemplateMaterial = new THREE.MeshStandardMaterial({
     color: 0x3a161c,
@@ -61,12 +61,24 @@ export function createWardenVisuals(THREE, Scene, host) {
     return Cage;
   }
 
+  const ClampHitGeometry = new THREE.SphereGeometry(1.2, 10, 8);
+  const ClampHitMaterial = new THREE.MeshBasicMaterial({
+    visible: false,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+
   const MaximumHostileClampCount = 5;
   for (let ClampIndex = 0; ClampIndex < MaximumHostileClampCount; ClampIndex += 1) {
     const ClampMesh = createHostileClampCage(HostilePylonTemplateMaterial.clone());
     ClampMesh.visible = false;
     ClampMesh.userData.clampId = ClampIndex;
     ClampMesh.userData.clampMaterial = ClampMesh.children[0]?.material;
+    const HitTarget = new THREE.Mesh(ClampHitGeometry, ClampHitMaterial);
+    HitTarget.userData.clampId = ClampIndex;
+    HitTarget.userData.isCageHitTarget = true;
+    ClampMesh.add(HitTarget);
     HostilePylonGroup.add(ClampMesh);
   }
   HostilePylonGroup.visible = false;
@@ -255,20 +267,30 @@ export function createWardenVisuals(THREE, Scene, host) {
       : new Set(HighlightedIds);
     if (!WorldDefinition || !EncounterState) {
       HostilePylonGroup.visible = false;
+      if (HostilePylonGroup.parent !== Scene) {
+        Scene.add(HostilePylonGroup);
+      }
       return;
     }
-    if (HostilePylonGroup.parent !== Scene) {
+    const WorldGroup = host.WorldRuntimeByIdentifier?.get(WorldDefinition.id)?.group;
+    if (WorldGroup) {
+      if (HostilePylonGroup.parent !== WorldGroup) {
+        WorldGroup.add(HostilePylonGroup);
+      }
+      HostilePylonGroup.position.set(0, 0, 0);
+      HostilePylonGroup.rotation.set(0, 0, 0);
+      HostilePylonGroup.quaternion.identity();
+    } else if (HostilePylonGroup.parent !== Scene) {
       Scene.add(HostilePylonGroup);
+      HostilePylonGroup.position.set(0, 0, 0);
+      HostilePylonGroup.quaternion.identity();
     }
-    HostilePylonGroup.position.set(0, 0, 0);
-    HostilePylonGroup.rotation.set(0, 0, 0);
-    HostilePylonGroup.quaternion.identity();
     let AnyVisible = false;
     for (const ClampMesh of HostilePylonGroup.children) {
       ClampMesh.visible = false;
     }
-    const CageScale = Math.max(1.35, WorldDefinition.radius * 0.52);
-    const ClampDistance = WorldDefinition.radius + (0.38 * CageScale);
+    const CageScale = Math.max(0.42, WorldDefinition.radius * 0.16);
+    const ClampDistance = WorldDefinition.radius + (0.22 * CageScale);
     for (const Clamp of EncounterState.clamps) {
       const ClampMesh = HostilePylonGroup.children[Clamp.id];
       if (!ClampMesh) continue;
@@ -276,11 +298,19 @@ export function createWardenVisuals(THREE, Scene, host) {
         ClampMesh.visible = false;
         continue;
       }
-      ClampMesh.position.set(
-        WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
-        WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
-        WorldDefinition.position.z ?? 0,
-      );
+      if (WorldGroup) {
+        ClampMesh.position.set(
+          Math.cos(Clamp.surfaceAngle) * ClampDistance,
+          Math.sin(Clamp.surfaceAngle) * ClampDistance,
+          0,
+        );
+      } else {
+        ClampMesh.position.set(
+          WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
+          WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
+          WorldDefinition.position.z ?? 0,
+        );
+      }
       ClampMesh.rotation.set(0, 0, Clamp.surfaceAngle - (Math.PI * 0.5));
       ClampMesh.visible = true;
       AnyVisible = true;

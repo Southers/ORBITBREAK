@@ -9,19 +9,25 @@ export const SurfaceGestureModes = Object.freeze({
 /** Where a landed pointer-down starts. The verb stays locked for the whole gesture. */
 export const LandedPointerTargets = Object.freeze({
   ship: 'ship',
+  cage: 'cage',
   world: 'world',
   space: 'space',
 });
 
 /**
- * Ship, then crust, then empty space. Movement after the press cannot steal the verb.
+ * Ship, then cage, then crust, then empty space. A ship pull never becomes
+ * Destroy, and a cage tap never becomes a launch.
  */
 export function classifyLandedPointerStart({
   isOverShip = false,
+  isOverCage = false,
   isOverWorld = false,
 } = {}) {
   if (isOverShip === true) {
     return LandedPointerTargets.ship;
+  }
+  if (isOverCage === true) {
+    return LandedPointerTargets.cage;
   }
   if (isOverWorld === true) {
     return LandedPointerTargets.world;
@@ -40,7 +46,7 @@ export const SeedScreenGrabRadiusPixels = 96;
  * the disc (the Runner sits at screen-centre after crust-spin). Keep a small hull
  * grab so the rest of the planet can walk.
  */
-export const SeedOnGlobeGrabRadiusPixels = 40;
+export const SeedOnGlobeGrabRadiusPixels = 72;
 
 /**
  * Ship grab is generous in empty space and tight on the globe, so a crust drag
@@ -66,7 +72,7 @@ export function getLandedShipGrabRadiusPixels({
   const WorldRadiusPixels = Number.isFinite(worldScreenRadiusPixels)
     ? Math.max(0, worldScreenRadiusPixels)
     : Number.POSITIVE_INFINITY;
-  return Math.min(onGlobePixels, Math.max(18, WorldRadiusPixels * 0.32));
+  return Math.min(onGlobePixels, Math.max(22, WorldRadiusPixels * 0.38));
 }
 
 function normalizeAngle(AngleRadians) {

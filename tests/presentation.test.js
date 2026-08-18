@@ -99,6 +99,8 @@ import {
   isCampaignStoryBoardReadyToPresent,
   isCriticalStoryBoard,
   getCloseViewPresentation,
+  shouldHideLandedOrbitalOverlays,
+  shouldShowProsperityWindows,
   getCageClearPulseDurationSeconds,
   StoryBoardsAllowedDuringEncounter,
   shouldAssistCommandLock,
@@ -1674,4 +1676,23 @@ test('control mode chip explains the Break during flight and hides in menus', ()
   assert.equal(getControlModePresentation({ gamePhase: 'attached', replayActive: true }).visible, false);
   assert.equal(getControlModePresentation({ gamePhase: 'attached', briefingActive: true }).visible, false);
   assert.throws(() => getControlModePresentation({ gamePhase: '' }));
+});
+
+test('landed close-up hides orbital gizmos and only linked houses keep windows', () => {
+  assert.equal(shouldHideLandedOrbitalOverlays({
+    gamePhase: 'attached',
+    isAiming: false,
+  }), true);
+  assert.equal(shouldHideLandedOrbitalOverlays({
+    gamePhase: 'attached',
+    isAiming: true,
+  }), false);
+  assert.equal(shouldHideLandedOrbitalOverlays({
+    gamePhase: 'flying',
+  }), false);
+  assert.equal(shouldShowProsperityWindows('linked'), true);
+  assert.equal(shouldShowProsperityWindows('busy'), true);
+  assert.equal(shouldShowProsperityWindows('circuit'), true);
+  assert.equal(shouldShowProsperityWindows('isolated'), false);
+  assert.equal(shouldShowProsperityWindows('occupied'), false);
 });
