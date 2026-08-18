@@ -84,7 +84,8 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260818-ob113` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (pause sheet, ship fuel lights, Warden vessel telegraph).
+- Build `20260818-ob114` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (pause sheet, ship fuel lights, Warden vessel telegraph).
+- Highlight kill (`ob114`): landed Haven no longer wears occupation-grid meridians or contour rings. The parked Orbitbreaker lies belly-down on the crust beside the Runner so it reads as a tiny courier, not a mint-green pole. Walk-vs-aim, the tiny grab torus and the cyan SeedPointLight kill stay as in ob112/ob113.
 - Highlight kill (`ob113`): the leftover milky blue disc on landed Haven was the cyan `SeedPointLight` on the runner lighting a circular patch of crust. That light is off. No replacement glow. Tiny ship torus still only while grabbing/aiming.
 - Highlight kill (`ob112`): landed Haven draws no milky disc, crust donut or hover outline. The walk overlay, walk cursor and idle ship sphere stay off; a tiny torus appears only while grabbing/aiming the ship. Additive atmosphere shells fade to zero at landed apparent size. Destination rings wait for aim or Scout. First-run captions and 96px grab are unchanged.
 - Highlight kill (`ob111`): landed Haven no longer wears a filled additive walk sphere, and hovering a planet no longer stamps the same milky disc. The ship grab cue is a tight camera-facing torus on the craft; the 96px screen grab and first-run walk/aim captions are unchanged. The local ship light is shorter so it cannot light a flashlight patch on the crust.

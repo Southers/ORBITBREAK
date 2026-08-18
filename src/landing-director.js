@@ -103,7 +103,7 @@ export function createLandingDirector(THREE, host) {
         + WorldDefinition.restoration.durationSeconds
         + LiberationCelebrateHoldSeconds,
     );
-    WorldRuntime.contourRingGroup.visible = true;
+    WorldRuntime.contourRingGroup.visible = false;
     RouteLabelProjection.set(ImpactPosition.x, ImpactPosition.y, ImpactPosition.z).project(Camera);
     LiberationFlashElement.style.setProperty(
       '--liberation-x',
@@ -747,7 +747,7 @@ export function createLandingDirector(THREE, host) {
         ? WorldDefinition.restoration.atmosphereOpacity
         : 0.025;
       WorldRuntime.atmosphereMesh.scale.setScalar(IsInitiallyRestored ? 1 : 0.96);
-      WorldRuntime.contourRingGroup.visible = IsInitiallyRestored;
+      WorldRuntime.contourRingGroup.visible = false;
       WorldRuntime.contourRingGroup.rotation.set(0, 0, 0);
       WorldRuntime.contourRingGroup.scale.setScalar(1);
       const StillnessPresentation = getStillnessPresentation(IsInitiallyRestored, 1);

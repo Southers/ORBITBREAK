@@ -58,6 +58,7 @@ export function auditReleaseReadiness() {
   const RoutePresentationSource = readRepositoryFile('src/route-presentation.js');
   const RecordsUiSource = readRepositoryFile('src/records-ui.js');
   const FrameVisualsSource = readRepositoryFile('src/frame-visuals.js');
+  const WorldGeometrySource = readRepositoryFile('src/world-geometry.js');
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
@@ -175,6 +176,22 @@ export function auditReleaseReadiness() {
       && !FrameVisualsSource.includes('WalkHaloRadius')
       && !PlayerSource.includes('SphereGeometry(SeedRadius * 2.35'),
     'Landed Haven must not wear a filled planet walk disc, crust donut, hover outline or cyan runner light; the ship grab cue stays a tiny torus on the craft.',
+  );
+  requireCondition(
+    !WorldGeometrySource.includes('createWorldContourRings')
+      && !WorldGeometrySource.includes('controlGrid')
+      && !WorldGeometrySource.includes('controlLatitude')
+      && WorldGeometrySource.includes("customProgramCacheKey = () => 'orbitbreak-restoration-surface-v7'")
+      && WorldGeometrySource.includes('ContourRingGroup.visible = false')
+      && !LandingDirectorSource.includes('contourRingGroup.visible = true')
+      && LandingDirectorSource.includes('contourRingGroup.visible = false')
+      && PresentationSource.includes('export function getParkedShipPresentation(')
+      && FrameVisualsSource.includes('getParkedShipPresentation(')
+      && FrameVisualsSource.includes("dataset.parkedShip = String(ShowParkedShip)")
+      && FrameVisualsSource.includes('ShipVisualGroup.visible = true')
+      && FrameVisualsSource.includes('ShipThrusterMesh.visible = !ShowParkedShip')
+      && PlayerSource.includes('SeedPointLight.visible = false'),
+    'Landed Haven must not wear meridian/contour rings or an occupation grid, and the parked Orbitbreaker must lie on the crust as a courier.',
   );
   requireCondition(
     PresentationSource.includes('export function getWorldLifeStage(')

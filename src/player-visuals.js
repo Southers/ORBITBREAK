@@ -211,7 +211,11 @@ export function createPlayerVisuals(THREE, Scene, host) {
   RunnerVisualGroup.add(RunnerAntennaLight);
   SeedGroup.add(RunnerVisualGroup);
 
-  /** The Orbitbreaker unfolds around the same physics body; only its silhouette changes. */
+  /**
+   * The Orbitbreaker unfolds around the same physics body; only its silhouette
+   * changes. Local +Y is the nose and +Z is dorsal. Landed close-ups lie that
+   * hull on the crust in frame-visuals so it reads as a courier, not a pole.
+   */
   const ShipVisualGroup = new THREE.Group();
   const ShipHullMaterial = new THREE.MeshStandardMaterial({
     color: 0xddecef,

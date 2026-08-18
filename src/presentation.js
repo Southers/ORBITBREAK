@@ -53,6 +53,70 @@ export function getRunnerForm(GamePhase, FlightElapsedSeconds = 0) {
 }
 
 /**
+ * Parked Orbitbreaker lies belly-down on the crust beside the Runner.
+ * Ship local +Y is the nose and +Z is dorsal. Mapping dorsal to the surface
+ * normal and the nose along a screen-horizontal tangent makes a courier, not
+ * a mint-green pole.
+ */
+export function getParkedShipPresentation({
+  surfaceNormalX = 0,
+  surfaceNormalY = 0,
+  surfaceNormalZ = 1,
+} = {}) {
+  const NormalLength = Math.hypot(surfaceNormalX, surfaceNormalY, surfaceNormalZ);
+  if (!(NormalLength > 1e-8)) {
+    throw new Error('Parked ship requires a finite surface normal.');
+  }
+  const DorsalX = surfaceNormalX / NormalLength;
+  const DorsalY = surfaceNormalY / NormalLength;
+  const DorsalZ = surfaceNormalZ / NormalLength;
+
+  // dorsal × world-up yields a screen-horizontal hull on the landed near face.
+  let NoseX = -DorsalZ;
+  let NoseY = 0;
+  let NoseZ = DorsalX;
+  let NoseLength = Math.hypot(NoseX, NoseY, NoseZ);
+  if (NoseLength < 1e-4) {
+    NoseX = DorsalY >= 0 ? 1 : -1;
+    NoseY = 0;
+    NoseZ = 0;
+    NoseLength = 1;
+  } else {
+    NoseX /= NoseLength;
+    NoseY /= NoseLength;
+    NoseZ /= NoseLength;
+  }
+
+  let StarboardX = (NoseY * DorsalZ) - (NoseZ * DorsalY);
+  let StarboardY = (NoseZ * DorsalX) - (NoseX * DorsalZ);
+  let StarboardZ = (NoseX * DorsalY) - (NoseY * DorsalX);
+  const StarboardLength = Math.hypot(StarboardX, StarboardY, StarboardZ) || 1;
+  StarboardX /= StarboardLength;
+  StarboardY /= StarboardLength;
+  StarboardZ /= StarboardLength;
+
+  NoseX = (DorsalY * StarboardZ) - (DorsalZ * StarboardY);
+  NoseY = (DorsalZ * StarboardX) - (DorsalX * StarboardZ);
+  NoseZ = (DorsalX * StarboardY) - (DorsalY * StarboardX);
+
+  const SideOffset = 0.2;
+  const RadialDrop = 0.3;
+  return {
+    dorsal: { x: DorsalX, y: DorsalY, z: DorsalZ },
+    nose: { x: NoseX, y: NoseY, z: NoseZ },
+    starboard: { x: StarboardX, y: StarboardY, z: StarboardZ },
+    offset: {
+      x: (StarboardX * SideOffset) - (DorsalX * RadialDrop),
+      y: (StarboardY * SideOffset) - (DorsalY * RadialDrop),
+      z: (StarboardZ * SideOffset) - (DorsalZ * RadialDrop),
+    },
+    scaleX: 1.28,
+    scaleY: 0.72,
+    scaleZ: 1.22,
+  };
+}
+
+/**
  * First-run pointer coaching stays until the verb is done, then goes silent.
  * The walk line holds until the player actually grabs the ship, so finishing a
  * walk drag never reads as entering aim mode; the aim line then holds until the

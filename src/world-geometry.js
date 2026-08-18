@@ -348,50 +348,6 @@ export function createWorldVisuals(THREE, Scene, {
     return ScatterGroup;
   }
 
-  /**
-   * Creates simple contour rings around a world. These are placeholder composition tools,
-   * but they already make each sphere read as a self-contained miniature object rather than
-   * as an arbitrary collision primitive.
-   *
-   * @param {number} WorldRadius - Radius of the world being decorated.
-   * @param {THREE.Color} RingColor - Accent colour for restored-state rings.
-   * @returns {THREE.Group} Group containing the ring meshes.
-   */
-  function createWorldContourRings(WorldRadius, RingColor) {
-    const RingGroup = new THREE.Group();
-    const RingGeometries = [];
-
-    for (let RingIndex = 0; RingIndex < 2; RingIndex += 1) {
-      const RingSourceGeometry = new THREE.TorusGeometry(
-        WorldRadius * (1.01 + (RingIndex * 0.008)),
-        0.015,
-        4,
-        96,
-      );
-      const RingGeometry = RingSourceGeometry.index
-        ? RingSourceGeometry.toNonIndexed()
-        : RingSourceGeometry.clone();
-      RingSourceGeometry.dispose();
-      RingGeometry.rotateX(Math.PI * (0.42 + (RingIndex * 0.19)));
-      RingGeometry.rotateY(Math.PI * (0.12 + (RingIndex * 0.17)));
-      addRestorationGeometryAttributes(RingGeometry, null, 1);
-      RingGeometries.push(RingGeometry);
-    }
-
-    const RingMaterial = new THREE.MeshBasicMaterial({
-      color: RingColor,
-      transparent: true,
-      opacity: 0.095,
-      depthWrite: false,
-    });
-    RingGroup.add(new THREE.Mesh(
-      mergeRestorationGeometries(RingGeometries),
-      RingMaterial,
-    ));
-
-    return RingGroup;
-  }
-
   /** Wraps an occupied world in a rigid, readable Stillness control field. */
   function createStillnessCage(WorldDefinition) {
     const CageGroup = new THREE.Group();
@@ -544,17 +500,8 @@ export function createWorldVisuals(THREE, Scene, {
             );
           }
           variedAliveColor = mix(variedAliveColor, accentColor, vLandmarkMask * 0.82);
-          float controlLatitude = abs(sin(vRestorationDirection.y * 9.0));
-          float controlLongitude = abs(sin(
-            atan(vRestorationDirection.z, vRestorationDirection.x) * 6.0
-          ));
-          float controlGrid = smoothstep(0.94, 0.995, max(
-            controlLatitude,
-            controlLongitude
-          ));
           vec3 occupiedBase = mix(deadColor * 0.48, aliveColor * 0.62, 0.78);
           vec3 occupiedColor = occupiedBase * (0.92 + (surfacePattern * 0.05));
-          occupiedColor += vec3(0.1, 0.16, 0.2) * controlGrid;
           float scarSeed = sin(vRestorationDirection.x * 41.0)
             * sin(vRestorationDirection.y * 37.0)
             * sin(vRestorationDirection.z * 43.0);
@@ -571,7 +518,7 @@ export function createWorldVisuals(THREE, Scene, {
           diffuseColor.rgb += waveColor * restorationBand * activeRestorationWave * 1.35;`,
         );
     };
-    SurfaceMaterial.customProgramCacheKey = () => 'orbitbreak-restoration-surface-v6';
+    SurfaceMaterial.customProgramCacheKey = () => 'orbitbreak-restoration-surface-v7';
 
     return { material: SurfaceMaterial, uniforms: RestorationUniforms };
   }
@@ -2317,17 +2264,9 @@ export function createWorldVisuals(THREE, Scene, {
     const AtmosphereMesh = AtmosphereRimShell.mesh;
     WorldGroup.add(AtmosphereMesh);
 
-    let ContourRingGroup;
-    if (UsesMergedSurfaceLandmarks) {
-      ContourRingGroup = new THREE.Group();
-    } else {
-      ContourRingGroup = createWorldContourRings(
-        WorldDefinition.radius,
-        WorldDefinition.atmosphereColor,
-      );
-      ContourRingGroup.visible = WorldDefinition.restored;
-      WorldGroup.add(ContourRingGroup);
-    }
+    const ContourRingGroup = new THREE.Group();
+    ContourRingGroup.visible = false;
+    WorldGroup.add(ContourRingGroup);
 
     const LifeScatterGroup = createLifeScatter(WorldDefinition, SurfaceRestoration.uniforms);
     WorldGroup.add(LifeScatterGroup);
