@@ -53,33 +53,33 @@ export function getRunnerForm(GamePhase, FlightElapsedSeconds = 0) {
 }
 
 /**
- * Parked Orbitbreaker lies belly-down on the crust beside the Runner.
- * Ship local +Y is the nose and +Z is dorsal. Dorsal follows the surface
- * normal; the nose follows camera-up × normal so the landed Z-up close-up
- * sees a hull across the crust, not a mint pole standing on camera-up.
+ * Parked Orbitbreaker sits on the crust as a tiny courier, not a Y-up slab.
+ * The hull is lain down in local X first (lieDownX) so local Y is dorsal.
+ * Parent Y then follows the surface normal and parent Z is the reverse of
+ * the screen-horizontal tangent (view-up × normal). Long axis is tangent.
  */
 export function getParkedShipPresentation({
   surfaceNormalX = 0,
   surfaceNormalY = 0,
   surfaceNormalZ = 1,
-  cameraUpX = 0,
-  cameraUpY = 0,
-  cameraUpZ = 1,
+  viewUpX = 0,
+  viewUpY = 0,
+  viewUpZ = 1,
 } = {}) {
   const NormalLength = Math.hypot(surfaceNormalX, surfaceNormalY, surfaceNormalZ);
   if (!(NormalLength > 1e-8)) {
     throw new Error('Parked ship requires a finite surface normal.');
   }
-  const UpLength = Math.hypot(cameraUpX, cameraUpY, cameraUpZ);
+  const UpLength = Math.hypot(viewUpX, viewUpY, viewUpZ);
   if (!(UpLength > 1e-8)) {
-    throw new Error('Parked ship requires a finite camera up.');
+    throw new Error('Parked ship requires a finite view up.');
   }
   const DorsalX = surfaceNormalX / NormalLength;
   const DorsalY = surfaceNormalY / NormalLength;
   const DorsalZ = surfaceNormalZ / NormalLength;
-  const UpX = cameraUpX / UpLength;
-  const UpY = cameraUpY / UpLength;
-  const UpZ = cameraUpZ / UpLength;
+  const UpX = viewUpX / UpLength;
+  const UpY = viewUpY / UpLength;
+  const UpZ = viewUpZ / UpLength;
 
   let NoseX = (UpY * DorsalZ) - (UpZ * DorsalY);
   let NoseY = (UpZ * DorsalX) - (UpX * DorsalZ);
@@ -114,20 +114,21 @@ export function getParkedShipPresentation({
   NoseY = (DorsalZ * StarboardX) - (DorsalX * StarboardZ);
   NoseZ = (DorsalX * StarboardY) - (DorsalY * StarboardX);
 
-  const SideOffset = 0.24;
-  const RadialDrop = 0.32;
+  const SideOffset = 0.22;
+  const RadialDrop = 0.28;
   return {
     dorsal: { x: DorsalX, y: DorsalY, z: DorsalZ },
     nose: { x: NoseX, y: NoseY, z: NoseZ },
-    starboard: { x: StarboardX, y: StarboardY, z: StarboardZ },
+    parentX: { x: StarboardX, y: StarboardY, z: StarboardZ },
+    parentY: { x: DorsalX, y: DorsalY, z: DorsalZ },
+    parentZ: { x: -NoseX, y: -NoseY, z: -NoseZ },
+    lieDownX: -Math.PI / 2,
     offset: {
       x: (NoseX * SideOffset) - (DorsalX * RadialDrop),
       y: (NoseY * SideOffset) - (DorsalY * RadialDrop),
       z: (NoseZ * SideOffset) - (DorsalZ * RadialDrop),
     },
-    scaleX: 1.55,
-    scaleY: 0.58,
-    scaleZ: 1.12,
+    scale: 0.2,
   };
 }
 
