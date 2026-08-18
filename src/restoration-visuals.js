@@ -65,7 +65,8 @@ export function createRestorationVisuals(THREE, host) {
       host.Camera.position.z - WorldRuntime.group.position.z,
     );
     const Apparent = WorldDefinition.radius / Math.max(Distance, 0.001);
-    const ViewFade = THREE.MathUtils.clamp((Apparent - 0.012) / 0.05, 0.1, 1);
+    // Fades fully to zero so tiny distant worlds never keep a flat additive disc.
+    const ViewFade = THREE.MathUtils.clamp((Apparent - 0.012) / 0.05, 0, 1);
     WorldRuntime.atmosphereMaterial.opacity *= ViewFade;
   }
 

@@ -66,8 +66,9 @@ export function createWorldVisuals(THREE, Scene, {
     });
     ShellMaterial.opacity = ShellUniforms.uOpacity.value;
     ShellMaterial.color = ShellUniforms.uColor.value;
+    // 48x32 keeps the fresnel rim smooth; 24x16 read as a faceted disc from far out.
     const ShellMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(WorldDefinition.radius * 1.08, 24, 16),
+      new THREE.SphereGeometry(WorldDefinition.radius * 1.08, 48, 32),
       ShellMaterial,
     );
     ShellMesh.onBeforeRender = () => {
