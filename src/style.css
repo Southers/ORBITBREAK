@@ -161,7 +161,11 @@ button[aria-disabled='true'] {
 .aim-panel,
 .score-burst,
 .play-caption strong,
-.play-caption span {
+.play-caption span,
+.how-to-play,
+.how-to-play__board,
+.how-to-play__list,
+.how-to-play li {
   user-select: none;
   -webkit-user-select: none;
 }
@@ -246,7 +250,8 @@ button[aria-disabled='true'] {
 }
 
 .pause-sheet__actions button,
-#PauseResumeButton {
+#PauseResumeButton,
+#HowToPlayButton {
   min-width: 44px;
   min-height: 44px;
   padding: 7px 12px;
@@ -258,6 +263,11 @@ button[aria-disabled='true'] {
   font-weight: 700;
   letter-spacing: 0.06em;
   cursor: pointer;
+}
+
+#HowToPlayButton {
+  width: 100%;
+  letter-spacing: 0.08em;
 }
 
 #PauseResumeButton {
@@ -499,6 +509,84 @@ button[aria-disabled='true'] {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.16);
   color: rgba(226, 235, 241, 0.82);
+}
+
+.how-to-play {
+  position: absolute;
+  z-index: 13;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  background: rgba(2, 7, 12, 0.84);
+  backdrop-filter: blur(16px);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.how-to-play[hidden] {
+  display: none;
+}
+
+.how-to-play__board {
+  display: grid;
+  justify-items: stretch;
+  gap: 14px;
+  width: min(92vw, 420px);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 22px 20px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  background: rgba(4, 11, 18, 0.94);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.55);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+.how-to-play__board h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(226, 235, 241, 0.72);
+  text-align: center;
+}
+
+.how-to-play__list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how-to-play__list li {
+  margin: 0;
+  color: rgba(238, 244, 248, 0.92);
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.how-to-play__continue,
+#HowToPlayContinueButton {
+  min-height: 44px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: #dff5a7;
+  color: #102018;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  cursor: pointer;
 }
 
 .hud {
@@ -1915,6 +2003,21 @@ button[aria-disabled='true'] {
 
   .opening-briefing__actions {
     grid-template-columns: 1fr auto;
+  }
+
+  .how-to-play__board {
+    width: min(calc(100vw - 24px), 520px);
+    padding: 16px 18px 14px;
+    gap: 10px;
+  }
+
+  .how-to-play__list {
+    gap: 8px;
+  }
+
+  .how-to-play__list li {
+    font-size: 16px;
+    line-height: 1.3;
   }
 
   .victory-panel h1 {

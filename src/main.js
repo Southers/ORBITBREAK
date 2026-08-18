@@ -33,17 +33,17 @@ import { createWorldVisuals } from './world-geometry.js?v=20260818-ob115';
 import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob121';
 import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob121';
 import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob119';
-import { createStoryDirector } from './story-director.js?v=20260818-ob104';
-import { createHud } from './hud.js?v=20260818-ob110';
+import { createStoryDirector } from './story-director.js?v=20260818-ob124';
+import { createHud } from './hud.js?v=20260818-ob124';
 import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
 import { createLandingDirector } from './landing-director.js?v=20260818-ob115';
-import { createCameraController } from './camera-controller.js?v=20260818-ob120';
-import { createInputController } from './input-controller.js?v=20260818-ob121';
+import { createCameraController } from './camera-controller.js?v=20260818-ob124';
+import { createInputController } from './input-controller.js?v=20260818-ob124';
 import { createHostileSurface } from './hostile-surface.js?v=20260817-ob99';
 import { createScanner } from './scanner.js?v=20260817-ob99';
 import { createRoutePresentation } from './route-presentation.js?v=20260818-ob112';
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
-import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob121';
+import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob124';
 import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob121';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
@@ -152,7 +152,9 @@ import {
   getWorldLifeStage,
   getWorldLandingAimLabel,
   getLandedCameraScale,
-} from './presentation.js?v=20260818-ob121';
+  getHowToPlayPresentation,
+  shouldShowHowToPlayAfterOpening,
+} from './presentation.js?v=20260818-ob124';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -253,11 +255,16 @@ const BriefingBodyElement = document.querySelector('#BriefingBody');
 const BriefingProgressElement = document.querySelector('#BriefingProgress');
 const BriefingContinueButtonElement = document.querySelector('#BriefingContinueButton');
 const BriefingSkipButtonElement = document.querySelector('#BriefingSkipButton');
+const HowToPlayElement = document.querySelector('#HowToPlay');
+const HowToPlayTitleElement = document.querySelector('#HowToPlayTitle');
+const HowToPlayListElement = document.querySelector('#HowToPlayList');
+const HowToPlayContinueButtonElement = document.querySelector('#HowToPlayContinueButton');
 const StatusToastElement = document.querySelector('#StatusToast');
 const ReplayIndicatorElement = document.querySelector('#ReplayIndicator');
 const PauseButtonElement = document.querySelector('#PauseButton');
 const PauseSheetElement = document.querySelector('#PauseSheet');
 const PauseResumeButtonElement = document.querySelector('#PauseResumeButton');
+const HowToPlayButtonElement = document.querySelector('#HowToPlayButton');
 const RouteLabelElements = [...document.querySelectorAll('.route-label')];
 const TacticalLabelElements = [...document.querySelectorAll('.tactical-label')];
 const VictoryPanelElement = document.querySelector('#VictoryPanel');
@@ -294,7 +301,8 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260818-ob121';
+GameCanvas.dataset.build = '20260818-ob124';
+GameCanvas.dataset.howToPlay = 'closed';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -504,8 +512,11 @@ let HasLaunchedOnce = false;
 let HasWalkedOnce = false;
 let HasGrabbedShipOnce = false;
 let HasCompletedOpeningBriefing = false;
+let HasCompletedHowToPlay = false;
 let OpeningBriefingPageIndex = 0;
 let IsOpeningBriefingActive = false;
+let IsHowToPlayOpen = false;
+let HowToPlaySource = 'opening';
 let ActiveStoryBoardId = null;
 let ActiveStoryBoardTokens = {};
 let StoryLookFocus = null;
@@ -816,6 +827,7 @@ function updatePullHint(ElapsedTimeSeconds = 0) {
     && !IsKeyboardAiming
     && !GameCanvas.classList.contains('is-ship-armed')
     && !IsOpeningBriefingActive
+    && !IsHowToPlayOpen
     && !IsScoutMode
     && ReplayPlaybackState === null
     && ActiveHostileEncounterState === null
@@ -856,6 +868,7 @@ function updatePullHint(ElapsedTimeSeconds = 0) {
 
 function isBlockingMenuOpen() {
   return IsOpeningBriefingActive
+    || (IsHowToPlayOpen && HowToPlaySource === 'opening')
     || !VictoryPanelElement.hidden
     || !LeaderboardPanelElement.hidden;
 }
@@ -940,6 +953,7 @@ const Hud = createHud({
   get HasLaunchedOnce() { return HasLaunchedOnce; },
   get HasGrabbedShipOnce() { return HasGrabbedShipOnce; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
+  get IsHowToPlayOpen() { return IsHowToPlayOpen; },
 });
 const {
   refreshPlayfieldLabelBounds,
@@ -958,6 +972,86 @@ const {
   announceWarden,
   resetHud,
 } = Hud;
+
+function fillHowToPlayCard() {
+  const Presentation = getHowToPlayPresentation();
+  HowToPlayTitleElement.textContent = Presentation.title;
+  HowToPlayContinueButtonElement.textContent = Presentation.continueLabel;
+  HowToPlayListElement.replaceChildren(
+    ...Presentation.lines.map((Line) => {
+      const Item = document.createElement('li');
+      Item.textContent = Line;
+      return Item;
+    }),
+  );
+}
+
+function showHowToPlay(Source = 'opening') {
+  HowToPlaySource = Source === 'pause' ? 'pause' : 'opening';
+  IsHowToPlayOpen = true;
+  fillHowToPlayCard();
+  HowToPlayElement.hidden = false;
+  GameCanvas.dataset.howToPlay = HowToPlaySource;
+  updatePauseChrome();
+  HowToPlayContinueButtonElement.focus({ preventScroll: true });
+}
+
+function hideHowToPlay() {
+  if (!IsHowToPlayOpen && HowToPlayElement.hidden) {
+    return;
+  }
+  IsHowToPlayOpen = false;
+  HowToPlayElement.hidden = true;
+  GameCanvas.dataset.howToPlay = 'closed';
+  updatePauseChrome();
+}
+
+function presentHowToPlayAfterOpening() {
+  if (!shouldShowHowToPlayAfterOpening({
+    hasCompletedHowToPlay: HasCompletedHowToPlay,
+    replayActive: ReplayPlaybackState !== null,
+  })) {
+    return false;
+  }
+  showHowToPlay('opening');
+  return true;
+}
+
+function enterPlayAfterOpening({
+  showOpeningBroadcast = false,
+  restoreCanvasFocus = false,
+} = {}) {
+  const OpeningRouteChoices = getRouteChoices(
+    CampaignNodeDefinitions,
+    StartingWorldIdentifier,
+    2,
+    ActiveSystem.routeSuggestions[StartingWorldIdentifier] ?? [],
+  );
+  showInstruction(
+    'Choose ' + OpeningRouteChoices[0].label + ' or ' + OpeningRouteChoices[1].label,
+    ActiveSystem.openingBody,
+  );
+  if (showOpeningBroadcast && ActiveSystem.openingBroadcast) {
+    showStatusToast(ActiveSystem.openingBroadcast, 2200, 'warden');
+  }
+  if (restoreCanvasFocus) {
+    GameCanvas.focus({ preventScroll: true });
+  }
+}
+
+function dismissHowToPlay() {
+  const Source = HowToPlaySource;
+  if (Source === 'opening') {
+    HasCompletedHowToPlay = true;
+    hideHowToPlay();
+    enterPlayAfterOpening({ showOpeningBroadcast: true, restoreCanvasFocus: true });
+    return;
+  }
+  hideHowToPlay();
+  if (IsPauseSheetOpen) {
+    HowToPlayButtonElement.focus({ preventScroll: true });
+  }
+}
 
 
 function getSectorClusterRules() {
@@ -1760,6 +1854,8 @@ const StoryDirector = createStoryDirector({
   get ActiveHostileEncounterState() { return ActiveHostileEncounterState; },
   get HasCompletedOpeningBriefing() { return HasCompletedOpeningBriefing; },
   set HasCompletedOpeningBriefing(Value) { HasCompletedOpeningBriefing = Value; },
+  presentHowToPlayAfterOpening,
+  hideHowToPlay,
 });
 const {
   hideStoryBoardOverlay,
@@ -2113,6 +2209,7 @@ const CameraController = createCameraController(THREE, {
   get WardenPursuitState() { return WardenPursuitState; },
   get RecaptureCutGiftAvailable() { return RecaptureCutGiftAvailable; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
+  get IsHowToPlayOpen() { return IsHowToPlayOpen; },
   get StoryLookFocus() { return StoryLookFocus; },
   get ActiveStoryBoardTokens() { return ActiveStoryBoardTokens; },
   getWardenLookPosition: () => ({
@@ -2222,6 +2319,7 @@ const FrameVisuals = createFrameVisuals(THREE, {
   WalkHintPosition,
   get WalkHintVisible() { return WalkHintVisible; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
+  get IsHowToPlayOpen() { return IsHowToPlayOpen; },
   get AdaptivePresentationSettings() { return AdaptivePresentationSettings; },
 });
 const {
@@ -2584,6 +2682,7 @@ const InputController = createInputController(THREE, {
   get RunnerWalkLifeSeconds() { return RunnerWalkLifeSeconds; },
   set RunnerWalkLifeSeconds(Value) { RunnerWalkLifeSeconds = Value; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
+  get IsHowToPlayOpen() { return IsHowToPlayOpen; },
   get IsPauseSheetOpen() { return IsPauseSheetOpen; },
   get AimInteractionCamera() { return AimInteractionCamera; },
   get ScannerProjection() { return Scanner.ScannerProjection; },
@@ -3141,6 +3240,7 @@ function resetGame() {
   resetHud();
   resetLandingDirector();
   setPauseSheetOpen(false);
+  hideHowToPlay();
 
   IsPointerAiming = false;
   clearCommittedAimCamera();
@@ -3399,21 +3499,11 @@ function resetGame() {
   updateWorldheartObjective();
   updateTargetBeacons(0);
   if (!beginOpeningBriefing()) {
-    const OpeningRouteChoices = getRouteChoices(
-      CampaignNodeDefinitions,
-      StartingWorldIdentifier,
-      2,
-      ActiveSystem.routeSuggestions[StartingWorldIdentifier] ?? [],
-    );
-    showInstruction(
-      'Choose ' + OpeningRouteChoices[0].label + ' or ' + OpeningRouteChoices[1].label,
-      ActiveSystem.openingBody,
-    );
-    if (!HasCompletedOpeningBriefing && ActiveSystem.openingBroadcast) {
-      showStatusToast(ActiveSystem.openingBroadcast, 2200, 'warden');
-    }
-    if (ShouldRestoreCanvasFocus) {
-      GameCanvas.focus({ preventScroll: true });
+    if (!presentHowToPlayAfterOpening()) {
+      enterPlayAfterOpening({
+        showOpeningBroadcast: !HasCompletedOpeningBriefing,
+        restoreCanvasFocus: ShouldRestoreCanvasFocus,
+      });
     }
   }
   updatePauseChrome();
@@ -3445,7 +3535,7 @@ function updateControlModeInterface() {
     isBurnAiming: IsBurnAiming,
     isBreakAvailable: IsBreakerBurnAvailable,
     replayActive: ReplayPlaybackState !== null,
-    briefingActive: IsOpeningBriefingActive,
+    briefingActive: IsOpeningBriefingActive || IsHowToPlayOpen,
   });
   const ControlModeKey = `${Presentation.mode}|${Presentation.hint}`;
   if (ControlModeKey === LastControlModeKey) {
@@ -3463,7 +3553,7 @@ function renderFrame() {
     return;
   }
 
-  if (IsOpeningBriefingActive) {
+  if (IsOpeningBriefingActive || IsHowToPlayOpen) {
     const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
     applyOccupiedWorldCrust();
     updateSeedVisuals(DeltaTimeSeconds, GameElapsedTimeSeconds);
@@ -3748,6 +3838,31 @@ function getVisibleModalFocusables(ModalElement) {
 }
 
 window.addEventListener('keydown', (KeyboardEventData) => {
+  if (IsHowToPlayOpen) {
+    const PressedHelpKey = KeyboardEventData.key.toLowerCase();
+    if (PressedHelpKey === 'escape') {
+      KeyboardEventData.preventDefault();
+      if (HowToPlaySource === 'pause') {
+        dismissHowToPlay();
+      }
+      return;
+    }
+    if (PressedHelpKey === 'enter' || PressedHelpKey === ' ') {
+      if (HowToPlayContinueButtonElement === KeyboardEventData.target) {
+        return;
+      }
+      KeyboardEventData.preventDefault();
+      dismissHowToPlay();
+      return;
+    }
+    if (KeyboardEventData.key === 'Tab') {
+      KeyboardEventData.preventDefault();
+      HowToPlayContinueButtonElement.focus({ preventScroll: true });
+      return;
+    }
+    KeyboardEventData.preventDefault();
+    return;
+  }
   if (IsOpeningBriefingActive) {
     const PressedBriefingKey = KeyboardEventData.key.toLowerCase();
     if (PressedBriefingKey === 'escape') {
@@ -3792,9 +3907,11 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     ? LeaderboardPanelElement
     : (!VictoryPanelElement.hidden
       ? VictoryPanelElement
-      : (IsOpeningBriefingActive
-        ? OpeningBriefingElement
-        : (IsPauseSheetOpen ? PauseSheetElement : null)));
+      : (IsHowToPlayOpen
+        ? HowToPlayElement
+        : (IsOpeningBriefingActive
+          ? OpeningBriefingElement
+          : (IsPauseSheetOpen ? PauseSheetElement : null))));
   if (KeyboardEventData.key === 'Tab' && ActiveModalElement) {
     const FocusableElements = getVisibleModalFocusables(ActiveModalElement);
     const FirstFocusableElement = FocusableElements[0];
@@ -3826,6 +3943,7 @@ window.addEventListener('keydown', (KeyboardEventData) => {
   }
   if (
     !IsOpeningBriefingActive
+    && !IsHowToPlayOpen
     && !IsPauseSheetOpen
     && VictoryPanelElement.hidden
     && LeaderboardPanelElement.hidden
@@ -3909,9 +4027,11 @@ document.addEventListener('focusin', (FocusEventData) => {
     ? LeaderboardPanelElement
     : (!VictoryPanelElement.hidden
       ? VictoryPanelElement
-      : (IsOpeningBriefingActive
-        ? OpeningBriefingElement
-        : (IsPauseSheetOpen ? PauseSheetElement : null)));
+      : (IsHowToPlayOpen
+        ? HowToPlayElement
+        : (IsOpeningBriefingActive
+          ? OpeningBriefingElement
+          : (IsPauseSheetOpen ? PauseSheetElement : null))));
   if (!ActiveModalElement || ActiveModalElement.contains(FocusEventData.target)) {
     return;
   }
@@ -3927,6 +4047,19 @@ BriefingContinueButtonElement.addEventListener('click', (PointerEventData) => {
 BriefingSkipButtonElement.addEventListener('click', (PointerEventData) => {
   PointerEventData.stopPropagation();
   skipStoryBoards();
+});
+HowToPlayContinueButtonElement.addEventListener('click', (PointerEventData) => {
+  PointerEventData.stopPropagation();
+  dismissHowToPlay();
+});
+HowToPlayButtonElement.addEventListener('click', (PointerEventData) => {
+  PointerEventData.stopPropagation();
+  showHowToPlay('pause');
+});
+HowToPlayElement.addEventListener('click', (PointerEventData) => {
+  if (PointerEventData.target === HowToPlayElement && HowToPlaySource === 'pause') {
+    dismissHowToPlay();
+  }
 });
 WatchReplayButtonElement.addEventListener('click', watchCompletedReplay);
 LeaderboardButtonElement.addEventListener('click', openLeaderboardPanel);

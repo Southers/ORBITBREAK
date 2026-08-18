@@ -64,6 +64,7 @@ export function createStoryDirector(host) {
     host.PendingRunResetAfterStoryBoard = false;
     host.PendingVictoryAfterStoryBoard = false;
     hideStoryBoardOverlay();
+    host.hideHowToPlay?.();
   }
 
   function getActiveStoryBoardDefinition() {
@@ -275,6 +276,10 @@ export function createStoryDirector(host) {
     if (host.ActiveStoryBoardId === 'opening') {
       host.HasCompletedOpeningBriefing = true;
       hideStoryBoardOverlay();
+      if (host.presentHowToPlayAfterOpening?.()) {
+        host.frameStartWorldCamera?.();
+        return;
+      }
       const OpeningRouteChoices = getRouteChoices(
         CampaignNodeDefinitions,
         StartingWorldIdentifier,
