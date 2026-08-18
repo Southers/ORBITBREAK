@@ -161,7 +161,9 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     PlayerSource.includes('const SeedHaloGeometry = new THREE.TorusGeometry(0.07, 0.01, 8, 24)')
-      && PlayerSource.includes('new THREE.PointLight(0x72dcff, 0.28, 0.9, 2)')
+      && PlayerSource.includes('new THREE.PointLight(0x72dcff, 0, 0.01, 2)')
+      && PlayerSource.includes('SeedPointLight.visible = false')
+      && !PlayerSource.includes('SeedGroup.add(SeedPointLight)')
       && !PlayerSource.includes('Scene.add(WorldWalkHaloMesh)')
       && !PlayerSource.includes('Scene.add(WalkCursorMesh)')
       && PresentationSource.includes('worldWalkHalo: false')
@@ -172,7 +174,7 @@ export function auditReleaseReadiness() {
       && RoutePresentationSource.includes('host.IsScoutMode === true')
       && !FrameVisualsSource.includes('WalkHaloRadius')
       && !PlayerSource.includes('SphereGeometry(SeedRadius * 2.35'),
-    'Landed Haven must not wear a filled planet walk disc, crust donut or hover outline; the ship grab cue stays a tiny torus on the craft.',
+    'Landed Haven must not wear a filled planet walk disc, crust donut, hover outline or cyan runner light; the ship grab cue stays a tiny torus on the craft.',
   );
   requireCondition(
     PresentationSource.includes('export function getWorldLifeStage(')
