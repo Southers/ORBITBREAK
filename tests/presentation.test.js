@@ -831,8 +831,17 @@ test('first-run captions stay until the ship is grabbed, then until launch, then
     hasLaunchedOnce: false,
   });
   assert.equal(IdleHighlight.shipHalo, true);
-  assert.equal(IdleHighlight.worldWalkHalo, true);
+  assert.equal(IdleHighlight.worldWalkHalo, false);
+  assert.equal(IdleHighlight.walkCursor, false);
   assert.equal(IdleHighlight.pullHint, false);
+  const HoverPlanet = getLandedVerbHighlight({
+    gamePhase: 'attached',
+    hasWalkedOnce: false,
+    hasLaunchedOnce: false,
+    isWalkReady: true,
+  });
+  assert.equal(HoverPlanet.worldWalkHalo, false);
+  assert.equal(HoverPlanet.walkCursor, true);
   const ReadyToLaunch = getLandedVerbHighlight({
     gamePhase: 'attached',
     hasWalkedOnce: true,

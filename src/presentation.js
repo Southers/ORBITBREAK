@@ -89,7 +89,10 @@ export function getFirstRunCoachPresentation({
   };
 }
 
-/** Ship halo vs planet rim so walk and aim look different before the drag commits. */
+/**
+ * Ship grab stays a tight cue on the craft. Planet-sized walk discs are gone;
+ * hover/walk uses the existing surface cursor, never a milky globe overlay.
+ */
 export function getLandedVerbHighlight({
   gamePhase = 'attached',
   hasWalkedOnce = false,
@@ -106,11 +109,7 @@ export function getLandedVerbHighlight({
   return {
     shipHalo: IsAttached && (hasLaunchedOnce !== true || ShipCharge),
     shipHaloCharge: IsAttached && ShipCharge,
-    worldWalkHalo: IsAttached && (
-      isWalking === true
-      || isWalkReady === true
-      || hasWalkedOnce !== true
-    ),
+    worldWalkHalo: false,
     walkCursor: IsAttached && (isWalking === true || isWalkReady === true),
     pullHint: IsAttached
       && hasWalkedOnce === true

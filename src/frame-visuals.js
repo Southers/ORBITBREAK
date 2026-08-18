@@ -403,42 +403,32 @@ export function createFrameVisuals(THREE, host) {
       isWalking: host.PointerGestureMode === SurfaceGestureModes.walk
         || host.IsPointerWalking === true,
     });
-    SeedHaloMesh.scale.setScalar(
-      (VerbHighlight.shipHaloCharge ? 1.42 : (VerbHighlight.shipHalo ? 1.18 : 1))
-      + (Math.sin(ElapsedTimeSeconds * (VerbHighlight.shipHaloCharge ? 7.4 : 4.2)) * (
-        VerbHighlight.shipHaloCharge ? 0.12 : 0.08
-      )),
-    );
-    if (RunnerAnimationState === 'recovering') {
-      SeedHaloMaterial.color.setHex(0xff766d);
-    } else {
-      SeedHaloMaterial.color.setHex(VerbHighlight.shipHaloCharge ? 0xc4f7a6 : 0x6de8ff);
-    }
-    const HaloRestOpacity = RunnerAnimationState === 'liberating'
-      ? 0.2
-      : (VerbHighlight.shipHalo ? 0.24 : 0.08);
-    SeedHaloMaterial.opacity = (VerbHighlight.shipHaloCharge ? 0.48 : HaloRestOpacity)
-      + (Math.sin(ElapsedTimeSeconds * 4.2) * (VerbHighlight.shipHaloCharge ? 0.08 : 0.03));
-
-    const AttachedWalkWorld = VerbHighlight.worldWalkHalo
-      ? getWorldDefinition(host.CurrentWorldIdentifier)
-      : null;
-    if (AttachedWalkWorld?.position && WorldWalkHaloMesh) {
-      WorldWalkHaloMesh.visible = true;
-      WorldWalkHaloMesh.position.set(
-        AttachedWalkWorld.position.x,
-        AttachedWalkWorld.position.y,
-        AttachedWalkWorld.position.z ?? 0,
+    const ShowShipCue = VerbHighlight.shipHalo === true || VerbHighlight.shipHaloCharge === true
+      || RunnerAnimationState === 'recovering';
+    SeedHaloMesh.visible = ShowShipCue;
+    if (ShowShipCue) {
+      SeedHaloMesh.lookAt(Camera.position);
+      SeedHaloMesh.scale.setScalar(
+        (VerbHighlight.shipHaloCharge ? 1.12 : 1)
+        + (Math.sin(ElapsedTimeSeconds * (VerbHighlight.shipHaloCharge ? 7.4 : 4.2)) * (
+          VerbHighlight.shipHaloCharge ? 0.05 : 0.03
+        )),
       );
-      const WalkHaloRadius = AttachedWalkWorld.radius * 1.06;
-      WorldWalkHaloMesh.scale.setScalar(WalkHaloRadius);
-      WorldWalkHaloMaterial.opacity = (
-        host.IsPointerWalking || HasCanvasClass('is-walk-ready')
-          ? 0.22
-          : 0.12
-      ) + (Math.sin(ElapsedTimeSeconds * 3.4) * 0.04);
-    } else if (WorldWalkHaloMesh) {
+      if (RunnerAnimationState === 'recovering') {
+        SeedHaloMaterial.color.setHex(0xff766d);
+      } else {
+        SeedHaloMaterial.color.setHex(VerbHighlight.shipHaloCharge ? 0xc4f7a6 : 0x8fe7ff);
+      }
+      const HaloRestOpacity = VerbHighlight.shipHaloCharge ? 0.42 : 0.26;
+      SeedHaloMaterial.opacity = HaloRestOpacity
+        + (Math.sin(ElapsedTimeSeconds * 4.2) * (VerbHighlight.shipHaloCharge ? 0.06 : 0.03));
+    } else {
+      SeedHaloMaterial.opacity = 0;
+    }
+
+    if (WorldWalkHaloMesh) {
       WorldWalkHaloMesh.visible = false;
+      WorldWalkHaloMaterial.opacity = 0;
     }
 
     if (WalkCursorMesh && VerbHighlight.walkCursor && host.WalkHintVisible === true) {

@@ -160,6 +160,15 @@ export function auditReleaseReadiness() {
     'First-timer walk vs aim must lock from where the drag starts, not how it moves, with sticky walk-then-launch captions.',
   );
   requireCondition(
+    PlayerSource.includes('const SeedHaloGeometry = new THREE.TorusGeometry(0.13, 0.016, 8, 28)')
+      && PlayerSource.includes('new THREE.PointLight(0x72dcff, 0.28, 0.9, 2)')
+      && PresentationSource.includes('worldWalkHalo: false')
+      && FrameVisualsSource.includes('WorldWalkHaloMesh.visible = false')
+      && !FrameVisualsSource.includes('WalkHaloRadius')
+      && !PlayerSource.includes('SphereGeometry(SeedRadius * 2.35'),
+    'Landed Haven must not wear a filled planet walk disc; the ship grab cue stays a tight torus on the craft.',
+  );
+  requireCondition(
     PresentationSource.includes('export function getWorldLifeStage(')
       && PresentationSource.includes("return 'tyrant';")
       && LivingWorldSource.includes('OccupationMineMesh')

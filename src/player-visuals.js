@@ -343,15 +343,24 @@ export function createPlayerVisuals(THREE, Scene, host) {
     }
   }
 
-  const SeedHaloGeometry = new THREE.SphereGeometry(SeedRadius * 2.35, 24, 16);
+  /**
+   * Grab cue hugs the toy ship/runner, not the 0.46 collision radius. A filled
+   * sphere here reads as a flashlight disc on the crust from the landed camera.
+   */
+  const SeedHaloGeometry = new THREE.TorusGeometry(0.13, 0.016, 8, 28);
   const SeedHaloMaterial = new THREE.MeshBasicMaterial({
     color: 0x6de8ff,
     transparent: true,
-    opacity: 0.12,
+    opacity: 0,
     depthWrite: false,
+    depthTest: false,
     blending: THREE.AdditiveBlending,
+    toneMapped: false,
   });
   const SeedHaloMesh = new THREE.Mesh(SeedHaloGeometry, SeedHaloMaterial);
+  SeedHaloMesh.visible = false;
+  SeedHaloMesh.frustumCulled = false;
+  SeedHaloMesh.renderOrder = 8;
   SeedGroup.add(SeedHaloMesh);
 
   const WorldWalkHaloMaterial = new THREE.MeshBasicMaterial({
@@ -365,7 +374,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
     toneMapped: false,
   });
   const WorldWalkHaloMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 32, 20),
+    new THREE.RingGeometry(0.985, 1.015, 64),
     WorldWalkHaloMaterial,
   );
   WorldWalkHaloMesh.visible = false;
@@ -391,7 +400,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   WalkCursorMesh.renderOrder = 7;
   Scene.add(WalkCursorMesh);
 
-  const SeedPointLight = new THREE.PointLight(0x72dcff, 0.72, 2.4, 2);
+  const SeedPointLight = new THREE.PointLight(0x72dcff, 0.28, 0.9, 2);
   SeedGroup.add(SeedPointLight);
   Scene.add(SeedGroup);
 
