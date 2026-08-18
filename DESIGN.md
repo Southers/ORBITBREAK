@@ -219,8 +219,9 @@ The Reach has the verbs, sphere walking, staged prosperity and instanced life. C
 - Walk-to-launch (checkpoint 19): ship grab aims from a screen pull even over crust; the map camera waits until the pull leaves cancel. Facing coach survives walk release.
 - Review follow-ups (checkpoint 20): callsign typing and Ctrl/Meta/Alt no longer fire game hotkeys; hiding the tab resets adaptive-quality recovery; rankings ignore stale watch/submit results; slingshot prediction skips the pre-launch rest sample.
 - Draw-call ceiling remains 190. New life is instanced and pooled.
+- Tiny Worlds visual pass (playtest of the public Pages build): occupied worlds keep biome hue in the control-grid shader instead of one brown ball; Ember/Grove/Frost/Tide get distinct roughness and per-world atmosphere rims that fade when zoomed out so they do not become a faceted blue disc. Gravity wells are rings, not filled planes. Stars use round sprites without distance-squared points. Liberation still wraps the sphere, but the cage is thicker, the wave is brighter, and the atmosphere blooms on the world before the story board. Flight follow looks ahead of velocity so Break and void losses stay on the ship instead of empty black. World pills hide after landing and duck the caption band.
 
-Judging from current evidence: **Art** and **Theme** now have a still-frame of different roofs and ships on linked worlds, and walking has a visual reason. Remaining gauntlet work is density, readability and mobile polish — not a second game.
+Judging from current evidence: **Art** is the remaining gauntlet lever — cards already look painted; in-world lighting, rims and liberation VFX now have to match them. Creativity, Gameplay and Theme stay on the existing loop. Do not add HUD chrome.
 
 ### What we are building
 

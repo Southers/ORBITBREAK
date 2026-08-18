@@ -2,6 +2,8 @@
  * World mesh factory. Presentation-only; never enters ranked simulation.
  */
 
+import { getWorldSurfaceFinish } from './presentation.js';
+
 export function createWorldVisuals(THREE, Scene, {
   worldDefinitions: WorldDefinitions,
   worldRuntimeByIdentifier: WorldRuntimeByIdentifier,
@@ -53,9 +55,9 @@ export function createWorldVisuals(THREE, Scene, {
         void main() {
           float fresnel = pow(
             1.0 - max(dot(normalize(vViewNormal), normalize(vViewDirection)), 0.0),
-            3.3
+            4.4
           );
-          gl_FragColor = vec4(uColor * (1.0 + (fresnel * 1.5)), fresnel * uOpacity * 3.4);
+          gl_FragColor = vec4(uColor * (1.0 + (fresnel * 1.85)), fresnel * uOpacity * 2.45);
         }
       `,
       transparent: true,
@@ -65,7 +67,7 @@ export function createWorldVisuals(THREE, Scene, {
     ShellMaterial.opacity = ShellUniforms.uOpacity.value;
     ShellMaterial.color = ShellUniforms.uColor.value;
     const ShellMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(WorldDefinition.radius * 1.12, 40, 26),
+      new THREE.SphereGeometry(WorldDefinition.radius * 1.08, 40, 26),
       ShellMaterial,
     );
     ShellMesh.onBeforeRender = () => {
@@ -83,7 +85,9 @@ export function createWorldVisuals(THREE, Scene, {
     Material.onBeforeCompile = (Shader) => {
       Shader.uniforms.restorationOrigin = RestorationUniforms.restorationOrigin;
       Shader.uniforms.restorationProgress = RestorationUniforms.restorationProgress;
-      Shader.uniforms.scatterDeadColor = { value: DarkWorldColor.clone() };
+      Shader.uniforms.scatterDeadColor = {
+        value: Material.userData.scatterDeadColor?.clone?.() ?? DarkWorldColor.clone(),
+      };
       Shader.vertexShader = Shader.vertexShader
         .replace(
           '#include <common>',
@@ -238,9 +242,16 @@ export function createWorldVisuals(THREE, Scene, {
     }
     if (VisualKey === 'ember' || VisualKey === 'kiln' || VisualKey === 'lantern' || VisualKey === 'vault') {
       return mergeScatterParts([
-        { geometry: new THREE.CylinderGeometry(0.045, 0.06, 0.32, 6), position: [0, 0.16, 0], color: 0x4a6a38 },
-        { geometry: new THREE.SphereGeometry(0.055, 6, 5), position: [0, 0.34, 0], color: 0x6f9a48 },
-        { geometry: new THREE.CylinderGeometry(0.028, 0.032, 0.16, 5), position: [0.09, 0.24, 0], color: 0x4a6a38 },
+        { geometry: new THREE.CylinderGeometry(0.04, 0.07, 0.22, 6), position: [0, 0.11, 0], color: 0x4a3438 },
+        { geometry: new THREE.OctahedronGeometry(0.07, 0), position: [0, 0.26, 0], scale: [0.7, 1.55, 0.7], color: 0x5a3a3c },
+        { geometry: new THREE.SphereGeometry(0.042, 6, 5), position: [0.02, 0.2, 0.03], color: 0xff7a38 },
+      ]);
+    }
+    if (VisualKey === 'grove' || VisualKey === 'canopy') {
+      return mergeScatterParts([
+        { geometry: new THREE.CylinderGeometry(0.02, 0.03, 0.14, 5), position: [0, 0.07, 0], color: 0x6a4630 },
+        { geometry: new THREE.SphereGeometry(0.09, 7, 6), position: [0, 0.18, 0], scale: [1.15, 0.7, 1.15], color: 0x6fb85a },
+        { geometry: new THREE.SphereGeometry(0.055, 6, 5), position: [0.06, 0.16, 0.02], color: 0x8fd06a },
       ]);
     }
     if (VisualKey === 'frost' || VisualKey === 'nest' || VisualKey === 'shard') {
@@ -288,13 +299,19 @@ export function createWorldVisuals(THREE, Scene, {
       metalness: 0.04,
       vertexColors: true,
     });
+    FloraMaterial.userData.scatterDeadColor = DarkWorldColor.clone().lerp(
+      WorldDefinition.aliveColor,
+      0.22,
+    );
     applyScatterRestorationShader(
       FloraMaterial,
       RestorationUniforms,
-      'orbitbreak-life-scatter-flora-v2',
+      'orbitbreak-life-scatter-flora-v3',
     );
     const IsGroundCover = WorldDefinition.visualKey === 'meadow'
       || WorldDefinition.visualKey === 'bower'
+      || WorldDefinition.visualKey === 'grove'
+      || WorldDefinition.visualKey === 'canopy'
       || WorldDefinition.visualKey === 'tide'
       || WorldDefinition.visualKey === 'drift'
       || WorldDefinition.visualKey === 'dew';
@@ -378,7 +395,7 @@ export function createWorldVisuals(THREE, Scene, {
   function createStillnessCage(WorldDefinition) {
     const CageGroup = new THREE.Group();
     const CageMaterial = new THREE.MeshBasicMaterial({
-      color: 0x82a8b4,
+      color: 0xc5f3ff,
       transparent: true,
       opacity: 0.22,
       depthWrite: false,
@@ -392,7 +409,7 @@ export function createWorldVisuals(THREE, Scene, {
     ];
     for (const [RotationX, RotationY, RotationZ] of Rotations) {
       const CageRing = new THREE.Mesh(
-        new THREE.TorusGeometry(CageRadius, 0.025, 5, 72),
+        new THREE.TorusGeometry(CageRadius, 0.042, 6, 72),
         CageMaterial,
       );
       CageRing.rotation.set(RotationX, RotationY, RotationZ);
@@ -421,10 +438,11 @@ export function createWorldVisuals(THREE, Scene, {
       biomeStyle: { value: WorldDefinition.biomeStyle ?? 0 },
       biomeTime: { value: 0 },
     };
+    const SurfaceFinish = getWorldSurfaceFinish(WorldDefinition.visualKey);
     const SurfaceMaterial = new THREE.MeshStandardMaterial({
       color: 0xffffff,
-      roughness: 0.88,
-      metalness: 0.02,
+      roughness: SurfaceFinish.roughness,
+      metalness: SurfaceFinish.metalness,
       flatShading: false,
     });
 
@@ -493,42 +511,66 @@ export function createWorldVisuals(THREE, Scene, {
           vec3 variedAliveColor = aliveColor * (1.0 + (surfacePattern * surfaceVariation));
           if (biomeStyle > 0.5 && biomeStyle < 1.5) {
             float rootVeins = 0.5 + (0.5 * sin(
-              (vRestorationDirection.x * 18.0)
-              + (vRestorationDirection.y * 9.0)
-              + (vRestorationDirection.z * 15.0)
+              (vRestorationDirection.x * 11.0)
+              + (vRestorationDirection.y * 7.0)
+              + (vRestorationDirection.z * 13.0)
               + (biomeTime * 0.18)
             ));
-            variedAliveColor = mix(variedAliveColor, accentColor, rootVeins * 0.34);
+            float canopyMottling = 0.5 + (0.5 * sin(
+              (vRestorationDirection.z * 9.0)
+              - (vRestorationDirection.x * 8.0)
+              + (vRestorationDirection.y * 6.0)
+            ));
+            variedAliveColor = mix(
+              variedAliveColor,
+              accentColor,
+              (rootVeins * 0.22) + (canopyMottling * 0.16)
+            );
           } else if (biomeStyle > 1.5) {
             float tideBands = 0.5 + (0.5 * sin(
-              (vRestorationDirection.y * 24.0)
-              + (vRestorationDirection.x * 7.0)
+              (vRestorationDirection.y * 9.0)
+              + (vRestorationDirection.x * 5.0)
               + (biomeTime * 0.9)
             ));
-            variedAliveColor = mix(variedAliveColor, accentColor, tideBands * 0.52);
+            float tideRipple = 0.5 + (0.5 * sin(
+              (vRestorationDirection.x * 12.0)
+              - (vRestorationDirection.z * 10.0)
+            ));
+            variedAliveColor = mix(
+              variedAliveColor,
+              accentColor,
+              (tideBands * 0.28) + (tideRipple * 0.18)
+            );
           }
           variedAliveColor = mix(variedAliveColor, accentColor, vLandmarkMask * 0.82);
-          float controlLatitude = abs(sin(vRestorationDirection.y * 24.0));
+          float controlLatitude = abs(sin(vRestorationDirection.y * 9.0));
           float controlLongitude = abs(sin(
-            atan(vRestorationDirection.z, vRestorationDirection.x) * 9.0
+            atan(vRestorationDirection.z, vRestorationDirection.x) * 6.0
           ));
-          float controlGrid = smoothstep(0.88, 0.98, max(
+          float controlGrid = smoothstep(0.94, 0.995, max(
             controlLatitude,
             controlLongitude
           ));
-          vec3 occupiedColor = deadColor * (0.62 + (surfacePattern * 0.03));
-          occupiedColor += vec3(0.11, 0.2, 0.23) * controlGrid;
-          float emberSeed = sin(vRestorationDirection.x * 41.0)
+          vec3 occupiedBase = mix(deadColor * 0.48, aliveColor * 0.62, 0.78);
+          vec3 occupiedColor = occupiedBase * (0.92 + (surfacePattern * 0.05));
+          occupiedColor += vec3(0.1, 0.16, 0.2) * controlGrid;
+          float scarSeed = sin(vRestorationDirection.x * 41.0)
             * sin(vRestorationDirection.y * 37.0)
             * sin(vRestorationDirection.z * 43.0);
-          float emberGlow = smoothstep(0.955, 0.995, emberSeed)
+          float scarGlow = smoothstep(0.955, 0.995, scarSeed)
             * (0.62 + (0.38 * sin((vRestorationDirection.x * 30.0) + (biomeTime * 1.7))));
-          occupiedColor += vec3(0.58, 0.19, 0.05) * emberGlow;
+          vec3 scarColor = vec3(0.58, 0.19, 0.05);
+          if (biomeStyle > 0.5 && biomeStyle < 1.5) {
+            scarColor = vec3(0.2, 0.4, 0.14);
+          } else if (biomeStyle > 1.5) {
+            scarColor = vec3(0.14, 0.4, 0.5);
+          }
+          occupiedColor += scarColor * scarGlow;
           diffuseColor.rgb = mix(occupiedColor, variedAliveColor, restoredSurface);
-          diffuseColor.rgb += waveColor * restorationBand * activeRestorationWave * 0.9;`,
+          diffuseColor.rgb += waveColor * restorationBand * activeRestorationWave * 1.35;`,
         );
     };
-    SurfaceMaterial.customProgramCacheKey = () => 'orbitbreak-restoration-surface-v4';
+    SurfaceMaterial.customProgramCacheKey = () => 'orbitbreak-restoration-surface-v6';
 
     return { material: SurfaceMaterial, uniforms: RestorationUniforms };
   }
@@ -583,8 +625,8 @@ export function createWorldVisuals(THREE, Scene, {
           float fresnel = pow(1.0 - max(dot(vViewNormal, vViewDirection), 0.0), 2.0);
           float activeWave = step(-0.001, restorationProgress)
             * (1.0 - step(1.001, restorationProgress));
-          float alpha = waveBand * (0.52 + (fresnel * 0.58)) * activeWave;
-          gl_FragColor = vec4(waveColor, alpha);
+          float alpha = waveBand * (0.82 + (fresnel * 0.7)) * activeWave;
+          gl_FragColor = vec4(waveColor * 1.15, alpha);
         }
       `,
       transparent: true,
@@ -826,7 +868,7 @@ export function createWorldVisuals(THREE, Scene, {
 
   /** Starts one lightweight authored world with a faceted restorable sphere. */
   function createMergedWorldSurfaceBase(WorldDefinition) {
-    const BaseSourceGeometry = new THREE.IcosahedronGeometry(WorldDefinition.radius, 3);
+    const BaseSourceGeometry = new THREE.IcosahedronGeometry(WorldDefinition.radius, 4);
     const BaseGeometry = BaseSourceGeometry.index
       ? BaseSourceGeometry.toNonIndexed()
       : BaseSourceGeometry.clone();
@@ -962,7 +1004,7 @@ export function createWorldVisuals(THREE, Scene, {
     return mergeRestorationGeometries(Geometries);
   }
 
-  /** Builds Grove's joined-root arch and clustered saplings into its existing surface call. */
+  /** Builds Grove's joined-root arch, moss mounds and clustered saplings into its surface call. */
   function createGroveSurfaceGeometry(WorldDefinition) {
     const Geometries = createMergedWorldSurfaceBase(WorldDefinition);
 
@@ -976,6 +1018,23 @@ export function createWorldVisuals(THREE, Scene, {
       -0.08,
     ));
 
+    const MossSource = new THREE.SphereGeometry(0.28, 7, 5);
+    const MossDirections = [
+      new THREE.Vector3(-0.82, 0.22, 0.52),
+      new THREE.Vector3(0.76, -0.18, 0.62),
+      new THREE.Vector3(0.12, 0.74, -0.66),
+      new THREE.Vector3(-0.28, -0.62, -0.72),
+    ];
+    MossDirections.forEach((SurfaceDirection, MossIndex) => {
+      Geometries.push(createPlacedLandmarkGeometry(
+        MossSource,
+        SurfaceDirection,
+        WorldDefinition.radius - 0.06,
+        0.72 + (MossIndex * 0.08),
+        MossIndex * 0.4,
+      ));
+    });
+
     const TrunkSource = new THREE.CylinderGeometry(0.085, 0.13, 0.68, 6);
     TrunkSource.translate(0, 0.34, 0);
     const CanopySource = new THREE.IcosahedronGeometry(0.34, 1);
@@ -984,9 +1043,11 @@ export function createWorldVisuals(THREE, Scene, {
       new THREE.Vector3(-0.45, 0.1, 0.9),
       new THREE.Vector3(0.42, 0.16, 0.9),
       new THREE.Vector3(0, -0.38, 0.92),
+      new THREE.Vector3(-0.38, 0.22, -0.9),
+      new THREE.Vector3(0.48, -0.12, -0.86),
     ];
     SaplingDirections.forEach((SurfaceDirection, SaplingIndex) => {
-      const SaplingScale = 0.95 + (SaplingIndex * 0.11);
+      const SaplingScale = 0.82 + (SaplingIndex * 0.09);
       Geometries.push(createPlacedLandmarkGeometry(
         TrunkSource,
         SurfaceDirection,
@@ -1004,6 +1065,7 @@ export function createWorldVisuals(THREE, Scene, {
     });
 
     RootArchSource.dispose();
+    MossSource.dispose();
     TrunkSource.dispose();
     CanopySource.dispose();
     return mergeRestorationGeometries(Geometries);
@@ -1508,7 +1570,7 @@ export function createWorldVisuals(THREE, Scene, {
     return (
       MergedGeometryFactories[WorldDefinition.visualKey]
       ?? ((Definition) => addRestorationGeometryAttributes(
-        new THREE.IcosahedronGeometry(Definition.radius, 3),
+        new THREE.IcosahedronGeometry(Definition.radius, 4),
       ))
     )(WorldDefinition);
   }
@@ -2302,6 +2364,7 @@ export function createWorldVisuals(THREE, Scene, {
       stillnessCageMaterial: StillnessCage.material,
       restorationOriginLocal: new THREE.Vector3(1, 0, 0),
       restorationStartedAtSeconds: WorldDefinition.restored ? -Infinity : null,
+      suppressionStartedAtSeconds: null,
       restorationCompleted: WorldDefinition.restored,
     };
     WorldRuntimeByIdentifier.set(WorldDefinition.id, WorldRuntime);

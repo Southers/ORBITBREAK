@@ -7,11 +7,11 @@ function createLighting(THREE, Scene, EnvironmentDefinition) {
   const HemisphereLight = new THREE.HemisphereLight(
     EnvironmentDefinition.hemisphereSkyColor,
     EnvironmentDefinition.hemisphereGroundColor,
-    1.55,
+    1.78,
   );
   Scene.add(HemisphereLight);
 
-  const KeyLight = new THREE.DirectionalLight(EnvironmentDefinition.keyLightColor, 3.2);
+  const KeyLight = new THREE.DirectionalLight(EnvironmentDefinition.keyLightColor, 2.85);
   KeyLight.position.set(-12, 18, 24);
   KeyLight.castShadow = true;
   KeyLight.shadow.mapSize.set(1024, 1024);
@@ -25,11 +25,11 @@ function createLighting(THREE, Scene, EnvironmentDefinition) {
   KeyLight.shadow.normalBias = 0.035;
   Scene.add(KeyLight);
 
-  const FillLight = new THREE.DirectionalLight(EnvironmentDefinition.fillLightColor, 1.0);
-  FillLight.position.set(18, -10, 14);
+  const FillLight = new THREE.DirectionalLight(EnvironmentDefinition.fillLightColor, 1.42);
+  FillLight.position.set(18, -8, 16);
   Scene.add(FillLight);
 
-  const RimLight = new THREE.DirectionalLight(EnvironmentDefinition.rimLightColor, 1.15);
+  const RimLight = new THREE.DirectionalLight(EnvironmentDefinition.rimLightColor, 1.38);
   RimLight.position.set(8, 12, -18);
   Scene.add(RimLight);
 
@@ -93,12 +93,13 @@ void main() {
   float bandB = fbm(direction * 3.6 + vec3(31.0, -drift, 5.0));
   float bandC = fbm(direction * 1.7 + vec3(-9.0, 23.0, drift * 0.6));
   vec3 color = uBaseColor;
-  color += uColorA * smoothstep(0.46, 0.94, bandA) * 0.27;
-  color += uColorB * smoothstep(0.52, 0.96, bandB) * 0.15;
-  color += uColorC * smoothstep(0.44, 0.93, bandC) * 0.2;
+  color += uColorA * smoothstep(0.42, 0.94, bandA) * 0.34;
+  color += uColorB * smoothstep(0.5, 0.96, bandB) * 0.22;
+  color += uColorC * smoothstep(0.4, 0.93, bandC) * 0.26;
   // Deepen the dome away from the orbital plane so the play field reads brightest.
-  float planeGlow = 1.0 - smoothstep(0.15, 0.85, abs(direction.z));
-  color += uColorA * planeGlow * 0.05;
+  float planeGlow = 1.0 - smoothstep(0.12, 0.82, abs(direction.z));
+  color += uColorA * planeGlow * 0.08;
+  color += uColorC * planeGlow * 0.04;
   gl_FragColor = vec4(color, 1.0);
 }
 `;
@@ -139,6 +140,23 @@ function createDeterministicRandom(Seed) {
   };
 }
 
+function createStarSpriteTexture(THREE) {
+  const StarCanvas = document.createElement('canvas');
+  StarCanvas.width = 64;
+  StarCanvas.height = 64;
+  const StarContext = StarCanvas.getContext('2d');
+  const StarGradient = StarContext.createRadialGradient(32, 32, 0, 32, 32, 32);
+  StarGradient.addColorStop(0, 'rgba(255,255,255,1)');
+  StarGradient.addColorStop(0.28, 'rgba(255,255,255,0.85)');
+  StarGradient.addColorStop(0.62, 'rgba(255,255,255,0.18)');
+  StarGradient.addColorStop(1, 'rgba(255,255,255,0)');
+  StarContext.fillStyle = StarGradient;
+  StarContext.fillRect(0, 0, 64, 64);
+  const StarTexture = new THREE.CanvasTexture(StarCanvas);
+  StarTexture.needsUpdate = true;
+  return StarTexture;
+}
+
 function createStarLayer(THREE, Scene, nextRandomValue, {
   count,
   size,
@@ -149,6 +167,7 @@ function createStarLayer(THREE, Scene, nextRandomValue, {
   nearZ,
   farZ,
   additive = false,
+  starMap,
 }) {
   const StarPositions = new Float32Array(count * 3);
   for (let StarIndex = 0; StarIndex < count; StarIndex += 1) {
@@ -162,10 +181,12 @@ function createStarLayer(THREE, Scene, nextRandomValue, {
   const StarMaterial = new THREE.PointsMaterial({
     color,
     size,
-    sizeAttenuation: true,
+    map: starMap,
+    sizeAttenuation: false,
     transparent: true,
     opacity,
     depthWrite: false,
+    alphaTest: 0.08,
     blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
   });
   const StarPoints = new THREE.Points(StarGeometry, StarMaterial);
@@ -176,30 +197,33 @@ function createStarLayer(THREE, Scene, nextRandomValue, {
 function createBackdrop(THREE, Scene, EnvironmentDefinition) {
   const NebulaMaterial = createNebulaDome(THREE, Scene, EnvironmentDefinition);
   const nextRandomValue = createDeterministicRandom(732451);
+  const StarMap = createStarSpriteTexture(THREE);
 
   const FarLayer = createStarLayer(THREE, Scene, nextRandomValue, {
     count: 640,
-    size: 0.09,
-    opacity: 0.58,
+    size: 1.15,
+    opacity: 0.62,
     color: 0xd9e5ef,
     spreadX: 210,
     spreadY: 160,
     nearZ: -18,
     farZ: -52,
+    starMap: StarMap,
   });
   const MidLayer = createStarLayer(THREE, Scene, nextRandomValue, {
     count: 340,
-    size: 0.17,
-    opacity: 0.8,
+    size: 1.7,
+    opacity: 0.84,
     color: 0xf3f7ff,
     spreadX: 185,
     spreadY: 140,
     nearZ: -12,
     farZ: -36,
+    starMap: StarMap,
   });
   const BrightLayer = createStarLayer(THREE, Scene, nextRandomValue, {
     count: 76,
-    size: 0.4,
+    size: 2.35,
     opacity: 0.95,
     color: 0xffffff,
     spreadX: 170,
@@ -207,17 +231,19 @@ function createBackdrop(THREE, Scene, EnvironmentDefinition) {
     nearZ: -9,
     farZ: -28,
     additive: true,
+    starMap: StarMap,
   });
   const DustLayer = createStarLayer(THREE, Scene, nextRandomValue, {
     count: 130,
-    size: 0.15,
-    opacity: 0.16,
+    size: 6.5,
+    opacity: 0.12,
     color: EnvironmentDefinition.hemisphereSkyColor.getHex(),
     spreadX: 130,
     spreadY: 105,
     nearZ: 4,
     farZ: -6,
     additive: true,
+    starMap: StarMap,
   });
 
   let BackdropElapsedSeconds = 0;

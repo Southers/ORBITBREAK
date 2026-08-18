@@ -8,7 +8,7 @@ import { countLiveRelayWorlds, listRelayCircuits } from './network.js';
 import {
   getLandedCameraScale,
   getLandedSurfaceCameraPose,
-  getFlightCameraScale,
+  getFlightFollowFrame,
   getPlanningAtmosphere,
   getPlanningFocusWorldIdentifiers,
   getSectorPlanningCamera,
@@ -86,6 +86,60 @@ export function createCameraController(THREE, host) {
       return host.SeedstoneDefinition;
     }
     return getWorldDefinition(host.CurrentWorldIdentifier);
+  }
+
+  function getFlightFramingTargetPoint(ShipX, ShipY) {
+    const PredictedId = host.LastPredictedBodyIdentifier;
+    if (PredictedId === WorldheartDefinition.id) {
+      const CommandPosition = calculateBodyPositionAtTime(
+        WorldheartDefinition,
+        host.PhysicsElapsedTimeSeconds,
+      );
+      return { x: CommandPosition.x, y: CommandPosition.y };
+    }
+    if (PredictedId) {
+      const PredictedWorld = getWorldDefinition(PredictedId);
+      if (PredictedWorld) {
+        return { x: PredictedWorld.position.x, y: PredictedWorld.position.y };
+      }
+    }
+    let NearestWorld = null;
+    let NearestDistance = Infinity;
+    for (const WorldDefinition of WorldDefinitions) {
+      if (WorldDefinition.id === host.CurrentWorldIdentifier) {
+        continue;
+      }
+      const Distance = Math.hypot(
+        WorldDefinition.position.x - ShipX,
+        WorldDefinition.position.y - ShipY,
+      );
+      if (Distance < NearestDistance) {
+        NearestDistance = Distance;
+        NearestWorld = WorldDefinition;
+      }
+    }
+    if (NearestWorld && NearestDistance > (NearestWorld.radius * 1.25)) {
+      return { x: NearestWorld.position.x, y: NearestWorld.position.y };
+    }
+    return null;
+  }
+
+  function getLiveFlightFollowFrame() {
+    const ShipX = host.SeedPhysicsState.position.x;
+    const ShipY = host.SeedPhysicsState.position.y;
+    const Velocity = host.SeedPhysicsState.velocity ?? { x: 0, y: 0 };
+    const TargetPoint = getFlightFramingTargetPoint(ShipX, ShipY);
+    const FlightWorld = getWorldDefinition(host.CurrentWorldIdentifier);
+    return getFlightFollowFrame({
+      shipX: ShipX,
+      shipY: ShipY,
+      velocityX: Velocity.x,
+      velocityY: Velocity.y,
+      targetX: TargetPoint?.x,
+      targetY: TargetPoint?.y,
+      worldRadius: FlightWorld?.radius ?? 3,
+      viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
+    });
   }
 
 function captureAimInteractionCamera() {
@@ -499,6 +553,13 @@ function updateCamera(DeltaTimeSeconds) {
         0,
       );
     }
+  } else if (UsesExplorationCamera && host.GamePhase === 'flying') {
+    const FlightFrame = getLiveFlightFollowFrame();
+    DesiredCameraLookTarget.set(
+      FlightFrame.lookX + CameraPanOffset.x,
+      FlightFrame.lookY + CameraPanOffset.y,
+      FlightFrame.lookZ,
+    );
   } else if (UsesExplorationCamera) {
     DesiredCameraLookTarget.set(
       host.SeedPhysicsState.position.x + CameraPanOffset.x,
@@ -519,7 +580,7 @@ function updateCamera(DeltaTimeSeconds) {
     ? 1
     : 1 - Math.exp(-DeltaTimeSeconds * (
       host.GamePhase === 'flying' || StoryLookPoint
-        ? 5.2
+        ? 8.6
         : (UsesExplorationCamera ? 3.8 : 2.6)
     ));
   CameraLookTarget.lerp(DesiredCameraLookTarget, CameraFollowAlpha);
@@ -532,11 +593,7 @@ function updateCamera(DeltaTimeSeconds) {
   } else if (UsesPlanningCamera) {
     DesiredDistanceScale = host.PlanningCameraScale * host.AimZoomScale;
   } else if (UsesExplorationCamera && host.GamePhase === 'flying') {
-    const FlightWorld = getWorldDefinition(host.CurrentWorldIdentifier);
-    DesiredDistanceScale = getFlightCameraScale({
-      worldRadius: FlightWorld?.radius ?? 3,
-      viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
-    });
+    DesiredDistanceScale = getLiveFlightFollowFrame().scale;
   } else if (
     UsesExplorationCamera
     && (host.GamePhase === 'attached' || host.GamePhase === 'restoring')

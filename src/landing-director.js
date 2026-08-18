@@ -132,22 +132,30 @@ export function createLandingDirector(THREE, host) {
     const WorldRuntime = WorldRuntimeByIdentifier.get(WorldDefinition.id);
     WorldRuntime.restorationStartedAtSeconds = null;
     WorldRuntime.restorationCompleted = false;
-    WorldRuntime.restorationUniforms.restorationProgress.value = -0.1;
-    WorldRuntime.restorationWaveMesh.visible = false;
-    WorldRuntime.atmosphereMaterial.opacity = 0.025;
-    WorldRuntime.atmosphereMesh.scale.setScalar(0.96);
-    WorldRuntime.contourRingGroup.visible = false;
-    const StillnessPresentation = getStillnessPresentation(false);
-    WorldRuntime.stillnessCageGroup.visible = StillnessPresentation.visible;
-    WorldRuntime.stillnessCageGroup.scale.setScalar(StillnessPresentation.scale);
-    WorldRuntime.stillnessCageMaterial.opacity = StillnessPresentation.opacity;
-    WorldRuntime.group.scale.setScalar(1);
-    if (WorldRuntime.ambientMoteGroup) {
-      WorldRuntime.ambientMoteGroup.material.opacity = 0;
-    }
-    for (const SurfacePropObject of WorldRuntime.surfaceMarkerGroup.children) {
-      setSurfacePropRestorationProgress(SurfacePropObject, 0);
-      SurfacePropObject.scale.setScalar(SurfacePropObject.userData.baseScale * 0.05);
+    const ShouldSnapSuppression = host.PrefersReducedMotion === true;
+    WorldRuntime.suppressionStartedAtSeconds = ShouldSnapSuppression
+      ? null
+      : host.GameElapsedTimeSeconds;
+    WorldRuntime.restorationUniforms.restorationProgress.value = ShouldSnapSuppression ? -0.1 : 1;
+    WorldRuntime.restorationWaveMesh.visible = !ShouldSnapSuppression;
+    if (ShouldSnapSuppression) {
+      WorldRuntime.atmosphereMaterial.opacity = 0.025;
+      WorldRuntime.atmosphereMesh.scale.setScalar(0.96);
+      WorldRuntime.contourRingGroup.visible = false;
+      const StillnessPresentation = getStillnessPresentation(false);
+      WorldRuntime.stillnessCageGroup.visible = StillnessPresentation.visible;
+      WorldRuntime.stillnessCageGroup.scale.setScalar(StillnessPresentation.scale);
+      WorldRuntime.stillnessCageMaterial.opacity = StillnessPresentation.opacity;
+      WorldRuntime.group.scale.setScalar(1);
+      if (WorldRuntime.ambientMoteGroup) {
+        WorldRuntime.ambientMoteGroup.material.opacity = 0;
+      }
+      for (const SurfacePropObject of WorldRuntime.surfaceMarkerGroup.children) {
+        setSurfacePropRestorationProgress(SurfacePropObject, 0);
+        SurfacePropObject.scale.setScalar(SurfacePropObject.userData.baseScale * 0.05);
+      }
+    } else {
+      WorldRuntime.contourRingGroup.visible = false;
     }
     updateWorldCounter();
     updateWorldheartObjective();
@@ -166,6 +174,7 @@ export function createLandingDirector(THREE, host) {
     host.IsBreakerBurnPending = false;
     host.CommittedPredictionPoints = null;
     GameCanvas.dataset.predictionHoldActive = 'false';
+    host.hideInstruction();
     const LandingOriginWorldIdentifier = host.FlightOriginWorldIdentifier;
     const SurfaceRestPosition = host.calculateSurfaceRestPosition(WorldDefinition, ImpactPosition);
 
@@ -713,6 +722,7 @@ export function createLandingDirector(THREE, host) {
       WorldDefinition.restored = IsInitiallyRestored;
       const WorldRuntime = WorldRuntimeByIdentifier.get(WorldDefinition.id);
       WorldRuntime.restorationStartedAtSeconds = IsInitiallyRestored ? -Infinity : null;
+      WorldRuntime.suppressionStartedAtSeconds = null;
       WorldRuntime.restorationCompleted = IsInitiallyRestored;
       WorldRuntime.restorationOriginLocal.set(1, 0, 0);
       WorldRuntime.restorationUniforms.restorationOrigin.value.set(1, 0, 0);

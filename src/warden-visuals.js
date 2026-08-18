@@ -82,6 +82,19 @@ export function createWardenVisuals(THREE, Scene, host) {
     WardenCoreMaterial,
   );
   WardenVisualGroup.add(WardenCoreMesh);
+  const WardenCrustMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1a1014,
+    emissive: 0x5a1418,
+    emissiveIntensity: 0.55,
+    roughness: 0.48,
+    metalness: 0.78,
+  });
+  const WardenCrustMesh = new THREE.Mesh(
+    new THREE.TorusGeometry(1.08, 0.055, 7, 36),
+    WardenCrustMaterial,
+  );
+  WardenCrustMesh.rotation.x = Math.PI * 0.5;
+  WardenVisualGroup.add(WardenCrustMesh);
   const WardenArmorMaterial = new THREE.MeshStandardMaterial({
     color: 0x160f18,
     emissive: 0x6e1018,

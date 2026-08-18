@@ -15,6 +15,7 @@ import {
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
+  shouldShowPlayfieldWorldLabels,
 } from './presentation.js';
 
 export function createRoutePresentation(THREE, host) {
@@ -189,13 +190,29 @@ export function createRoutePresentation(THREE, host) {
   }
 
   /** Projects suggested world names into the HUD without spending WebGL draw calls. */
+  function hidePlayfieldLabel(LabelElement) {
+    LabelElement.textContent = '';
+    LabelElement.hidden = true;
+  }
+
+  function writePlayfieldLabel(LabelElement, Text) {
+    LabelElement.textContent = Text;
+    LabelElement.hidden = !Text;
+  }
+
   function updateRouteLabels(InstructionTop) {
-    const LabelsActive = host.IsPointerAiming
-      || host.IsKeyboardAiming
-      || host.IsScoutMode;
+    const LabelsActive = shouldShowPlayfieldWorldLabels({
+      isPointerAiming: host.IsPointerAiming,
+      isKeyboardAiming: host.IsKeyboardAiming,
+      isScoutMode: host.IsScoutMode,
+      toastVisible: StatusToastElement.classList.contains('is-visible'),
+    });
     if (!LabelsActive) {
       for (const RouteLabelElement of RouteLabelElements) {
-        RouteLabelElement.textContent = '';
+        hidePlayfieldLabel(RouteLabelElement);
+      }
+      for (const TacticalLabelElement of TacticalLabelElements) {
+        hidePlayfieldLabel(TacticalLabelElement);
       }
       return;
     }
@@ -220,7 +237,7 @@ export function createRoutePresentation(THREE, host) {
       const RouteLabelElement = RouteLabelElements[LabelIndex];
       const WorldDefinition = RouteChoices[LabelIndex];
       if (!WorldDefinition) {
-        RouteLabelElement.textContent = '';
+        hidePlayfieldLabel(RouteLabelElement);
         continue;
       }
 
@@ -237,7 +254,7 @@ export function createRoutePresentation(THREE, host) {
           ? (RouteLabelProjection.x > 0 ? '→ ' : '← ')
           : (RouteLabelProjection.y > 0 ? '↑ ' : '↓ ');
       }
-      RouteLabelElement.textContent = DirectionPrefix + WorldDefinition.label;
+      writePlayfieldLabel(RouteLabelElement, DirectionPrefix + WorldDefinition.label);
       LabelPositions.push({
         x: Math.round(
           THREE.MathUtils.clamp(
@@ -400,7 +417,7 @@ export function createRoutePresentation(THREE, host) {
         || !(host.IsPointerAiming || host.IsKeyboardAiming || host.IsScoutMode)
         || StatusToastElement.classList.contains('is-visible')
       ) {
-        TacticalLabelElement.textContent = '';
+        hidePlayfieldLabel(TacticalLabelElement);
         continue;
       }
 
@@ -409,7 +426,7 @@ export function createRoutePresentation(THREE, host) {
         TacticalLabelDefinition.position.y + TacticalLabelDefinition.definition.radius + 0.55,
         0,
       ).project(Camera);
-      TacticalLabelElement.textContent = TacticalLabelDefinition.text;
+      writePlayfieldLabel(TacticalLabelElement, TacticalLabelDefinition.text);
       const ProjectedLabelX = (
         (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth
       );

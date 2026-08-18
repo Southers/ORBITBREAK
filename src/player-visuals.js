@@ -21,7 +21,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   const RunnerSuitMaterial = new THREE.MeshStandardMaterial({
     color: 0xe9f2f4,
     emissive: 0x4f8fa0,
-    emissiveIntensity: 0.28,
+    emissiveIntensity: 0.4,
     roughness: 0.38,
     metalness: 0.08,
   });
@@ -35,7 +35,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   const RunnerVisorMaterial = new THREE.MeshStandardMaterial({
     color: 0xffbf62,
     emissive: 0xff7a38,
-    emissiveIntensity: 1.25,
+    emissiveIntensity: 1.55,
     roughness: 0.2,
     metalness: 0.3,
   });
@@ -131,7 +131,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   const ShipHullMaterial = new THREE.MeshStandardMaterial({
     color: 0xddecef,
     emissive: 0x2a7f99,
-    emissiveIntensity: 0.42,
+    emissiveIntensity: 0.62,
     roughness: 0.3,
     metalness: 0.46,
   });
@@ -171,6 +171,12 @@ export function createPlayerVisuals(THREE, Scene, host) {
   ShipWindowMesh.position.set(0, 0.16, 0.2);
   ShipWindowMesh.scale.set(1, 1.18, 0.38);
   ShipVisualGroup.add(ShipWindowMesh);
+  const ShipTailMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.08, 0.28, 0.16),
+    ShipAccentMaterial,
+  );
+  ShipTailMesh.position.set(0, -0.28, -0.16);
+  ShipVisualGroup.add(ShipTailMesh);
   const ShipThrusterMesh = new THREE.Mesh(
     new THREE.ConeGeometry(0.12, 0.44, 10),
     RunnerThrusterMaterial,

@@ -25,23 +25,23 @@ import {
   getAdaptivePresentationTier,
   getViewportPixelRatioCap,
 } from './performance.js?v=20260814-ob13';
-import { addEnvironment } from './environment.js?v=20260815-ob89';
-import { createWorldVisuals } from './world-geometry.js?v=20260816-ob96';
-import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260816-ob96';
-import { createWardenVisuals } from './warden-visuals.js?v=20260817-ob99';
-import { createPlayerVisuals } from './player-visuals.js?v=20260817-ob99';
+import { addEnvironment } from './environment.js?v=20260818-ob100';
+import { createWorldVisuals } from './world-geometry.js?v=20260818-ob100';
+import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob100';
+import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob100';
+import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob100';
 import { createStoryDirector } from './story-director.js?v=20260817-ob99';
-import { createHud } from './hud.js?v=20260817-ob99';
+import { createHud } from './hud.js?v=20260818-ob100';
 import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
-import { createLandingDirector } from './landing-director.js?v=20260817-ob99';
-import { createCameraController } from './camera-controller.js?v=20260816-ob97';
+import { createLandingDirector } from './landing-director.js?v=20260818-ob100';
+import { createCameraController } from './camera-controller.js?v=20260818-ob100';
 import { createInputController } from './input-controller.js?v=20260817-ob99';
 import { createHostileSurface } from './hostile-surface.js?v=20260817-ob99';
 import { createScanner } from './scanner.js?v=20260817-ob99';
-import { createRoutePresentation } from './route-presentation.js?v=20260817-ob99';
+import { createRoutePresentation } from './route-presentation.js?v=20260818-ob100';
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
 import { createFrameVisuals } from './frame-visuals.js?v=20260816-ob93';
-import { createRestorationVisuals } from './restoration-visuals.js?v=20260816-ob92';
+import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob100';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
 import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=0.179.1';
@@ -148,7 +148,7 @@ import {
   getStoryMusicStage,
   getWorldLifeStage,
   getWorldLandingAimLabel,
-} from './presentation.js?v=20260817-ob99';
+} from './presentation.js?v=20260818-ob100';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -290,7 +290,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260817-ob99';
+GameCanvas.dataset.build = '20260818-ob100';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -380,7 +380,7 @@ Camera.lookAt(0, 0, 0);
  */
 const Composer = new EffectComposer(Renderer);
 const ScenePass = new RenderPass(Scene, Camera);
-const BloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5, 0.55, 0.82);
+const BloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.64, 0.52, 0.7);
 const CompositeOutputPass = new OutputPass();
 Composer.addPass(ScenePass);
 Composer.addPass(BloomPass);
@@ -658,6 +658,7 @@ const LivingWorldVisuals = createLivingWorldVisuals(THREE, Scene, {
   get RecaptureCutGiftAvailable() { return RecaptureCutGiftAvailable; },
   get CurrentWorldIdentifier() { return CurrentWorldIdentifier; },
   get FinaleRestorationStartedAtSeconds() { return FinaleRestorationStartedAtSeconds; },
+  get CameraDistanceScale() { return CameraDistanceScale; },
 });
 const {
   updateSlingshotBandVisuals,
@@ -2811,6 +2812,7 @@ function simulateSeedFixedStep() {
 
 const RestorationVisuals = createRestorationVisuals(THREE, {
   GameCanvas,
+  Camera,
   WorldDefinitions,
   WorldRuntimeByIdentifier,
   WorldseedSound,
@@ -3386,6 +3388,7 @@ function renderFrame() {
   }
   updateCamera(DeltaTimeSeconds);
   updateControlModeInterface();
+  refreshInstructionPanelBounds();
   updateTacticalBodies(ElapsedTimeSeconds, CachedInstructionPanelTop);
   updateStardustVisuals(ElapsedTimeSeconds);
   updateRouteLabels(CachedInstructionPanelTop);

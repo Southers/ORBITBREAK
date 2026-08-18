@@ -73,7 +73,9 @@ export function createHud(host) {
   }
 
   function refreshPlayfieldLabelBounds() {
-    host.CachedInstructionPanelTop = window.innerHeight;
+    host.CachedInstructionPanelTop = PlayCaptionElement.hidden
+      ? window.innerHeight
+      : Math.min(window.innerHeight, PlayCaptionElement.getBoundingClientRect().top);
   }
 
   /** Updates the optional Arc mastery counter. */

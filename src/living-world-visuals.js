@@ -291,7 +291,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     depthWrite: false,
   });
   const GravityWellMesh = new THREE.InstancedMesh(
-    new THREE.PlaneGeometry(2, 2),
+    new THREE.RingGeometry(0.58, 1, 64),
     GravityWellMaterial,
     WorldDefinitions.length,
   );
@@ -418,7 +418,13 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
 
     SlingshotAssistMaterial.opacity = VisualState.assistOpacity;
     SlingshotRazorMaterial.opacity = VisualState.razorOpacity;
-    GravityWellMaterial.opacity = VisualState.wellOpacity;
+    const ZoomFade = THREE.MathUtils.clamp(
+      1 - THREE.MathUtils.smoothstep(0.95, 1.55, host.CameraDistanceScale ?? 1),
+      0,
+      1,
+    );
+    GravityWellMesh.visible = ZoomFade > 0.04;
+    GravityWellMaterial.opacity = VisualState.wellOpacity * (0.22 + (ZoomFade * 0.78));
     const BandRotation = PrefersReducedMotion ? 0 : ElapsedTimeSeconds * 0.14;
     for (let WorldIndex = 0; WorldIndex < WorldDefinitions.length; WorldIndex += 1) {
       const WorldDefinition = WorldDefinitions[WorldIndex];
@@ -440,7 +446,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       SlingshotRazorMesh.setColorAt(WorldIndex, SlingshotRazorColor);
 
       const WellRadius = WorldDefinition.radius
-        + (Math.sqrt(WorldDefinition.gravitationalParameter) * 0.34);
+        + (Math.sqrt(WorldDefinition.gravitationalParameter) * 0.22);
       SlingshotBandTransform.rotation.set(0, 0, 0);
       SlingshotBandTransform.position.set(
         WorldDefinition.position.x,

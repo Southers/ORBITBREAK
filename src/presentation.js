@@ -660,13 +660,14 @@ export function getLandedSurfaceCameraPose({
   const ClosePull = worldRadius * 2.35;
   const ZoomPull = baseCameraDistance * cameraScale;
   const RadialPull = Math.max(ClosePull, ZoomPull);
+  const LookAlongRadius = worldRadius * 0.34;
   return {
     cameraX: worldX + (CameraDirectionX * RadialPull),
     cameraY: worldY + (CameraDirectionY * RadialPull),
     cameraZ: worldZ + (CameraDirectionZ * RadialPull),
-    lookAtX: worldX + (DirectionX * worldRadius * 0.18),
-    lookAtY: worldY + (DirectionY * worldRadius * 0.18),
-    lookAtZ: worldZ + (DirectionZ * worldRadius * 0.18),
+    lookAtX: worldX + (DirectionX * LookAlongRadius),
+    lookAtY: worldY + (DirectionY * LookAlongRadius),
+    lookAtZ: worldZ + (DirectionZ * LookAlongRadius),
     upX: 0,
     upY: PoleLock ? 1 : 0,
     upZ: PoleLock ? 0 : 1,
@@ -686,7 +687,7 @@ export function getLandedCameraScale({
   if (!Number.isFinite(viewportWorldHeight) || viewportWorldHeight <= 0) {
     throw new Error('Landed camera requires a positive viewport height.');
   }
-  const FramedHeight = worldRadius * 3.35;
+  const FramedHeight = worldRadius * 3.22;
   return Math.min(
     maximumScale,
     Math.max(minimumScale, FramedHeight / viewportWorldHeight),
@@ -699,6 +700,8 @@ export function getFlightCameraScale({
   viewportWorldHeight = 24,
   minimumScale = 0.62,
   maximumScale = 0.92,
+  targetDistance = 0,
+  shipSpeed = 0,
 } = {}) {
   if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
     throw new Error('Flight camera requires a positive world radius.');
@@ -706,11 +709,99 @@ export function getFlightCameraScale({
   if (!Number.isFinite(viewportWorldHeight) || viewportWorldHeight <= 0) {
     throw new Error('Flight camera requires a positive viewport height.');
   }
-  const FramedHeight = worldRadius * 6.2;
+  const SafeTargetDistance = Number.isFinite(targetDistance) ? Math.max(0, targetDistance) : 0;
+  const SafeShipSpeed = Number.isFinite(shipSpeed) ? Math.max(0, shipSpeed) : 0;
+  const FramedHeight = (worldRadius * 6.2)
+    + Math.min(8.5, SafeTargetDistance * 0.22)
+    + Math.min(4.5, SafeShipSpeed * 0.38);
   return Math.min(
     maximumScale,
     Math.max(minimumScale, FramedHeight / viewportWorldHeight),
   );
+}
+
+/**
+ * Keeps the ship in frame after a Break or void miss by looking ahead of
+ * velocity and biasing slightly toward the next world.
+ */
+export function getFlightFollowFrame({
+  shipX,
+  shipY,
+  velocityX = 0,
+  velocityY = 0,
+  targetX = null,
+  targetY = null,
+  worldRadius = 3,
+  viewportWorldHeight = 24,
+  lookaheadSeconds = 0.48,
+} = {}) {
+  if (!Number.isFinite(shipX) || !Number.isFinite(shipY)) {
+    throw new Error('Flight follow requires a finite ship position.');
+  }
+  const VelocityX = Number.isFinite(velocityX) ? velocityX : 0;
+  const VelocityY = Number.isFinite(velocityY) ? velocityY : 0;
+  const Speed = Math.hypot(VelocityX, VelocityY);
+  const Lookahead = Math.min(6.2, Speed * Math.max(0, lookaheadSeconds));
+  let lookX = shipX;
+  let lookY = shipY;
+  if (Speed > 1e-4) {
+    lookX += (VelocityX / Speed) * Lookahead;
+    lookY += (VelocityY / Speed) * Lookahead;
+  }
+  let targetDistance = 0;
+  if (Number.isFinite(targetX) && Number.isFinite(targetY)) {
+    targetDistance = Math.hypot(targetX - shipX, targetY - shipY);
+    const FrameBlend = Math.min(0.28, targetDistance / 42);
+    lookX += (targetX - lookX) * FrameBlend;
+    lookY += (targetY - lookY) * FrameBlend;
+  }
+  return {
+    lookX,
+    lookY,
+    lookZ: 0,
+    scale: getFlightCameraScale({
+      worldRadius,
+      viewportWorldHeight,
+      targetDistance,
+      shipSpeed: Speed,
+    }),
+  };
+}
+
+/** Occupied rims keep biome colour instead of flattening to one grey shell. */
+export function getOccupiedAtmosphereOpacity(atmosphereOpacity = 0.12) {
+  if (!Number.isFinite(atmosphereOpacity) || atmosphereOpacity < 0) {
+    throw new Error('Occupied atmosphere requires a non-negative opacity.');
+  }
+  return Math.max(0.08, Math.min(0.16, 0.07 + (atmosphereOpacity * 0.5)));
+}
+
+/** Frost ice, Ember basalt and Grove canopy read at a glance without extra draws. */
+export function getWorldSurfaceFinish(visualKey) {
+  if (visualKey === 'frost' || visualKey === 'nest' || visualKey === 'shard') {
+    return { roughness: 0.28, metalness: 0.22 };
+  }
+  if (visualKey === 'ember' || visualKey === 'kiln' || visualKey === 'lantern' || visualKey === 'vault') {
+    return { roughness: 0.5, metalness: 0.14 };
+  }
+  if (visualKey === 'tide' || visualKey === 'drift' || visualKey === 'dew') {
+    return { roughness: 0.4, metalness: 0.16 };
+  }
+  if (visualKey === 'grove' || visualKey === 'canopy') {
+    return { roughness: 0.76, metalness: 0.04 };
+  }
+  return { roughness: 0.82, metalness: 0.03 };
+}
+
+/** World pills stay off during landed play and while a toast covers the playfield. */
+export function shouldShowPlayfieldWorldLabels({
+  isPointerAiming = false,
+  isKeyboardAiming = false,
+  isScoutMode = false,
+  toastVisible = false,
+} = {}) {
+  return (isPointerAiming === true || isKeyboardAiming === true || isScoutMode === true)
+    && toastVisible !== true;
 }
 
 /** Bright initial break followed by a clean, short screen-space fade. */
@@ -1260,12 +1351,11 @@ export function getPlayfieldLabelVerticalBounds({
     wardenVisible,
     isTactical,
   });
-  const BaseMaximumY = viewportHeight - (isCompact ? 48 : 40);
+  const CaptionReserve = isCompact ? 96 : 88;
+  const BaseMaximumY = viewportHeight - CaptionReserve;
   const MaximumY = Math.max(
     0,
-    isShortLandscape
-      ? Math.min(BaseMaximumY, instructionTop - 16)
-      : BaseMaximumY,
+    Math.min(BaseMaximumY, instructionTop - 16),
   );
   return {
     minimumY: Math.min(MinimumY, MaximumY),

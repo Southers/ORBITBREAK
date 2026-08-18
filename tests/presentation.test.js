@@ -55,6 +55,10 @@ import {
   getLandedCameraScale,
   getLandedSurfaceCameraPose,
   getFlightCameraScale,
+  getFlightFollowFrame,
+  getOccupiedAtmosphereOpacity,
+  getWorldSurfaceFinish,
+  shouldShowPlayfieldWorldLabels,
   getTacticalLabelHorizontalMargin,
   getWorldLandingAimLabel,
   getLaunchFacingPresentation,
@@ -541,7 +545,7 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
     isShortLandscape: true,
     wardenVisible: true,
     isTactical: true,
-  }), { minimumY: 56, maximumY: 272 });
+  }), { minimumY: 56, maximumY: 224 });
   assert.deepEqual(getPlayfieldLabelVerticalBounds({
     viewportHeight: 844,
     instructionTop: 844,
@@ -549,7 +553,7 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
     isShortLandscape: false,
     wardenVisible: true,
     isTactical: true,
-  }), { minimumY: 64, maximumY: 796 });
+  }), { minimumY: 64, maximumY: 748 });
   assert.throws(() => getPlayfieldLabelVerticalBounds({
     viewportHeight: Number.NaN,
     instructionTop: 100,
@@ -1087,6 +1091,46 @@ test('flight camera follows wider than a landing but tighter than the planning m
   assert.ok(FlightScale > LandedScale);
   assert.ok(FlightScale < 1);
   assert.equal(getFlightCameraScale({ worldRadius: 2.15, viewportWorldHeight: 24 }), 0.62);
+});
+
+test('flight follow looks ahead of the ship and keeps Ember distinct from origin', () => {
+  const Resting = getFlightFollowFrame({
+    shipX: 2,
+    shipY: -3,
+    worldRadius: 3.2,
+    viewportWorldHeight: 24,
+  });
+  assert.equal(Resting.lookX, 2);
+  assert.equal(Resting.lookY, -3);
+  const Breaking = getFlightFollowFrame({
+    shipX: 2,
+    shipY: -3,
+    velocityX: 10,
+    velocityY: 0,
+    targetX: 14,
+    targetY: 0,
+    worldRadius: 3.2,
+    viewportWorldHeight: 24,
+  });
+  assert.ok(Breaking.lookX > Resting.lookX);
+  assert.ok(Breaking.lookX < 14);
+  assert.ok(Breaking.scale >= Resting.scale);
+});
+
+test('occupied atmospheres and surface finishes keep Ember, Grove and Frost distinct', () => {
+  assert.ok(getOccupiedAtmosphereOpacity(0.18) > getOccupiedAtmosphereOpacity(0.14));
+  assert.ok(getOccupiedAtmosphereOpacity(0) >= 0.08);
+  const EmberFinish = getWorldSurfaceFinish('ember');
+  const FrostFinish = getWorldSurfaceFinish('frost');
+  const GroveFinish = getWorldSurfaceFinish('grove');
+  assert.ok(FrostFinish.roughness < EmberFinish.roughness);
+  assert.ok(EmberFinish.roughness < GroveFinish.roughness);
+  assert.equal(shouldShowPlayfieldWorldLabels({ isPointerAiming: true }), true);
+  assert.equal(shouldShowPlayfieldWorldLabels({
+    isPointerAiming: true,
+    toastVisible: true,
+  }), false);
+  assert.equal(shouldShowPlayfieldWorldLabels({}), false);
 });
 
 test('pursuit coach treats a launch as the turn and a return flight as the loop', () => {
