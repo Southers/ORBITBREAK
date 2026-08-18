@@ -403,25 +403,21 @@ export function createFrameVisuals(THREE, host) {
       isWalking: host.PointerGestureMode === SurfaceGestureModes.walk
         || host.IsPointerWalking === true,
     });
-    const ShowShipCue = VerbHighlight.shipHalo === true || VerbHighlight.shipHaloCharge === true
+    const ShowShipCue = VerbHighlight.shipHaloCharge === true
       || RunnerAnimationState === 'recovering';
     SeedHaloMesh.visible = ShowShipCue;
     if (ShowShipCue) {
       SeedHaloMesh.lookAt(Camera.position);
       SeedHaloMesh.scale.setScalar(
-        (VerbHighlight.shipHaloCharge ? 1.12 : 1)
-        + (Math.sin(ElapsedTimeSeconds * (VerbHighlight.shipHaloCharge ? 7.4 : 4.2)) * (
-          VerbHighlight.shipHaloCharge ? 0.05 : 0.03
-        )),
+        1 + (Math.sin(ElapsedTimeSeconds * (VerbHighlight.shipHaloCharge ? 7.4 : 4.2)) * 0.04),
       );
       if (RunnerAnimationState === 'recovering') {
         SeedHaloMaterial.color.setHex(0xff766d);
       } else {
-        SeedHaloMaterial.color.setHex(VerbHighlight.shipHaloCharge ? 0xc4f7a6 : 0x8fe7ff);
+        SeedHaloMaterial.color.setHex(0xc4f7a6);
       }
-      const HaloRestOpacity = VerbHighlight.shipHaloCharge ? 0.42 : 0.26;
-      SeedHaloMaterial.opacity = HaloRestOpacity
-        + (Math.sin(ElapsedTimeSeconds * 4.2) * (VerbHighlight.shipHaloCharge ? 0.06 : 0.03));
+      SeedHaloMaterial.opacity = 0.38
+        + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.05);
     } else {
       SeedHaloMaterial.opacity = 0;
     }
@@ -430,16 +426,9 @@ export function createFrameVisuals(THREE, host) {
       WorldWalkHaloMesh.visible = false;
       WorldWalkHaloMaterial.opacity = 0;
     }
-
-    if (WalkCursorMesh && VerbHighlight.walkCursor && host.WalkHintVisible === true) {
-      WalkCursorMesh.visible = true;
-      WalkCursorMesh.position.copy(host.WalkHintPosition);
-      WalkCursorMesh.lookAt(Camera.position);
-      WalkCursorMaterial.opacity = 0.72 + (Math.sin(ElapsedTimeSeconds * 8) * 0.12);
-      const CursorPulse = 1 + (Math.sin(ElapsedTimeSeconds * 8) * 0.12);
-      WalkCursorMesh.scale.setScalar(CursorPulse);
-    } else if (WalkCursorMesh) {
+    if (WalkCursorMesh) {
       WalkCursorMesh.visible = false;
+      WalkCursorMaterial.opacity = 0;
     }
 
     if (host.LiberationFlashLifeSeconds > 0) {

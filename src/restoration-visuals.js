@@ -10,6 +10,7 @@ import { getLeftoverHostileEncounter } from './encounter.js';
 import { countLiveRelayWorlds } from './network.js';
 import {
   getOccupiedAtmosphereOpacity,
+  getAtmosphereDistanceFade,
   getRangeVeilStrength,
   getRelayRevealHoldDurationSeconds,
   getCageClearPulseDurationSeconds,
@@ -64,12 +65,10 @@ export function createRestorationVisuals(THREE, host) {
       host.Camera.position.y - WorldRuntime.group.position.y,
       host.Camera.position.z - WorldRuntime.group.position.z,
     );
-    const Apparent = WorldDefinition.radius / Math.max(Distance, 0.001);
-    // Fades fully to zero so tiny distant worlds never keep a flat additive disc.
-    const FarFade = THREE.MathUtils.clamp((Apparent - 0.012) / 0.05, 0, 1);
-    // Landed close-ups keep a rim, not a blown-out white shell.
-    const CloseFade = THREE.MathUtils.clamp((0.7 - Apparent) / 0.28, 0.48, 1);
-    WorldRuntime.atmosphereMaterial.opacity *= FarFade * CloseFade;
+    WorldRuntime.atmosphereMaterial.opacity *= getAtmosphereDistanceFade(
+      WorldDefinition.radius,
+      Distance,
+    );
   }
 
   function applyRangeVeilToWorld(WorldRuntime, WorldDefinition, InnerClusterLive) {

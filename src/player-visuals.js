@@ -344,12 +344,12 @@ export function createPlayerVisuals(THREE, Scene, host) {
   }
 
   /**
-   * Grab cue hugs the toy ship/runner, not the 0.46 collision radius. A filled
-   * sphere here reads as a flashlight disc on the crust from the landed camera.
+   * Grab cue hugs the toy ship. Idle Haven draws nothing; a filled sphere here
+   * intersected the crust as a flashlight donut around the Runner.
    */
-  const SeedHaloGeometry = new THREE.TorusGeometry(0.13, 0.016, 8, 28);
+  const SeedHaloGeometry = new THREE.TorusGeometry(0.07, 0.01, 8, 24);
   const SeedHaloMaterial = new THREE.MeshBasicMaterial({
-    color: 0x6de8ff,
+    color: 0x8fe7ff,
     transparent: true,
     opacity: 0,
     depthWrite: false,
@@ -379,8 +379,6 @@ export function createPlayerVisuals(THREE, Scene, host) {
   );
   WorldWalkHaloMesh.visible = false;
   WorldWalkHaloMesh.frustumCulled = false;
-  WorldWalkHaloMesh.renderOrder = 6;
-  Scene.add(WorldWalkHaloMesh);
 
   const WalkCursorMaterial = new THREE.MeshBasicMaterial({
     color: 0xfff0c4,
@@ -397,8 +395,6 @@ export function createPlayerVisuals(THREE, Scene, host) {
   );
   WalkCursorMesh.visible = false;
   WalkCursorMesh.frustumCulled = false;
-  WalkCursorMesh.renderOrder = 7;
-  Scene.add(WalkCursorMesh);
 
   const SeedPointLight = new THREE.PointLight(0x72dcff, 0.28, 0.9, 2);
   SeedGroup.add(SeedPointLight);
