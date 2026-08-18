@@ -972,13 +972,20 @@ test('parked Orbitbreaker lies on the crust instead of standing as a pole', () =
     surfaceNormalX: 0,
     surfaceNormalY: 0,
     surfaceNormalZ: 1,
+    viewUpX: 0,
+    viewUpY: 0,
+    viewUpZ: 1,
   });
   assert.equal(NearFace.dorsal.z, 1);
   assert.equal(NearFace.lieDownX, -Math.PI / 2);
   assert.equal(NearFace.scale, 0.2);
   assert.ok(NearFace.scale < 0.26, 'parked courier must be smaller than the Runner');
   assert.ok(Math.abs(NearFace.nose.z) < 0.08);
-  assert.ok(Math.hypot(NearFace.nose.x, NearFace.nose.y) > 0.9);
+  assert.ok(
+    Math.abs(NearFace.nose.y) < 0.08,
+    'Z-up close-up must not use world +Y as the hull axis',
+  );
+  assert.ok(Math.abs(NearFace.nose.x) > 0.9, 'Z-up close-up nose must follow view X');
   const NoseDotDorsal = (
     (NearFace.nose.x * NearFace.dorsal.x)
     + (NearFace.nose.y * NearFace.dorsal.y)
@@ -991,6 +998,23 @@ test('parked Orbitbreaker lies on the crust instead of standing as a pole', () =
     + (NearFace.offset.z * NearFace.dorsal.z)
   );
   assert.ok(OffsetDotDorsal < -0.2, 'parked hull must sit down on the crust');
+
+  const DegenerateZUp = getParkedShipPresentation({
+    surfaceNormalX: 0,
+    surfaceNormalY: 0,
+    surfaceNormalZ: 1,
+    viewUpX: 0,
+    viewUpY: 0,
+    viewUpZ: 1,
+    viewRightX: 0,
+    viewRightY: 1,
+    viewRightZ: 0,
+  });
+  assert.ok(
+    Math.abs(DegenerateZUp.nose.y) < 0.08,
+    'parallel camera-up must not fall back to world +Y',
+  );
+  assert.ok(Math.abs(DegenerateZUp.nose.x) > 0.9);
 
   const LandedEquator = getParkedShipPresentation({
     surfaceNormalX: 1,

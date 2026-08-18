@@ -186,6 +186,8 @@ export function auditReleaseReadiness() {
       && !LandingDirectorSource.includes('contourRingGroup.visible = true')
       && LandingDirectorSource.includes('contourRingGroup.visible = false')
       && PresentationSource.includes('export function getParkedShipPresentation(')
+      && PresentationSource.includes('viewRightX = 1')
+      && !PresentationSource.includes('NoseY = 1')
       && PresentationSource.includes('lieDownX: -Math.PI / 2')
       && PresentationSource.includes('scale: 0.2')
       && FrameVisualsSource.includes('getParkedShipPresentation(')

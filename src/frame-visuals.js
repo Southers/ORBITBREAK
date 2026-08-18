@@ -400,20 +400,38 @@ export function createFrameVisuals(THREE, host) {
         }
       }
       const PoleLock = HasSurfaceNormal && Math.abs(SurfaceStandTo.z) > 0.92;
+      const ViewUpX = 0;
+      const ViewUpY = PoleLock ? 1 : 0;
+      const ViewUpZ = PoleLock ? 0 : 1;
+      const ViewRightX = HasSurfaceNormal
+        ? ((-SurfaceStandTo.y) * ViewUpZ) - ((-SurfaceStandTo.z) * ViewUpY)
+        : 1;
+      const ViewRightY = HasSurfaceNormal
+        ? ((-SurfaceStandTo.z) * ViewUpX) - ((-SurfaceStandTo.x) * ViewUpZ)
+        : 0;
+      const ViewRightZ = HasSurfaceNormal
+        ? ((-SurfaceStandTo.x) * ViewUpY) - ((-SurfaceStandTo.y) * ViewUpX)
+        : 0;
       const ParkedShip = getParkedShipPresentation(
         HasSurfaceNormal
           ? {
             surfaceNormalX: SurfaceStandTo.x,
             surfaceNormalY: SurfaceStandTo.y,
             surfaceNormalZ: SurfaceStandTo.z,
-            viewUpX: 0,
-            viewUpY: PoleLock ? 1 : 0,
-            viewUpZ: PoleLock ? 0 : 1,
+            viewUpX: ViewUpX,
+            viewUpY: ViewUpY,
+            viewUpZ: ViewUpZ,
+            viewRightX: ViewRightX,
+            viewRightY: ViewRightY,
+            viewRightZ: ViewRightZ,
           }
           : {
             viewUpX: 0,
             viewUpY: 0,
             viewUpZ: 1,
+            viewRightX: 1,
+            viewRightY: 0,
+            viewRightZ: 0,
           },
       );
       if (ShipLieGroup) {
