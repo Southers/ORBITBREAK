@@ -61,6 +61,7 @@ import {
   getFlightCameraScale,
   getFlightFollowFrame,
   getOccupiedAtmosphereOpacity,
+  getAtmosphereDistanceFade,
   getWorldSurfaceFinish,
   shouldShowPlayfieldWorldLabels,
   collapsePlayfieldLabelBox,
@@ -830,9 +831,27 @@ test('first-run captions stay until the ship is grabbed, then until launch, then
     hasWalkedOnce: false,
     hasLaunchedOnce: false,
   });
-  assert.equal(IdleHighlight.shipHalo, true);
-  assert.equal(IdleHighlight.worldWalkHalo, true);
+  assert.equal(IdleHighlight.shipHalo, false);
+  assert.equal(IdleHighlight.worldWalkHalo, false);
+  assert.equal(IdleHighlight.walkCursor, false);
   assert.equal(IdleHighlight.pullHint, false);
+  const HoverPlanet = getLandedVerbHighlight({
+    gamePhase: 'attached',
+    hasWalkedOnce: false,
+    hasLaunchedOnce: false,
+    isWalkReady: true,
+  });
+  assert.equal(HoverPlanet.worldWalkHalo, false);
+  assert.equal(HoverPlanet.walkCursor, false);
+  assert.equal(HoverPlanet.shipHalo, false);
+  const GrabReady = getLandedVerbHighlight({
+    gamePhase: 'attached',
+    hasWalkedOnce: false,
+    hasLaunchedOnce: false,
+    isGrabReady: true,
+  });
+  assert.equal(GrabReady.shipHalo, true);
+  assert.equal(GrabReady.worldWalkHalo, false);
   const ReadyToLaunch = getLandedVerbHighlight({
     gamePhase: 'attached',
     hasWalkedOnce: true,
@@ -841,6 +860,7 @@ test('first-run captions stay until the ship is grabbed, then until launch, then
   });
   assert.equal(ReadyToLaunch.pullHint, false);
   assert.equal(ReadyToLaunch.worldWalkHalo, false);
+  assert.equal(ReadyToLaunch.walkCursor, false);
   const AfterGrabHighlight = getLandedVerbHighlight({
     gamePhase: 'attached',
     hasWalkedOnce: true,
@@ -1248,6 +1268,9 @@ test('flight follow looks ahead of the ship and keeps Ember distinct from origin
 test('occupied atmospheres and surface finishes keep Ember, Grove and Frost distinct', () => {
   assert.ok(getOccupiedAtmosphereOpacity(0.18) > getOccupiedAtmosphereOpacity(0.14));
   assert.ok(getOccupiedAtmosphereOpacity(0) >= 0.08);
+  assert.equal(getAtmosphereDistanceFade(3.2, 11.25), 0);
+  assert.ok(getAtmosphereDistanceFade(3.2, 42) > 0.9);
+  assert.throws(() => getAtmosphereDistanceFade(0, 12), /positive world radius/);
   const EmberFinish = getWorldSurfaceFinish('ember');
   const FrostFinish = getWorldSurfaceFinish('frost');
   const GroveFinish = getWorldSurfaceFinish('grove');

@@ -89,7 +89,11 @@ export function getFirstRunCoachPresentation({
   };
 }
 
-/** Ship halo vs planet rim so walk and aim look different before the drag commits. */
+/**
+ * Ship grab is a tiny cue on the craft only while the pointer is over it or
+ * aiming. Planet-sized walk discs, hover outlines and crust donuts stay off;
+ * first-run chips still teach drag-to-walk.
+ */
 export function getLandedVerbHighlight({
   gamePhase = 'attached',
   hasWalkedOnce = false,
@@ -104,14 +108,10 @@ export function getLandedVerbHighlight({
   const IsAttached = gamePhase === 'attached';
   const ShipCharge = isGrabReady === true || isShipArmed === true || isAiming === true;
   return {
-    shipHalo: IsAttached && (hasLaunchedOnce !== true || ShipCharge),
+    shipHalo: IsAttached && ShipCharge,
     shipHaloCharge: IsAttached && ShipCharge,
-    worldWalkHalo: IsAttached && (
-      isWalking === true
-      || isWalkReady === true
-      || hasWalkedOnce !== true
-    ),
-    walkCursor: IsAttached && (isWalking === true || isWalkReady === true),
+    worldWalkHalo: false,
+    walkCursor: false,
     pullHint: IsAttached
       && hasWalkedOnce === true
       && hasGrabbedShipOnce === true
@@ -855,6 +855,21 @@ export function getOccupiedAtmosphereOpacity(atmosphereOpacity = 0.12) {
     throw new Error('Occupied atmosphere requires a non-negative opacity.');
   }
   return Math.max(0.08, Math.min(0.16, 0.07 + (atmosphereOpacity * 0.5)));
+}
+
+/**
+ * Additive atmosphere shells stay as distant rims. Landed Haven sits near
+ * apparent 0.28; that close-up zeros the shell so it cannot read as a milky
+ * disc or a hover outline around the toy world.
+ */
+export function getAtmosphereDistanceFade(worldRadius, cameraDistance) {
+  if (!(worldRadius > 0) || !(cameraDistance > 0)) {
+    throw new Error('Atmosphere distance fade requires a positive world radius and camera distance.');
+  }
+  const Apparent = worldRadius / cameraDistance;
+  const FarFade = Math.max(0, Math.min(1, (Apparent - 0.012) / 0.05));
+  const CloseFade = Math.max(0, Math.min(1, (0.15 - Apparent) / 0.07));
+  return FarFade * CloseFade;
 }
 
 /** Frost ice, Ember basalt and Grove canopy read at a glance without extra draws. */

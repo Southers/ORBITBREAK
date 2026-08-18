@@ -165,7 +165,12 @@ export function createRoutePresentation(THREE, host) {
 
   /** Updates the two suggested destination rings as a single draw call. */
   function updateTargetBeacons(ElapsedTimeSeconds) {
-    const ShouldShowChoices = host.GamePhase === 'attached';
+    const ShouldShowChoices = host.GamePhase === 'attached'
+      && (
+        host.IsPointerAiming === true
+        || host.IsKeyboardAiming === true
+        || host.IsScoutMode === true
+      );
     const RouteChoices = ShouldShowChoices
       ? getCurrentRouteChoices(2)
       : [];
