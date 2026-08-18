@@ -313,8 +313,10 @@ export function auditReleaseReadiness() {
     HudSource.includes('function refreshPlayfieldLabelBounds()')
       && MainSource.includes('updateRouteLabels(CachedInstructionPanelTop)')
       && PresentationSource.includes('if (isShortLandscape) return 56;')
-      && PresentationSource.includes('? Math.min(BaseMaximumY, instructionTop - 16)')
-      && RoutePresentationSource.includes('const LabelsActive = host.IsPointerAiming')
+      && PresentationSource.includes('Math.min(BaseMaximumY, instructionTop - 16)')
+      && PresentationSource.includes('export function shouldShowPlayfieldWorldLabels({')
+      && RoutePresentationSource.includes('const LabelsActive = shouldShowPlayfieldWorldLabels({')
+      && RoutePresentationSource.includes('function hidePlayfieldLabel(LabelElement)')
       && HudSource.includes("showInstruction(Title, Body, CaptionKind = '')"),
     'Route labels appear only while aiming or scouting; first-run captions then silence the playfield.',
   );
