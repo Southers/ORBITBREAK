@@ -804,6 +804,26 @@ export function shouldShowPlayfieldWorldLabels({
     && toastVisible !== true;
 }
 
+/** Hides a projected chip that has collapsed onto the current world's disc. */
+export function isProjectedLabelInsideWorldDisc({
+  labelNdcX,
+  labelNdcY,
+  worldNdcX,
+  worldNdcY,
+  worldRimNdcX,
+  worldRimNdcY,
+} = {}) {
+  const Values = [labelNdcX, labelNdcY, worldNdcX, worldNdcY, worldRimNdcX, worldRimNdcY];
+  if (Values.some((Value) => !Number.isFinite(Value))) {
+    return false;
+  }
+  const DiscRadius = Math.hypot(worldRimNdcX - worldNdcX, worldRimNdcY - worldNdcY);
+  if (!(DiscRadius > 0)) {
+    return false;
+  }
+  return Math.hypot(labelNdcX - worldNdcX, labelNdcY - worldNdcY) < (DiscRadius * 0.92);
+}
+
 /** Bright initial break followed by a clean, short screen-space fade. */
 export function getLiberationFlashOpacity(RemainingSeconds, DurationSeconds = 0.72) {
   if (RemainingSeconds <= 0 || DurationSeconds <= 0) {

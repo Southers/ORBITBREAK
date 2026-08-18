@@ -186,18 +186,26 @@ export function createRestorationVisuals(THREE, host) {
       }
 
       const IsFullyRestoredAtStart = WorldRuntime.restorationStartedAtSeconds === -Infinity;
+      const RestorationDuration = WorldDefinition.restoration.durationSeconds;
       const RestorationElapsedSeconds = IsFullyRestoredAtStart
-        ? WorldDefinition.restoration.durationSeconds
+        ? RestorationDuration + 10
         : Math.max(0, ElapsedTimeSeconds - WorldRuntime.restorationStartedAtSeconds);
       const LinearRestorationProgress = THREE.MathUtils.clamp(
-        RestorationElapsedSeconds / WorldDefinition.restoration.durationSeconds,
+        RestorationElapsedSeconds / RestorationDuration,
         0,
         1,
       );
+      const CompletionHoldSeconds = host.PrefersReducedMotion ? 0.12 : 0.72;
+      const PostCompleteSeconds = RestorationElapsedSeconds - RestorationDuration;
+      const IsCompletionHold = !IsFullyRestoredAtStart
+        && PostCompleteSeconds >= 0
+        && PostCompleteSeconds < CompletionHoldSeconds;
       const WaveProgress = calculateRestorationWaveProgress(LinearRestorationProgress);
-      const ShaderWaveProgress = LinearRestorationProgress >= 1 ? 1.2 : WaveProgress;
+      const ShaderWaveProgress = LinearRestorationProgress >= 1
+        ? (IsCompletionHold ? 1 : 1.2)
+        : WaveProgress;
       WorldRuntime.restorationUniforms.restorationProgress.value = ShaderWaveProgress;
-      WorldRuntime.restorationWaveMesh.visible = LinearRestorationProgress < 1;
+      WorldRuntime.restorationWaveMesh.visible = LinearRestorationProgress < 1 || IsCompletionHold;
       const StillnessPresentation = getStillnessPresentation(
         true,
         LinearRestorationProgress,
@@ -219,9 +227,12 @@ export function createRestorationVisuals(THREE, host) {
         WorldDefinition.restoration.atmosphereOpacity,
         AtmosphereProgress,
       );
-      if (LinearRestorationProgress < 1) {
+      if (LinearRestorationProgress < 1 || IsCompletionHold) {
+        const BloomPhase = IsCompletionHold
+          ? 1 - (PostCompleteSeconds / CompletionHoldSeconds)
+          : LinearRestorationProgress;
         WorldRuntime.atmosphereMaterial.opacity *= 1
-          + (Math.sin(LinearRestorationProgress * Math.PI) * 0.55);
+          + (Math.sin(BloomPhase * Math.PI) * 1.2);
       }
       if (WorldRuntime.atmosphereMaterial?.color) {
         AtmosphereRestoreColor.copy(WorldDefinition.atmosphereColor);
@@ -234,8 +245,10 @@ export function createRestorationVisuals(THREE, host) {
       }
       WorldRuntime.atmosphereMesh.scale.setScalar(
         THREE.MathUtils.lerp(0.96, 1, AtmosphereProgress)
-          * (LinearRestorationProgress < 1
-            ? 1 + (Math.sin(LinearRestorationProgress * Math.PI) * 0.08)
+          * ((LinearRestorationProgress < 1 || IsCompletionHold)
+            ? 1 + (Math.sin(
+              (IsCompletionHold ? 1 : LinearRestorationProgress) * Math.PI,
+            ) * 0.14)
             : 1),
       );
 
@@ -330,6 +343,27 @@ export function createRestorationVisuals(THREE, host) {
         WorldRuntime.ambientMoteGroup.material.opacity = (
           WorldRuntime.ambientMoteGroup.userData.baseOpacity * AtmosphereProgress
         );
+      }
+      if (WorldRuntime.cageClearPulseStartedAtSeconds != null) {
+        const PulseElapsed = ElapsedTimeSeconds - WorldRuntime.cageClearPulseStartedAtSeconds;
+        const PulseDuration = host.PrefersReducedMotion ? 0.18 : 1.08;
+        if (PulseElapsed < PulseDuration) {
+          const PulseLinear = THREE.MathUtils.clamp(PulseElapsed / PulseDuration, 0, 1);
+          WorldRuntime.restorationWaveMesh.visible = true;
+          WorldRuntime.restorationUniforms.restorationProgress.value = calculateRestorationWaveProgress(
+            PulseLinear,
+          );
+          WorldRuntime.atmosphereMaterial.opacity = WorldDefinition.restoration.atmosphereOpacity
+            * (1 + (Math.sin(PulseLinear * Math.PI) * 1.35));
+          WorldRuntime.atmosphereMesh.scale.setScalar(
+            1 + (Math.sin(PulseLinear * Math.PI) * 0.16),
+          );
+        } else {
+          WorldRuntime.cageClearPulseStartedAtSeconds = null;
+          if (LinearRestorationProgress >= 1 && !IsCompletionHold) {
+            WorldRuntime.restorationWaveMesh.visible = false;
+          }
+        }
       }
       if (applyRangeVeilToWorld(WorldRuntime, WorldDefinition, InnerClusterLive) > 0) {
         VeiledWorldIdentifiers.push(WorldDefinition.id);

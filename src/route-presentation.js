@@ -13,6 +13,7 @@ import {
   getPursuitRouteCoach,
   getTacticalLabelHorizontalMargin,
   getRouteLabelHorizontalMargin,
+  isProjectedLabelInsideWorldDisc,
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
@@ -194,11 +195,59 @@ export function createRoutePresentation(THREE, host) {
   function hidePlayfieldLabel(LabelElement) {
     LabelElement.textContent = '';
     LabelElement.hidden = true;
+    LabelElement.dataset.visible = 'false';
+    LabelElement.style.left = '';
+    LabelElement.style.top = '';
+    LabelElement.style.display = 'none';
+    LabelElement.style.background = 'none';
+    LabelElement.style.border = '0';
+    LabelElement.style.padding = '0';
+    LabelElement.style.boxShadow = 'none';
+    LabelElement.style.backdropFilter = 'none';
   }
 
   function writePlayfieldLabel(LabelElement, Text) {
-    LabelElement.textContent = Text;
-    LabelElement.hidden = !Text;
+    const VisibleText = typeof Text === 'string' ? Text.trim() : '';
+    if (VisibleText.length < 1) {
+      hidePlayfieldLabel(LabelElement);
+      return;
+    }
+    LabelElement.textContent = VisibleText;
+    LabelElement.hidden = false;
+    LabelElement.dataset.visible = 'true';
+    LabelElement.style.display = '';
+    LabelElement.style.background = 'none';
+    LabelElement.style.border = '0';
+    LabelElement.style.padding = '0';
+    LabelElement.style.boxShadow = 'none';
+    LabelElement.style.backdropFilter = 'none';
+  }
+
+  function getCurrentWorldDiscProjection() {
+    const CurrentWorld = host.GamePhase === 'attached'
+      ? getWorldDefinition(host.CurrentWorldIdentifier)
+      : null;
+    if (!CurrentWorld) {
+      return null;
+    }
+    RouteLabelProjection.set(
+      CurrentWorld.position.x,
+      CurrentWorld.position.y,
+      0,
+    ).project(Camera);
+    const WorldNdcX = RouteLabelProjection.x;
+    const WorldNdcY = RouteLabelProjection.y;
+    RouteLabelProjection.set(
+      CurrentWorld.position.x + CurrentWorld.radius,
+      CurrentWorld.position.y,
+      0,
+    ).project(Camera);
+    return {
+      worldNdcX: WorldNdcX,
+      worldNdcY: WorldNdcY,
+      worldRimNdcX: RouteLabelProjection.x,
+      worldRimNdcY: RouteLabelProjection.y,
+    };
   }
 
   function updateRouteLabels(InstructionTop) {
@@ -207,7 +256,8 @@ export function createRoutePresentation(THREE, host) {
       isKeyboardAiming: host.IsKeyboardAiming,
       isScoutMode: host.IsScoutMode,
       toastVisible: StatusToastElement.classList.contains('is-visible'),
-    });
+    }) && host.GamePhase === 'attached';
+    RouteLabelElements[0]?.parentElement?.classList.toggle('is-active', LabelsActive);
     if (!LabelsActive) {
       for (const RouteLabelElement of RouteLabelElements) {
         hidePlayfieldLabel(RouteLabelElement);
@@ -220,6 +270,7 @@ export function createRoutePresentation(THREE, host) {
     const RouteChoices = host.GamePhase === 'attached'
       ? getCurrentRouteChoices(RouteLabelElements.length)
       : [];
+    const CurrentWorldDisc = getCurrentWorldDiscProjection();
     const IsCompactLayout = window.innerWidth <= 640;
     const IsShortLandscape = window.innerWidth >= window.innerHeight
       && window.innerHeight <= 520;
@@ -234,6 +285,7 @@ export function createRoutePresentation(THREE, host) {
       isTactical: false,
     });
     const LabelPositions = [];
+    const VisibleRouteLabelElements = [];
 
     for (let LabelIndex = 0; LabelIndex < RouteLabelElements.length; LabelIndex += 1) {
       const RouteLabelElement = RouteLabelElements[LabelIndex];
@@ -248,6 +300,17 @@ export function createRoutePresentation(THREE, host) {
         WorldDefinition.position.y + WorldDefinition.radius + 0.72,
         0,
       ).project(Camera);
+      if (
+        CurrentWorldDisc
+        && isProjectedLabelInsideWorldDisc({
+          labelNdcX: RouteLabelProjection.x,
+          labelNdcY: RouteLabelProjection.y,
+          ...CurrentWorldDisc,
+        })
+      ) {
+        hidePlayfieldLabel(RouteLabelElement);
+        continue;
+      }
       const IsOffscreen = Math.abs(RouteLabelProjection.x) > 0.92
         || Math.abs(RouteLabelProjection.y) > 0.86;
       let DirectionPrefix = '';
@@ -259,6 +322,7 @@ export function createRoutePresentation(THREE, host) {
       const LabelText = DirectionPrefix + WorldDefinition.label;
       writePlayfieldLabel(RouteLabelElement, LabelText);
       const HorizontalMargin = getRouteLabelHorizontalMargin(LabelText);
+      VisibleRouteLabelElements.push(RouteLabelElement);
       LabelPositions.push({
         x: Math.round(
           THREE.MathUtils.clamp(
@@ -300,8 +364,8 @@ export function createRoutePresentation(THREE, host) {
       },
     );
     for (let LabelIndex = 0; LabelIndex < ClearedLabelPositions.length; LabelIndex += 1) {
-      RouteLabelElements[LabelIndex].style.left = `${ClearedLabelPositions[LabelIndex].x}px`;
-      RouteLabelElements[LabelIndex].style.top = `${ClearedLabelPositions[LabelIndex].y}px`;
+      VisibleRouteLabelElements[LabelIndex].style.left = `${ClearedLabelPositions[LabelIndex].x}px`;
+      VisibleRouteLabelElements[LabelIndex].style.top = `${ClearedLabelPositions[LabelIndex].y}px`;
     }
   }
 

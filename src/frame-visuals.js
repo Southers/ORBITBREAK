@@ -46,6 +46,7 @@ export function createFrameVisuals(THREE, host) {
     LaunchPulseMesh,
     ImpactPulseMesh,
     PullGuideLine,
+    PullGuideRibbon,
     PullGuideMaterial,
     CutGuideLine,
     CutGuideMaterial,
@@ -421,7 +422,8 @@ export function createFrameVisuals(THREE, host) {
       && host.CurrentWorldIdentifier === StartingWorldIdentifier
       && !host.HasLaunchedOnce
       && !host.IsOpeningBriefingActive;
-    PullGuideLine.visible = IsOpeningCoachVisible;
+    PullGuideLine.visible = false;
+    PullGuideRibbon.mesh.visible = IsOpeningCoachVisible;
     updateTargetBeacons(ElapsedTimeSeconds);
     if (IsOpeningCoachVisible) {
       PullGuideMaterial.dashOffset -= DeltaTimeSeconds * 0.9;

@@ -25,23 +25,23 @@ import {
   getAdaptivePresentationTier,
   getViewportPixelRatioCap,
 } from './performance.js?v=20260814-ob13';
-import { addEnvironment } from './environment.js?v=20260818-ob100';
-import { createWorldVisuals } from './world-geometry.js?v=20260818-ob100';
+import { addEnvironment } from './environment.js?v=20260818-ob102';
+import { createWorldVisuals } from './world-geometry.js?v=20260818-ob102';
 import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260818-ob100';
 import { createWardenVisuals } from './warden-visuals.js?v=20260818-ob100';
-import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob100';
+import { createPlayerVisuals } from './player-visuals.js?v=20260818-ob102';
 import { createStoryDirector } from './story-director.js?v=20260818-ob101';
 import { createHud } from './hud.js?v=20260818-ob100';
 import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
-import { createLandingDirector } from './landing-director.js?v=20260818-ob100';
+import { createLandingDirector } from './landing-director.js?v=20260818-ob102';
 import { createCameraController } from './camera-controller.js?v=20260818-ob101';
-import { createInputController } from './input-controller.js?v=20260818-ob101';
+import { createInputController } from './input-controller.js?v=20260818-ob102';
 import { createHostileSurface } from './hostile-surface.js?v=20260817-ob99';
 import { createScanner } from './scanner.js?v=20260817-ob99';
-import { createRoutePresentation } from './route-presentation.js?v=20260818-ob101';
+import { createRoutePresentation } from './route-presentation.js?v=20260818-ob102';
 import { createRecordsUi } from './records-ui.js?v=20260816-ob98';
-import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob101';
-import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob100';
+import { createFrameVisuals } from './frame-visuals.js?v=20260818-ob102';
+import { createRestorationVisuals } from './restoration-visuals.js?v=20260818-ob102';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
 import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=0.179.1';
@@ -149,7 +149,7 @@ import {
   getWorldLifeStage,
   getWorldLandingAimLabel,
   getLandedCameraScale,
-} from './presentation.js?v=20260818-ob101';
+} from './presentation.js?v=20260818-ob102';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -291,7 +291,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260818-ob101';
+GameCanvas.dataset.build = '20260818-ob102';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
 GameCanvas.dataset.pageActive = String(!document.hidden);
@@ -1252,7 +1252,7 @@ SeedstoneOrbitLine.visible = Boolean(SeedstoneDefinition.orbit);
 Scene.add(SeedstoneOrbitLine);
 
 /** Three optional motes trace one expressive Meadow-to-Frost mastery arc. */
-const StardustGeometry = new THREE.OctahedronGeometry(StardustPickupRadius, 0);
+const StardustGeometry = new THREE.SphereGeometry(StardustPickupRadius, 10, 8);
 const StardustMaterial = new THREE.MeshBasicMaterial({
   color: 0xffffff,
   transparent: true,
@@ -1325,6 +1325,7 @@ const {
   TrajectoryPositionAttribute,
   TrajectoryMaterial,
   TrajectoryLine,
+  TrajectoryRibbon,
   LandingMarkerGeometry,
   LandingMarkerMaterial,
   LandingMarkerMesh,
@@ -1334,6 +1335,7 @@ const {
   PullGuideGeometry,
   PullGuideMaterial,
   PullGuideLine,
+  PullGuideRibbon,
   CutGuideGeometry,
   CutGuideMaterial,
   CutGuideLine,
@@ -1345,6 +1347,7 @@ const {
   TrailParticleTransform,
   createFeedbackPulse,
   updateTrailParticleInstance,
+  writePlanarRibbon,
 } = PlayerVisuals;
 
 let TrailEmissionAccumulatorSeconds = 0;
@@ -2135,6 +2138,7 @@ const FrameVisuals = createFrameVisuals(THREE, {
   LaunchPulseMesh,
   ImpactPulseMesh,
   PullGuideLine,
+  PullGuideRibbon,
   PullGuideMaterial,
   CutGuideLine,
   CutGuideMaterial,
@@ -2185,6 +2189,7 @@ const {
  */
 function clearTrajectoryPreview() {
   TrajectoryLine.visible = false;
+  TrajectoryRibbon.mesh.visible = false;
   LandingMarkerMesh.visible = false;
   TrajectoryGeometry.setDrawRange(0, 0);
   PredictedStardustIdentifiers.clear();
@@ -2235,7 +2240,15 @@ function renderTrajectoryLine(PredictionPoints) {
   TrajectoryPositionAttribute.needsUpdate = true;
   TrajectoryGeometry.setDrawRange(0, PreviewPointCount);
   TrajectoryGeometry.computeBoundingSphere();
-  TrajectoryLine.visible = PreviewPointCount > 1;
+  TrajectoryLine.visible = false;
+  const RibbonPoints = [];
+  for (let PreviewIndex = 0; PreviewIndex < PreviewPointCount; PreviewIndex += 1) {
+    RibbonPoints.push({
+      x: TrajectoryPositionValues[PreviewIndex * 3],
+      y: TrajectoryPositionValues[(PreviewIndex * 3) + 1],
+    });
+  }
+  writePlanarRibbon(TrajectoryRibbon, RibbonPoints, 0.11);
 }
 
 function captureCommittedLaunchPrediction(LaunchVelocity) {
@@ -2377,6 +2390,7 @@ const InputController = createInputController(THREE, {
   FlightClosePassWorldIdentifiers,
   HostilePylonGroup,
   CompletedHostileEncounterWorldIdentifiers,
+  WorldRuntimeByIdentifier,
   MinimumScoutZoomScale,
   shouldUseSectorPlanningCamera,
   getActiveMaximumScoutZoomScale,
@@ -2511,6 +2525,7 @@ const InputController = createInputController(THREE, {
   get RunnerWalkLifeSeconds() { return RunnerWalkLifeSeconds; },
   set RunnerWalkLifeSeconds(Value) { RunnerWalkLifeSeconds = Value; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
+  get IsPauseSheetOpen() { return IsPauseSheetOpen; },
   get AimInteractionCamera() { return AimInteractionCamera; },
   get ScannerProjection() { return Scanner.ScannerProjection; },
   get PhysicsElapsedTimeSeconds() { return PhysicsElapsedTimeSeconds; },
@@ -3293,7 +3308,8 @@ function resetGame() {
   );
   PullGuideGeometry.setFromPoints([PullGuideStart, PullGuideEnd]);
   PullGuideLine.computeLineDistances();
-  PullGuideLine.visible = true;
+  PullGuideLine.visible = false;
+  writePlanarRibbon(PullGuideRibbon, [PullGuideStart, PullGuideEnd], 0.1);
 
   updateWorldCounter();
   updateFuelLights();
@@ -3368,7 +3384,7 @@ function renderFrame() {
     const DeltaTimeSeconds = Math.min(Clock.getDelta(), MaximumFrameDeltaSeconds);
     updateCamera(DeltaTimeSeconds);
     updateControlModeInterface();
-    updateEnvironmentBackdrop(DeltaTimeSeconds);
+    updateEnvironmentBackdrop(DeltaTimeSeconds, CameraDistanceScale);
     renderScene();
     return;
   }
@@ -3413,12 +3429,7 @@ function renderFrame() {
   refreshInstructionPanelBounds();
   updateTacticalBodies(ElapsedTimeSeconds, CachedInstructionPanelTop);
   updateStardustVisuals(ElapsedTimeSeconds);
-  updateRouteLabels(CachedInstructionPanelTop);
-  updatePullHint();
-  updateFlightAudio();
-  updateWorldLifeAudio();
-  updatePersonalBestGhostVisibility();
-  updateEnvironmentBackdrop(DeltaTimeSeconds);
+  updateEnvironmentBackdrop(DeltaTimeSeconds, CameraDistanceScale);
 
   renderScene();
   updatePerformanceBudget(DeltaTimeSeconds);
@@ -3695,6 +3706,15 @@ window.addEventListener('keydown', (KeyboardEventData) => {
     || KeyboardEventData.altKey
   ) {
     return;
+  }
+  if (
+    !IsOpeningBriefingActive
+    && !IsPauseSheetOpen
+    && VictoryPanelElement.hidden
+    && LeaderboardPanelElement.hidden
+    && document.activeElement !== GameCanvas
+  ) {
+    GameCanvas.focus({ preventScroll: true });
   }
   const PressedKey = KeyboardEventData.key.toLowerCase();
   if (

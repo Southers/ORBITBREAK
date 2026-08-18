@@ -618,15 +618,20 @@ export function createWorldVisuals(THREE, Scene, {
             normalize(restorationOrigin)
           ), -1.0, 1.0)) / 3.141592653589793;
           float waveBand = 1.0 - smoothstep(
-            restorationWaveWidth * 0.45,
-            restorationWaveWidth * 1.8,
+            restorationWaveWidth * 0.85,
+            restorationWaveWidth * 3.4,
             abs(restorationDistance - restorationProgress)
           );
-          float fresnel = pow(1.0 - max(dot(vViewNormal, vViewDirection), 0.0), 2.0);
+          float trailingGlow = 1.0 - smoothstep(
+            0.0,
+            restorationWaveWidth * 6.5,
+            restorationProgress - restorationDistance
+          );
+          float fresnel = pow(1.0 - max(dot(vViewNormal, vViewDirection), 0.0), 1.65);
           float activeWave = step(-0.001, restorationProgress)
-            * (1.0 - step(1.001, restorationProgress));
-          float alpha = waveBand * (0.82 + (fresnel * 0.7)) * activeWave;
-          gl_FragColor = vec4(waveColor * 1.15, alpha);
+            * (1.0 - step(1.08, restorationProgress));
+          float alpha = max(waveBand, trailingGlow * 0.42) * (0.92 + (fresnel * 0.95)) * activeWave;
+          gl_FragColor = vec4(waveColor * 1.55, alpha);
         }
       `,
       transparent: true,
@@ -635,7 +640,7 @@ export function createWorldVisuals(THREE, Scene, {
       side: THREE.DoubleSide,
     });
     const WaveGeometry = new THREE.SphereGeometry(
-      WorldDefinition.radius * 1.018,
+      WorldDefinition.radius * 1.046,
       usesMergedSurfaceLandmarks(WorldDefinition) ? 32 : 64,
       usesMergedSurfaceLandmarks(WorldDefinition) ? 20 : 40,
     );
@@ -2182,6 +2187,26 @@ export function createWorldVisuals(THREE, Scene, {
     return SurfacePropGroup;
   }
 
+  /** Soft circular sprite so biome motes never read as hard gl_Point squares. */
+  function createMoteSpriteTexture() {
+    const MoteCanvas = document.createElement('canvas');
+    MoteCanvas.width = 64;
+    MoteCanvas.height = 64;
+    const MoteContext = MoteCanvas.getContext('2d');
+    MoteContext.clearRect(0, 0, 64, 64);
+    const MoteGradient = MoteContext.createRadialGradient(32, 32, 0, 32, 32, 30);
+    MoteGradient.addColorStop(0, 'rgba(255,255,255,1)');
+    MoteGradient.addColorStop(0.35, 'rgba(255,255,255,0.45)');
+    MoteGradient.addColorStop(1, 'rgba(255,255,255,0)');
+    MoteContext.fillStyle = MoteGradient;
+    MoteContext.fillRect(0, 0, 64, 64);
+    const MoteTexture = new THREE.CanvasTexture(MoteCanvas);
+    MoteTexture.needsUpdate = true;
+    return MoteTexture;
+  }
+
+  const MoteSpriteTexture = createMoteSpriteTexture();
+
   /** Creates a tiny deterministic halo of warm Meadow motes. */
   function createMeadowMotes(WorldDefinition) {
     const MoteCount = 24;
@@ -2203,11 +2228,13 @@ export function createWorldVisuals(THREE, Scene, {
     MoteGeometry.setAttribute('position', new THREE.BufferAttribute(MotePositions, 3));
     const MoteMaterial = new THREE.PointsMaterial({
       color: 0xffef9d,
-      size: 0.09,
+      size: 0.16,
+      map: MoteSpriteTexture,
       sizeAttenuation: true,
       transparent: true,
       opacity: 0.72,
       depthWrite: false,
+      alphaTest: 0.02,
       blending: THREE.AdditiveBlending,
     });
     return new THREE.Points(MoteGeometry, MoteMaterial);
@@ -2234,11 +2261,13 @@ export function createWorldVisuals(THREE, Scene, {
     MoteGeometry.setAttribute('position', new THREE.BufferAttribute(MotePositions, 3));
     const MoteMaterial = new THREE.PointsMaterial({
       color: Color,
-      size: Size,
+      size: Size * 1.7,
+      map: MoteSpriteTexture,
       sizeAttenuation: true,
       transparent: true,
       opacity: WorldDefinition.restored ? BaseOpacity : 0,
       depthWrite: false,
+      alphaTest: 0.02,
       blending: THREE.AdditiveBlending,
     });
     const MoteGroup = new THREE.Points(MoteGeometry, MoteMaterial);
@@ -2364,6 +2393,7 @@ export function createWorldVisuals(THREE, Scene, {
       stillnessCageMaterial: StillnessCage.material,
       restorationOriginLocal: new THREE.Vector3(1, 0, 0),
       restorationStartedAtSeconds: WorldDefinition.restored ? -Infinity : null,
+      cageClearPulseStartedAtSeconds: null,
       suppressionStartedAtSeconds: null,
       restorationCompleted: WorldDefinition.restored,
     };

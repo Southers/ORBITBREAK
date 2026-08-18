@@ -319,6 +319,7 @@ export function auditReleaseReadiness() {
       && PresentationSource.includes('export function getRouteLabelHorizontalMargin(')
       && RoutePresentationSource.includes('const LabelsActive = shouldShowPlayfieldWorldLabels({')
       && RoutePresentationSource.includes('function hidePlayfieldLabel(LabelElement)')
+      && RoutePresentationSource.includes("LabelElement.dataset.visible = 'false'")
       && HudSource.includes("showInstruction(Title, Body, CaptionKind = '')"),
     'Route labels appear only while aiming or scouting; first-run captions then silence the playfield.',
   );

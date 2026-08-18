@@ -59,6 +59,7 @@ import {
   getOccupiedAtmosphereOpacity,
   getWorldSurfaceFinish,
   shouldShowPlayfieldWorldLabels,
+  isProjectedLabelInsideWorldDisc,
   getTacticalLabelHorizontalMargin,
   getRouteLabelHorizontalMargin,
   shouldPlayOpeningBriefing,
@@ -1141,6 +1142,22 @@ test('occupied atmospheres and surface finishes keep Ember, Grove and Frost dist
     toastVisible: true,
   }), false);
   assert.equal(shouldShowPlayfieldWorldLabels({}), false);
+  assert.equal(isProjectedLabelInsideWorldDisc({
+    labelNdcX: 0.02,
+    labelNdcY: 0.01,
+    worldNdcX: 0,
+    worldNdcY: 0,
+    worldRimNdcX: 0.4,
+    worldRimNdcY: 0,
+  }), true);
+  assert.equal(isProjectedLabelInsideWorldDisc({
+    labelNdcX: 0.8,
+    labelNdcY: 0.1,
+    worldNdcX: 0,
+    worldNdcY: 0,
+    worldRimNdcX: 0.4,
+    worldRimNdcY: 0,
+  }), false);
   assert.equal(shouldPlayOpeningBriefing({}), true);
   assert.equal(shouldPlayOpeningBriefing({ hasCompletedOpeningBriefing: true }), false);
   assert.equal(shouldPlayOpeningBriefing({ replayActive: true }), false);

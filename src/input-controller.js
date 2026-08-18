@@ -71,6 +71,7 @@ export function createInputController(THREE, host) {
     FlightClosePassWorldIdentifiers,
     HostilePylonGroup,
     CompletedHostileEncounterWorldIdentifiers,
+    WorldRuntimeByIdentifier,
     shouldUseSectorPlanningCamera,
     getActiveMaximumScoutZoomScale,
     refreshPlanningZoomControls,
@@ -464,6 +465,9 @@ function beginKeyboardAim() {
   WorldseedSound.beginAim();
   GameCanvas.classList.add('is-aiming');
   PullGuideLine.visible = false;
+  if (host.PullGuideRibbon) {
+    host.PullGuideRibbon.mesh.visible = false;
+  }
   syncKeyboardLaunchVectors();
   updateKeyboardAimPreview();
   commitAimPlanningCamera();
@@ -527,7 +531,10 @@ function handleKeyboardAimKey(KeyboardEventData) {
     return false;
   }
   if (host.getActiveElement() !== GameCanvas) {
-    return false;
+    if (host.IsPauseSheetOpen) {
+      return false;
+    }
+    GameCanvas.focus({ preventScroll: true });
   }
 
   const PressedKey = KeyboardEventData.key.toLowerCase();
@@ -738,7 +745,6 @@ function beginCutAim(WorldPosition) {
   host.IsCutAiming = true;
   host.CutAimPointer = { x: WorldPosition.x, y: WorldPosition.y };
   GameCanvas.classList.add('is-aiming');
-  AimLabelElement.textContent = 'DESTROY';
   updateCutAimPreview(WorldPosition);
   return true;
 }
@@ -746,20 +752,6 @@ function beginCutAim(WorldPosition) {
 function updateCutAimPreview(WorldPosition) {
   if (!host.IsCutAiming || !host.ActiveHostileEncounterState) return;
   host.CutAimPointer = { x: WorldPosition.x, y: WorldPosition.y };
-  const Preview = getCurrentCutPreview();
-  const WillCancel = Boolean(Preview?.willCancel);
-  const HitCount = Preview && !WillCancel ? Preview.hits.length : 0;
-  AimLabelElement.textContent = WillCancel ? 'RELEASE TO CANCEL' : 'DESTROY';
-  const PowerRatio = THREE.MathUtils.clamp(
-    (Preview?.distance ?? 0) / host.ActiveHostileEncounterState.maxCutLength,
-    0,
-    1,
-  );
-  AimPowerFillElement.style.width = WillCancel ? '0%' : `${Math.round(PowerRatio * 100)}%`;
-  AimPowerFillElement.style.transform = 'none';
-  AimPowerValueElement.textContent = WillCancel
-    ? 'CANCEL'
-    : (HitCount > 0 ? `${HitCount} HIT` : 'MISS');
   publishHostileEncounterState();
   updateBreakerBurnInterface();
 }
@@ -821,6 +813,12 @@ function applyHostileCut(Origin, End) {
     publishHostileEncounterState();
     if (AttachedWorld.kind === 'worldheart') {
       return completeWorldheartLiberation();
+    }
+    const WorldRuntime = WorldRuntimeByIdentifier.get(AttachedWorld.id);
+    if (WorldRuntime) {
+      WorldRuntime.cageClearPulseStartedAtSeconds = host.GameElapsedTimeSeconds;
+      WorldRuntime.restorationWaveMesh.visible = true;
+      WorldRuntime.restorationUniforms.restorationProgress.value = 0;
     }
     updateBreakerBurnInterface();
     showStatusToast('THE RIM IS CLEAR', 1350);
@@ -914,7 +912,6 @@ function beginBurnAim(WorldPosition) {
     y: WorldPosition.y - host.SeedPhysicsState.position.y,
   };
   GameCanvas.classList.add('is-aiming');
-  AimLabelElement.textContent = 'BREAK';
   updateBurnAimPreview(WorldPosition);
 }
 
@@ -929,11 +926,6 @@ function updateBurnAimPreview(WorldPosition) {
     cancelRadius: LaunchCancelRadius,
     screenDistancePixels: host.LastAimScreenDistancePixels,
   });
-  AimLabelElement.textContent = WillCancel ? 'RELEASE TO CANCEL' : 'BREAK';
-  const PowerRatio = THREE.MathUtils.clamp(Distance / MaximumDragDistance, 0, 1);
-  AimPowerFillElement.style.width = WillCancel ? '0%' : `${Math.round(PowerRatio * 100)}%`;
-  AimPowerFillElement.style.transform = 'none';
-  AimPowerValueElement.textContent = WillCancel ? 'CANCEL' : `${Math.round(PowerRatio * 100)}%`;
   if (WillCancel || Distance < 0.001) {
     clearTrajectoryPreview();
     return;

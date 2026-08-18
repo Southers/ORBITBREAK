@@ -91,6 +91,7 @@ export function createLandingDirector(THREE, host) {
     );
     WorldRuntime.restorationUniforms.restorationProgress.value = -0.025;
     WorldRuntime.restorationStartedAtSeconds = host.GameElapsedTimeSeconds;
+    WorldRuntime.cageClearPulseStartedAtSeconds = null;
     WorldRuntime.restorationWaveMesh.visible = true;
     WorldRuntime.contourRingGroup.visible = true;
     RouteLabelProjection.set(ImpactPosition.x, ImpactPosition.y, ImpactPosition.z).project(Camera);
@@ -132,6 +133,7 @@ export function createLandingDirector(THREE, host) {
     const WorldRuntime = WorldRuntimeByIdentifier.get(WorldDefinition.id);
     WorldRuntime.restorationStartedAtSeconds = null;
     WorldRuntime.restorationCompleted = false;
+    WorldRuntime.cageClearPulseStartedAtSeconds = null;
     const ShouldSnapSuppression = host.PrefersReducedMotion === true;
     WorldRuntime.suppressionStartedAtSeconds = ShouldSnapSuppression
       ? null

@@ -3,6 +3,91 @@
  * Physics identity stays in the playable shell.
  */
 
+function createPlanarRibbon(THREE, Scene, {
+  maxPoints,
+  color,
+  opacity,
+  renderOrder,
+}) {
+  const VertexCount = maxPoints * 2;
+  const Positions = new Float32Array(VertexCount * 3);
+  const Geometry = new THREE.BufferGeometry();
+  const PositionAttribute = new THREE.BufferAttribute(Positions, 3);
+  PositionAttribute.setUsage(THREE.DynamicDrawUsage);
+  Geometry.setAttribute('position', PositionAttribute);
+  const IndexValues = new Uint32Array(Math.max(0, (maxPoints - 1) * 6));
+  let IndexOffset = 0;
+  for (let PointIndex = 0; PointIndex < maxPoints - 1; PointIndex += 1) {
+    const VertexIndex = PointIndex * 2;
+    IndexValues[IndexOffset] = VertexIndex;
+    IndexValues[IndexOffset + 1] = VertexIndex + 1;
+    IndexValues[IndexOffset + 2] = VertexIndex + 2;
+    IndexValues[IndexOffset + 3] = VertexIndex + 1;
+    IndexValues[IndexOffset + 4] = VertexIndex + 3;
+    IndexValues[IndexOffset + 5] = VertexIndex + 2;
+    IndexOffset += 6;
+  }
+  Geometry.setIndex(new THREE.BufferAttribute(IndexValues, 1));
+  const Material = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
+  const Mesh = new THREE.Mesh(Geometry, Material);
+  Mesh.visible = false;
+  Mesh.frustumCulled = false;
+  Mesh.renderOrder = renderOrder;
+  Scene.add(Mesh);
+  return {
+    mesh: Mesh,
+    positions: Positions,
+    positionAttribute: PositionAttribute,
+    geometry: Geometry,
+    maxPoints,
+  };
+}
+
+function writePlanarRibbon(Ribbon, Points, HalfWidth) {
+  if (!Ribbon || !Array.isArray(Points) || Points.length < 2) {
+    if (Ribbon) {
+      Ribbon.mesh.visible = false;
+    }
+    return;
+  }
+  const PointCount = Math.min(Points.length, Ribbon.maxPoints);
+  for (let PointIndex = 0; PointIndex < PointCount; PointIndex += 1) {
+    const Point = Points[PointIndex];
+    const Previous = Points[Math.max(0, PointIndex - 1)];
+    const Next = Points[Math.min(PointCount - 1, PointIndex + 1)];
+    let TangentX = Next.x - Previous.x;
+    let TangentY = Next.y - Previous.y;
+    const TangentLength = Math.hypot(TangentX, TangentY) || 1;
+    TangentX /= TangentLength;
+    TangentY /= TangentLength;
+    const NormalX = -TangentY;
+    const NormalY = TangentX;
+    const EndTaper = PointIndex === 0 || PointIndex === PointCount - 1 ? 0.28 : 1;
+    const SpanTaper = 1 - (Math.abs((PointIndex / Math.max(1, PointCount - 1)) - 0.5) * 0.22);
+    const Width = HalfWidth * EndTaper * SpanTaper;
+    const VertexOffset = PointIndex * 6;
+    Ribbon.positions[VertexOffset] = Point.x + (NormalX * Width);
+    Ribbon.positions[VertexOffset + 1] = Point.y + (NormalY * Width);
+    Ribbon.positions[VertexOffset + 2] = 0.13;
+    Ribbon.positions[VertexOffset + 3] = Point.x - (NormalX * Width);
+    Ribbon.positions[VertexOffset + 4] = Point.y - (NormalY * Width);
+    Ribbon.positions[VertexOffset + 5] = 0.13;
+  }
+  Ribbon.positionAttribute.needsUpdate = true;
+  Ribbon.geometry.setDrawRange(0, Math.max(0, (PointCount - 1) * 6));
+  Ribbon.geometry.computeBoundingSphere();
+  Ribbon.mesh.visible = PointCount > 1;
+}
+
 export function createPlayerVisuals(THREE, Scene, host) {
   const {
     SeedRadius,
@@ -308,6 +393,12 @@ export function createPlayerVisuals(THREE, Scene, host) {
   TrajectoryLine.visible = false;
   TrajectoryLine.frustumCulled = false;
   Scene.add(TrajectoryLine);
+  const TrajectoryRibbon = createPlanarRibbon(THREE, Scene, {
+    maxPoints: MaximumPreviewPointCount,
+    color: 0xb8ffe0,
+    opacity: 0.42,
+    renderOrder: 18,
+  });
 
   const LandingMarkerGeometry = new THREE.RingGeometry(0.42, 0.58, 32);
   const LandingMarkerMaterial = new THREE.MeshBasicMaterial({
@@ -357,6 +448,12 @@ export function createPlayerVisuals(THREE, Scene, host) {
   PullGuideLine.visible = false;
   PullGuideLine.renderOrder = 20;
   Scene.add(PullGuideLine);
+  const PullGuideRibbon = createPlanarRibbon(THREE, Scene, {
+    maxPoints: 2,
+    color: 0xc8ffe0,
+    opacity: 0.5,
+    renderOrder: 19,
+  });
 
   const CutGuideGeometry = new THREE.BufferGeometry();
   const CutGuideMaterial = new THREE.LineDashedMaterial({
@@ -460,6 +557,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
     TrajectoryPositionAttribute,
     TrajectoryMaterial,
     TrajectoryLine,
+    TrajectoryRibbon,
     LandingMarkerGeometry,
     LandingMarkerMaterial,
     LandingMarkerMesh,
@@ -469,6 +567,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
     PullGuideGeometry,
     PullGuideMaterial,
     PullGuideLine,
+    PullGuideRibbon,
     CutGuideGeometry,
     CutGuideMaterial,
     CutGuideLine,
@@ -480,5 +579,6 @@ export function createPlayerVisuals(THREE, Scene, host) {
     TrailParticleTransform,
     createFeedbackPulse,
     updateTrailParticleInstance,
+    writePlanarRibbon,
   };
 }

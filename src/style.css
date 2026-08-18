@@ -241,8 +241,11 @@ button[aria-disabled='true'] {
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.88), 0 0 18px rgba(0, 0, 0, 0.7);
 }
 
-.play-caption[hidden] {
-  display: none;
+.play-caption[hidden],
+.play-caption:has(strong:empty):has(span:empty) {
+  display: none !important;
+  background: none;
+  border: 0;
   backdrop-filter: none;
 }
 
@@ -1029,25 +1032,31 @@ button[aria-disabled='true'] {
   pointer-events: none;
 }
 
+.route-labels:not(.is-active) {
+  display: none !important;
+}
+
 .route-label,
 .tactical-label {
   position: absolute;
   transform: translate(-50%, -50%);
-  padding: 4px 8px;
-  border: 1px solid rgba(255, 217, 138, 0.32);
-  border-radius: 999px;
-  background: rgba(5, 12, 20, 0.7);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
   color: #ffe4a8;
   font-size: 10px;
   font-weight: 850;
   letter-spacing: 0.12em;
   line-height: 1.2;
-  box-shadow: 0 0 18px rgba(255, 197, 99, 0.12);
-  backdrop-filter: blur(8px);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.92), 0 0 16px rgba(0, 0, 0, 0.72);
 }
 
 .tactical-label {
-  padding: 3px 7px;
+  padding: 0;
   font-size: 10px;
   letter-spacing: 0.1em;
   white-space: nowrap;
@@ -1058,28 +1067,36 @@ button[aria-disabled='true'] {
 }
 
 .tactical-label--seedstone {
-  border-color: rgba(114, 217, 255, 0.38);
+  border: 0;
   color: #a8eaff;
-  box-shadow: 0 0 18px rgba(114, 217, 255, 0.14);
+  box-shadow: none;
 }
 
 .tactical-label--hazard {
-  border-color: rgba(255, 118, 109, 0.34);
+  border: 0;
   color: #ffaca6;
-  box-shadow: 0 0 18px rgba(255, 118, 109, 0.12);
+  box-shadow: none;
 }
 
 .tactical-label--worldheart {
-  border-color: rgba(255, 218, 130, 0.3);
+  border: 0;
   color: #ffe2a0;
-  box-shadow: 0 0 20px rgba(255, 205, 108, 0.12);
+  box-shadow: none;
 }
 
 .route-label:empty,
 .tactical-label:empty,
 .route-label[hidden],
-.tactical-label[hidden] {
+.tactical-label[hidden],
+.route-label:not([data-visible="true"]),
+.tactical-label:not([data-visible="true"]) {
   display: none !important;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .victory-panel {
