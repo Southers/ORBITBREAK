@@ -756,7 +756,8 @@ export function createFrameVisuals(THREE, host) {
     const IsOpeningCoachVisible = host.GamePhase === 'attached'
       && host.CurrentWorldIdentifier === StartingWorldIdentifier
       && !host.HasLaunchedOnce
-      && !host.IsOpeningBriefingActive;
+      && !host.IsOpeningBriefingActive
+      && !host.IsHowToPlayOpen;
     PullGuideLine.visible = false;
     PullGuideRibbon.mesh.visible = false;
     updateTargetBeacons(ElapsedTimeSeconds);

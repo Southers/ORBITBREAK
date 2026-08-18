@@ -93,6 +93,9 @@ import {
   getWardenTrackPips,
   getStoryBoardCameraFocus,
   getOpeningBriefingPresentation,
+  getHowToPlayPresentation,
+  HowToPlayLines,
+  shouldShowHowToPlayAfterOpening,
   getStoryBoardPresentation,
   formatStoryBoardCopy,
   getTriggeredCampaignStoryBoardIds,
@@ -298,6 +301,36 @@ test('opening briefing names the Runner, the Reach and the charge', () => {
   assert.equal(Last.isLast, true);
   assert.equal(Last.continueLabel, 'Take the Orbitbreaker');
   assert.throws(() => getOpeningBriefingPresentation([], 0), /at least one/);
+});
+
+test('how to play is one short page in Matt voice before the first walk', () => {
+  const Presentation = getHowToPlayPresentation();
+  assert.equal(Presentation.title, 'How to play');
+  assert.equal(Presentation.continueLabel, 'Continue');
+  assert.deepEqual(Presentation.lines, [
+    'Drag the planet to walk. The world turns under you.',
+    'Pull the ship and let go to fly to another tiny world.',
+    'Landing links worlds. Linked worlds prosper.',
+    'Occupied worlds have Warden cages. Pull the ship through a cage to break it.',
+    'Drag empty space to look around. C pulls the camera back.',
+    'R starts the run over.',
+  ]);
+  assert.equal(HowToPlayLines.length, 6);
+  assert.equal(Presentation.lines.join(' ').includes('\u2014'), false);
+  assert.equal(shouldShowHowToPlayAfterOpening({}), true);
+  assert.equal(shouldShowHowToPlayAfterOpening({ hasCompletedHowToPlay: true }), false);
+  assert.equal(shouldShowHowToPlayAfterOpening({ replayActive: true }), false);
+  const IndexHtml = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(IndexHtml, /id="HowToPlay"[^>]*role="dialog"[^>]*aria-modal="true"/);
+  assert.match(IndexHtml, /id="HowToPlayContinueButton"/);
+  assert.match(IndexHtml, /id="HowToPlayButton"/);
+  for (const Line of Presentation.lines) {
+    assert.ok(IndexHtml.includes(Line), Line);
+  }
+  const StyleSheet = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
+  assert.match(StyleSheet, /\.how-to-play\s*\{[^}]*user-select:\s*none;/s);
+  assert.match(StyleSheet, /\.how-to-play\s*\{[^}]*-webkit-user-select:\s*none;/s);
+  assert.match(StyleSheet, /#HowToPlayContinueButton\s*\{[^}]*min-height:\s*44px;/s);
 });
 
 test('campaign story boards queue hope, then hunt, then Command', () => {
@@ -837,6 +870,12 @@ test('first-run captions stay until the ship is grabbed, then until launch, then
     gamePhase: 'flying',
     hasGrabbedShipOnce: false,
     hasLaunchedOnce: false,
+  }).visible, false);
+  assert.equal(getFirstRunCoachPresentation({
+    gamePhase: 'attached',
+    hasGrabbedShipOnce: false,
+    hasLaunchedOnce: false,
+    isHowToPlayOpen: true,
   }).visible, false);
   const IdleHighlight = getLandedVerbHighlight({
     gamePhase: 'attached',
