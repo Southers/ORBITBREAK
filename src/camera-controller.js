@@ -6,6 +6,7 @@
 import { getScoutZoomPresentation } from './controls.js';
 import { countLiveRelayWorlds, listRelayCircuits } from './network.js';
 import {
+  getActiveViewZoomMinimumScale,
   getLandedCameraScale,
   getLandedSurfaceCameraPose,
   getFlightFollowFrame,
@@ -43,7 +44,6 @@ export function createCameraController(THREE, host) {
     WorldheartDefinition,
     PredictedSlingshotWorldIdentifiers,
     TrajectoryMaterial,
-    MinimumScoutZoomScale,
     isLiveInnerCluster,
     getSectorClusterRules,
     calculateBodyPositionAtTime,
@@ -311,7 +311,10 @@ function refreshPlanningZoomControls({ announce = false } = {}) {
     ? host.AimZoomScale
     : (host.IsScoutMode ? host.ScoutZoomScale : host.CameraZoomScale);
   const Presentation = getScoutZoomPresentation(Scale, {
-    minimumScale: MinimumScoutZoomScale,
+    minimumScale: getActiveViewZoomMinimumScale({
+      isScoutMode: host.IsScoutMode === true,
+      isPlanningCamera: shouldUseSectorPlanningCamera(),
+    }),
     maximumScale: getActiveMaximumScoutZoomScale(),
   });
   ScoutZoomInButtonElement.setAttribute('aria-disabled', String(!Presentation.canZoomIn));
@@ -375,11 +378,15 @@ function adjustScoutZoom(Direction) {
 
 function adjustViewZoom(Direction) {
   const MaximumScale = getActiveMaximumScoutZoomScale();
+  const MinimumScale = getActiveViewZoomMinimumScale({
+    isScoutMode: host.IsScoutMode === true,
+    isPlanningCamera: shouldUseSectorPlanningCamera(),
+  });
   if (shouldUseSectorPlanningCamera()) {
     const PreviousScale = host.AimZoomScale;
     host.AimZoomScale = THREE.MathUtils.clamp(
       host.AimZoomScale + (Math.sign(Direction) * 0.1),
-      MinimumScoutZoomScale,
+      MinimumScale,
       MaximumScale,
     );
     const DidChange = host.AimZoomScale !== PreviousScale;
@@ -392,7 +399,7 @@ function adjustViewZoom(Direction) {
   const PreviousScale = host.CameraZoomScale;
   host.CameraZoomScale = THREE.MathUtils.clamp(
     host.CameraZoomScale + (Math.sign(Direction) * 0.1),
-    MinimumScoutZoomScale,
+    MinimumScale,
     MaximumScale,
   );
   host.ScoutZoomScale = host.CameraZoomScale;

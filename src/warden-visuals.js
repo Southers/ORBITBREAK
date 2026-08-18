@@ -23,7 +23,7 @@ export function createWardenVisuals(THREE, Scene, host) {
   const MaximumHostileClampCount = 5;
   for (let ClampIndex = 0; ClampIndex < MaximumHostileClampCount; ClampIndex += 1) {
     const ClampMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.09, 0.32, 0.09),
+      new THREE.BoxGeometry(0.07, 0.24, 0.07),
       HostilePylonTemplateMaterial.clone(),
     );
     ClampMesh.visible = false;
@@ -55,7 +55,7 @@ export function createWardenVisuals(THREE, Scene, host) {
       ClampMesh.position.set(
         WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
         WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
-        0.14,
+        0.12,
       );
       ClampMesh.rotation.z = Clamp.surfaceAngle - (Math.PI * 0.5);
       ClampMesh.visible = true;

@@ -470,23 +470,23 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   /** Instanced mines, clamps, fumes and haulers make Warden-owned worlds look eaten, not merely clamped. */
   // Toy-diorama occupation kit: pylons stay readable at Scout, mines stay smaller than the globe.
   const OccupationScarProfiles = {
-    meadow: { height: 0.22, width: 0.34, depth: 0.34 },
-    ember: { height: 0.32, width: 0.3, depth: 0.36 },
-    grove: { height: 0.2, width: 0.42, depth: 0.3 },
-    tide: { height: 0.22, width: 0.46, depth: 0.28 },
-    frost: { height: 0.28, width: 0.3, depth: 0.36 },
-    vault: { height: 0.34, width: 0.32, depth: 0.38 },
-    loom: { height: 0.22, width: 0.4, depth: 0.3 },
-    kiln: { height: 0.3, width: 0.32, depth: 0.36 },
-    shard: { height: 0.28, width: 0.3, depth: 0.38 },
-    relay: { height: 0.22, width: 0.34, depth: 0.34 },
-    drift: { height: 0.22, width: 0.46, depth: 0.28 },
-    bower: { height: 0.22, width: 0.34, depth: 0.34 },
-    lantern: { height: 0.3, width: 0.32, depth: 0.36 },
-    canopy: { height: 0.2, width: 0.42, depth: 0.3 },
-    crown: { height: 0.34, width: 0.32, depth: 0.38 },
-    dew: { height: 0.22, width: 0.46, depth: 0.28 },
-    nest: { height: 0.28, width: 0.3, depth: 0.36 },
+    meadow: { height: 0.16, width: 0.24, depth: 0.24 },
+    ember: { height: 0.23, width: 0.22, depth: 0.26 },
+    grove: { height: 0.15, width: 0.3, depth: 0.22 },
+    tide: { height: 0.16, width: 0.33, depth: 0.2 },
+    frost: { height: 0.2, width: 0.22, depth: 0.26 },
+    vault: { height: 0.24, width: 0.23, depth: 0.27 },
+    loom: { height: 0.16, width: 0.28, depth: 0.22 },
+    kiln: { height: 0.22, width: 0.23, depth: 0.26 },
+    shard: { height: 0.2, width: 0.22, depth: 0.27 },
+    relay: { height: 0.16, width: 0.24, depth: 0.24 },
+    drift: { height: 0.16, width: 0.33, depth: 0.2 },
+    bower: { height: 0.16, width: 0.24, depth: 0.24 },
+    lantern: { height: 0.22, width: 0.23, depth: 0.26 },
+    canopy: { height: 0.15, width: 0.3, depth: 0.22 },
+    crown: { height: 0.24, width: 0.23, depth: 0.27 },
+    dew: { height: 0.16, width: 0.33, depth: 0.2 },
+    nest: { height: 0.2, width: 0.22, depth: 0.26 },
   };
   const OccupationFumeColors = {
     meadow: new THREE.Color(0x8a6a40),
@@ -514,7 +514,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       patternIndex: PatternIndex,
       buildingFamily: getProsperityBuildingFamily(WorldDefinition.visualKey),
       profile: OccupationScarProfiles[WorldDefinition.visualKey]
-        ?? { height: 0.24, width: 0.32, depth: 0.32 },
+        ?? { height: 0.18, width: 0.23, depth: 0.23 },
       fumeColor: OccupationFumeColors[WorldDefinition.visualKey] ?? OccupationFumeColors.vault,
     }))
   ));
@@ -543,7 +543,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     OccupationScarCapacity,
   );
   const OccupationClampMesh = new THREE.InstancedMesh(
-    new THREE.CylinderGeometry(0.05, 0.065, 0.38, 6),
+    new THREE.CylinderGeometry(0.036, 0.048, 0.28, 6),
     OccupationScarMaterial,
     OccupationScarCapacity,
   );
@@ -557,7 +557,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     toneMapped: false,
   });
   const OccupationFumeMesh = new THREE.InstancedMesh(
-    new THREE.ConeGeometry(0.16, 0.72, 6, 1, true),
+    new THREE.ConeGeometry(0.11, 0.52, 6, 1, true),
     OccupationFumeMaterial,
     OccupationScarCapacity,
   );
@@ -969,9 +969,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         applySphereInstance(
           ProsperityWindowTransform,
           getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.42),
-          Presence * 0.18,
-          Presence * 0.15 * (IsDockLit ? 1.25 : 1),
-          Presence * 0.12,
+          Presence * 0.13,
+          Presence * 0.11 * (IsDockLit ? 1.25 : 1),
+          Presence * 0.09,
         );
         ProsperityWindowMesh.setMatrixAt(NextVisibleWindowCount, ProsperityWindowTransform.matrix);
         ProsperityWindowColor.setHex(ProsperityStage === 'circuit' ? 0xfff0c4 : 0xffd27a);
@@ -1189,14 +1189,13 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         );
       const HeightScale = THREE.MathUtils.lerp(HeldHeight, 1, Freedom) * BobScale;
       const Silhouette = getInhabitantSilhouette(Inhabitant.slotIndex);
-      const SilhouetteMix = Freedom;
       const FacingYaw = Inhabitant.phase + (WalkingOffset * 14);
       applySphereInstance(
         InhabitantTransform,
         getWorldLifePlacement(Inhabitant.worldDefinition, SurfaceSite, 0.02),
-        Presence * THREE.MathUtils.lerp(1, Silhouette.scale.x, SilhouetteMix),
-        Presence * HeightScale * THREE.MathUtils.lerp(1, Silhouette.scale.y, SilhouetteMix),
-        Presence * THREE.MathUtils.lerp(1, Silhouette.scale.z, SilhouetteMix),
+        Presence * Silhouette.scale.x,
+        Presence * HeightScale * Silhouette.scale.y,
+        Presence * Silhouette.scale.z,
         FacingYaw,
       );
       FamilyMesh.setMatrixAt(Inhabitant.familyIndex, InhabitantTransform.matrix);

@@ -91,8 +91,20 @@ export function getRangeVeilStrength(
   return getAuthoredRangeVeilStrength(worldIdentifier, innerClusterLive, SectorRules);
 }
 
-export const PlanningMinimumZoomScale = 0.22;
+/** Scout and aim stay a sector view; landed close-up may take one extra zoom-in notch. */
+export const ScoutMinimumZoomScale = 0.38;
+export const LandedMinimumZoomScale = 0.28;
+export const PlanningMinimumZoomScale = ScoutMinimumZoomScale;
 export const PlanningMaximumZoomScale = 3.85;
+
+export function getActiveViewZoomMinimumScale({
+  isScoutMode = false,
+  isPlanningCamera = false,
+} = {}) {
+  return (isScoutMode === true || isPlanningCamera === true)
+    ? ScoutMinimumZoomScale
+    : LandedMinimumZoomScale;
+}
 export const PlanningNeighbourhoodPadding = 3.4;
 
 /**
@@ -252,12 +264,12 @@ export function getTradeHullFamily(kind) {
 
 export function getTradeHullScale(kind) {
   const Scales = {
-    barge: { x: 0.5, y: 0.14, z: 0.26 },
-    sail: { x: 0.18, y: 0.42, z: 0.14 },
-    sled: { x: 0.42, y: 0.12, z: 0.2 },
-    hull: { x: 0.32, y: 0.22, z: 0.22 },
-    spine: { x: 0.22, y: 0.36, z: 0.16 },
-    boat: { x: 0.3, y: 0.18, z: 0.2 },
+    barge: { x: 0.36, y: 0.1, z: 0.18 },
+    sail: { x: 0.13, y: 0.3, z: 0.1 },
+    sled: { x: 0.3, y: 0.09, z: 0.14 },
+    hull: { x: 0.23, y: 0.16, z: 0.16 },
+    spine: { x: 0.16, y: 0.26, z: 0.12 },
+    boat: { x: 0.22, y: 0.13, z: 0.14 },
   };
   return Scales[kind] ?? Scales.boat;
 }
@@ -308,9 +320,9 @@ export function getProsperityBuildingKind(stage, patternIndex = 0) {
 /** Houses, workshops and docks stay toy-diorama props, much smaller than world radii. */
 export function getProsperityBuildingProfile(kind) {
   const Profiles = {
-    house: { height: 0.32, width: 0.34, depth: 0.31, hasWindow: true, hasStreet: true },
-    workshop: { height: 0.44, width: 0.22, depth: 0.24, hasWindow: true, hasStreet: false },
-    dock: { height: 0.26, width: 0.36, depth: 0.32, hasWindow: false, hasStreet: false },
+    house: { height: 0.24, width: 0.26, depth: 0.24, hasWindow: true, hasStreet: true },
+    workshop: { height: 0.33, width: 0.16, depth: 0.18, hasWindow: true, hasStreet: false },
+    dock: { height: 0.19, width: 0.28, depth: 0.24, hasWindow: false, hasStreet: false },
   };
   return Profiles[kind] ?? null;
 }
@@ -512,9 +524,9 @@ export function getInhabitantSilhouette(slotIndex) {
   const Variants = ['worker', 'child', 'pack'];
   const Kind = Variants[slotIndex % 3];
   const Scales = {
-    worker: { x: 0.18, y: 0.2, z: 0.17 },
-    child: { x: 0.12, y: 0.12, z: 0.12 },
-    pack: { x: 0.22, y: 0.16, z: 0.26 },
+    worker: { x: 0.13, y: 0.14, z: 0.12 },
+    child: { x: 0.09, y: 0.09, z: 0.09 },
+    pack: { x: 0.16, y: 0.11, z: 0.19 },
   };
   return { kind: Kind, scale: Scales[Kind] };
 }
@@ -658,10 +670,10 @@ export function getLandedSurfaceCameraPose({
   const CameraDirectionX = DirectionX / LiftedDistance;
   const CameraDirectionY = DirectionY / LiftedDistance;
   const CameraDirectionZ = LiftedZ / LiftedDistance;
-  const ClosePull = worldRadius * 2.35;
+  const ClosePull = worldRadius * 1.22;
   const ZoomPull = baseCameraDistance * cameraScale;
   const RadialPull = Math.max(ClosePull, ZoomPull);
-  const LookAlongRadius = worldRadius * 0.34;
+  const LookAlongRadius = worldRadius * 0.28;
   return {
     cameraX: worldX + (CameraDirectionX * RadialPull),
     cameraY: worldY + (CameraDirectionY * RadialPull),
@@ -679,8 +691,8 @@ export function getLandedSurfaceCameraPose({
 export function getLandedCameraScale({
   worldRadius,
   viewportWorldHeight,
-  minimumScale = 0.42,
-  maximumScale = 0.58,
+  minimumScale = 0.32,
+  maximumScale = 0.46,
 } = {}) {
   if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
     throw new Error('Landed camera requires a positive world radius.');
@@ -688,7 +700,7 @@ export function getLandedCameraScale({
   if (!Number.isFinite(viewportWorldHeight) || viewportWorldHeight <= 0) {
     throw new Error('Landed camera requires a positive viewport height.');
   }
-  const FramedHeight = worldRadius * 3.22;
+  const FramedHeight = worldRadius * 2.48;
   return Math.min(
     maximumScale,
     Math.max(minimumScale, FramedHeight / viewportWorldHeight),

@@ -99,8 +99,8 @@ export function createPlayerVisuals(THREE, Scene, host) {
   /** A compact procedural Runner stays tiny on the world; collision radius is unchanged. */
   const SeedGroup = new THREE.Group();
   const RunnerVisualGroup = new THREE.Group();
-  const RunnerPresentationScale = 0.34;
-  const ShipPresentationScale = 0.4;
+  const RunnerPresentationScale = 0.26;
+  const ShipPresentationScale = 0.3;
   RunnerVisualGroup.scale.setScalar(RunnerPresentationScale);
   GameCanvas.dataset.runnerVisualScale = String(RunnerPresentationScale);
   const RunnerSuitMaterial = new THREE.MeshStandardMaterial({

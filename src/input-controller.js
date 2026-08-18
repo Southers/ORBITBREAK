@@ -30,6 +30,7 @@ import {
 import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js';
 import {
   getCageClearPulseDurationSeconds,
+  getActiveViewZoomMinimumScale,
   getLaunchFacingPresentation,
   shouldAssistCommandLock,
 } from './presentation.js';
@@ -114,7 +115,6 @@ export function createInputController(THREE, host) {
     getActiveTacticalBodyDefinitions,
     renderTrajectoryLine,
     getCurrentCutHitIds,
-    MinimumScoutZoomScale,
   } = host;
 
   const PointerFallbackPlane = new THREE.Plane();
@@ -366,7 +366,10 @@ function updatePinchZoom() {
     getPointerClientDistance(FirstPointer, SecondPointer),
     host.PinchState.startScale,
     {
-      minimumScale: MinimumScoutZoomScale,
+      minimumScale: getActiveViewZoomMinimumScale({
+        isScoutMode: host.IsScoutMode === true,
+        isPlanningCamera: UsesPlanningZoom,
+      }),
       maximumScale: getActiveMaximumScoutZoomScale(),
     },
   );

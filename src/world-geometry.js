@@ -318,8 +318,8 @@ export function createWorldVisuals(THREE, Scene, {
     ScatterGroup.add(createScatterInstances(FloraGeometry, FloraMaterial, WorldDefinition, {
       count: FloraCount,
       nextRandomValue,
-      minimumScale: IsGroundCover ? 0.32 : 0.48,
-      maximumScale: IsGroundCover ? 0.52 : 0.78,
+      minimumScale: IsGroundCover ? 0.22 : 0.34,
+      maximumScale: IsGroundCover ? 0.38 : 0.56,
     }));
 
     const GlowGeometry = createScatterLanternGeometry();
@@ -340,8 +340,8 @@ export function createWorldVisuals(THREE, Scene, {
     ScatterGroup.add(createScatterInstances(GlowGeometry, GlowMaterial, WorldDefinition, {
       count: GlowCount,
       nextRandomValue,
-      minimumScale: 0.38,
-      maximumScale: 0.58,
+      minimumScale: 0.28,
+      maximumScale: 0.42,
     }));
 
     return ScatterGroup;
@@ -685,7 +685,7 @@ export function createWorldVisuals(THREE, Scene, {
   }
 
   /** Places a local-Y-up prop against a spherical surface and registers wave metadata. */
-  const SurfacePropDioramaScale = 0.34;
+  const SurfacePropDioramaScale = 0.24;
   function placeSurfaceProp(
     PropObject,
     SurfaceDirection,
@@ -795,7 +795,7 @@ export function createWorldVisuals(THREE, Scene, {
   }
 
   /** Places one geometry on a spherical surface before it enters a merged one-call landmark. */
-  const MergedLandmarkDioramaScale = 0.36;
+  const MergedLandmarkDioramaScale = 0.26;
   function createPlacedLandmarkGeometry(
     SourceGeometry,
     SurfaceDirection,

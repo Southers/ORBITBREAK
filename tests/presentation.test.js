@@ -55,6 +55,9 @@ import {
   getExtractionFreighterTravelProgress,
   getLandedCameraScale,
   getLandedSurfaceCameraPose,
+  getActiveViewZoomMinimumScale,
+  LandedMinimumZoomScale,
+  ScoutMinimumZoomScale,
   getFlightCameraScale,
   getFlightFollowFrame,
   getOccupiedAtmosphereOpacity,
@@ -947,11 +950,11 @@ test('prosperity densifies from a first link to busy routes and circuits', () =>
   assert.equal(getProsperityBuildingKind('isolated', 0), null);
   assert.equal(getProsperityBuildingProfile('dock').height < getProsperityBuildingProfile('house').height, true);
   assert.ok(getProsperityBuildingProfile('workshop').height > getProsperityBuildingProfile('house').height);
-  assert.ok(getProsperityBuildingProfile('house').height < 0.4);
-  assert.ok(getProsperityBuildingProfile('workshop').height < 0.5);
+  assert.ok(getProsperityBuildingProfile('house').height < 0.3);
+  assert.ok(getProsperityBuildingProfile('workshop').height < 0.4);
   assert.ok(getInhabitantSilhouette(0).scale.y < getProsperityBuildingProfile('house').height);
   assert.ok(getInhabitantSilhouette(2).scale.y < getProsperityBuildingProfile('house').height);
-  assert.ok(getTradeHullScale('barge').x < 0.7);
+  assert.ok(getTradeHullScale('barge').x < 0.5);
   assert.equal(getProsperityBuildingFamily('ember'), 'furnace');
   assert.equal(getProsperityBuildingFamily('grove'), 'canopy');
   assert.equal(getProsperityBuildingFamily('meadow'), 'cottage');
@@ -1063,10 +1066,18 @@ test('tyrant occupation collapses through the liberation wave and never returns 
 
 test('landed camera frames one world tightly enough for surface art to read', () => {
   const EmberScale = getLandedCameraScale({ worldRadius: 3.2, viewportWorldHeight: 24 });
-  assert.ok(EmberScale >= 0.42 && EmberScale <= 0.58);
-  assert.ok(EmberScale < 1);
+  assert.ok(EmberScale >= 0.32 && EmberScale <= 0.46);
+  assert.ok(EmberScale < 0.42);
   const TinyScale = getLandedCameraScale({ worldRadius: 2.15, viewportWorldHeight: 24 });
-  assert.equal(TinyScale, 0.42);
+  assert.equal(TinyScale, 0.32);
+});
+
+test('landed close-up may zoom one extra notch while Scout stays a sector view', () => {
+  assert.equal(ScoutMinimumZoomScale, 0.38);
+  assert.equal(LandedMinimumZoomScale, 0.28);
+  assert.equal(getActiveViewZoomMinimumScale({ isScoutMode: true }), ScoutMinimumZoomScale);
+  assert.equal(getActiveViewZoomMinimumScale({ isPlanningCamera: true }), ScoutMinimumZoomScale);
+  assert.equal(getActiveViewZoomMinimumScale({}), LandedMinimumZoomScale);
 });
 
 test('landed facing camera keeps the Runner on the near face and reduced motion stays overhead', () => {
