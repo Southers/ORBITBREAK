@@ -3429,6 +3429,11 @@ function renderFrame() {
   refreshInstructionPanelBounds();
   updateTacticalBodies(ElapsedTimeSeconds, CachedInstructionPanelTop);
   updateStardustVisuals(ElapsedTimeSeconds);
+  updateRouteLabels(CachedInstructionPanelTop);
+  updatePullHint();
+  updateFlightAudio();
+  updateWorldLifeAudio();
+  updatePersonalBestGhostVisibility();
   updateEnvironmentBackdrop(DeltaTimeSeconds, CameraDistanceScale);
 
   renderScene();
