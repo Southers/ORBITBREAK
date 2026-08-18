@@ -43,7 +43,7 @@ import {
   isDiscoveryCollected,
   listWorldDiscoveries,
   resetLiveDiscoveryState,
-} from './discoveries.js?v=20260818-ob122';
+} from './discoveries.js?v=20260818-ob123';
 
 export function createLivingWorldVisuals(THREE, Scene, host) {
   const {
@@ -279,6 +279,11 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     Mesh.setMatrixAt(InstanceIndex, Transform.matrix);
   }
 
+  function isLandedCloseUpView() {
+    return (host.GamePhase === 'attached' || host.GamePhase === 'restoring')
+      && (host.CameraDistanceScale ?? 1) < 0.72;
+  }
+
   function getWorldLifePlacement(WorldDefinition, Site, RadialOffset) {
     const Placement = getSphereLifePlacement({
       worldX: WorldDefinition.position.x,
@@ -424,6 +429,12 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     if (RelayPortWorlds.length === 0) {
       return;
     }
+    const ShowPorts = !isLandedCloseUpView();
+    RelayPortDotMesh.visible = ShowPorts;
+    RelayPortBeaconMesh.visible = ShowPorts;
+    if (!ShowPorts) {
+      return;
+    }
     const Pulse = host.PrefersReducedMotion
       ? 1
       : 1 + (Math.sin(ElapsedTimeSeconds * 3.1) * 0.18);
@@ -490,17 +501,18 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       isAiming: IsPointerAiming || IsKeyboardAiming,
       isFlying: GamePhase === 'flying',
     });
-    SlingshotAssistMesh.visible = VisualState.visible;
-    SlingshotRazorMesh.visible = VisualState.visible;
-    GravityWellMesh.visible = VisualState.visible;
-    if (!VisualState.visible) {
+    const ShowBands = VisualState.visible && !isLandedCloseUpView();
+    SlingshotAssistMesh.visible = ShowBands;
+    SlingshotRazorMesh.visible = ShowBands;
+    GravityWellMesh.visible = ShowBands;
+    if (!ShowBands) {
       return;
     }
 
     SlingshotAssistMaterial.opacity = VisualState.assistOpacity;
     SlingshotRazorMaterial.opacity = VisualState.razorOpacity;
     const ZoomFade = THREE.MathUtils.clamp(
-      1 - THREE.MathUtils.smoothstep(0.95, 1.55, host.CameraDistanceScale ?? 1),
+      THREE.MathUtils.smoothstep(0.72, 1.18, host.CameraDistanceScale ?? 1),
       0,
       1,
     );
@@ -1063,7 +1075,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         continue;
       }
       NextVisibleProsperityBuildingCount += 1;
-      const StanceScale = 1.22;
+      const StanceScale = 4.4;
       const Height = BuildingProfile.height
         * Presence
         * StanceScale
@@ -1094,9 +1106,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         applySphereInstance(
           ProsperityWindowTransform,
           getWorldLifePlacement(Building.worldDefinition, Building.site, Height * 0.42),
-          Presence * 0.16,
-          Presence * 0.13 * (IsDockLit ? 1.25 : 1),
-          Presence * 0.11,
+          Presence * 0.58,
+          Presence * 0.48 * (IsDockLit ? 1.25 : 1),
+          Presence * 0.4,
         );
         ProsperityWindowMesh.setMatrixAt(NextVisibleWindowCount, ProsperityWindowTransform.matrix);
         ProsperityWindowColor.setHex(
@@ -1324,12 +1336,13 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       const HeightScale = THREE.MathUtils.lerp(HeldHeight, 1, Freedom) * BobScale;
       const Silhouette = getInhabitantSilhouette(Inhabitant.slotIndex);
       const FacingYaw = Inhabitant.phase + (WalkingOffset * 14);
+      const InhabitantReadableScale = 3.2;
       applySphereInstance(
         InhabitantTransform,
         getWorldLifePlacement(Inhabitant.worldDefinition, SurfaceSite, 0.02),
-        Presence * Silhouette.scale.x,
-        Presence * HeightScale * Silhouette.scale.y,
-        Presence * Silhouette.scale.z,
+        Presence * Silhouette.scale.x * InhabitantReadableScale,
+        Presence * HeightScale * Silhouette.scale.y * InhabitantReadableScale,
+        Presence * Silhouette.scale.z * InhabitantReadableScale,
         FacingYaw,
       );
       FamilyMesh.setMatrixAt(Inhabitant.familyIndex, InhabitantTransform.matrix);
@@ -1491,10 +1504,10 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       );
       applySphereInstance(
         DiscoveryMarkerTransform,
-        getWorldLifePlacement(Marker.worldDefinition, Marker.discovery, Collected ? 0.02 : 0.05),
-        Collected ? 0.55 : 0.85 * Pulse,
-        Collected ? 0.45 : 0.95 * Pulse,
-        Collected ? 0.55 : 0.85 * Pulse,
+        getWorldLifePlacement(Marker.worldDefinition, Marker.discovery, Collected ? 0.04 : 0.08),
+        Collected ? 1.45 : 2.35 * Pulse,
+        Collected ? 1.2 : 2.55 * Pulse,
+        Collected ? 1.45 : 2.35 * Pulse,
       );
       DiscoveryMarkerMesh.setMatrixAt(MarkerIndex, DiscoveryMarkerTransform.matrix);
       if (Collected) {
@@ -1517,19 +1530,22 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     const PulseTime = host.PrefersReducedMotion ? 0 : ElapsedTimeSeconds;
     for (let WorldIndex = 0; WorldIndex < LocalCraftWorlds.length; WorldIndex += 1) {
       const WorldDefinition = LocalCraftWorlds[WorldIndex];
-      const OrbitRadius = WorldDefinition.radius + 0.42;
+      const Sites = listOccupationSites(WorldDefinition);
       for (let CraftSlot = 0; CraftSlot < 2; CraftSlot += 1) {
         const InstanceIndex = (WorldIndex * 2) + CraftSlot;
-        const Phase = PulseTime * (0.18 + (CraftSlot * 0.07)) + (WorldIndex * 0.9) + (CraftSlot * 2.4);
-        const Height = 0.22 + (Math.sin(Phase * 1.4) * 0.08);
-        LocalCraftTransform.position.set(
-          WorldDefinition.position.x + (Math.cos(Phase) * OrbitRadius),
-          WorldDefinition.position.y + (Math.sin(Phase) * OrbitRadius),
-          Height,
+        const Site = Sites[CraftSlot % Sites.length];
+        const Phase = PulseTime * 1.5 + WorldIndex + (CraftSlot * 2.1);
+        applySphereInstance(
+          LocalCraftTransform,
+          getWorldLifePlacement(WorldDefinition, {
+            longitude: Site.longitude + (CraftSlot === 0 ? 0.28 : -0.32),
+            latitude: Site.latitude * 0.42,
+          }, 0.05 + (Math.sin(Phase) * 0.012)),
+          2.35,
+          1.15,
+          1.35,
+          Site.longitude + (CraftSlot * 0.8),
         );
-        LocalCraftTransform.rotation.set(0, 0, Phase + (Math.PI * 0.5));
-        LocalCraftTransform.scale.set(0.85, 0.7, 0.7);
-        LocalCraftTransform.updateMatrix();
         LocalCraftMesh.setMatrixAt(InstanceIndex, LocalCraftTransform.matrix);
         LocalCraftColor.setHex(
           WorldDefinition.visualKey === 'ember' || WorldDefinition.visualKey === 'kiln'

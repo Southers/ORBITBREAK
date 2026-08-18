@@ -17,7 +17,7 @@ import {
   getWorldCrustWalkQuaternion,
   shouldSpinWorldCrustUnderWalker,
 } from './presentation.js';
-import { sampleLiveDiscoveries } from './discoveries.js?v=20260818-ob122';
+import { sampleLiveDiscoveries } from './discoveries.js?v=20260818-ob123';
 
 export function createFrameVisuals(THREE, host) {
   const {
@@ -85,6 +85,11 @@ export function createFrameVisuals(THREE, host) {
 
   function getPresentationQuality() {
     return host.AdaptivePresentationSettings ?? null;
+  }
+
+  function isLandedCloseUpView() {
+    return (host.GamePhase === 'attached' || host.GamePhase === 'restoring')
+      && (host.CameraDistanceScale ?? 1) < 0.72;
   }
 
   function getAttachedVisualWorld() {
@@ -369,6 +374,13 @@ export function createFrameVisuals(THREE, host) {
               + (Math.sin((ElapsedTimeSeconds * 2.1) + 0.6) * 0.08);
           }
         }
+      }
+    }
+
+    const HideMotes = isLandedCloseUpView();
+    for (const WorldRuntime of WorldRuntimeByIdentifier.values()) {
+      if (WorldRuntime.ambientMoteGroup) {
+        WorldRuntime.ambientMoteGroup.visible = !HideMotes;
       }
     }
   }
