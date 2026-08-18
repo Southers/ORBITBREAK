@@ -5,6 +5,7 @@ import {
   addCompletionBonus,
   addCircuitBonus,
   addVictoryBonus,
+  addDiscoveryBonus,
   bankFlightScore,
   createScoreState,
   getSlingshotBand,
@@ -164,6 +165,16 @@ test('network circuits and remaining pursuit distance form distinct ranked categ
   assert.equal(ScoreState.circuitScore, 1250);
   assert.equal(ScoreState.victoryScore, 3000);
   assert.equal(ScoreState.bankedScore, 5650);
+});
+
+test('discoveries bank into a live bucket without changing ranked flight totals', () => {
+  const ScoreState = createScoreState();
+  bankFlightScore(ScoreState, { landingBonus: 1000 });
+  assert.equal(addDiscoveryBonus(ScoreState, 200), 200);
+  assert.equal(addDiscoveryBonus(ScoreState, 200), 200);
+  assert.equal(ScoreState.discoveryScore, 400);
+  assert.equal(ScoreState.bankedScore, 1000);
+  assert.equal(addDiscoveryBonus(ScoreState, -50), 0);
 });
 
 test('prediction uses the same pass sampling contract as live fixed steps', () => {

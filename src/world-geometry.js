@@ -173,7 +173,99 @@ export function createWorldVisuals(THREE, Scene, {
     return ScatterMesh;
   }
 
-  /** Merges primitive parts so one scatter instance can be a tree, cactus or lantern. */
+  /** Haven grass, Ember heat, Grove canopy, Frost ice, Tide water, Bastion stone. */
+  function getInferredBiomeStyle(WorldDefinition) {
+    if (Number.isFinite(WorldDefinition.biomeStyle) && WorldDefinition.biomeStyle > 0) {
+      return WorldDefinition.biomeStyle;
+    }
+    const VisualKey = WorldDefinition.visualKey;
+    if (VisualKey === 'grove' || VisualKey === 'canopy' || VisualKey === 'loom') {
+      return 1;
+    }
+    if (VisualKey === 'tide' || VisualKey === 'drift' || VisualKey === 'dew') {
+      return 2;
+    }
+    if (VisualKey === 'meadow' || VisualKey === 'bower' || VisualKey === 'relay') {
+      return 3;
+    }
+    if (VisualKey === 'ember' || VisualKey === 'kiln' || VisualKey === 'lantern') {
+      return 4;
+    }
+    if (VisualKey === 'frost' || VisualKey === 'nest') {
+      return 5;
+    }
+    if (VisualKey === 'vault' || VisualKey === 'crown') {
+      return 6;
+    }
+    return 0;
+  }
+
+  function isSparseScatterWorld(WorldDefinition) {
+    return WorldDefinition.visualKey === 'shard'
+      || WorldDefinition.visualKey === 'outpost'
+      || WorldDefinition.kind === 'worldheart'
+      || WorldDefinition.kind === 'hazard'
+      || WorldDefinition.kind === 'seedstone';
+  }
+
+  /** Extra culture-true scatter so each inhabited globe reads from +Z. */
+  function createCultureScatterGeometry(VisualKey) {
+    if (VisualKey === 'meadow' || VisualKey === 'bower' || VisualKey === 'relay') {
+      return mergeScatterParts([
+        { geometry: new THREE.BoxGeometry(0.12, 0.1, 0.1), position: [0, 0.06, 0], color: 0xe4c49a },
+        { geometry: new THREE.ConeGeometry(0.09, 0.1, 4), position: [0, 0.14, 0], color: 0xb24a3a },
+        { geometry: new THREE.ConeGeometry(0.03, 0.12, 4), position: [0.08, 0.07, 0.04], color: 0x7bb85a },
+      ]);
+    }
+    if (VisualKey === 'ember' || VisualKey === 'kiln' || VisualKey === 'lantern') {
+      return mergeScatterParts([
+        { geometry: new THREE.CylinderGeometry(0.05, 0.07, 0.16, 6), position: [0, 0.08, 0], color: 0x5a3432 },
+        { geometry: new THREE.BoxGeometry(0.08, 0.06, 0.08), position: [0, 0.18, 0], color: 0xff7a38 },
+      ]);
+    }
+    if (VisualKey === 'grove' || VisualKey === 'canopy' || VisualKey === 'loom') {
+      return mergeScatterParts([
+        { geometry: new THREE.CylinderGeometry(0.018, 0.028, 0.16, 5), position: [0, 0.08, 0], color: 0x6a4630 },
+        { geometry: new THREE.SphereGeometry(0.08, 6, 5), position: [0, 0.18, 0], color: 0x4e7a44 },
+        { geometry: new THREE.SphereGeometry(0.05, 5, 4), position: [0.05, 0.16, 0.03], color: 0x8fd06a },
+      ]);
+    }
+    if (VisualKey === 'frost' || VisualKey === 'nest') {
+      return mergeScatterParts([
+        { geometry: new THREE.OctahedronGeometry(0.07, 0), position: [0, 0.12, 0], scale: [0.6, 1.8, 0.6], color: 0xd8f4ff },
+        { geometry: new THREE.SphereGeometry(0.05, 6, 4), position: [0.06, 0.04, 0], scale: [1.3, 0.45, 1], color: 0xe8f5f2 },
+      ]);
+    }
+    if (VisualKey === 'tide' || VisualKey === 'drift' || VisualKey === 'dew') {
+      return mergeScatterParts([
+        { geometry: new THREE.BoxGeometry(0.16, 0.03, 0.06), position: [0, 0.05, 0], color: 0x8a6a48 },
+        { geometry: new THREE.CylinderGeometry(0.012, 0.016, 0.08, 5), position: [-0.05, 0.03, 0.02], color: 0x5a4030 },
+        { geometry: new THREE.CylinderGeometry(0.012, 0.016, 0.08, 5), position: [0.05, 0.03, -0.02], color: 0x5a4030 },
+      ]);
+    }
+    if (VisualKey === 'vault' || VisualKey === 'crown') {
+      return mergeScatterParts([
+        { geometry: new THREE.BoxGeometry(0.1, 0.16, 0.1), position: [0, 0.08, 0], color: 0x8a8498 },
+        { geometry: new THREE.CylinderGeometry(0.03, 0.04, 0.08, 5), position: [0, 0.2, 0], color: 0xf2c1ff },
+      ]);
+    }
+    return mergeScatterParts([
+      { geometry: new THREE.BoxGeometry(0.08, 0.08, 0.08), position: [0, 0.04, 0], color: 0xc9a078 },
+    ]);
+  }
+
+  function usesCultureScatter(WorldDefinition) {
+    return [
+      'meadow', 'ember', 'grove', 'frost', 'tide', 'vault',
+      'bower', 'lantern', 'canopy', 'dew', 'nest', 'relay', 'kiln', 'loom', 'crown',
+    ].includes(WorldDefinition.visualKey);
+  }
+
+  /**
+   * Dense instanced ground cover for every restorable world: flora sprouts in
+   * the world's alive palette plus emissive settlement lights that bloom once
+   * the liberation wave reaches them. Two draw calls per world.
+   */
   function mergeScatterParts(Parts) {
     const PositionValues = [];
     const NormalValues = [];
@@ -290,8 +382,17 @@ export function createWorldVisuals(THREE, Scene, {
     const ScatterGroup = new THREE.Group();
     const nextRandomValue = createSeededRandom(`${WorldDefinition.id}-life-scatter`);
     const SurfaceAreaScale = WorldDefinition.radius * WorldDefinition.radius;
-    const FloraCount = Math.round(THREE.MathUtils.clamp(SurfaceAreaScale * 6, 16, 42));
-    const GlowCount = Math.round(THREE.MathUtils.clamp(SurfaceAreaScale * 3, 8, 20));
+    const IsSparse = isSparseScatterWorld(WorldDefinition);
+    const FloraCount = Math.round(THREE.MathUtils.clamp(
+      SurfaceAreaScale * (IsSparse ? 1.6 : 3.4),
+      IsSparse ? 4 : 12,
+      IsSparse ? 8 : 26,
+    ));
+    const GlowCount = Math.round(THREE.MathUtils.clamp(
+      SurfaceAreaScale * (IsSparse ? 0.7 : 1.6),
+      IsSparse ? 2 : 6,
+      IsSparse ? 5 : 14,
+    ));
 
     const FloraGeometry = createScatterFloraGeometry(WorldDefinition.visualKey);
     const FloraMaterial = new THREE.MeshStandardMaterial({
@@ -307,7 +408,7 @@ export function createWorldVisuals(THREE, Scene, {
     applyScatterRestorationShader(
       FloraMaterial,
       RestorationUniforms,
-      'orbitbreak-life-scatter-flora-v3',
+      'orbitbreak-life-scatter-flora-v4',
     );
     const IsGroundCover = WorldDefinition.visualKey === 'meadow'
       || WorldDefinition.visualKey === 'bower'
@@ -319,8 +420,8 @@ export function createWorldVisuals(THREE, Scene, {
     ScatterGroup.add(createScatterInstances(FloraGeometry, FloraMaterial, WorldDefinition, {
       count: FloraCount,
       nextRandomValue,
-      minimumScale: IsGroundCover ? 0.22 : 0.34,
-      maximumScale: IsGroundCover ? 0.38 : 0.56,
+      minimumScale: IsGroundCover ? 1.35 : 1.7,
+      maximumScale: IsGroundCover ? 2.15 : 2.55,
     }));
 
     const GlowGeometry = createScatterLanternGeometry();
@@ -336,14 +437,40 @@ export function createWorldVisuals(THREE, Scene, {
     applyScatterRestorationShader(
       GlowMaterial,
       RestorationUniforms,
-      'orbitbreak-life-scatter-glow-v1',
+      'orbitbreak-life-scatter-glow-v2',
     );
     ScatterGroup.add(createScatterInstances(GlowGeometry, GlowMaterial, WorldDefinition, {
       count: GlowCount,
       nextRandomValue,
-      minimumScale: 0.28,
-      maximumScale: 0.42,
+      minimumScale: 1.55,
+      maximumScale: 2.35,
     }));
+
+    if (!IsSparse && usesCultureScatter(WorldDefinition)) {
+      const CultureCount = Math.round(THREE.MathUtils.clamp(SurfaceAreaScale * 1.15, 5, 11));
+      const CultureGeometry = createCultureScatterGeometry(WorldDefinition.visualKey);
+      const CultureMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.7,
+        metalness: 0.08,
+        vertexColors: true,
+      });
+      CultureMaterial.userData.scatterDeadColor = DarkWorldColor.clone().lerp(
+        WorldDefinition.aliveColor,
+        0.18,
+      );
+      applyScatterRestorationShader(
+        CultureMaterial,
+        RestorationUniforms,
+        'orbitbreak-life-scatter-culture-v1',
+      );
+      ScatterGroup.add(createScatterInstances(CultureGeometry, CultureMaterial, WorldDefinition, {
+        count: CultureCount,
+        nextRandomValue,
+        minimumScale: 2.35,
+        maximumScale: 3.4,
+      }));
+    }
 
     return ScatterGroup;
   }
@@ -392,7 +519,7 @@ export function createWorldVisuals(THREE, Scene, {
       waveColor: { value: WorldDefinition.restoration.waveColor.clone() },
       surfaceVariation: { value: WorldDefinition.restoration.surfaceVariation },
       accentColor: { value: (WorldDefinition.accentColor ?? WorldDefinition.aliveColor).clone() },
-      biomeStyle: { value: WorldDefinition.biomeStyle ?? 0 },
+      biomeStyle: { value: getInferredBiomeStyle(WorldDefinition) },
       biomeTime: { value: 0 },
     };
     const SurfaceFinish = getWorldSurfaceFinish(WorldDefinition.visualKey);
@@ -483,7 +610,7 @@ export function createWorldVisuals(THREE, Scene, {
               accentColor,
               (rootVeins * 0.22) + (canopyMottling * 0.16)
             );
-          } else if (biomeStyle > 1.5) {
+          } else if (biomeStyle > 1.5 && biomeStyle < 2.5) {
             float tideBands = 0.5 + (0.5 * sin(
               (vRestorationDirection.y * 9.0)
               + (vRestorationDirection.x * 5.0)
@@ -498,6 +625,66 @@ export function createWorldVisuals(THREE, Scene, {
               accentColor,
               (tideBands * 0.28) + (tideRipple * 0.18)
             );
+          } else if (biomeStyle > 2.5 && biomeStyle < 3.5) {
+            float meadowTufts = 0.5 + (0.5 * sin(
+              (vRestorationDirection.x * 21.0)
+              + (vRestorationDirection.y * 17.0)
+              + (vRestorationDirection.z * 9.0)
+            ));
+            float meadowPaths = 0.5 + (0.5 * sin(
+              (vRestorationDirection.y * 6.0)
+              - (vRestorationDirection.x * 4.0)
+            ));
+            variedAliveColor = mix(
+              variedAliveColor,
+              accentColor,
+              (meadowTufts * 0.2) + (meadowPaths * 0.1)
+            );
+          } else if (biomeStyle > 3.5 && biomeStyle < 4.5) {
+            float emberCracks = smoothstep(
+              0.72,
+              0.98,
+              sin(vRestorationDirection.x * 29.0)
+                * sin(vRestorationDirection.y * 25.0)
+                * sin(vRestorationDirection.z * 19.0)
+            );
+            float emberHeat = 0.5 + (0.5 * sin(
+              (vRestorationDirection.z * 8.0) + (biomeTime * 1.4)
+            ));
+            variedAliveColor = mix(
+              variedAliveColor,
+              accentColor,
+              (emberCracks * 0.42) + (emberHeat * 0.12)
+            );
+          } else if (biomeStyle > 4.5 && biomeStyle < 5.5) {
+            float frostFacets = 0.5 + (0.5 * sin(
+              (vRestorationDirection.x * 27.0)
+              - (vRestorationDirection.y * 15.0)
+              + (vRestorationDirection.z * 21.0)
+            ));
+            float frostSheen = 0.5 + (0.5 * sin(
+              (vRestorationDirection.y * 8.0) + (biomeTime * 0.35)
+            ));
+            variedAliveColor = mix(
+              variedAliveColor,
+              accentColor,
+              (frostFacets * 0.26) + (frostSheen * 0.12)
+            );
+          } else if (biomeStyle > 5.5) {
+            float bastionPanels = 0.5 + (0.5 * sin(
+              (vRestorationDirection.x * 14.0)
+              + (vRestorationDirection.y * 14.0)
+            ));
+            float bastionJoints = smoothstep(
+              0.82,
+              0.97,
+              abs(sin(vRestorationDirection.z * 18.0))
+            );
+            variedAliveColor = mix(
+              variedAliveColor,
+              accentColor,
+              (bastionPanels * 0.16) + (bastionJoints * 0.22)
+            );
           }
           variedAliveColor = mix(variedAliveColor, accentColor, vLandmarkMask * 0.82);
           vec3 occupiedBase = mix(deadColor * 0.48, aliveColor * 0.62, 0.78);
@@ -510,8 +697,14 @@ export function createWorldVisuals(THREE, Scene, {
           vec3 scarColor = vec3(0.58, 0.19, 0.05);
           if (biomeStyle > 0.5 && biomeStyle < 1.5) {
             scarColor = vec3(0.2, 0.4, 0.14);
-          } else if (biomeStyle > 1.5) {
+          } else if (biomeStyle > 1.5 && biomeStyle < 2.5) {
             scarColor = vec3(0.14, 0.4, 0.5);
+          } else if (biomeStyle > 3.5 && biomeStyle < 4.5) {
+            scarColor = vec3(0.62, 0.18, 0.05);
+          } else if (biomeStyle > 4.5 && biomeStyle < 5.5) {
+            scarColor = vec3(0.22, 0.42, 0.52);
+          } else if (biomeStyle > 5.5) {
+            scarColor = vec3(0.28, 0.16, 0.4);
           }
           occupiedColor += scarColor * scarGlow;
           diffuseColor.rgb = mix(occupiedColor, variedAliveColor, restoredSurface);
@@ -633,7 +826,7 @@ export function createWorldVisuals(THREE, Scene, {
   }
 
   /** Places a local-Y-up prop against a spherical surface and registers wave metadata. */
-  const SurfacePropDioramaScale = 0.24;
+  const SurfacePropDioramaScale = 0.92;
   function placeSurfaceProp(
     PropObject,
     SurfaceDirection,
@@ -651,6 +844,25 @@ export function createWorldVisuals(THREE, Scene, {
     PropObject.userData.baseScale = PropScale;
     PropObject.userData.restorationDistance = 1;
     return PropObject;
+  }
+
+  /** A readable surface walker so overlay settlements are not empty from +Z. */
+  function createOverlayWalker(WorldDefinition, SurfaceDirection, SuitHex = 0xeef6f8) {
+    const Walker = new THREE.Group();
+    const SuitMaterial = new THREE.MeshStandardMaterial({
+      color: SuitHex,
+      roughness: 0.58,
+    });
+    const Body = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.2, 3, 6), SuitMaterial);
+    Body.position.y = 0.2;
+    Walker.add(Body);
+    const Head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), SuitMaterial);
+    Head.position.y = 0.42;
+    Walker.add(Head);
+    placeSurfaceProp(Walker, SurfaceDirection, WorldDefinition.radius, 1.08, 0.02);
+    registerRestorableMaterial(Walker, SuitMaterial);
+    Walker.userData.kind = 'person';
+    return Walker;
   }
 
   /** Creates a compact placeholder prop set for worlds awaiting their authored art pass. */
@@ -743,7 +955,7 @@ export function createWorldVisuals(THREE, Scene, {
   }
 
   /** Places one geometry on a spherical surface before it enters a merged one-call landmark. */
-  const MergedLandmarkDioramaScale = 0.26;
+  const MergedLandmarkDioramaScale = 0.52;
   function createPlacedLandmarkGeometry(
     SourceGeometry,
     SurfaceDirection,
@@ -1749,6 +1961,9 @@ export function createWorldVisuals(THREE, Scene, {
       [0.7, -0.14, 0.7, 0.72],
       [0.38, -0.52, -0.76, 0.88],
       [-0.55, 0.2, -0.81, 1.02],
+      [0.12, 0.82, -0.55, 0.84],
+      [-0.78, -0.12, 0.61, 0.7],
+      [0.82, 0.18, -0.54, 0.78],
     ];
     TreeDefinitions.forEach(([X, Y, Z, Scale], Index) => {
       SurfacePropGroup.add(createMeadowTree(
@@ -1767,6 +1982,36 @@ export function createWorldVisuals(THREE, Scene, {
       WorldDefinition,
       new THREE.Vector3(0.22, -0.62, -0.75),
     ));
+    SurfacePropGroup.add(createMeadowCottage(
+      WorldDefinition,
+      new THREE.Vector3(0.78, 0.08, 0.62),
+    ));
+    SurfacePropGroup.add(createMeadowCottage(
+      WorldDefinition,
+      new THREE.Vector3(-0.72, 0.18, -0.67),
+    ));
+    SurfacePropGroup.add(createMeadowCottage(
+      WorldDefinition,
+      new THREE.Vector3(-0.08, -0.82, 0.56),
+    ));
+    SurfacePropGroup.add(createMeadowCottage(
+      WorldDefinition,
+      new THREE.Vector3(0.58, 0.52, -0.62),
+    ));
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(-0.1, 0.66, 0.74),
+    ));
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(0.26, -0.58, -0.77),
+      0xd7e6ea,
+    ));
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(0.74, 0.04, 0.67),
+      0xffe29a,
+    ));
     SurfacePropGroup.add(createMeadowPond(
       WorldDefinition,
       new THREE.Vector3(0.2, -0.34, 0.93),
@@ -1783,6 +2028,8 @@ export function createWorldVisuals(THREE, Scene, {
       [0.1, 0.55, 0.84, 0xf59cab],
       [0.12, -0.38, -0.92, 0xf0a7c6],
       [-0.44, 0.16, -0.88, 0xffd68a],
+      [0.66, -0.28, 0.7, 0xd8b0ff],
+      [-0.22, 0.62, -0.75, 0xf59cab],
     ];
     FlowerDefinitions.forEach(([X, Y, Z, Color], Index) => {
       SurfacePropGroup.add(createMeadowFlowers(
@@ -1797,6 +2044,7 @@ export function createWorldVisuals(THREE, Scene, {
       [-0.8, 0.52, 0.3], [0.12, 0.84, 0.52], [0.73, 0.42, 0.54],
       [-0.76, -0.48, 0.45], [-0.18, -0.76, 0.63], [0.63, -0.58, 0.52],
       [-0.35, 0.34, 0.88], [0.42, -0.02, 0.91],
+      [0.22, 0.66, -0.72], [-0.58, -0.22, -0.78], [0.7, 0.08, -0.71],
     ];
     GrassDirections.forEach(([X, Y, Z], Index) => {
       SurfacePropGroup.add(createMeadowGrass(
@@ -1963,6 +2211,8 @@ export function createWorldVisuals(THREE, Scene, {
       [-0.64, 0.34, 0.7, 1.0], [0.62, 0.12, 0.78, 0.86],
       [-0.54, -0.48, 0.69, 0.72], [0.58, -0.55, 0.6, 0.68],
       [0.48, -0.22, -0.84, 0.9], [-0.36, 0.4, -0.84, 0.76],
+      [0.18, 0.72, -0.67, 0.8], [-0.7, 0.08, -0.71, 0.64],
+      [-0.22, 0.08, 0.97, 0.88], [0.32, 0.58, -0.74, 0.7],
     ];
     ClusterDefinitions.forEach(([X, Y, Z, Scale], Index) => {
       SurfacePropGroup.add(createEmberBasaltCluster(
@@ -1972,6 +2222,16 @@ export function createWorldVisuals(THREE, Scene, {
         Index * 1.4,
       ));
     });
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(0.18, 0.5, 0.85),
+      0xffb45a,
+    ));
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(-0.28, -0.36, 0.89),
+      0xc48a58,
+    ));
 
     const ShardGeometry = new THREE.TetrahedronGeometry(0.19, 0);
     const ShardDirections = [
@@ -2104,6 +2364,8 @@ export function createWorldVisuals(THREE, Scene, {
       [-0.5, -0.53, 0.69, 0.78], [0.64, -0.45, 0.63, 0.72],
       [0.2, 0.15, 0.97, 0.64],
       [0.42, -0.28, -0.86, 0.82], [-0.38, 0.36, -0.85, 0.7],
+      [0.7, 0.22, -0.68, 0.76], [-0.22, -0.62, -0.75, 0.68],
+      [-0.08, 0.78, 0.62, 0.86], [0.18, -0.72, 0.67, 0.74],
     ];
     CrystalDefinitions.forEach(([X, Y, Z, Scale], Index) => {
       SurfacePropGroup.add(createFrostCrystalCluster(
@@ -2113,6 +2375,16 @@ export function createWorldVisuals(THREE, Scene, {
         Index * 1.15,
       ));
     });
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(-0.12, 0.62, 0.77),
+      0xe7f6ff,
+    ));
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(0.18, -0.32, 0.93),
+      0xbdebf2,
+    ));
 
     const SnowGeometry = new THREE.IcosahedronGeometry(0.24, 1);
     const SnowDirections = [
@@ -2138,6 +2410,161 @@ export function createWorldVisuals(THREE, Scene, {
     return SurfacePropGroup;
   }
 
+  /** Compact Grove overlay so the merged canopy world still has walkable trees from +Z. */
+  function createGroveOverlayProps(WorldDefinition) {
+    const SurfacePropGroup = new THREE.Group();
+    const TreeDirections = [
+      [-0.48, 0.12, 0.87, 1.05],
+      [0.52, 0.2, 0.83, 0.92],
+      [-0.22, -0.58, 0.78, 0.84],
+      [0.38, -0.18, -0.9, 0.96],
+      [-0.62, 0.28, -0.73, 0.88],
+      [0.08, 0.72, 0.69, 1.0],
+      [-0.44, -0.22, 0.87, 0.9],
+    ];
+    TreeDirections.forEach(([X, Y, Z, Scale], Index) => {
+      SurfacePropGroup.add(createMeadowTree(
+        WorldDefinition,
+        new THREE.Vector3(X, Y, Z),
+        Scale,
+        Index * 1.4,
+      ));
+    });
+    SurfacePropGroup.add(createMeadowCottage(
+      WorldDefinition,
+      new THREE.Vector3(-0.12, 0.62, 0.78),
+    ));
+    SurfacePropGroup.add(createMeadowCottage(
+      WorldDefinition,
+      new THREE.Vector3(0.28, -0.48, -0.83),
+    ));
+    SurfacePropGroup.add(createMeadowCottage(
+      WorldDefinition,
+      new THREE.Vector3(0.62, 0.18, 0.76),
+    ));
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(-0.06, 0.56, 0.83),
+      0x8fd06a,
+    ));
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(0.22, -0.42, -0.88),
+      0xd7e6ea,
+    ));
+    return SurfacePropGroup;
+  }
+
+  /** Tide overlay: readable jetties and a beached hull from the top-down camera. */
+  function createTideOverlayProps(WorldDefinition) {
+    const SurfacePropGroup = new THREE.Group();
+    const DeckMaterial = new THREE.MeshStandardMaterial({ color: 0x8a6a48, roughness: 0.9 });
+    const PilingMaterial = new THREE.MeshStandardMaterial({ color: 0x5a4030, roughness: 0.94 });
+    const HullMaterial = new THREE.MeshStandardMaterial({
+      color: 0x5fb8c9,
+      emissive: 0x1a4a58,
+      emissiveIntensity: 0.35,
+      roughness: 0.55,
+    });
+    const JettySites = [
+      new THREE.Vector3(0.72, 0.12, 0.68),
+      new THREE.Vector3(-0.18, -0.64, 0.75),
+      new THREE.Vector3(0.22, 0.48, -0.85),
+      new THREE.Vector3(-0.68, 0.28, 0.68),
+    ];
+    JettySites.forEach((Direction, Index) => {
+      const Jetty = new THREE.Group();
+      const Deck = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.08, 0.36), DeckMaterial);
+      Deck.position.y = 0.12;
+      Jetty.add(Deck);
+      for (const [PilingX, PilingZ] of [[-0.4, 0.12], [0.4, 0.12], [-0.4, -0.12], [0.4, -0.12]]) {
+        const Piling = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.18, 5), PilingMaterial);
+        Piling.position.set(PilingX, 0.06, PilingZ);
+        Jetty.add(Piling);
+      }
+      placeSurfaceProp(Jetty, Direction, WorldDefinition.radius, 1.05 + (Index * 0.06), 0.02);
+      registerRestorableMaterial(Jetty, DeckMaterial);
+      registerRestorableMaterial(Jetty, PilingMaterial);
+      Jetty.userData.kind = 'jetty';
+      SurfacePropGroup.add(Jetty);
+    });
+    const Boat = new THREE.Group();
+    const Hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.42, 3, 6), HullMaterial);
+    Hull.rotation.z = Math.PI * 0.5;
+    Hull.position.y = 0.12;
+    Boat.add(Hull);
+    placeSurfaceProp(Boat, new THREE.Vector3(-0.58, 0.22, 0.78), WorldDefinition.radius, 1.1, 0.04);
+    registerRestorableMaterial(Boat, HullMaterial);
+    Boat.userData.kind = 'boat';
+    SurfacePropGroup.add(Boat);
+    const SecondBoat = new THREE.Group();
+    const SecondHull = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.42, 3, 6), HullMaterial);
+    SecondHull.rotation.z = Math.PI * 0.5;
+    SecondHull.position.y = 0.12;
+    SecondBoat.add(SecondHull);
+    placeSurfaceProp(SecondBoat, new THREE.Vector3(0.42, -0.52, -0.74), WorldDefinition.radius, 1.02, 0.04);
+    registerRestorableMaterial(SecondBoat, HullMaterial);
+    SecondBoat.userData.kind = 'boat';
+    SurfacePropGroup.add(SecondBoat);
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(0.64, 0.08, 0.76),
+      0x5fb8c9,
+    ));
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(-0.12, -0.58, 0.8),
+      0xd7e6ea,
+    ));
+    return SurfacePropGroup;
+  }
+
+  /** Bastion overlay: watchtowers that read as a fortified tiny world. */
+  function createBastionOverlayProps(WorldDefinition) {
+    const SurfacePropGroup = new THREE.Group();
+    const StoneMaterial = new THREE.MeshStandardMaterial({ color: 0x8a8498, roughness: 0.72, metalness: 0.12 });
+    const LampMaterial = new THREE.MeshStandardMaterial({
+      color: 0xf2c1ff,
+      emissive: 0xc080ff,
+      emissiveIntensity: 0.85,
+      roughness: 0.4,
+    });
+    const TowerDirections = [
+      new THREE.Vector3(-0.52, 0.28, 0.8),
+      new THREE.Vector3(0.48, 0.18, 0.86),
+      new THREE.Vector3(0.12, -0.58, 0.8),
+      new THREE.Vector3(-0.28, 0.42, -0.86),
+      new THREE.Vector3(0.62, -0.22, -0.75),
+      new THREE.Vector3(-0.68, -0.18, 0.71),
+    ];
+    TowerDirections.forEach((Direction, Index) => {
+      const Tower = new THREE.Group();
+      const Keep = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.72, 0.42), StoneMaterial);
+      Keep.position.y = 0.36;
+      Tower.add(Keep);
+      const Lamp = new THREE.Mesh(new THREE.SphereGeometry(0.1, 7, 6), LampMaterial);
+      Lamp.position.y = 0.82;
+      Tower.add(Lamp);
+      placeSurfaceProp(Tower, Direction, WorldDefinition.radius, 1.08 + ((Index % 2) * 0.08), 0.02);
+      registerRestorableMaterial(Tower, StoneMaterial);
+      registerRestorableMaterial(Tower, LampMaterial);
+      Tower.userData.kind = 'cottage';
+      Tower.userData.windowMaterial = LampMaterial;
+      SurfacePropGroup.add(Tower);
+    });
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(-0.46, 0.22, 0.86),
+      0xf2c1ff,
+    ));
+    SurfacePropGroup.add(createOverlayWalker(
+      WorldDefinition,
+      new THREE.Vector3(0.42, 0.14, 0.9),
+      0xeef6f8,
+    ));
+    return SurfacePropGroup;
+  }
+
   /** Soft circular sprite so biome motes never read as hard gl_Point squares. */
   function createMoteSpriteTexture() {
     const MoteCanvas = document.createElement('canvas');
@@ -2160,7 +2587,7 @@ export function createWorldVisuals(THREE, Scene, {
 
   /** Creates a tiny deterministic halo of warm Meadow motes. */
   function createMeadowMotes(WorldDefinition) {
-    const MoteCount = 24;
+    const MoteCount = 12;
     const MotePositions = new Float32Array(MoteCount * 3);
 
     for (let MoteIndex = 0; MoteIndex < MoteCount; MoteIndex += 1) {
@@ -2275,12 +2702,17 @@ export function createWorldVisuals(THREE, Scene, {
       meadow: createMeadowSurfaceProps,
       ember: createEmberSurfaceProps,
       frost: createFrostSurfaceProps,
+      grove: createGroveOverlayProps,
+      tide: createTideOverlayProps,
+      vault: createBastionOverlayProps,
     };
-    const SurfaceMarkerGroup = UsesMergedSurfaceLandmarks
-      ? new THREE.Group()
+    const SurfaceMarkerGroup = SurfacePropFactories[WorldDefinition.visualKey]
+      ? SurfacePropFactories[WorldDefinition.visualKey](WorldDefinition)
       : (
-        SurfacePropFactories[WorldDefinition.visualKey] ?? createPlaceholderSurfaceProps
-      )(WorldDefinition);
+        UsesMergedSurfaceLandmarks
+          ? new THREE.Group()
+          : createPlaceholderSurfaceProps(WorldDefinition)
+      );
 
     for (const SurfacePropObject of SurfaceMarkerGroup.children) {
       const CastsUsefulShadow = [
@@ -2297,15 +2729,28 @@ export function createWorldVisuals(THREE, Scene, {
     }
 
     WorldGroup.add(SurfaceMarkerGroup);
-    const AmbientMoteGroup = UsesMergedSurfaceLandmarks
+    const ShouldSkipMotes = isSparseScatterWorld(WorldDefinition);
+    const AmbientMoteGroup = ShouldSkipMotes
       ? null
       : (
-        WorldDefinition.visualKey === 'meadow'
+        WorldDefinition.visualKey === 'meadow' || WorldDefinition.visualKey === 'bower'
           ? createMeadowMotes(WorldDefinition)
           : createBiomeMotes(
             WorldDefinition,
-            WorldDefinition.visualKey === 'ember' ? 30 : 34,
-            WorldDefinition.visualKey === 'ember' ? 0xff7b32 : 0xcdf8ff,
+            WorldDefinition.visualKey === 'ember' || WorldDefinition.visualKey === 'kiln'
+              ? 16
+              : WorldDefinition.visualKey === 'tide'
+                ? 14
+                : 14,
+            WorldDefinition.visualKey === 'ember' || WorldDefinition.visualKey === 'kiln'
+              ? 0xff7b32
+              : WorldDefinition.visualKey === 'grove' || WorldDefinition.visualKey === 'canopy'
+                ? 0xb7e5a4
+                : WorldDefinition.visualKey === 'tide'
+                  ? 0x9ce7ef
+                  : WorldDefinition.visualKey === 'vault'
+                    ? 0xf2c1ff
+                    : 0xcdf8ff,
             WorldDefinition.visualKey === 'ember' ? 0.105 : 0.085,
             WorldDefinition.visualKey === 'ember' ? 0.78 : 0.64,
           )

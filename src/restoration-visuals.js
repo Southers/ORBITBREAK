@@ -8,6 +8,7 @@
 
 import { getLeftoverHostileEncounter } from './encounter.js';
 import { countLiveRelayWorlds } from './network.js';
+import { consumePendingDiscoveryToast } from './discoveries.js?v=20260818-ob123';
 import {
   getOccupiedAtmosphereOpacity,
   getAtmosphereDistanceFade,
@@ -45,6 +46,35 @@ export function createRestorationVisuals(THREE, host) {
   const TyrantAtmosphereColor = new THREE.Color(0x5a2418);
   const AtmosphereRestoreColor = new THREE.Color();
   const SuppressionDurationSeconds = 0.92;
+
+  function isWorldCloseUp(WorldRuntime) {
+    if (host.GamePhase !== 'attached' && host.GamePhase !== 'restoring') {
+      return false;
+    }
+    if (!host.Camera) {
+      return false;
+    }
+    const Distance = Math.hypot(
+      host.Camera.position.x - WorldRuntime.group.position.x,
+      host.Camera.position.y - WorldRuntime.group.position.y,
+      host.Camera.position.z - WorldRuntime.group.position.z,
+    );
+    if (!(Distance > 0)) {
+      return false;
+    }
+    return WorldRuntime.definition.radius / Distance > 0.13;
+  }
+
+  function hideCloseupOrbitalOverlays(WorldRuntime) {
+    WorldRuntime.contourRingGroup.visible = false;
+    const CloseUp = isWorldCloseUp(WorldRuntime);
+    if (CloseUp) {
+      WorldRuntime.stillnessCageGroup.visible = false;
+    }
+    if (WorldRuntime.ambientMoteGroup) {
+      WorldRuntime.ambientMoteGroup.visible = !CloseUp;
+    }
+  }
 
   function spinIdleWorldCrust(WorldRuntime, WorldDefinition, Amount) {
     if (shouldHoldWorldCrustIdleSpin({
@@ -109,6 +139,10 @@ export function createRestorationVisuals(THREE, host) {
    * @param {number} ElapsedTimeSeconds - Total elapsed game time.
    */
   function updateWorldRestorationVisuals(ElapsedTimeSeconds) {
+    const DiscoveryToast = consumePendingDiscoveryToast();
+    if (DiscoveryToast) {
+      showStatusToast(DiscoveryToast, 1450);
+    }
     const InnerClusterLive = isLiveInnerCluster();
     const VeiledWorldIdentifiers = [];
     GameCanvas.dataset.innerClusterLive = String(InnerClusterLive);
@@ -189,6 +223,7 @@ export function createRestorationVisuals(THREE, host) {
             VeiledWorldIdentifiers.push(WorldDefinition.id);
           }
           applyAtmosphereViewFade(WorldRuntime, WorldDefinition);
+          hideCloseupOrbitalOverlays(WorldRuntime);
           continue;
         }
         spinIdleWorldCrust(WorldRuntime, WorldDefinition, 0.0005);
@@ -198,6 +233,7 @@ export function createRestorationVisuals(THREE, host) {
           VeiledWorldIdentifiers.push(WorldDefinition.id);
         }
         applyAtmosphereViewFade(WorldRuntime, WorldDefinition);
+        hideCloseupOrbitalOverlays(WorldRuntime);
         continue;
       }
 
@@ -395,6 +431,7 @@ export function createRestorationVisuals(THREE, host) {
         VeiledWorldIdentifiers.push(WorldDefinition.id);
       }
       applyAtmosphereViewFade(WorldRuntime, WorldDefinition);
+      hideCloseupOrbitalOverlays(WorldRuntime);
     }
     GameCanvas.dataset.rangeVeil = InnerClusterLive ? 'lifted' : VeiledWorldIdentifiers.join(',');
   }

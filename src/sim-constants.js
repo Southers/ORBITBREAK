@@ -24,3 +24,10 @@ export const MaximumValidatedFlightSteps = 15000;
 export const RelayPortBullseyeBonus = 500;
 export const RelayPortCleanBonus = 200;
 export const RelayPortBullseyeFraction = 1 / 3;
+
+/**
+ * Walking near an authored crust discovery banks this value once. Live play
+ * only; ranked flight simulation never samples discoveries.
+ */
+export const DiscoveryScoreValue = 200;
+export const DiscoveryCollectRadiusRadians = 0.36;
