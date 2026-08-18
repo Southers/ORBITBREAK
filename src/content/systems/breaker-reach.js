@@ -330,8 +330,8 @@ export const BreakerReachSystemDefinition = {
       ],
     },
   },
-  rangeUnlockLine: 'The dark is not as wide as they said. Scout further.',
-  furtherLandingLine: 'A whole neighbourhood is talking. That is what connection does.',
+  rangeUnlockLine: 'The dark is not as wide as they said.',
+  furtherLandingLine: 'A whole neighbourhood is talking.',
   commandApproachLine: 'A network cannot be imprisoned.',
   camera: {
     followPlayer: true,
