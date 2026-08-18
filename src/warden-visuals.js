@@ -20,16 +20,17 @@ export function createWardenVisuals(THREE, Scene, host) {
     roughness: 0.42,
     metalness: 0.72,
   });
-  const ClampPostGeometry = new THREE.BoxGeometry(0.075, 0.46, 0.075);
-  const ClampBarXGeometry = new THREE.BoxGeometry(0.34, 0.05, 0.055);
-  const ClampBarZGeometry = new THREE.BoxGeometry(0.055, 0.05, 0.26);
-  const ClampBaseGeometry = new THREE.BoxGeometry(0.36, 0.06, 0.28);
-  const ClampLockGeometry = new THREE.OctahedronGeometry(0.075, 0);
+  const ClampPostGeometry = new THREE.BoxGeometry(0.18, 1.35, 0.18);
+  const ClampBarXGeometry = new THREE.BoxGeometry(0.95, 0.12, 0.14);
+  const ClampBarZGeometry = new THREE.BoxGeometry(0.14, 0.12, 0.7);
+  const ClampBaseGeometry = new THREE.BoxGeometry(1.02, 0.16, 0.78);
+  const ClampLockGeometry = new THREE.OctahedronGeometry(0.16, 0);
+  const ClampHoopGeometry = new THREE.TorusGeometry(0.48, 0.085, 8, 20);
   const ClampPostOffsets = [
-    [-0.14, 0, -0.105],
-    [0.14, 0, -0.105],
-    [-0.14, 0, 0.105],
-    [0.14, 0, 0.105],
+    [-0.38, 0, -0.28],
+    [0.38, 0, -0.28],
+    [-0.38, 0, 0.28],
+    [0.38, 0, 0.28],
   ];
 
   function createHostileClampCage(Material) {
@@ -39,22 +40,24 @@ export function createWardenVisuals(THREE, Scene, host) {
       Post.position.set(OffsetX, OffsetY, OffsetZ);
       Cage.add(Post);
     }
-    for (const RingY of [0.175, -0.02]) {
+    for (const RingY of [0.52, 0.08, -0.36]) {
       const Front = new THREE.Mesh(ClampBarXGeometry, Material);
-      Front.position.set(0, RingY, 0.105);
+      Front.position.set(0, RingY, 0.28);
       const Back = new THREE.Mesh(ClampBarXGeometry, Material);
-      Back.position.set(0, RingY, -0.105);
+      Back.position.set(0, RingY, -0.28);
       const Left = new THREE.Mesh(ClampBarZGeometry, Material);
-      Left.position.set(-0.14, RingY, 0);
+      Left.position.set(-0.38, RingY, 0);
       const Right = new THREE.Mesh(ClampBarZGeometry, Material);
-      Right.position.set(0.14, RingY, 0);
+      Right.position.set(0.38, RingY, 0);
       Cage.add(Front, Back, Left, Right);
     }
     const Base = new THREE.Mesh(ClampBaseGeometry, Material);
-    Base.position.y = -0.21;
+    Base.position.y = -0.62;
     const Lock = new THREE.Mesh(ClampLockGeometry, Material);
-    Lock.position.y = 0.27;
-    Cage.add(Base, Lock);
+    Lock.position.y = 0.78;
+    const Hoop = new THREE.Mesh(ClampHoopGeometry, Material);
+    Hoop.position.y = 0.18;
+    Cage.add(Base, Lock, Hoop);
     return Cage;
   }
 
@@ -77,7 +80,7 @@ export function createWardenVisuals(THREE, Scene, host) {
     toneMapped: false,
   });
   const CutSlashMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 0.085, 0.045),
+    new THREE.BoxGeometry(1, 0.18, 0.08),
     CutSlashMaterial,
   );
   CutSlashMesh.visible = false;
@@ -163,9 +166,9 @@ export function createWardenVisuals(THREE, Scene, host) {
       } else {
         ClampBreakWorldPosition.set(
           WorldDefinition.position.x
-            + (Math.cos(Clamp.surfaceAngle) * (WorldDefinition.radius + 0.22)),
+            + (Math.cos(Clamp.surfaceAngle) * (WorldDefinition.radius + 0.55)),
           WorldDefinition.position.y
-            + (Math.sin(Clamp.surfaceAngle) * (WorldDefinition.radius + 0.22)),
+            + (Math.sin(Clamp.surfaceAngle) * (WorldDefinition.radius + 0.55)),
           0.12,
         );
       }
@@ -254,22 +257,18 @@ export function createWardenVisuals(THREE, Scene, host) {
       HostilePylonGroup.visible = false;
       return;
     }
-    const WorldRuntime = host.WorldRuntimeByIdentifier?.get(WorldDefinition.id);
-    if (WorldRuntime?.group) {
-      if (HostilePylonGroup.parent !== WorldRuntime.group) {
-        WorldRuntime.group.add(HostilePylonGroup);
-      }
-      HostilePylonGroup.position.set(0, 0, 0);
-      HostilePylonGroup.rotation.set(0, 0, 0);
-      HostilePylonGroup.quaternion.identity();
-    } else if (HostilePylonGroup.parent !== Scene) {
+    if (HostilePylonGroup.parent !== Scene) {
       Scene.add(HostilePylonGroup);
     }
-    const ParentToWorld = HostilePylonGroup.parent === WorldRuntime?.group;
+    HostilePylonGroup.position.set(0, 0, 0);
+    HostilePylonGroup.rotation.set(0, 0, 0);
+    HostilePylonGroup.quaternion.identity();
     let AnyVisible = false;
     for (const ClampMesh of HostilePylonGroup.children) {
       ClampMesh.visible = false;
     }
+    const CageScale = Math.max(1.35, WorldDefinition.radius * 0.52);
+    const ClampDistance = WorldDefinition.radius + (0.38 * CageScale);
     for (const Clamp of EncounterState.clamps) {
       const ClampMesh = HostilePylonGroup.children[Clamp.id];
       if (!ClampMesh) continue;
@@ -277,31 +276,22 @@ export function createWardenVisuals(THREE, Scene, host) {
         ClampMesh.visible = false;
         continue;
       }
-      const ClampDistance = WorldDefinition.radius + 0.22;
-      if (ParentToWorld) {
-        ClampMesh.position.set(
-          Math.cos(Clamp.surfaceAngle) * ClampDistance,
-          Math.sin(Clamp.surfaceAngle) * ClampDistance,
-          0,
-        );
-      } else {
-        ClampMesh.position.set(
-          WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
-          WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
-          0.12,
-        );
-      }
-      ClampMesh.rotation.z = Clamp.surfaceAngle - (Math.PI * 0.5);
+      ClampMesh.position.set(
+        WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
+        WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
+        WorldDefinition.position.z ?? 0,
+      );
+      ClampMesh.rotation.set(0, 0, Clamp.surfaceAngle - (Math.PI * 0.5));
       ClampMesh.visible = true;
       AnyVisible = true;
       const IsHighlighted = HighlightedIdSet.has(Clamp.id);
       const ClampMaterial = ClampMesh.userData.clampMaterial;
       if (ClampMaterial) {
-        ClampMaterial.color.setHex(IsHighlighted ? 0xffe09a : 0x3a161c);
-        ClampMaterial.emissive.setHex(IsHighlighted ? 0xffd678 : 0xff493f);
-        ClampMaterial.emissiveIntensity = IsHighlighted ? 2.35 : 1.05;
+        ClampMaterial.color.setHex(IsHighlighted ? 0xffe7a8 : 0x4a1c24);
+        ClampMaterial.emissive.setHex(IsHighlighted ? 0xffd678 : 0xff5a4a);
+        ClampMaterial.emissiveIntensity = IsHighlighted ? 2.6 : 1.15;
       }
-      ClampMesh.scale.setScalar(IsHighlighted ? 1.14 : 1);
+      ClampMesh.scale.setScalar(IsHighlighted ? CageScale * 1.12 : CageScale);
     }
     HostilePylonGroup.visible = AnyVisible;
   }

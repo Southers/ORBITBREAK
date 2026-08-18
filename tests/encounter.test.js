@@ -5,6 +5,7 @@ import {
   createHostileEncounterState,
   getCutEndPoint,
   getCutHits,
+  getCutMaxLength,
   getHostileEncounterAngularDistance,
   getHostileEncounterMoveDirection,
   getLeftoverHostileEncounter,
@@ -152,6 +153,27 @@ test('point-to-segment distance is zero on the line and positive off it', () => 
     { x: 0, y: 0 },
     { x: 2, y: 0 },
   ) - 1) < 1e-12);
+});
+
+test('a drag from the disc centre still reaches an equatorial clamp', () => {
+  const State = createHostileEncounterState({
+    worldIdentifier: 'tide',
+    runnerSurfaceAngle: 0,
+    clampOffsetsRadians: [0.55],
+  });
+  const Origin = { x: BastionWorld.position.x, y: BastionWorld.position.y };
+  const Pointer = {
+    x: Math.cos(State.clamps[0].surfaceAngle) * (BastionWorld.radius + 0.3),
+    y: Math.sin(State.clamps[0].surfaceAngle) * (BastionWorld.radius + 0.3),
+  };
+  const End = getCutEndPoint(
+    Origin,
+    Pointer,
+    getCutMaxLength(BastionWorld, State.maxCutLength),
+  );
+  assert.ok(getCutMaxLength(BastionWorld, State.maxCutLength) > BastionWorld.radius);
+  const Hits = getCutHits(State, Origin, End, BastionWorld);
+  assert.deepEqual(Hits.map((Hit) => Hit.id), [0]);
 });
 
 test('leftover Destroy is a single cage, not a Bastion cage', () => {

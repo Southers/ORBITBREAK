@@ -23,6 +23,7 @@ import {
   intersectRaySphere,
   projectRayOntoSphere,
   SeedScreenGrabRadiusPixels,
+  getLandedShipGrabRadiusPixels,
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
@@ -197,8 +198,36 @@ function getPointerWorldPosition(PointerEventData, UnprojectCamera = Camera) {
  * @returns {boolean} Whether the user acquired the seed.
  */
 const SeedScreenProjection = new THREE.Vector3();
+const WorldScreenCenter = new THREE.Vector3();
+const WorldScreenLimb = new THREE.Vector3();
 
-function isPointerOverSeed(PointerEventData) {
+function isPointerOverShipMesh() {
+  return PointerRaycaster.intersectObject(SeedPointerHitMesh, false).length > 0;
+}
+
+function getAttachedWorldScreenRadiusPixels() {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const CanvasBounds = GameCanvas.getBoundingClientRect();
+  WorldScreenCenter.set(
+    AttachedWorld.position.x,
+    AttachedWorld.position.y,
+    AttachedWorld.position.z ?? 0,
+  ).project(Camera);
+  WorldScreenLimb.set(
+    AttachedWorld.position.x + AttachedWorld.radius,
+    AttachedWorld.position.y,
+    AttachedWorld.position.z ?? 0,
+  ).project(Camera);
+  return Math.hypot(
+    ((WorldScreenLimb.x - WorldScreenCenter.x) * 0.5) * CanvasBounds.width,
+    ((WorldScreenLimb.y - WorldScreenCenter.y) * 0.5) * CanvasBounds.height,
+  );
+}
+
+function getLandedPointerOccupancy(PointerEventData, WorldPosition = null) {
   const CanvasBounds = GameCanvas.getBoundingClientRect();
   PointerNormalizedDeviceCoordinates.x = (
     ((PointerEventData.clientX - CanvasBounds.left) / CanvasBounds.width) * 2
@@ -207,12 +236,30 @@ function isPointerOverSeed(PointerEventData) {
     ((PointerEventData.clientY - CanvasBounds.top) / CanvasBounds.height) * 2
   ) + 1;
   PointerRaycaster.setFromCamera(PointerNormalizedDeviceCoordinates, Camera);
+  const OverShipMesh = isPointerOverShipMesh();
+  const OverWorld = Boolean(
+    getAttachedGlobeHit(true) || (WorldPosition && isPointerOverAttachedWorld(WorldPosition)),
+  );
+  const GrabRadiusPixels = getLandedShipGrabRadiusPixels({
+    isOverWorld: OverWorld,
+    worldScreenRadiusPixels: getAttachedWorldScreenRadiusPixels(),
+  });
+  const OverShip = OverShipMesh
+    || getScreenDistanceToSeed(PointerEventData) <= GrabRadiusPixels;
+  return {
+    isOverShipMesh: OverShipMesh,
+    isOverWorld: OverWorld,
+    isOverShip: OverShip,
+  };
+}
 
-  if (PointerRaycaster.intersectObject(SeedPointerHitMesh, false).length > 0) {
-    return true;
+function isPointerOverSeed(PointerEventData) {
+  const Occupancy = getLandedPointerOccupancy(PointerEventData);
+  if (host.GamePhase === 'attached') {
+    return Occupancy.isOverShip;
   }
-  // A constant screen-space target keeps the ship acquirable at any zoom level.
-  return getScreenDistanceToSeed(PointerEventData) <= SeedScreenGrabRadiusPixels;
+  return Occupancy.isOverShipMesh
+    || getScreenDistanceToSeed(PointerEventData) <= SeedScreenGrabRadiusPixels;
 }
 
 function getScreenDistanceToSeed(PointerEventData) {
@@ -1209,7 +1256,8 @@ function handlePointerDown(PointerEventData) {
   }
 
   cancelKeyboardAim();
-  if (isPointerOverSeed(PointerEventData) && host.ActiveHostileEncounterState) {
+  const Occupancy = getLandedPointerOccupancy(PointerEventData, CurrentPointerWorldPosition);
+  if (Occupancy.isOverShip && host.ActiveHostileEncounterState) {
     setScoutMode(false);
     host.PointerGestureMode = SurfaceGestureModes.aim;
     beginCutAim(CurrentPointerWorldPosition);
@@ -1218,8 +1266,8 @@ function handlePointerDown(PointerEventData) {
   }
 
   const PointerStartTarget = classifyLandedPointerStart({
-    isOverShip: isPointerOverSeed(PointerEventData) && !host.ActiveHostileEncounterState,
-    isOverWorld: isPointerOverAttachedWorld(CurrentPointerWorldPosition),
+    isOverShip: Occupancy.isOverShip && !host.ActiveHostileEncounterState,
+    isOverWorld: Occupancy.isOverWorld,
   });
   if (PointerStartTarget === LandedPointerTargets.ship) {
     setScoutMode(false);
@@ -1263,23 +1311,27 @@ function handlePointerMove(PointerEventData) {
       host.GamePhase === 'attached'
       || (host.GamePhase === 'flying' && host.IsBreakerBurnAvailable && !host.IsBreakerBurnPending)
     );
+    const LandedOccupancy = host.GamePhase === 'attached'
+      ? getLandedPointerOccupancy(PointerEventData)
+      : null;
     GameCanvas.classList.toggle(
       'is-grab-ready',
       CanGrabSeed
       && host.ReplayPlaybackState === null
       && !host.IsOpeningBriefingActive
-      && isPointerOverSeed(PointerEventData),
+      && (
+        host.GamePhase === 'attached'
+          ? LandedOccupancy.isOverShip
+          : isPointerOverSeed(PointerEventData)
+      ),
     );
     if (
       host.GamePhase === 'attached'
       && host.ReplayPlaybackState === null
       && !host.IsOpeningBriefingActive
-      && !isPointerOverSeed(PointerEventData)
+      && !LandedOccupancy.isOverShip
     ) {
-      const HoverWorldPosition = getPointerWorldPosition(PointerEventData);
-      const IsWalkReady = Boolean(
-        HoverWorldPosition && isPointerOverAttachedWorld(HoverWorldPosition),
-      );
+      const IsWalkReady = LandedOccupancy.isOverWorld === true;
       GameCanvas.classList.toggle('is-walk-ready', IsWalkReady);
       if (IsWalkReady) {
         const GlobeHit = getAttachedGlobeHit(true);
@@ -1472,7 +1524,17 @@ function updateBreakerBurnInterface() {
   const RemainingCount = IsHostileCut
     ? getRemainingClamps(host.ActiveHostileEncounterState).length
     : 0;
-  if (IsHostileCut) publishHostileEncounterState();
+  if (IsHostileCut) {
+    const EncounterWorldId = host.ActiveHostileEncounterState.worldIdentifier;
+    if (host.DestroyTeachWorldIdentifier !== EncounterWorldId) {
+      host.DestroyTeachWorldIdentifier = EncounterWorldId;
+      showStatusToast('Grab the ship and drag through the cage', 2400);
+      showHostileEncounterInstruction();
+    }
+    publishHostileEncounterState();
+  } else {
+    host.DestroyTeachWorldIdentifier = '';
+  }
   GameCanvas.dataset.breakerBurn = host.GamePhase !== 'flying'
     ? 'stowed'
     : (host.IsBreakerBurnAvailable ? (host.IsBreakerBurnPending ? 'armed' : 'ready') : 'spent');

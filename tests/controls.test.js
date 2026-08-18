@@ -17,6 +17,8 @@ import {
   classifyLandedPointerStart,
   LandedPointerTargets,
   SeedScreenGrabRadiusPixels,
+  SeedOnGlobeGrabRadiusPixels,
+  getLandedShipGrabRadiusPixels,
   createSurfacePose,
   flattenSurfacePoseToEquator,
   getSphereSurfacePosition,
@@ -253,6 +255,25 @@ test('landed pointer-down locks ship, world or space before the drag moves', () 
     isOverWorld: false,
   }), LandedPointerTargets.space);
   assert.ok(SeedScreenGrabRadiusPixels > 44);
+});
+
+test('landed ship grab stays small on the visible crust so planet drags can walk', () => {
+  assert.equal(getLandedShipGrabRadiusPixels({ isOverWorld: false }), SeedScreenGrabRadiusPixels);
+  const OnGlobe = getLandedShipGrabRadiusPixels({
+    isOverWorld: true,
+    worldScreenRadiusPixels: 220,
+  });
+  assert.equal(OnGlobe, SeedOnGlobeGrabRadiusPixels);
+  assert.ok(OnGlobe < SeedScreenGrabRadiusPixels);
+  const TightDisc = getLandedShipGrabRadiusPixels({
+    isOverWorld: true,
+    worldScreenRadiusPixels: 48,
+  });
+  assert.ok(TightDisc < 48 * 0.5);
+  assert.equal(classifyLandedPointerStart({
+    isOverShip: false,
+    isOverWorld: true,
+  }), LandedPointerTargets.world);
 });
 
 test('a ship grab aims from a screen pull even while the globe is still under the pointer', () => {

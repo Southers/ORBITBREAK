@@ -6,6 +6,24 @@ export const DefaultCutHitRadius = 0.48;
 export const DefaultMaxCutLength = 2.85;
 export const ClampSurfaceLift = 0.3;
 
+/** Default authored cuts must still reach an equatorial clamp from the landed ship. */
+export function getCutMaxLength(World, ConfiguredMax = DefaultMaxCutLength) {
+  const Configured = ConfiguredMax > 0 ? ConfiguredMax : DefaultMaxCutLength;
+  if (!(World?.radius > 0) || Configured < DefaultMaxCutLength - 1e-6) {
+    return Configured;
+  }
+  return Math.max(Configured, World.radius + ClampSurfaceLift + 1.35);
+}
+
+/** Fat cages on the rim need a swipe target wider than a hairline. */
+export function getCutHitRadius(World, ConfiguredRadius = DefaultCutHitRadius) {
+  const Configured = ConfiguredRadius > 0 ? ConfiguredRadius : DefaultCutHitRadius;
+  if (!(World?.radius > 0)) {
+    return Math.max(Configured, 0.85);
+  }
+  return Math.max(Configured, 0.85, World.radius * 0.28);
+}
+
 /** One leftover cage: teach Destroy after the first link, or recapture after the hunt starts. */
 export function getLeftoverHostileEncounter() {
   return {
@@ -134,9 +152,10 @@ export function getHostileEncounterMoveDirection(State, RunnerSurfaceAngle) {
 
 export function getCutHits(State, Origin, End, World) {
   if (!World?.position || !(World.radius > 0)) return [];
+  const HitRadius = getCutHitRadius(World, State.cutHitRadius);
   return getRemainingClamps(State).filter((Clamp) => {
     const ClampPosition = getClampWorldPosition(World, Clamp.surfaceAngle);
-    return getPointToSegmentDistance(ClampPosition, Origin, End) <= State.cutHitRadius;
+    return getPointToSegmentDistance(ClampPosition, Origin, End) <= HitRadius;
   });
 }
 
@@ -167,7 +186,7 @@ export function getNearestClampCut(State, Origin, World, RunnerSurfaceAngle) {
   const NearestClamp = getNearestRemainingClamp(State, RunnerSurfaceAngle);
   if (!NearestClamp) return null;
   const ClampPosition = getClampWorldPosition(World, NearestClamp.surfaceAngle);
-  const End = getCutEndPoint(Origin, ClampPosition, State.maxCutLength);
+  const End = getCutEndPoint(Origin, ClampPosition, getCutMaxLength(World, State.maxCutLength));
   return {
     origin: Origin,
     end: End,

@@ -35,6 +35,39 @@ export function classifyLandedPointerStart({
  * walking, so first-timers stop fumbling grabs against the terminator glow.
  */
 export const SeedScreenGrabRadiusPixels = 96;
+/**
+ * When the pointer is already on the visible crust, the 96px halo would swallow
+ * the disc (the Runner sits at screen-centre after crust-spin). Keep a small hull
+ * grab so the rest of the planet can walk.
+ */
+export const SeedOnGlobeGrabRadiusPixels = 40;
+
+/**
+ * Ship grab is generous in empty space and tight on the globe, so a crust drag
+ * cannot be stolen by the hull halo.
+ */
+export function getLandedShipGrabRadiusPixels({
+  isOverWorld = false,
+  worldScreenRadiusPixels = Number.POSITIVE_INFINITY,
+  haloPixels = SeedScreenGrabRadiusPixels,
+  onGlobePixels = SeedOnGlobeGrabRadiusPixels,
+} = {}) {
+  if (
+    !(haloPixels > 0)
+    || !Number.isFinite(haloPixels)
+    || !(onGlobePixels > 0)
+    || !Number.isFinite(onGlobePixels)
+  ) {
+    throw new Error('Ship grab radius requires positive finite pixel sizes.');
+  }
+  if (isOverWorld !== true) {
+    return haloPixels;
+  }
+  const WorldRadiusPixels = Number.isFinite(worldScreenRadiusPixels)
+    ? Math.max(0, worldScreenRadiusPixels)
+    : Number.POSITIVE_INFINITY;
+  return Math.min(onGlobePixels, Math.max(18, WorldRadiusPixels * 0.32));
+}
 
 function normalizeAngle(AngleRadians) {
   return ((AngleRadians + Math.PI) % FullCircleRadians + FullCircleRadians) % FullCircleRadians

@@ -17,6 +17,7 @@ import {
   createHostileEncounterState,
   getCutEndPoint,
   getCutHits,
+  getCutMaxLength,
   getHostileEncounterAngularDistance,
   getHostileEncounterMoveDirection,
   getNearestClampCut,
@@ -88,7 +89,7 @@ export function createHostileSurface(THREE, host) {
       const End = getCutEndPoint(
         Origin,
         CutAimPointer,
-        host.ActiveHostileEncounterState.maxCutLength,
+        getCutMaxLength(AttachedWorld, host.ActiveHostileEncounterState.maxCutLength),
       );
       const Distance = Math.hypot(CutAimPointer.x - Origin.x, CutAimPointer.y - Origin.y);
       return {
@@ -209,19 +210,19 @@ export function createHostileSurface(THREE, host) {
       showInstruction(
         CommandApproachTitle,
         RemainingCount === 3
-          ? 'Grab the ship and drag through a gold cage. Drag back onto it to cancel.'
+          ? 'Grab the ship and drag through the cage. Drag back onto it to cancel.'
           : `${RemainingCount} left. A longer drag can take more than one.`,
       );
     } else if (RemainingCount === host.ActiveHostileEncounterState.clamps.length
       && RemainingCount === 1) {
       showInstruction(
         `${AttachedWorld.label} has one leftover cage.`,
-        'Grab the ship and drag through it. Destroy the cage.',
+        'Grab the ship and drag through the cage.',
       );
     } else if (RemainingCount === 3) {
       showInstruction(
         `${AttachedWorld.label} still has cages.`,
-        'Grab the ship and drag through a clamp. Walk the globe if destroy cannot reach.',
+        'Grab the ship and drag through the cage. Walk the globe if destroy cannot reach.',
       );
     } else {
       showInstruction(
