@@ -157,7 +157,7 @@ export function getParkedShipPresentation({
       y: (NoseY * SideOffset) - (DorsalY * RadialDrop),
       z: (NoseZ * SideOffset) - (DorsalZ * RadialDrop),
     },
-    scale: 0.12,
+    scale: 0.08,
   };
 }
 

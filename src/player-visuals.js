@@ -213,8 +213,10 @@ export function createPlayerVisuals(THREE, Scene, host) {
 
   /**
    * The Orbitbreaker unfolds around the same physics body; only its silhouette
-   * changes. Local +Y is the nose and +Z is dorsal in flight. Parked basis
-   * maps those same local axes in world space; ShipLieGroup stays identity.
+   * changes. Local +Y is the nose and +Z is dorsal. The landed camera looks
+   * down +Z, so the XY planform must read as a toy courier: tapered nose,
+   * longer hull and swept wings. Do not use a squat capsule plus a wide
+   * plate; that flattened into a girder on the landed close-up.
    */
   const ShipVisualGroup = new THREE.Group();
   const ShipLieGroup = new THREE.Group();
@@ -234,45 +236,51 @@ export function createPlayerVisuals(THREE, Scene, host) {
     metalness: 0.34,
   });
   const ShipHullMesh = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.2, 0.14, 6, 12),
+    new THREE.CylinderGeometry(0.07, 0.13, 0.52, 10),
     ShipHullMaterial,
   );
-  ShipHullMesh.scale.set(1.45, 1, 0.62);
   ShipHullMesh.castShadow = true;
   ShipLieGroup.add(ShipHullMesh);
   const ShipNoseMesh = new THREE.Mesh(
-    new THREE.ConeGeometry(0.16, 0.22, 12),
+    new THREE.ConeGeometry(0.07, 0.32, 10),
     ShipAccentMaterial,
   );
-  ShipNoseMesh.position.y = 0.24;
+  ShipNoseMesh.position.y = 0.42;
   ShipLieGroup.add(ShipNoseMesh);
   for (const Side of [-1, 1]) {
     const WingMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.98, 0.18, 0.08),
+      new THREE.ConeGeometry(0.15, 0.34, 3),
       ShipHullMaterial,
     );
-    WingMesh.position.set(Side * 0.46, -0.02, 0);
-    WingMesh.rotation.z = Side * -0.1;
+    WingMesh.scale.set(1.35, 1, 0.2);
+    WingMesh.position.set(Side * 0.12, -0.06, 0.01);
+    WingMesh.rotation.z = Side * ((Math.PI * 0.5) + 0.32);
     ShipLieGroup.add(WingMesh);
   }
   const ShipWindowMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.13, 12, 8),
+    new THREE.SphereGeometry(0.09, 10, 8),
     RunnerVisorMaterial,
   );
-  ShipWindowMesh.position.set(0, 0.16, 0.2);
-  ShipWindowMesh.scale.set(1, 1.18, 0.38);
+  ShipWindowMesh.position.set(0, 0.1, 0.1);
+  ShipWindowMesh.scale.set(0.8, 1.2, 0.55);
   ShipLieGroup.add(ShipWindowMesh);
   const ShipTailMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.08, 0.28, 0.16),
+    new THREE.BoxGeometry(0.28, 0.1, 0.04),
     ShipAccentMaterial,
   );
-  ShipTailMesh.position.set(0, -0.28, -0.16);
+  ShipTailMesh.position.set(0, -0.24, 0.02);
   ShipLieGroup.add(ShipTailMesh);
+  const ShipTailFinMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.04, 0.14, 0.16),
+    ShipAccentMaterial,
+  );
+  ShipTailFinMesh.position.set(0, -0.22, 0.1);
+  ShipLieGroup.add(ShipTailFinMesh);
   const ShipThrusterMesh = new THREE.Mesh(
-    new THREE.ConeGeometry(0.12, 0.44, 10),
+    new THREE.ConeGeometry(0.1, 0.28, 10),
     RunnerThrusterMaterial,
   );
-  ShipThrusterMesh.position.y = -0.56;
+  ShipThrusterMesh.position.y = -0.4;
   ShipThrusterMesh.rotation.z = Math.PI;
   ShipLieGroup.add(ShipThrusterMesh);
   ShipVisualGroup.visible = false;
@@ -312,17 +320,22 @@ export function createPlayerVisuals(THREE, Scene, host) {
     RunnerFuelPipGroup.add(RunnerPip);
     RunnerFuelPips.push(RunnerPip);
   }
-  ShipFuelPipGroup.position.set(0, -0.28, 0.22);
+  ShipFuelPipGroup.position.set(0.05, 0, 0.09);
   ShipLieGroup.add(ShipFuelPipGroup);
   RunnerFuelPipGroup.position.set(0, 0.02, 0.12);
   RunnerBackpackMesh.add(RunnerFuelPipGroup);
 
-  function layoutFuelPips(PipMeshes, VisibleCount, Spacing) {
+  function layoutFuelPips(PipMeshes, VisibleCount, Spacing, AlongY = false) {
     const RowWidth = Math.max(0, VisibleCount - 1) * Spacing;
     for (let PipIndex = 0; PipIndex < PipMeshes.length; PipIndex += 1) {
       const PipMesh = PipMeshes[PipIndex];
       PipMesh.visible = PipIndex < VisibleCount;
-      PipMesh.position.set((PipIndex * Spacing) - (RowWidth * 0.5), 0, 0);
+      const Offset = (PipIndex * Spacing) - (RowWidth * 0.5);
+      if (AlongY) {
+        PipMesh.position.set(0, Offset, 0);
+      } else {
+        PipMesh.position.set(Offset, 0, 0);
+      }
     }
   }
 
@@ -340,7 +353,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
     const VisibleCount = Math.max(0, Math.min(MaximumFuelPipCount, MaximumLaunches));
     const LitCount = Math.max(0, Math.min(VisibleCount, RemainingLaunches));
     const IsWarning = LitCount > 0 && LitCount <= 2;
-    layoutFuelPips(ShipFuelPips, VisibleCount, 0.11);
+    layoutFuelPips(ShipFuelPips, VisibleCount, 0.055, true);
     layoutFuelPips(RunnerFuelPips, VisibleCount, 0.072);
     for (let PipIndex = 0; PipIndex < VisibleCount; PipIndex += 1) {
       const IsLit = PipIndex < LitCount;

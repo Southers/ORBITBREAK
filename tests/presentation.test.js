@@ -978,7 +978,7 @@ test('parked Orbitbreaker lies on the crust instead of standing as a pole', () =
   });
   assert.equal(NearFace.dorsal.z, 1);
   assert.equal(NearFace.lieDownX, 0);
-  assert.equal(NearFace.scale, 0.12);
+  assert.equal(NearFace.scale, 0.08);
   assert.ok(NearFace.scale < 0.26, 'parked courier must be smaller than the Runner');
   assert.ok(Math.abs(NearFace.nose.z) < 0.08);
   assert.ok(
