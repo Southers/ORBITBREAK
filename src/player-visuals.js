@@ -396,8 +396,12 @@ export function createPlayerVisuals(THREE, Scene, host) {
   WalkCursorMesh.visible = false;
   WalkCursorMesh.frustumCulled = false;
 
-  const SeedPointLight = new THREE.PointLight(0x72dcff, 0.28, 0.9, 2);
-  SeedGroup.add(SeedPointLight);
+  /**
+   * A cyan point light on the seed lights a circular Lambert patch on the
+   * crust. Landed Haven read that as a milky blue disc around the Runner.
+   */
+  const SeedPointLight = new THREE.PointLight(0x72dcff, 0, 0.01, 2);
+  SeedPointLight.visible = false;
   Scene.add(SeedGroup);
 
   /**
