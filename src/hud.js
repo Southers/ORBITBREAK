@@ -60,6 +60,7 @@ export function createHud(host) {
   let LastLiveRegionText = '';
   let LastObjectiveAnnouncement = '';
   let PlayCaptionTimeoutIdentifier = null;
+  let ScoreBurstTimeoutIdentifier = null;
 
   function announceLive(Message) {
     if (!PlayLiveRegionElement || !Message) {
@@ -132,8 +133,24 @@ export function createHud(host) {
    * @param {string} Text - Short score line, e.g. "+2,400".
    * @param {string} [Tone] - 'bank' or 'circuit'.
    */
+  function hideScoreBurst() {
+    if (ScoreBurstTimeoutIdentifier !== null) {
+      host.clearTimeout(ScoreBurstTimeoutIdentifier);
+      ScoreBurstTimeoutIdentifier = null;
+    }
+    ScoreBurstElement.removeEventListener('animationend', hideScoreBurst);
+    ScoreBurstElement.classList.remove('is-live');
+    ScoreBurstElement.classList.remove('is-circuit');
+    ScoreBurstElement.textContent = '';
+    ScoreBurstElement.hidden = true;
+    ScoreBurstElement.style.removeProperty('--burst-x');
+    ScoreBurstElement.style.removeProperty('--burst-y');
+  }
+
   function showScoreBurst(WorldPosition, Text, Tone = 'bank') {
-    if (host.PrefersReducedMotion) {
+    hideScoreBurst();
+    const VisibleText = typeof Text === 'string' ? Text.trim() : '';
+    if (host.PrefersReducedMotion || VisibleText.length < 1) {
       return;
     }
     ScoreBurstProjection.set(
@@ -145,12 +162,17 @@ export function createHud(host) {
     const ClampedY = Math.min(88, Math.max(10, (-ScoreBurstProjection.y * 0.5 + 0.5) * 100));
     ScoreBurstElement.style.setProperty('--burst-x', `${ClampedX}%`);
     ScoreBurstElement.style.setProperty('--burst-y', `${ClampedY}%`);
-    ScoreBurstElement.textContent = Text;
+    ScoreBurstElement.textContent = VisibleText;
     ScoreBurstElement.classList.toggle('is-circuit', Tone === 'circuit');
     ScoreBurstElement.hidden = false;
     ScoreBurstElement.classList.remove('is-live');
     void ScoreBurstElement.offsetWidth;
     ScoreBurstElement.classList.add('is-live');
+    ScoreBurstElement.addEventListener('animationend', hideScoreBurst);
+    ScoreBurstTimeoutIdentifier = host.setTimeout(() => {
+      ScoreBurstTimeoutIdentifier = null;
+      hideScoreBurst();
+    }, 1450);
   }
 
   /** Keeps banked points machine-readable. The visible number lives on the victory card. */
@@ -168,20 +190,38 @@ export function createHud(host) {
    * @param {string} Message - Text shown to the player.
    * @param {number} VisibleDurationMilliseconds - Duration before the toast fades.
    */
+  function hideStatusToast() {
+    if (host.StatusToastTimeoutIdentifier !== null) {
+      host.clearTimeout(host.StatusToastTimeoutIdentifier);
+      host.StatusToastTimeoutIdentifier = null;
+    }
+    StatusToastElement.classList.remove('is-visible');
+    StatusToastElement.classList.remove('is-memory');
+    StatusToastElement.classList.remove('is-warden');
+    StatusToastElement.textContent = '';
+    StatusToastElement.hidden = true;
+  }
+
   function showStatusToast(Message, VisibleDurationMilliseconds = 900, Tone = 'status') {
+    const VisibleMessage = typeof Message === 'string' ? Message.trim() : '';
+    if (VisibleMessage.length < 1) {
+      hideStatusToast();
+      return;
+    }
     if (host.StatusToastTimeoutIdentifier !== null) {
       host.clearTimeout(host.StatusToastTimeoutIdentifier);
     }
 
-    StatusToastElement.textContent = Message;
+    StatusToastElement.textContent = VisibleMessage;
     StatusToastElement.classList.toggle('is-memory', Tone === 'memory');
     StatusToastElement.classList.toggle('is-warden', Tone === 'warden');
     StatusToastElement.classList.add('is-visible');
-    announceLive(Message);
+    StatusToastElement.hidden = false;
+    announceLive(VisibleMessage);
 
     host.StatusToastTimeoutIdentifier = host.setTimeout(() => {
-      StatusToastElement.classList.remove('is-visible');
       host.StatusToastTimeoutIdentifier = null;
+      hideStatusToast();
     }, VisibleDurationMilliseconds);
   }
 
@@ -235,13 +275,8 @@ export function createHud(host) {
   }
 
   function resetHud() {
-    if (host.StatusToastTimeoutIdentifier !== null) {
-      host.clearTimeout(host.StatusToastTimeoutIdentifier);
-      host.StatusToastTimeoutIdentifier = null;
-    }
-    StatusToastElement.classList.remove('is-visible');
-    ScoreBurstElement.classList.remove('is-live');
-    ScoreBurstElement.hidden = true;
+    hideStatusToast();
+    hideScoreBurst();
     LastObjectiveAnnouncement = '';
     hideInstruction();
   }

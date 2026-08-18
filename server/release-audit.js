@@ -315,13 +315,20 @@ export function auditReleaseReadiness() {
       && PresentationSource.includes('if (isShortLandscape) return 56 + WardenReserve;')
       && PresentationSource.includes('Math.min(BaseMaximumY, instructionTop - 16)')
       && PresentationSource.includes('export function shouldShowPlayfieldWorldLabels({')
+      && PresentationSource.includes('export function collapsePlayfieldLabelBox(')
+      && PresentationSource.includes('export function isPlayfieldLabelBoxCollapsed(')
+      && PresentationSource.includes("LabelElement.dataset.visible = 'false'")
       && PresentationSource.includes('export function shouldPlayOpeningBriefing({')
       && PresentationSource.includes('export function getRouteLabelHorizontalMargin(')
       && RoutePresentationSource.includes('const LabelsActive = shouldShowPlayfieldWorldLabels({')
       && RoutePresentationSource.includes('function hidePlayfieldLabel(LabelElement)')
-      && RoutePresentationSource.includes("LabelElement.dataset.visible = 'false'")
-      && HudSource.includes("showInstruction(Title, Body, CaptionKind = '')"),
-    'Route labels appear only while aiming or scouting; first-run captions then silence the playfield.',
+      && RoutePresentationSource.includes('collapsePlayfieldLabelBox(LabelElement)')
+      && HudSource.includes("showInstruction(Title, Body, CaptionKind = '')")
+      && HudSource.includes('function hideScoreBurst()')
+      && HudSource.includes("ScoreBurstElement.textContent = ''")
+      && /score-burst\[hidden\][\s\S]*width:\s*0 !important;/s.test(StyleSheet)
+      && /status-toast:not\(\.is-visible\)[\s\S]*background:\s*none !important;/s.test(StyleSheet),
+    'Route labels appear only while aiming or scouting; empty chips and score bursts must collapse to a zero box.',
   );
   requireCondition(
     RoutePresentationSource.includes('const RouteLabelMinimumGap = IsShortLandscape ? 160 : 76')

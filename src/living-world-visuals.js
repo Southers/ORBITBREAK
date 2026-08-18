@@ -794,7 +794,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   const ProsperityBuildingColor = new THREE.Color();
   const ProsperityCircuitWarmColor = new THREE.Color(0xffe7b0);
   const ProsperityDockLitColor = new THREE.Color(0xfff4c8);
-  const ProsperityWindowCapacity = Math.max(1, OccupationScarCapacity * 3);
+  const ProsperityWindowCapacity = Math.max(1, OccupationScarCapacity);
   const ProsperityWindowMaterial = new THREE.MeshBasicMaterial({
     color: 0xffe29a,
     transparent: true,
@@ -809,6 +809,8 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     ProsperityWindowMaterial,
     ProsperityWindowCapacity,
   );
+  // Window lights only. Street and town-glow used stretched untextured boxes
+  // that read as blank plaques; those instances are no longer allocated.
   ProsperityWindowMesh.count = 0;
   ProsperityWindowMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   ProsperityWindowMesh.frustumCulled = false;
@@ -835,13 +837,6 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       FinaleRestorationStartedAtSeconds,
     } = host;
     return PrefersReducedMotion ? 0 : 0.12;
-  }
-
-  function hideProsperityWindows(ScarIndex) {
-    const WindowSlot = ScarIndex * 3;
-    hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, WindowSlot);
-    hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, WindowSlot + 1);
-    hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, WindowSlot + 2);
   }
 
   function refreshDockedTradeState(ElapsedTimeSeconds) {
@@ -944,7 +939,6 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       const HideBuilding = Presence <= 0.04 || !BuildingProfile;
       if (HideBuilding) {
         hideInstance(ProsperityBuildingTransform, FamilyMesh, Scar.familyIndex);
-        hideProsperityWindows(ScarIndex);
         continue;
       }
       NextVisibleProsperityBuildingCount += 1;
@@ -970,9 +964,6 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       }
       FamilyMesh.setColorAt(Scar.familyIndex, ProsperityBuildingColor);
 
-      const WindowSlot = ScarIndex * 3;
-      const StreetSlot = WindowSlot + 1;
-      const GlowSlot = WindowSlot + 2;
       if (BuildingProfile.hasWindow) {
         applySphereInstance(
           ProsperityWindowTransform,
@@ -981,18 +972,11 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
           Presence * 0.45 * (IsDockLit ? 1.25 : 1),
           Presence * 0.35,
         );
-        ProsperityWindowMesh.setMatrixAt(WindowSlot, ProsperityWindowTransform.matrix);
+        ProsperityWindowMesh.setMatrixAt(NextVisibleWindowCount, ProsperityWindowTransform.matrix);
         ProsperityWindowColor.setHex(ProsperityStage === 'circuit' ? 0xfff0c4 : 0xffd27a);
-        ProsperityWindowMesh.setColorAt(WindowSlot, ProsperityWindowColor);
+        ProsperityWindowMesh.setColorAt(NextVisibleWindowCount, ProsperityWindowColor);
         NextVisibleWindowCount += 1;
-      } else {
-        hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, WindowSlot);
       }
-      // Street and town-glow used stretched untextured boxes. Those read as
-      // blank plaques on Ember's crust. Keep only the tiny window lights.
-      hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, StreetSlot);
-      hideInstance(ProsperityWindowTransform, ProsperityWindowMesh, GlowSlot);
-    }
     for (const FamilyMesh of Object.values(ProsperityBuildingMeshes)) {
       if (FamilyMesh.count > 0) {
         FamilyMesh.instanceMatrix.needsUpdate = true;
@@ -1007,7 +991,8 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         ProsperityWindowMesh.instanceColor.needsUpdate = true;
       }
     }
-    ProsperityWindowMesh.count = OccupationScarInstances.length * 3;
+    ProsperityWindowMesh.count = NextVisibleWindowCount;
+    ProsperityWindowMesh.visible = NextVisibleWindowCount > 0;
     const HasLiveCircuit = getFrameLiveRelayCircuits().length > 0;
     const WindowPulse = PrefersReducedMotion
       ? 0.68

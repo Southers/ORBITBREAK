@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
   getControlModePresentation,
@@ -59,6 +60,8 @@ import {
   getOccupiedAtmosphereOpacity,
   getWorldSurfaceFinish,
   shouldShowPlayfieldWorldLabels,
+  collapsePlayfieldLabelBox,
+  isPlayfieldLabelBoxCollapsed,
   isProjectedLabelInsideWorldDisc,
   getTacticalLabelHorizontalMargin,
   getRouteLabelHorizontalMargin,
@@ -1192,6 +1195,42 @@ test('occupied atmospheres and surface finishes keep Ember, Grove and Frost dist
   assert.equal(shouldPlayOpeningBriefing({}), true);
   assert.equal(shouldPlayOpeningBriefing({ hasCompletedOpeningBriefing: true }), false);
   assert.equal(shouldPlayOpeningBriefing({ replayActive: true }), false);
+});
+
+test('empty playfield labels have zero box and no background', () => {
+  const LabelElement = {
+    textContent: 'Grove',
+    hidden: false,
+    dataset: { visible: 'true' },
+    style: {
+      display: 'block',
+      width: '120px',
+      height: '24px',
+      background: 'rgba(5, 12, 20, 0.7)',
+      overflow: 'visible',
+    },
+  };
+  collapsePlayfieldLabelBox(LabelElement);
+  assert.equal(isPlayfieldLabelBoxCollapsed(LabelElement), true);
+  assert.equal(LabelElement.textContent, '');
+  assert.equal(LabelElement.style.background, 'none');
+  assert.equal(LabelElement.style.width, '0');
+  assert.equal(LabelElement.style.height, '0');
+  assert.equal(LabelElement.style.display, 'none');
+
+  const StyleSheet = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
+  assert.match(
+    StyleSheet,
+    /\.route-label:empty[\s\S]*?width:\s*0 !important;[\s\S]*?height:\s*0 !important;/,
+  );
+  assert.match(
+    StyleSheet,
+    /\.score-burst\[hidden\][\s\S]*?width:\s*0 !important;/,
+  );
+  assert.match(
+    StyleSheet,
+    /\.status-toast:not\(\.is-visible\)[\s\S]*?background:\s*none !important;/,
+  );
 });
 
 test('pursuit coach treats a launch as the turn and a return flight as the loop', () => {

@@ -14,6 +14,8 @@ import {
   getTacticalLabelHorizontalMargin,
   getRouteLabelHorizontalMargin,
   isProjectedLabelInsideWorldDisc,
+  collapsePlayfieldLabelBox,
+  revealPlayfieldLabelBox,
   separateOverlappingRouteLabels,
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
@@ -193,18 +195,7 @@ export function createRoutePresentation(THREE, host) {
 
   /** Projects suggested world names into the HUD without spending WebGL draw calls. */
   function hidePlayfieldLabel(LabelElement) {
-    LabelElement.textContent = '';
-    LabelElement.hidden = true;
-    LabelElement.dataset.visible = 'false';
-    LabelElement.style.left = '';
-    LabelElement.style.top = '';
-    LabelElement.style.display = 'none';
-    LabelElement.style.visibility = 'hidden';
-    LabelElement.style.background = 'none';
-    LabelElement.style.border = '0';
-    LabelElement.style.padding = '0';
-    LabelElement.style.boxShadow = 'none';
-    LabelElement.style.backdropFilter = 'none';
+    collapsePlayfieldLabelBox(LabelElement);
   }
 
   function writePlayfieldLabel(LabelElement, Text) {
@@ -214,15 +205,7 @@ export function createRoutePresentation(THREE, host) {
       return;
     }
     LabelElement.textContent = VisibleText;
-    LabelElement.hidden = false;
-    LabelElement.dataset.visible = 'true';
-    LabelElement.style.display = '';
-    LabelElement.style.visibility = '';
-    LabelElement.style.background = 'none';
-    LabelElement.style.border = '0';
-    LabelElement.style.padding = '0';
-    LabelElement.style.boxShadow = 'none';
-    LabelElement.style.backdropFilter = 'none';
+    revealPlayfieldLabelBox(LabelElement);
   }
 
   function getCurrentWorldDiscProjection() {
@@ -259,7 +242,11 @@ export function createRoutePresentation(THREE, host) {
       isScoutMode: host.IsScoutMode,
       toastVisible: StatusToastElement.classList.contains('is-visible'),
     }) && host.GamePhase === 'attached';
-    RouteLabelElements[0]?.parentElement?.classList.toggle('is-active', LabelsActive);
+    const RouteLabelsLayer = RouteLabelElements[0]?.parentElement ?? null;
+    RouteLabelsLayer?.classList.toggle('is-active', LabelsActive);
+    if (RouteLabelsLayer) {
+      RouteLabelsLayer.hidden = !LabelsActive;
+    }
     if (!LabelsActive) {
       for (const RouteLabelElement of RouteLabelElements) {
         hidePlayfieldLabel(RouteLabelElement);

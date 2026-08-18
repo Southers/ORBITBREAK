@@ -804,6 +804,107 @@ export function shouldShowPlayfieldWorldLabels({
     && toastVisible !== true;
 }
 
+function getPlayfieldLabelStyle(LabelElement) {
+  if (!LabelElement.style) {
+    LabelElement.style = {};
+  }
+  return LabelElement.style;
+}
+
+/**
+ * Collapses a projected world/tactical chip so an empty label cannot paint a
+ * leftover screen-space box (cream plaque or black bar) after hide.
+ */
+export function collapsePlayfieldLabelBox(LabelElement) {
+  if (!LabelElement) {
+    return LabelElement;
+  }
+  LabelElement.textContent = '';
+  LabelElement.hidden = true;
+  if (LabelElement.dataset) {
+    LabelElement.dataset.visible = 'false';
+  }
+  const Style = getPlayfieldLabelStyle(LabelElement);
+  Style.left = '';
+  Style.top = '';
+  Style.display = 'none';
+  Style.visibility = 'hidden';
+  Style.background = 'none';
+  Style.border = '0';
+  Style.padding = '0';
+  Style.margin = '0';
+  Style.width = '0';
+  Style.height = '0';
+  Style.minWidth = '0';
+  Style.minHeight = '0';
+  Style.maxWidth = '0';
+  Style.maxHeight = '0';
+  Style.overflow = 'hidden';
+  Style.boxShadow = 'none';
+  Style.backdropFilter = 'none';
+  Style.webkitBackdropFilter = 'none';
+  Style.color = 'transparent';
+  Style.textShadow = 'none';
+  Style.transform = 'none';
+  Style.opacity = '0';
+  Style.pointerEvents = 'none';
+  return LabelElement;
+}
+
+/** Restores a chip so aiming/scout text can size to its glyphs only. */
+export function revealPlayfieldLabelBox(LabelElement) {
+  if (!LabelElement) {
+    return LabelElement;
+  }
+  LabelElement.hidden = false;
+  if (LabelElement.dataset) {
+    LabelElement.dataset.visible = 'true';
+  }
+  const Style = getPlayfieldLabelStyle(LabelElement);
+  Style.display = '';
+  Style.visibility = '';
+  Style.width = '';
+  Style.height = '';
+  Style.minWidth = '';
+  Style.minHeight = '';
+  Style.maxWidth = '';
+  Style.maxHeight = '';
+  Style.overflow = '';
+  Style.color = '';
+  Style.textShadow = '';
+  Style.transform = '';
+  Style.opacity = '';
+  Style.margin = '';
+  Style.background = 'none';
+  Style.border = '0';
+  Style.padding = '0';
+  Style.boxShadow = 'none';
+  Style.backdropFilter = 'none';
+  Style.webkitBackdropFilter = 'none';
+  Style.pointerEvents = 'none';
+  return LabelElement;
+}
+
+/** True when an empty playfield chip has no background and no layout size. */
+export function isPlayfieldLabelBoxCollapsed(LabelElement) {
+  if (!LabelElement) {
+    return true;
+  }
+  const Text = typeof LabelElement.textContent === 'string'
+    ? LabelElement.textContent.trim()
+    : '';
+  const Style = LabelElement.style ?? {};
+  const Background = String(Style.background ?? '');
+  return LabelElement.hidden === true
+    && LabelElement.dataset?.visible === 'false'
+    && Text.length < 1
+    && Style.display === 'none'
+    && Style.width === '0'
+    && Style.height === '0'
+    && (Background === 'none' || Background === 'transparent')
+    && Style.overflow === 'hidden';
+}
+
 /** Close-up cameras keep space dark; scout can keep more nebula without washing planets. */
 export function getCloseViewPresentation(cameraDistanceScale = 1) {
   if (!Number.isFinite(cameraDistanceScale) || cameraDistanceScale <= 0) {

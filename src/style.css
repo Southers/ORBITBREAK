@@ -124,6 +124,18 @@ button[aria-disabled='true'] {
   text-shadow: 0 0 22px rgba(255, 214, 120, 1), 0 2px 6px rgba(0, 0, 0, 0.65);
 }
 
+.score-burst[hidden],
+.score-burst:empty {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  background: none !important;
+  color: transparent !important;
+  text-shadow: none !important;
+  opacity: 0 !important;
+}
+
 .pause-button {
   position: absolute;
   z-index: 8;
@@ -992,8 +1004,23 @@ button[aria-disabled='true'] {
 }
 
 .status-toast.is-visible {
+  display: block;
   opacity: 1;
   transform: translate(-50%, 0) scale(1);
+}
+
+.status-toast:not(.is-visible),
+.status-toast:empty,
+.status-toast[hidden] {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
 }
 
 .status-toast.is-memory {
@@ -1032,8 +1059,12 @@ button[aria-disabled='true'] {
   pointer-events: none;
 }
 
-.route-labels:not(.is-active) {
+.route-labels:not(.is-active),
+.route-labels[hidden] {
   display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
 
 .route-label,
@@ -1100,8 +1131,15 @@ button[aria-disabled='true'] {
   padding: 0 !important;
   width: 0 !important;
   height: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 0 !important;
+  max-height: 0 !important;
   overflow: hidden !important;
+  color: transparent !important;
   text-shadow: none !important;
+  transform: none !important;
+  opacity: 0 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
