@@ -265,7 +265,7 @@ export function createHud(host) {
     }, host.PrefersReducedMotion ? 4200 : 3200);
   }
 
-  /** Walk line holds until the ship is first grabbed, aim line until first launch, then silence. */
+  /** Walk names prosper. Aim names cage-break. Titles stay in presentation.js. */
   function updateFirstRunCoach() {
     const Coach = getFirstRunCoachPresentation({
       gamePhase: host.GamePhase,
@@ -283,8 +283,15 @@ export function createHud(host) {
       }
       return;
     }
+    const CoachBody = Coach.body
+      || (Coach.kind === 'walk'
+        ? 'Linking them lets those worlds prosper.'
+        : Coach.kind === 'aim'
+          ? 'Occupied worlds have Warden cages. Pull the ship through a cage to break it.'
+          : '');
     const SameCaption = PlayCaptionElement.dataset.coachKind === Coach.kind
       && PlayCaptionTitleElement.textContent === Coach.title
+      && PlayCaptionBodyElement.textContent === CoachBody
       && PlayCaptionElement.hidden === false;
     if (SameCaption) {
       return;
@@ -294,11 +301,11 @@ export function createHud(host) {
       PlayCaptionTimeoutIdentifier = null;
     }
     PlayCaptionTitleElement.textContent = Coach.title;
-    PlayCaptionBodyElement.textContent = Coach.body;
+    PlayCaptionBodyElement.textContent = CoachBody;
     PlayCaptionElement.hidden = false;
     PlayCaptionElement.classList.remove('is-fading');
     PlayCaptionElement.dataset.coachKind = Coach.kind;
-    announceLive(Coach.title);
+    announceLive(CoachBody ? `${Coach.title}. ${CoachBody}` : Coach.title);
   }
 
   function announceWarden(Message) {

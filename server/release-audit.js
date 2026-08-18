@@ -531,16 +531,20 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
-      ?.openingBroadcast === 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
+      ?.openingBroadcast === 'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · I HUNT CONNECTION',
     'The selected one-sector candidate must retain the opening Warden broadcast.',
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
-      ?.openingBody.includes('They are still out there')
+      ?.openingBody.includes('Linking them lets those worlds prosper')
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
-        ?.openingBody.includes('Carry the first word')
+        ?.openingBriefing?.[1]?.body.includes('Orbitbreaker to other tiny worlds')
+      && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
+        ?.openingBriefing?.[1]?.body.includes('Pull the ship through a cage to break it')
       && RoutePresentationSource.includes('getHiddenWardenRouteCoach(')
       && HudSource.includes('getLoopObjectivePresentation(')
+      && HudSource.includes('Linking them lets those worlds prosper.')
+      && HudSource.includes('Pull the ship through a cage to break it.')
       && PresentationSource.includes('export function getRelayRevealLookTarget(')
       && LandingDirectorSource.includes('getRelayRevealLookTarget(')
       && LandingDirectorSource.includes('function restoreWorld(')
@@ -550,19 +554,19 @@ export function auditReleaseReadiness() {
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
       ?.wardenArrivalBroadcast
-      === 'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',
+      === 'WARDEN BROADCAST · CONNECTION IS DISORDER · I WILL SILENCE EVERY WORLD THAT ANSWERS',
     'The selected one-sector candidate must retain the Warden arrival ideology.',
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
       ?.routeGuidance?.grove?.meadow
-      === "Walk Grove's far rim, then aim back around Ember until the path locks Haven. The whole arc is on the map—hold it to close the gold loop.",
+      === "Walk Grove's far rim, then aim back around Ember until the path locks Haven. That gold loop protects these worlds.",
     'The selected one-sector candidate must teach the surface line for its first circuit.',
   );
   requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
       ?.routeGuidance?.frost?.ember
-      === 'Ember is the direct lock; Grove is the alternate arc. Either closes the second gold loop and exposes Command.',
+      === 'Aim at Ember to close a gold loop, or go the long way through Grove. Either second loop cracks Command open.',
     'The selected one-sector candidate must teach the route to its second circuit.',
   );
   requireCondition(

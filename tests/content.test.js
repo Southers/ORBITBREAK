@@ -49,11 +49,31 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   assert.equal(BreakerReachSystemDefinition.camera.followPlayer, true);
   assert.equal(
     BreakerReachSystemDefinition.openingBroadcast,
-    'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · SILENCE KEEPS YOU SAFE',
+    'WARDEN BROADCAST · TRAVEL IS FORBIDDEN · I HUNT CONNECTION',
   );
   assert.equal(BreakerReachSystemDefinition.openingBriefing.length, 2);
   assert.equal(BreakerReachSystemDefinition.openingBriefing[0].speaker, 'THE WARDEN');
   assert.equal(BreakerReachSystemDefinition.openingBriefing[1].title, 'I stole the last ship.');
+  assert.match(
+    BreakerReachSystemDefinition.openingBriefing[1].body,
+    /Orbitbreaker to other tiny worlds/,
+  );
+  assert.match(
+    BreakerReachSystemDefinition.openingBriefing[1].body,
+    /Linking them lets those worlds prosper/,
+  );
+  assert.match(
+    BreakerReachSystemDefinition.openingBriefing[1].body,
+    /Pull the ship through a cage to break it/,
+  );
+  assert.equal(BreakerReachSystemDefinition.openingBody, 'Linking them lets those worlds prosper.');
+  assert.equal(BreakerReachSystemDefinition.storyBoards.firstAnswer.pages.length, 2);
+  assert.equal(BreakerReachSystemDefinition.storyBoards.wardenArrival.pages.length, 2);
+  assert.doesNotMatch(
+    JSON.stringify(BreakerReachSystemDefinition.openingBriefing)
+      + JSON.stringify(BreakerReachSystemDefinition.storyBoards),
+    /—/,
+  );
   assert.equal(
     BreakerReachSystemDefinition.storyBoards.wardenArrival.pages[0].title,
     'Unauthorised network detected.',
@@ -72,7 +92,7 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   );
   assert.equal(
     BreakerReachSystemDefinition.wardenArrivalBroadcast,
-    'WARDEN BROADCAST · CONNECTION IS DISORDER · MOVEMENT IS DISOBEDIENCE',
+    'WARDEN BROADCAST · CONNECTION IS DISORDER · I WILL SILENCE EVERY WORLD THAT ANSWERS',
   );
   assert.equal(
     BreakerReachSystemDefinition.commandApproachLine,
@@ -80,11 +100,11 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   );
   assert.equal(
     BreakerReachSystemDefinition.routeGuidance.grove.meadow,
-    "Walk Grove's far rim, then aim back around Ember until the path locks Haven. The whole arc is on the map—hold it to close the gold loop.",
+    "Walk Grove's far rim, then aim back around Ember until the path locks Haven. That gold loop protects these worlds.",
   );
   assert.equal(
     BreakerReachSystemDefinition.routeGuidance.frost.ember,
-    'Ember is the direct lock; Grove is the alternate arc. Either closes the second gold loop and exposes Command.',
+    'Aim at Ember to close a gold loop, or go the long way through Grove. Either second loop cracks Command open.',
   );
   assert.equal(
     BreakerReachSystemDefinition.completion.endingReveal,

@@ -92,7 +92,7 @@ export function createStoryDirector(host) {
     BriefingProgressElement.textContent = Presentation.progressLabel;
     BriefingContinueButtonElement.textContent = Presentation.continueLabel;
     BriefingSkipButtonElement.textContent = Board.skipLabel;
-    BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260815-ob87`;
+    BriefingPortraitElement.src = `${Presentation.portraitSrc}?v=20260818-ob123`;
     BriefingPortraitElement.alt = Presentation.speaker;
     OpeningBriefingElement.classList.remove(
       'is-warden',
