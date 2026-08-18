@@ -376,6 +376,18 @@ test('campaign story boards queue hope, then hunt, then Command', () => {
   }), true);
 });
 
+test('close-up cameras cap nebula and bloom so space stays dark', () => {
+  const LandedView = getCloseViewPresentation(0.5);
+  const ScoutView = getCloseViewPresentation(3.85);
+  assert.ok(LandedView.closeFade > ScoutView.closeFade);
+  assert.ok(LandedView.nebulaIntensity < ScoutView.nebulaIntensity);
+  assert.ok(LandedView.bloomStrength < ScoutView.bloomStrength);
+  assert.ok(LandedView.bloomThreshold > ScoutView.bloomThreshold);
+  assert.ok(LandedView.dustOpacityScale < ScoutView.dustOpacityScale);
+  assert.throws(() => getCloseViewPresentation(0), /positive camera scale/);
+  assert.throws(() => getCloseViewPresentation(Number.NaN), /positive camera scale/);
+});
+
 test('cage-clear wrap holds the story board until the live planet has bloomed', () => {
   assert.equal(getCageClearPulseDurationSeconds({}), 1.08);
   assert.equal(getCageClearPulseDurationSeconds({ prefersReducedMotion: true }), 0.18);
