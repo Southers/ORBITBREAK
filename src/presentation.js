@@ -53,6 +53,85 @@ export function getRunnerForm(GamePhase, FlightElapsedSeconds = 0) {
 }
 
 /**
+ * Parked Orbitbreaker lies belly-down on the crust beside the Runner.
+ * Ship local +Y is the nose and +Z is dorsal. Dorsal follows the surface
+ * normal; the nose follows camera-up × normal so the landed Z-up close-up
+ * sees a hull across the crust, not a mint pole standing on camera-up.
+ */
+export function getParkedShipPresentation({
+  surfaceNormalX = 0,
+  surfaceNormalY = 0,
+  surfaceNormalZ = 1,
+  cameraUpX = 0,
+  cameraUpY = 0,
+  cameraUpZ = 1,
+} = {}) {
+  const NormalLength = Math.hypot(surfaceNormalX, surfaceNormalY, surfaceNormalZ);
+  if (!(NormalLength > 1e-8)) {
+    throw new Error('Parked ship requires a finite surface normal.');
+  }
+  const UpLength = Math.hypot(cameraUpX, cameraUpY, cameraUpZ);
+  if (!(UpLength > 1e-8)) {
+    throw new Error('Parked ship requires a finite camera up.');
+  }
+  const DorsalX = surfaceNormalX / NormalLength;
+  const DorsalY = surfaceNormalY / NormalLength;
+  const DorsalZ = surfaceNormalZ / NormalLength;
+  const UpX = cameraUpX / UpLength;
+  const UpY = cameraUpY / UpLength;
+  const UpZ = cameraUpZ / UpLength;
+
+  let NoseX = (UpY * DorsalZ) - (UpZ * DorsalY);
+  let NoseY = (UpZ * DorsalX) - (UpX * DorsalZ);
+  let NoseZ = (UpX * DorsalY) - (UpY * DorsalX);
+  let NoseLength = Math.hypot(NoseX, NoseY, NoseZ);
+  if (NoseLength < 1e-4) {
+    if (Math.abs(DorsalY) < 0.9) {
+      NoseX = 0;
+      NoseY = 1;
+      NoseZ = 0;
+    } else {
+      NoseX = 1;
+      NoseY = 0;
+      NoseZ = 0;
+    }
+    NoseLength = 1;
+  } else {
+    NoseX /= NoseLength;
+    NoseY /= NoseLength;
+    NoseZ /= NoseLength;
+  }
+
+  let StarboardX = (NoseY * DorsalZ) - (NoseZ * DorsalY);
+  let StarboardY = (NoseZ * DorsalX) - (NoseX * DorsalZ);
+  let StarboardZ = (NoseX * DorsalY) - (NoseY * DorsalX);
+  const StarboardLength = Math.hypot(StarboardX, StarboardY, StarboardZ) || 1;
+  StarboardX /= StarboardLength;
+  StarboardY /= StarboardLength;
+  StarboardZ /= StarboardLength;
+
+  NoseX = (DorsalY * StarboardZ) - (DorsalZ * StarboardY);
+  NoseY = (DorsalZ * StarboardX) - (DorsalX * StarboardZ);
+  NoseZ = (DorsalX * StarboardY) - (DorsalY * StarboardX);
+
+  const SideOffset = 0.24;
+  const RadialDrop = 0.32;
+  return {
+    dorsal: { x: DorsalX, y: DorsalY, z: DorsalZ },
+    nose: { x: NoseX, y: NoseY, z: NoseZ },
+    starboard: { x: StarboardX, y: StarboardY, z: StarboardZ },
+    offset: {
+      x: (NoseX * SideOffset) - (DorsalX * RadialDrop),
+      y: (NoseY * SideOffset) - (DorsalY * RadialDrop),
+      z: (NoseZ * SideOffset) - (DorsalZ * RadialDrop),
+    },
+    scaleX: 1.55,
+    scaleY: 0.58,
+    scaleZ: 1.12,
+  };
+}
+
+/**
  * First-run pointer coaching stays until the verb is done, then goes silent.
  * The walk line holds until the player actually grabs the ship, so finishing a
  * walk drag never reads as entering aim mode; the aim line then holds until the

@@ -9,6 +9,7 @@ import { SurfaceGestureModes } from './controls.js';
 import {
   getLandedVerbHighlight,
   getLiberationFlashOpacity,
+  getParkedShipPresentation,
   getRunnerAnimationState,
   getRunnerForm,
   getRunnerPose,
@@ -67,6 +68,10 @@ export function createFrameVisuals(THREE, host) {
   let NextTrailParticleIndex = 0;
   const SurfaceStandFrom = new THREE.Vector3(0, 1, 0);
   const SurfaceStandTo = new THREE.Vector3();
+  const ParkedShipStarboard = new THREE.Vector3();
+  const ParkedShipNose = new THREE.Vector3();
+  const ParkedShipDorsal = new THREE.Vector3();
+  const ParkedShipBasis = new THREE.Matrix4();
 
   let LastStardustSignature = '';
   let LastTrailLiveCount = -1;
@@ -314,8 +319,10 @@ export function createFrameVisuals(THREE, host) {
       : 1 - Math.exp(-DeltaTimeSeconds * 13);
     GameCanvas.dataset.runnerAnimation = RunnerAnimationState;
     GameCanvas.dataset.runnerForm = RunnerForm;
-    RunnerVisualGroup.visible = RunnerForm === 'astronaut';
-    ShipVisualGroup.visible = RunnerForm !== 'astronaut';
+    const ShowParkedShip = RunnerForm === 'astronaut';
+    RunnerVisualGroup.visible = ShowParkedShip;
+    ShipVisualGroup.visible = true;
+    GameCanvas.dataset.parkedShip = String(ShowParkedShip);
     if (RunnerForm === 'launch-craft') {
       const UnfoldProgress = THREE.MathUtils.clamp(host.FlightElapsedSeconds / 0.28, 0, 1);
       ShipVisualGroup.scale.set(
@@ -323,7 +330,7 @@ export function createFrameVisuals(THREE, host) {
         THREE.MathUtils.lerp(0.82, 1, UnfoldProgress) * ShipPresentationScale,
         ShipPresentationScale,
       );
-    } else {
+    } else if (!ShowParkedShip) {
       ShipVisualGroup.scale.set(
         1.08 * ShipPresentationScale,
         ShipPresentationScale,
@@ -353,6 +360,8 @@ export function createFrameVisuals(THREE, host) {
     }
 
     if (host.GamePhase === 'flying') {
+      ShipVisualGroup.position.set(0, 0, 0);
+      ShipVisualGroup.quaternion.identity();
       const FlightAngle = Math.atan2(
         host.SeedPhysicsState.velocity.y,
         host.SeedPhysicsState.velocity.x,
@@ -369,11 +378,11 @@ export function createFrameVisuals(THREE, host) {
         PoseBlend,
       );
     } else {
-      ShipVisualGroup.rotation.set(0, 0, 0);
       const AttachedBody = getWorldDefinition(host.CurrentWorldIdentifier)
         ?? TacticalBodyDefinitions.find(
           (BodyDefinition) => BodyDefinition.id === host.CurrentWorldIdentifier,
         );
+      let HasSurfaceNormal = false;
       if (AttachedBody?.position) {
         SurfaceStandTo.set(
           host.SeedPhysicsState.position.x - AttachedBody.position.x,
@@ -382,9 +391,45 @@ export function createFrameVisuals(THREE, host) {
         );
         if (SurfaceStandTo.lengthSq() > 1e-8) {
           SurfaceStandTo.normalize();
+          HasSurfaceNormal = true;
           RunnerVisualGroup.quaternion.setFromUnitVectors(SurfaceStandFrom, SurfaceStandTo);
         }
       }
+      const ParkedShip = getParkedShipPresentation(
+        HasSurfaceNormal
+          ? {
+            surfaceNormalX: SurfaceStandTo.x,
+            surfaceNormalY: SurfaceStandTo.y,
+            surfaceNormalZ: SurfaceStandTo.z,
+            cameraUpX: Camera.up.x,
+            cameraUpY: Camera.up.y,
+            cameraUpZ: Camera.up.z,
+          }
+          : {
+            cameraUpX: Camera.up.x,
+            cameraUpY: Camera.up.y,
+            cameraUpZ: Camera.up.z,
+          },
+      );
+      ParkedShipStarboard.set(
+        ParkedShip.starboard.x,
+        ParkedShip.starboard.y,
+        ParkedShip.starboard.z,
+      );
+      ParkedShipNose.set(ParkedShip.nose.x, ParkedShip.nose.y, ParkedShip.nose.z);
+      ParkedShipDorsal.set(ParkedShip.dorsal.x, ParkedShip.dorsal.y, ParkedShip.dorsal.z);
+      ParkedShipBasis.makeBasis(ParkedShipStarboard, ParkedShipNose, ParkedShipDorsal);
+      ShipVisualGroup.quaternion.setFromRotationMatrix(ParkedShipBasis);
+      ShipVisualGroup.position.set(
+        ParkedShip.offset.x,
+        ParkedShip.offset.y,
+        ParkedShip.offset.z,
+      );
+      ShipVisualGroup.scale.set(
+        ParkedShip.scaleX * ShipPresentationScale,
+        ParkedShip.scaleY * ShipPresentationScale,
+        ParkedShip.scaleZ * ShipPresentationScale,
+      );
     }
     const CanvasClassList = GameCanvas.classList;
     const HasCanvasClass = (Name) => (
@@ -407,6 +452,7 @@ export function createFrameVisuals(THREE, host) {
       || RunnerAnimationState === 'recovering';
     SeedHaloMesh.visible = ShowShipCue;
     if (ShowShipCue) {
+      SeedHaloMesh.position.copy(ShipVisualGroup.position);
       SeedHaloMesh.lookAt(Camera.position);
       SeedHaloMesh.scale.setScalar(
         1 + (Math.sin(ElapsedTimeSeconds * (VerbHighlight.shipHaloCharge ? 7.4 : 4.2)) * 0.04),
@@ -474,6 +520,7 @@ export function createFrameVisuals(THREE, host) {
     }
 
     if (ShipThrusterMesh) {
+      ShipThrusterMesh.visible = !ShowParkedShip;
       if (host.BreakerBurnFlareLifeSeconds > 0) {
         host.BreakerBurnFlareLifeSeconds = Math.max(
           0,

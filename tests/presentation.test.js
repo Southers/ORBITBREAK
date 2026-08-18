@@ -22,6 +22,7 @@ import {
   getRunResourceSummary,
   getRunnerAnimationState,
   getRunnerForm,
+  getParkedShipPresentation,
   getRunnerPose,
   getScannerAccessibleLabel,
   getSlingshotBandVisualState,
@@ -964,6 +965,64 @@ test('Runner transformation changes silhouette without changing gameplay phase',
   assert.equal(getRunnerForm('flying', 0.1), 'launch-craft');
   assert.equal(getRunnerForm('flying', 0.3), 'ship');
   assert.equal(getRunnerForm('recovering', 4), 'astronaut');
+});
+
+test('parked Orbitbreaker lies on the crust instead of standing as a pole', () => {
+  const NearFace = getParkedShipPresentation({
+    surfaceNormalX: 0,
+    surfaceNormalY: 0,
+    surfaceNormalZ: 1,
+  });
+  assert.equal(NearFace.dorsal.z, 1);
+  assert.ok(Math.abs(NearFace.nose.z) < 0.08);
+  assert.ok(Math.hypot(NearFace.nose.x, NearFace.nose.y) > 0.9);
+  const NoseDotDorsal = (
+    (NearFace.nose.x * NearFace.dorsal.x)
+    + (NearFace.nose.y * NearFace.dorsal.y)
+    + (NearFace.nose.z * NearFace.dorsal.z)
+  );
+  assert.ok(Math.abs(NoseDotDorsal) < 1e-9);
+  const OffsetDotDorsal = (
+    (NearFace.offset.x * NearFace.dorsal.x)
+    + (NearFace.offset.y * NearFace.dorsal.y)
+    + (NearFace.offset.z * NearFace.dorsal.z)
+  );
+  assert.ok(OffsetDotDorsal < -0.2, 'parked hull must sit down on the crust');
+  assert.ok(NearFace.scaleY < NearFace.scaleX, 'parked hull must be dumpier than a stick');
+
+  const LandedEquator = getParkedShipPresentation({
+    surfaceNormalX: 1,
+    surfaceNormalY: 0,
+    surfaceNormalZ: 0,
+    cameraUpX: 0,
+    cameraUpY: 0,
+    cameraUpZ: 1,
+  });
+  assert.equal(LandedEquator.dorsal.x, 1);
+  assert.ok(
+    Math.abs(LandedEquator.nose.z) < 0.08,
+    'landed equator hull must not stand along camera-up',
+  );
+  assert.ok(Math.abs(LandedEquator.nose.y) > 0.9);
+  const LandedNoseDotUp = (
+    (LandedEquator.nose.x * 0)
+    + (LandedEquator.nose.y * 0)
+    + (LandedEquator.nose.z * 1)
+  );
+  assert.ok(Math.abs(LandedNoseDotUp) < 0.08);
+  assert.throws(() => getParkedShipPresentation({
+    surfaceNormalX: 0,
+    surfaceNormalY: 0,
+    surfaceNormalZ: 0,
+  }), /finite surface normal/);
+  assert.throws(() => getParkedShipPresentation({
+    surfaceNormalX: 0,
+    surfaceNormalY: 1,
+    surfaceNormalZ: 0,
+    cameraUpX: 0,
+    cameraUpY: 0,
+    cameraUpZ: 0,
+  }), /finite camera up/);
 });
 
 test('Stillness cage visibly expands and vanishes through liberation', () => {
