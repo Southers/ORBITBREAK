@@ -134,6 +134,10 @@ export function auditReleaseReadiness() {
     }
   }
   requireCondition(
+    readRepositoryFile('src/cache-bust.d.ts').includes(`*?v=${MainBuildVersion}`),
+    'TypeScript cache-bust shims must use the shared canvas build token.',
+  );
+  requireCondition(
     PhysicsSource.includes('export const MaximumLaunchSpeed = 16.5;')
       && PhysicsSource.includes('hasClearedLaunchOrigin')
       && SectorSource.includes('export function hasTravelledFurther(')
@@ -694,7 +698,7 @@ export function auditReleaseReadiness() {
     'CREDITS.md must explicitly state the current external-asset status.',
   );
   requireCondition(
-    AudioSource.includes("from './audio-catalog.js'")
+    AudioSource.includes("from './audio-catalog.js")
       && AudioSource.includes('playStoryVoice')
       && !AudioSource.includes('api.elevenlabs.io')
       && !MainSource.includes('api.elevenlabs.io'),

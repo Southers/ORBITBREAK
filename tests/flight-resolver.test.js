@@ -143,11 +143,11 @@ test('Command stays open when the Warden silences an inner world after a neighbo
   const NetworkState = createRelayNetworkState('meadow');
   connectRelayWorlds(NetworkState, 'meadow', 'grove');
   connectRelayWorlds(NetworkState, 'grove', 'ember');
-  connectRelayWorlds(NetworkState, 'ember', 'frost');
+  connectRelayWorlds(NetworkState, 'grove', 'frost');
   const WardenState = {
     ...createWardenPursuitState({ startingDistance: 1 }),
     status: 'pursuing',
-    targetWorldIdentifier: 'meadow',
+    targetWorldIdentifier: 'ember',
   };
   const Resolution = resolveWardenAfterNonCommandFlight({
     runtime: Runtime,
@@ -158,5 +158,5 @@ test('Command stays open when the Warden silences an inner world after a neighbo
     isWorldheartOpen: false,
   });
   assert.equal(Resolution.isWorldheartOpen, true);
-  assert.equal(isRelayWorldLive(NetworkState, 'meadow'), false);
+  assert.equal(isRelayWorldLive(NetworkState, 'ember'), false);
 });

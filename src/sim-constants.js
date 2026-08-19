@@ -15,12 +15,12 @@ export const LaunchIgnoreMinSteps = 96;
 
 /** True once the Runner has both left the dock height and spent the launch grace. */
 export function hasClearedLaunchOrigin({
-  originRadius,
-  originX,
-  originY,
+  originRadius = 0,
+  originX = 0,
+  originY = 0,
   originZ = 0,
-  runnerX,
-  runnerY,
+  runnerX = 0,
+  runnerY = 0,
   runnerZ = 0,
   seedRadius = RunnerRadius,
   elapsedSteps = 0,

@@ -106,7 +106,7 @@ test('playable sources never call ElevenLabs and the workflow never echoes the s
     assert.equal(Source.includes('api.elevenlabs.io'), false);
     assert.equal(Source.includes('xi-api-key'), false);
   }
-  assert.equal(AudioSource.includes("from './audio-catalog.js'"), true);
+  assert.equal(AudioSource.includes("from './audio-catalog.js"), true);
   assert.equal(AudioSource.includes('playStoryVoice'), true);
   assert.equal(AudioSource.includes('ensureStarted()'), true);
   assert.equal(Workflow.includes('secrets.ELEVENLABS_API_KEY'), true);
