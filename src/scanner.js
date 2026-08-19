@@ -4,12 +4,12 @@
  * used by tests and keeps a projection for optional tooling.
  */
 
-import { calculateBodyPositionAtTime } from './physics.js';
-import { countLiveRelayWorlds } from './network.js';
+import { calculateBodyPositionAtTime } from './physics.js?v=20260819-ob134';
+import { countLiveRelayWorlds } from './network.js?v=20260819-ob134';
 import {
   getPublishedWardenState,
   getScannerAccessibleLabel,
-} from './presentation.js';
+} from './presentation.js?v=20260819-ob134';
 
 export function createScanner(host) {
   const {

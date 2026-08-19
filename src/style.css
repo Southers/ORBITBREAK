@@ -152,6 +152,7 @@ button[aria-disabled='true'] {
 
 .play-caption,
 .route-label,
+.here-label,
 .tactical-label,
 .status-toast,
 .pull-hint,
@@ -1196,6 +1197,7 @@ button[aria-disabled='true'] {
 }
 
 .route-label,
+.here-label,
 .tactical-label {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -1227,6 +1229,11 @@ button[aria-disabled='true'] {
   white-space: nowrap;
 }
 
+.here-label {
+  white-space: nowrap;
+  color: #fff6d4;
+}
+
 .tactical-label--seedstone {
   border: 0;
   color: #a8eaff;
@@ -1246,10 +1253,13 @@ button[aria-disabled='true'] {
 }
 
 .route-label:empty,
+.here-label:empty,
 .tactical-label:empty,
 .route-label[hidden],
+.here-label[hidden],
 .tactical-label[hidden],
 .route-label:not([data-visible="true"]),
+.here-label:not([data-visible="true"]),
 .tactical-label:not([data-visible="true"]) {
   display: none !important;
   visibility: hidden !important;

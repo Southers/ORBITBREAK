@@ -12,6 +12,7 @@
   },
   "include": [
     "src/sim-constants.js",
+    "src/cache-bust.d.ts",
     "src/sector.js",
     "src/flight-resolver.js",
     "src/physics.js",

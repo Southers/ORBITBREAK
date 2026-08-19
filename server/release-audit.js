@@ -117,9 +117,31 @@ export function auditReleaseReadiness() {
     MainBuildVersion === MainAssetVersion && MainBuildVersion === StyleAssetVersion,
     'HTML, CSS and published canvas build identifiers must match.',
   );
+  const SourceFiles = listRepositoryFiles('src', ['.js']);
+  const RelativeImportPattern = /from ['"](\.\.?\/[^'"]+)['"]/g;
+  for (const RelativePath of SourceFiles) {
+    const Source = readRepositoryFile(RelativePath);
+    for (const Match of Source.matchAll(RelativeImportPattern)) {
+      const Specifier = Match[1];
+      if (!Specifier.includes('.js')) {
+        continue;
+      }
+      const Version = Specifier.match(/\?v=([^'"#]+)/)?.[1];
+      requireCondition(
+        Version === MainBuildVersion,
+        `${RelativePath} must cache-bust ${Specifier} with the shared ${MainBuildVersion} token.`,
+      );
+    }
+  }
+  requireCondition(
+    readRepositoryFile('src/cache-bust.d.ts').includes(`*?v=${MainBuildVersion}`),
+    'TypeScript cache-bust shims must use the shared canvas build token.',
+  );
   requireCondition(
     PhysicsSource.includes('export const MaximumLaunchSpeed = 16.5;')
-      && PhysicsSource.includes('LaunchClearancePadding')
+      && PhysicsSource.includes('hasClearedLaunchOrigin')
+      && SectorSource.includes('export function hasTravelledFurther(')
+      && FlightResolverSource.includes('flightElapsedSteps')
       && MainSource.includes('LaunchVelocityPerDragUnit = MaximumLaunchSpeed / MaximumDragDistance')
       && MainSource.includes('updateSlingshotBandVisuals(')
       && ScoringSource.includes('export function getSlingshotBandRadii('),
@@ -184,6 +206,20 @@ export function auditReleaseReadiness() {
       && !InputControllerSource.includes('classifySphereSurfaceGesture(')
       && !InputControllerSource.includes('classifySurfaceGesture('),
     'First-timer walk vs aim must lock from where the drag starts, not how it moves, with sticky walk-then-launch captions.',
+  );
+  requireCondition(
+    InputControllerSource.includes("host.GamePhase === 'attached'")
+      && InputControllerSource.includes('isPointerOverAttachedWorldDisc(')
+      && InputControllerSource.includes('announceIfUnavailable')
+      && PlayerSource.includes('SeedHaloMesh.raycast = () => {}')
+      && ControlsSource.includes('SurfaceWalkTapRadians = 14')
+      && PresentationSource.includes('export function getHereWorldLabel(')
+      && PresentationSource.includes('export function getSeedstoneTacticalLabel(')
+      && RoutePresentationSource.includes('getHereWorldLabel(')
+      && RoutePresentationSource.includes('getSeedstoneTacticalLabel(')
+      && IndexHtml.includes('class="here-label"')
+      && !RoutePresentationSource.includes('1 USE'),
+    'Landed crust drags must walk, keyboard walk must circle a tiny world, spent Break must cue, and Scout must name HERE plus Seedstone launches.',
   );
   requireCondition(
     PlayerSource.includes('const SeedHaloGeometry = new THREE.TorusGeometry(0.55, 0.06, 8, 24)')
@@ -402,9 +438,11 @@ export function auditReleaseReadiness() {
     'Replay progress must remain a visible overlay at a legible type floor.',
   );
   requireCondition(
-    /\.route-label,\s*\.tactical-label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+    /\.route-label,\s*\.here-label,\s*\.tactical-label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.tactical-label\s*\{[^}]*font-size:\s*10px;[^}]*white-space:\s*nowrap;/s.test(StyleSheet)
       && /\.route-label\s*\{[^}]*white-space:\s*nowrap;/s.test(StyleSheet)
+      && /\.here-label\s*\{[^}]*white-space:\s*nowrap;/s.test(StyleSheet)
+      && IndexHtml.includes('class="here-label"')
       && RoutePresentationSource.includes('separateRouteLabelsFromTacticalLabels(')
       && RoutePresentationSource.includes('separateOverlappingTacticalLabels(')
       && RoutePresentationSource.includes('getTacticalLabelHorizontalMargin(')
@@ -676,7 +714,7 @@ export function auditReleaseReadiness() {
     'CREDITS.md must explicitly state the current external-asset status.',
   );
   requireCondition(
-    AudioSource.includes("from './audio-catalog.js'")
+    AudioSource.includes("from './audio-catalog.js")
       && AudioSource.includes('playStoryVoice')
       && !AudioSource.includes('api.elevenlabs.io')
       && !MainSource.includes('api.elevenlabs.io'),

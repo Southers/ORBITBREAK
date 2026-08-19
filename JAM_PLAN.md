@@ -1041,6 +1041,24 @@ so a just-escaping throw is not slapped back. A/D hold steers. Enter still
 launches. Command still opens from a live neighbourhood plus further travel,
 not from inner restores alone.
 
+Checkpoint 28 — 19 August 2026: stale module cache, Command exposure,
+outer origin recapture. Every `src/` import carries the same cache-bust
+token as `index.html` and `main.js`, so a normal refresh boots after an
+old Pages cache. Command opens after a live neighbourhood plus further
+travel — outposts count — and stays open if the Warden silences an inner
+world on a 6-world outer tour. Origin ignore lasts 2.4 plus 0.8 s so
+max-power throws from Glasswing, Cinder and Ledge can leave. Skim
+recapture, toy-scale props, Enter=Space and A/D hold stay.
+
+Checkpoint 29 — 19 August 2026: drag empty crust walks. The landed pick
+sphere no longer covers the disc, so a planet drag cannot arm a launch;
+pull the hull to fly, tap a cage to smash. Q/E/T/F step a readable arc
+and hold still circles. Mid-flight Space with a spent Break toasts
+instead of eating the key. Scout names HERE on the current world and
+calls Seedstone a launch. Motion in pause reads as a three-way toggle.
+Cache-bust, Command expose, outer leave, skim recapture and toy props
+stay.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

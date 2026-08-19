@@ -34,23 +34,23 @@ import {
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob132';
+} from './controls.js?v=20260819-ob134';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
   resolveClampTap,
   resolveHostileCut,
-} from './encounter.js?v=20260819-ob130';
-import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js';
+} from './encounter.js?v=20260819-ob134';
+import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob134';
 import {
   getCageClearPulseDurationSeconds,
   getActiveViewZoomMinimumScale,
   getLaunchFacingPresentation,
   getLogicalSurfaceDirectionFromWorldHit,
   shouldAssistCommandLock,
-} from './presentation.js';
-import { recordReplayBurn, recordReplayLaunch } from './replay.js';
-import { releaseRunLaunch } from './run.js';
+} from './presentation.js?v=20260819-ob134';
+import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob134';
+import { releaseRunLaunch } from './run.js?v=20260819-ob134';
 
 export function createInputController(THREE, host) {
   const {
@@ -236,6 +236,11 @@ function isPointerOverShipMesh() {
       return true;
     }
   }
+  if (host.GamePhase === 'attached') {
+    // The flying pick sphere is 3.2× hull radius and sits on the camera-facing
+    // pole, so it covers most of a landed disc. Crust drags must walk.
+    return false;
+  }
   return PointerRaycaster.intersectObject(SeedPointerHitMesh, false).length > 0;
 }
 
@@ -261,6 +266,44 @@ function getAttachedWorldScreenRadiusPixels() {
   );
 }
 
+function isPointerOverAttachedWorldDisc() {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld) {
+    return false;
+  }
+  const SurfaceRadius = AttachedWorld.radius + 0.45;
+  if (intersectRaySphere(
+    PointerRaycaster.ray.origin,
+    PointerRaycaster.ray.direction,
+    AttachedWorld.position,
+    SurfaceRadius,
+  )) {
+    return true;
+  }
+  if (projectRayOntoSphere(
+    PointerRaycaster.ray.origin,
+    PointerRaycaster.ray.direction,
+    AttachedWorld.position,
+    SurfaceRadius,
+  )) {
+    return true;
+  }
+  const DirectionZ = PointerRaycaster.ray.direction.z;
+  if (Math.abs(DirectionZ) <= 1e-6) {
+    return false;
+  }
+  const PlaneTime = -PointerRaycaster.ray.origin.z / DirectionZ;
+  if (!(PlaneTime > 0)) {
+    return false;
+  }
+  const HitX = PointerRaycaster.ray.origin.x + (PointerRaycaster.ray.direction.x * PlaneTime);
+  const HitY = PointerRaycaster.ray.origin.y + (PointerRaycaster.ray.direction.y * PlaneTime);
+  return Math.hypot(
+    HitX - AttachedWorld.position.x,
+    HitY - AttachedWorld.position.y,
+  ) <= SurfaceRadius;
+}
+
 function getLandedPointerOccupancy(PointerEventData, WorldPosition = null) {
   const CanvasBounds = GameCanvas.getBoundingClientRect();
   PointerNormalizedDeviceCoordinates.x = (
@@ -272,19 +315,20 @@ function getLandedPointerOccupancy(PointerEventData, WorldPosition = null) {
   PointerRaycaster.setFromCamera(PointerNormalizedDeviceCoordinates, Camera);
   const OverShipMesh = isPointerOverShipMesh();
   const OverWorld = Boolean(
-    getAttachedGlobeHit(true) || (WorldPosition && isPointerOverAttachedWorld(WorldPosition)),
+    getAttachedGlobeHit(true)
+    || (WorldPosition && isPointerOverAttachedWorld(WorldPosition))
+    || isPointerOverAttachedWorldDisc(),
   );
   const GrabRadiusPixels = getLandedShipGrabRadiusPixels({
     isOverWorld: OverWorld,
     worldScreenRadiusPixels: getAttachedWorldScreenRadiusPixels(),
   });
-  const OverShip = OverShipMesh
-    || getScreenDistanceToSeed(PointerEventData) <= GrabRadiusPixels;
+  const OverShipHalo = getScreenDistanceToSeed(PointerEventData) <= GrabRadiusPixels;
   const CageClampId = pickCageClampId(PointerEventData);
   return {
     isOverShipMesh: OverShipMesh,
     isOverWorld: OverWorld,
-    isOverShip: OverShip,
+    isOverShip: OverShipHalo,
     isOverCage: CageClampId !== null,
     cageClampId: CageClampId,
   };
@@ -423,18 +467,25 @@ function getAttachedGlobeHit(RequireVisibleFace = true) {
     return null;
   }
   const SurfaceRadius = AttachedWorld.radius + host.SeedRadius + 0.03;
+  const RayOrigin = PointerRaycaster.ray.origin;
+  const RayDirection = PointerRaycaster.ray.direction;
   if (RequireVisibleFace !== false) {
     return intersectRaySphere(
-      PointerRaycaster.ray.origin,
-      PointerRaycaster.ray.direction,
+      RayOrigin,
+      RayDirection,
       AttachedWorld.position,
       SurfaceRadius,
       { nearOnly: true },
+    ) ?? projectRayOntoSphere(
+      RayOrigin,
+      RayDirection,
+      AttachedWorld.position,
+      SurfaceRadius,
     );
   }
   return projectRayOntoSphere(
-    PointerRaycaster.ray.origin,
-    PointerRaycaster.ray.direction,
+    RayOrigin,
+    RayDirection,
     AttachedWorld.position,
     SurfaceRadius,
   );
@@ -1803,13 +1854,23 @@ function requestBreakerAction() {
 }
 
 /** Queues input for the next authoritative fixed step rather than mutating between frames. */
-function requestBreakerBurn() {
+function requestBreakerBurn({ announceIfUnavailable = false } = {}) {
   if (
     host.GamePhase !== 'flying'
     || !host.IsBreakerBurnAvailable
     || host.IsBreakerBurnPending
     || host.ReplayPlaybackState !== null
   ) {
+    if (
+      announceIfUnavailable === true
+      && host.GamePhase === 'flying'
+      && host.ReplayPlaybackState === null
+    ) {
+      showStatusToast(
+        host.IsBreakerBurnPending ? 'BREAK ARMED' : 'BREAK ALREADY USED',
+        900,
+      );
+    }
     return false;
   }
   host.IsBreakerBurnPending = true;

@@ -188,12 +188,14 @@ test('sphere walking crosses the poles and flattens back to the equator for laun
   const North = adjustSurfacePose(Equator, { north: 1 });
   assert.ok(North.latitude > 0);
   let Pose = Equator;
-  for (let Step = 0; Step < 90; Step += 1) {
+  const HalfMeridianSteps = Math.ceil(Math.PI / SurfaceWalkTapRadians);
+  for (let Step = 0; Step < HalfMeridianSteps; Step += 1) {
     Pose = adjustSurfacePose(Pose, { north: 1 });
   }
-  assert.ok(Math.abs(Pose.latitude) < 0.2);
+  assert.ok(Math.abs(Pose.latitude) < SurfaceWalkTapRadians);
   assert.ok(Math.abs(Math.abs(Pose.longitude) - Math.PI) < 0.2);
-  for (let Step = 0; Step < 10; Step += 1) {
+  const ExtraSouthSteps = Math.max(1, Math.round((20 * Math.PI / 180) / SurfaceWalkTapRadians));
+  for (let Step = 0; Step < ExtraSouthSteps; Step += 1) {
     Pose = adjustSurfacePose(Pose, { north: 1 });
   }
   assert.ok(Pose.latitude < 0);
@@ -268,6 +270,7 @@ test('keyboard walk can share the pointer cruise step size', () => {
   const Start = createSurfacePose({ longitude: 0, latitude: 0 });
   const Tapped = adjustSurfacePose(Start, { east: 1 });
   assert.ok(Math.abs(Tapped.longitude - SurfaceWalkTapRadians) < 1e-12);
+  assert.ok(SurfaceWalkTapRadians >= (12 * Math.PI) / 180);
   const Held = adjustSurfacePose(Start, { east: 1, stepRadians: getSurfaceWalkArcLimit(1 / 60) });
   assert.ok(Math.abs(Held.longitude - getSurfaceWalkArcLimit(1 / 60)) < 1e-12);
 });
@@ -352,6 +355,11 @@ test('landed ship grab stays small on the visible crust so planet drags can walk
   assert.equal(TightDisc, SeedOnGlobeGrabMinRadiusPixels);
   assert.ok(TightDisc < 48 * 0.7);
   assert.equal(classifyLandedPointerStart({
+    isOverShip: false,
+    isOverWorld: true,
+  }), LandedPointerTargets.world);
+  assert.equal(classifyLandedPointerStart({
+    isOverShipMesh: false,
     isOverShip: false,
     isOverWorld: true,
   }), LandedPointerTargets.world);

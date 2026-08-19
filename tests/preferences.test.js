@@ -22,7 +22,7 @@ test('explicit reduced and full motion override the system without affecting oth
   assert.equal(resolveReducedMotion(MotionPreferences.full, true), false);
   assert.deepEqual(
     getMotionPreferencePresentation(MotionPreferences.reduced, true),
-    { label: 'Reduced motion on [P]', ariaPressed: 'true' },
+    { label: 'Motion: reduced [P]', ariaPressed: 'true' },
   );
 });
 
@@ -32,7 +32,11 @@ test('motion control cycles back to the recoverable system preference', () => {
   assert.equal(cycleMotionPreference(MotionPreferences.full), MotionPreferences.system);
   assert.deepEqual(
     getMotionPreferencePresentation(MotionPreferences.system, true),
-    { label: 'Reduced motion · system on [P]', ariaPressed: 'mixed' },
+    { label: 'Motion: system [P]', ariaPressed: 'mixed' },
+  );
+  assert.deepEqual(
+    getMotionPreferencePresentation(MotionPreferences.full, false),
+    { label: 'Motion: full [P]', ariaPressed: 'false' },
   );
 });
 

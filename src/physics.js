@@ -6,7 +6,7 @@
  * and suitable for use both by the live seed simulation and the trajectory preview.
  */
 
-import { LaunchClearancePadding } from './sim-constants.js';
+import { hasClearedLaunchOrigin } from './sim-constants.js?v=20260819-ob134';
 
 /**
  * Creates a small immutable-style vector object used by the deterministic physics layer.
@@ -465,10 +465,17 @@ export function predictTrajectory(
       );
 
       if (StartingWorldDefinition) {
-        const ClearDistance = StartingWorldDefinition.radius
-          + PredictionSettings.seedRadius
-          + LaunchClearancePadding;
-        if (calculateDistanceSquared(PredictedState.position, StartingWorldDefinition.position) > (ClearDistance * ClearDistance)) {
+        if (hasClearedLaunchOrigin({
+          originRadius: StartingWorldDefinition.radius,
+          originX: StartingWorldDefinition.position.x,
+          originY: StartingWorldDefinition.position.y,
+          originZ: StartingWorldDefinition.position.z,
+          runnerX: PredictedState.position.x,
+          runnerY: PredictedState.position.y,
+          runnerZ: PredictedState.position.z,
+          seedRadius: PredictionSettings.seedRadius,
+          elapsedSteps: PredictionStepIndex + 1,
+        })) {
           IgnoredWorldIdentifier = null;
         }
       } else {
@@ -528,13 +535,17 @@ export function predictTrajectory(
           IgnoredBodyDefinition,
           PredictionTimeSeconds,
         );
-        const ClearDistance = IgnoredBodyDefinition.radius
-          + PredictionSettings.seedRadius
-          + 0.35;
-        if (
-          calculateDistanceSquared(PredictedState.position, IgnoredBodyPosition)
-          > (ClearDistance * ClearDistance)
-        ) {
+        if (hasClearedLaunchOrigin({
+          originRadius: IgnoredBodyDefinition.radius,
+          originX: IgnoredBodyPosition.x,
+          originY: IgnoredBodyPosition.y,
+          originZ: IgnoredBodyPosition.z,
+          runnerX: PredictedState.position.x,
+          runnerY: PredictedState.position.y,
+          runnerZ: PredictedState.position.z,
+          seedRadius: PredictionSettings.seedRadius,
+          elapsedSteps: PredictionStepIndex + 1,
+        })) {
           IgnoredCollisionBodyIdentifier = null;
         }
       }

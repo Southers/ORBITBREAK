@@ -33,32 +33,7 @@ export function isInnerClusterLive(
     && InnerCluster.every((WorldIdentifier) => Live.has(WorldIdentifier));
 }
 
-/**
- * Command becomes reachable after a living neighbourhood plus further travel,
- * or after the authored restoration and shield gates. Cage smash alone does not
- * open it. Circuits still expose and weaken the Warden vessel.
- */
-export function shouldOpenCommandWorldRoute({
-  restorationUnlocked = false,
-  liveWorldIdentifiers = [],
-  innerClusterWorldIdentifiers = [],
-  furtherReachWorldIdentifiers = [],
-  requiresShieldBreaks = false,
-  wardenStatus = 'hidden',
-} = {}) {
-  const ShieldOpened = requiresShieldBreaks !== true || wardenStatus === 'exposed';
-  if (restorationUnlocked === true && ShieldOpened) {
-    return true;
-  }
-  const LiveIdentifiers = Array.isArray(liveWorldIdentifiers)
-    ? liveWorldIdentifiers
-    : [];
-  return isInnerClusterLive(LiveIdentifiers, innerClusterWorldIdentifiers)
-    && isFurtherReachLive(LiveIdentifiers, furtherReachWorldIdentifiers)
-    && LiveIdentifiers.length >= 4;
-}
-
-/** True when any further-reach world currently holds a live relay. */
+/** True when any authored further-reach world currently holds a live relay. */
 export function isFurtherReachLive(
   liveWorldIdentifiers = [],
   furtherReachWorldIdentifiers = [],
@@ -69,6 +44,88 @@ export function isFurtherReachLive(
     'Further reach check',
   );
   return FurtherReach.some((WorldIdentifier) => Live.has(WorldIdentifier));
+}
+
+/**
+ * True once the Runner has a live relay beyond the inner neighbourhood.
+ * Outposts such as Ledge, Cinder and Glasswing count even when they are not
+ * on the authored veil list.
+ */
+export function hasTravelledFurther(
+  liveWorldIdentifiers = [],
+  innerClusterWorldIdentifiers = [],
+  furtherReachWorldIdentifiers = [],
+  commandWorldIdentifier = 'worldheart',
+) {
+  if (isFurtherReachLive(liveWorldIdentifiers, furtherReachWorldIdentifiers)) {
+    return true;
+  }
+  const InnerCluster = new Set(requireIdentifierList(
+    innerClusterWorldIdentifiers,
+    'Further travel check',
+  ));
+  return [...toLiveSet(liveWorldIdentifiers)].some((WorldIdentifier) => (
+    WorldIdentifier !== commandWorldIdentifier
+    && !InnerCluster.has(WorldIdentifier)
+  ));
+}
+
+/**
+ * Command becomes reachable after a living neighbourhood plus further travel,
+ * or after the authored restoration and shield gates. Cage smash alone does not
+ * open it. Circuits still expose and weaken the Warden vessel.
+ *
+ * A 6-world outer tour that left the neighbourhood still opens Command even if
+ * the Warden has already silenced one inner world.
+ */
+export function shouldOpenCommandWorldRoute({
+  restorationUnlocked = false,
+  liveWorldIdentifiers = [],
+  innerClusterWorldIdentifiers = [],
+  furtherReachWorldIdentifiers = [],
+  requiresShieldBreaks = false,
+  wardenStatus = 'hidden',
+  commandWorldIdentifier = 'worldheart',
+  currentWorldIdentifier = '',
+} = {}) {
+  const ShieldOpened = requiresShieldBreaks !== true || wardenStatus === 'exposed';
+  if (restorationUnlocked === true && ShieldOpened) {
+    return true;
+  }
+  const LiveIdentifiers = Array.isArray(liveWorldIdentifiers)
+    ? liveWorldIdentifiers
+    : [];
+  const InnerCluster = requireIdentifierList(
+    innerClusterWorldIdentifiers,
+    'Inner cluster check',
+  );
+  const InnerSet = new Set(InnerCluster);
+  const TravelledFurther = hasTravelledFurther(
+    LiveIdentifiers,
+    InnerCluster,
+    furtherReachWorldIdentifiers,
+    commandWorldIdentifier,
+  );
+  if (isInnerClusterLive(LiveIdentifiers, InnerCluster) && TravelledFurther) {
+    return true;
+  }
+  const InnerLiveCount = LiveIdentifiers.filter(
+    (WorldIdentifier) => InnerSet.has(WorldIdentifier),
+  ).length;
+  const OuterLiveCount = LiveIdentifiers.filter((WorldIdentifier) => (
+    WorldIdentifier !== commandWorldIdentifier
+    && !InnerSet.has(WorldIdentifier)
+  )).length;
+  const CurrentIsOuter = typeof currentWorldIdentifier === 'string'
+    && currentWorldIdentifier.length > 0
+    && currentWorldIdentifier !== commandWorldIdentifier
+    && !InnerSet.has(currentWorldIdentifier);
+  if (InnerLiveCount >= 2 && CurrentIsOuter && LiveIdentifiers.length >= 5) {
+    return true;
+  }
+  return InnerLiveCount >= 2
+    && OuterLiveCount >= 2
+    && LiveIdentifiers.length >= 6;
 }
 
 /** Full veil over Command and the further Reach until the inner cluster is live. */
@@ -107,7 +164,13 @@ export function getSectorWardenRevealFlag(
   liveWorldIdentifiers,
   innerClusterWorldIdentifiers,
   furtherReachWorldIdentifiers,
+  commandWorldIdentifier = 'worldheart',
 ) {
   return isInnerClusterLive(liveWorldIdentifiers, innerClusterWorldIdentifiers)
-    && isFurtherReachLive(liveWorldIdentifiers, furtherReachWorldIdentifiers);
+    && hasTravelledFurther(
+      liveWorldIdentifiers,
+      innerClusterWorldIdentifiers,
+      furtherReachWorldIdentifiers,
+      commandWorldIdentifier,
+    );
 }

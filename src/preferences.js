@@ -26,15 +26,15 @@ export function cycleMotionPreference(MotionPreference) {
 }
 
 /** Produces concise visible and assistive copy for the three-state control. */
-export function getMotionPreferencePresentation(MotionPreference, EffectiveReducedMotion) {
+export function getMotionPreferencePresentation(MotionPreference) {
   if (MotionPreference === MotionPreferences.reduced) {
-    return { label: 'Reduced motion on [P]', ariaPressed: 'true' };
+    return { label: 'Motion: reduced [P]', ariaPressed: 'true' };
   }
   if (MotionPreference === MotionPreferences.full) {
-    return { label: 'Reduced motion off [P]', ariaPressed: 'false' };
+    return { label: 'Motion: full [P]', ariaPressed: 'false' };
   }
   return {
-    label: `Reduced motion${EffectiveReducedMotion ? ' · system on' : ' · system off'} [P]`,
+    label: 'Motion: system [P]',
     ariaPressed: 'mixed',
   };
 }

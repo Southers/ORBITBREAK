@@ -1,4 +1,4 @@
-import { FirstLightSystemDefinition } from './first-light.js';
+import { FirstLightSystemDefinition } from './first-light.js?v=20260819-ob134';
 
 /** ORBITBREAK's first score-attack arena, spanning several camera views. */
 export const BreakerReachSystemDefinition = {

@@ -25,7 +25,6 @@ import {
   simulatePhysicsStep,
   advanceOrbitTrap,
   applyBreakerBurn,
-  calculateDistanceSquared,
 } from '../src/physics.js';
 import { createScoreState, predictSlingshotEvents } from '../src/scoring.js';
 import { createRunState, releaseRunLaunch } from '../src/run.js';
@@ -48,6 +47,7 @@ import {
   MaximumValidatedFlightSteps,
   RunnerRadius,
   SurfaceRestLift,
+  hasClearedLaunchOrigin,
 } from '../src/sim-constants.js';
 import { validateSerializedReplay } from '../src/replay-validator.js';
 
@@ -91,11 +91,17 @@ function flyCandidate({
     Points.push(createVector(PhysicsState.position.x, PhysicsState.position.y, 0));
     const SimulationTimeSeconds = (launchStepIndex + FlightStep) * FixedPhysicsStepSeconds;
     if (IgnoredWorldIdentifier && OriginWorld) {
-      const ClearDistance = OriginWorld.radius + RunnerRadius + 0.35;
-      if (
-        calculateDistanceSquared(PhysicsState.position, OriginWorld.position)
-        > (ClearDistance ** 2)
-      ) {
+      if (hasClearedLaunchOrigin({
+        originRadius: OriginWorld.radius,
+        originX: OriginWorld.position.x,
+        originY: OriginWorld.position.y,
+        originZ: OriginWorld.position.z,
+        runnerX: PhysicsState.position.x,
+        runnerY: PhysicsState.position.y,
+        runnerZ: PhysicsState.position.z,
+        seedRadius: RunnerRadius,
+        elapsedSteps: FlightStep,
+      })) {
         IgnoredWorldIdentifier = null;
       }
     }
@@ -290,6 +296,7 @@ function executeLeg(State, Solution, TargetIdentifier) {
       simulationTimeSeconds: StepIndex * FixedPhysicsStepSeconds,
       ignoredWorldIdentifier: IgnoredWorldIdentifier,
       flightOriginWorldIdentifier: State.currentNodeIdentifier,
+      flightElapsedSteps: FlightStep,
       flightCollectedStardust: FlightCollectedStardust,
       outOfBoundsDistance: Runtime.camera?.outOfBoundsDistance ?? 34,
       orbitTrapState: OrbitTrapState,
