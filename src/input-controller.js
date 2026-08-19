@@ -30,7 +30,7 @@ import {
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob130';
+} from './controls.js?v=20260819-ob131';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
@@ -762,6 +762,25 @@ function syncKeyboardLaunchVectors() {
   host.LastAimScreenDistancePixels = Number.POSITIVE_INFINITY;
 }
 
+/** Keyboard Enter/Space must throw, even at the lowest W/S power. */
+function ensureMinimumKeyboardLaunchDrag() {
+  if (AimDragVector.length() >= MinimumLaunchDragDistance) {
+    return;
+  }
+  if (AimDragVector.length() > 0.0001) {
+    AimDragVector.setLength(MinimumLaunchDragDistance);
+  } else if (host.KeyboardAimState) {
+    const DragVector = getKeyboardAimDragVector({
+      ...host.KeyboardAimState,
+      powerRatio: MinimumLaunchDragDistance / MaximumDragDistance,
+    }, MaximumDragDistance);
+    AimDragVector.set(DragVector.x, DragVector.y, 0);
+  } else {
+    return;
+  }
+  AimLaunchVelocity.copy(AimDragVector).multiplyScalar(LaunchVelocityPerDragUnit);
+}
+
 /** Cancels pointer or keyboard aim without spending a launch. */
 function cancelAimedLaunch({ announce = true } = {}) {
   const WasAiming = host.IsPointerAiming || host.IsKeyboardAiming;
@@ -877,7 +896,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
     }
     return true;
   }
-  if (host.ActiveHostileEncounterState && host.GamePhase === 'attached' && !host.IsKeyboardAiming) {
+  if (host.ActiveHostileEncounterState && host.GamePhase === 'attached' && !host.IsKeyboardAiming && !host.IsPointerAiming) {
     if (PressedKey === ' ') {
       KeyboardEventData.preventDefault();
       if (KeyboardEventData.repeat) return true;
@@ -896,16 +915,24 @@ function handleKeyboardAimKey(KeyboardEventData) {
   if (PressedKey === 'enter' && host.IsCutAiming) {
     cancelCutAim({ announce: false });
   }
+  if (IsLaunchKey && (host.IsKeyboardAiming || host.IsPointerAiming)) {
+    KeyboardEventData.preventDefault();
+    if (host.IsKeyboardAiming) {
+      syncKeyboardLaunchVectors();
+      ensureMinimumKeyboardLaunchDrag();
+    }
+    releaseAimedLaunch({ cancelIfShort: host.IsKeyboardAiming !== true });
+    return true;
+  }
   if (!host.IsKeyboardAiming && !beginKeyboardAim()) {
     return false;
   }
 
   KeyboardEventData.preventDefault();
   if (IsLaunchKey) {
-    if (host.IsKeyboardAiming) {
-      syncKeyboardLaunchVectors();
-      releaseAimedLaunch();
-    }
+    syncKeyboardLaunchVectors();
+    ensureMinimumKeyboardLaunchDrag();
+    releaseAimedLaunch({ cancelIfShort: false });
     return true;
   }
 
@@ -1336,6 +1363,7 @@ function handlePointerDown(PointerEventData) {
     isOverShip: Occupancy.isOverShip,
     isOverCage: Occupancy.isOverCage,
     isOverWorld: Occupancy.isOverWorld,
+    isOverShipMesh: Occupancy.isOverShipMesh,
   });
   if (PointerStartTarget === LandedPointerTargets.ship) {
     setScoutMode(false);
@@ -1516,11 +1544,15 @@ function handlePointerMove(PointerEventData) {
 }
 
 /** Launches the current pointer or keyboard aim through the shared deterministic path. */
-function releaseAimedLaunch() {
+function releaseAimedLaunch({ cancelIfShort = true } = {}) {
   if (host.IsKeyboardAiming) {
     syncKeyboardLaunchVectors();
+    ensureMinimumKeyboardLaunchDrag();
   }
   if (AimDragVector.length() < MinimumLaunchDragDistance) {
+    if (cancelIfShort !== true) {
+      return false;
+    }
     host.IsPointerAiming = false;
     host.IsPointerWalking = false;
     host.IsPointerScouting = false;
@@ -1588,6 +1620,12 @@ function releaseAimedLaunch() {
   host.GamePhase = 'flying';
   host.FlightElapsedSeconds = 0;
   host.FlightOrbitTrapState = createOrbitTrapState();
+  if (host.ActiveHostileEncounterState) {
+    host.ActiveHostileEncounterState = null;
+    HostilePylonGroup.visible = false;
+    hideCutGuide();
+    publishHostileEncounterState();
+  }
   host.IsBreakerBurnAvailable = true;
   host.IsBreakerBurnPending = false;
   updateBreakerBurnInterface();

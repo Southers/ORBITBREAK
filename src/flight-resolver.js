@@ -44,6 +44,7 @@ import {
 import {
   isFurtherReachLive,
   isInnerClusterLive,
+  shouldOpenCommandWorldRoute,
 } from './sector.js';
 import {
   DefaultLiberationValue,
@@ -466,13 +467,17 @@ export function resolveWardenAfterNonCommandFlight({
 
   let NextWorldheartOpen = isWorldheartOpen;
   if (!NextWorldheartOpen) {
-    NextWorldheartOpen = isWorldheartUnlocked(
-      runtime.worlds,
-      runtime.worldheartUnlockThreshold,
-    ) && (
-      !runtime.commandWorldRequiresShieldBreaks
-      || NextWardenState.status === 'exposed'
-    );
+    NextWorldheartOpen = shouldOpenCommandWorldRoute({
+      restorationUnlocked: isWorldheartUnlocked(
+        runtime.worlds,
+        runtime.worldheartUnlockThreshold,
+      ),
+      liveWorldIdentifiers: LiveWorldIdentifiers,
+      innerClusterWorldIdentifiers: runtime.innerClusterWorldIdentifiers,
+      furtherReachWorldIdentifiers: runtime.furtherReachWorldIdentifiers,
+      requiresShieldBreaks: runtime.commandWorldRequiresShieldBreaks === true,
+      wardenStatus: NextWardenState.status,
+    });
   }
 
   return {

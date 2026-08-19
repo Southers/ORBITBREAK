@@ -1756,7 +1756,7 @@ test('landed close-up hides orbital gizmos and only linked houses keep windows',
   assert.equal(shouldHideLandedOrbitalOverlays({
     gamePhase: 'attached',
     isAiming: true,
-  }), false);
+  }), true);
   assert.equal(shouldHideLandedOrbitalOverlays({
     gamePhase: 'flying',
   }), false);

@@ -506,7 +506,7 @@ export function createRoutePresentation(THREE, host) {
             WorldDefinition.position.x - TacticalLabelDefinition.position.x,
             WorldDefinition.position.y - TacticalLabelDefinition.position.y,
           );
-          return Distance < WorldDefinition.radius + 3.2;
+          return Distance < WorldDefinition.radius + 5.5;
         });
         if (OverlapsWorld) {
           hidePlayfieldLabel(TacticalLabelElement);
@@ -539,6 +539,8 @@ export function createRoutePresentation(THREE, host) {
       ProjectedTacticalLabelPositions.push({
         x: ProjectedLabelLeft,
         y: ProjectedLabelTop,
+        anchorX: ProjectedLabelLeft,
+        anchorY: ProjectedLabelTop,
       });
       VisibleTacticalLabelElements.push(TacticalLabelElement);
     }
@@ -554,10 +556,11 @@ export function createRoutePresentation(THREE, host) {
     const ResolvedTacticalLabelPositions = separateOverlappingTacticalLabels(
       ProjectedTacticalLabelPositions,
       {
-        horizontalClearance: 160,
-        verticalClearance: 28,
+        horizontalClearance: 120,
+        verticalClearance: 22,
         minimumY: LabelVerticalBounds.minimumY,
         maximumY: LabelVerticalBounds.maximumY,
+        maxAnchorDrift: 28,
       },
     );
     TacticalLabelScreenPositions.push(...ResolvedTacticalLabelPositions);

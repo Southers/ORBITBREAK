@@ -19,6 +19,7 @@ import {
   getBreakerBurnDirection,
   advanceOrbitTrap,
   FlightStallTimeoutSteps,
+  FlightSkimTimeoutSteps,
   FlightStallDisplacement,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
@@ -1661,6 +1662,38 @@ test('orbit trap counts wrapped travel and ignores a short graze', () => {
   }
   assert.equal(advanceOrbitTrap(GrazeState, { x: 20, y: 0, z: 0 }, [World]), false);
   assert.equal(GrazeState.worldIdentifier, null);
+});
+
+test('a near-surface skim that never lands still recaptures', () => {
+  const World = {
+    id: 'well',
+    radius: 1.6,
+    position: { x: 0, y: 0, z: 0 },
+  };
+  const SkimState = createOrbitTrapState();
+  const SkimRadius = World.radius + 0.35;
+  let Trapped = false;
+  let StepCount = 0;
+  while (!Trapped && StepCount < FlightSkimTimeoutSteps + 2) {
+    const Angle = StepCount * 0.035;
+    Trapped = advanceOrbitTrap(SkimState, {
+      x: Math.cos(Angle) * SkimRadius,
+      y: Math.sin(Angle) * SkimRadius,
+      z: 0,
+    }, [World]);
+    StepCount += 1;
+  }
+  assert.equal(Trapped, true);
+  assert.equal(StepCount, FlightSkimTimeoutSteps);
+
+  const FlybyState = createOrbitTrapState();
+  for (let StepIndex = 0; StepIndex < 40; StepIndex += 1) {
+    assert.equal(advanceOrbitTrap(FlybyState, {
+      x: 8 - (StepIndex * 0.35),
+      y: World.radius + 0.4,
+      z: 0,
+    }, [World]), false);
+  }
 });
 
 test('a crawl that never completes a revolution still recovers after the stall timeout', () => {

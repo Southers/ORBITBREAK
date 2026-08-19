@@ -20,17 +20,17 @@ export function createWardenVisuals(THREE, Scene, host) {
     roughness: 0.38,
     metalness: 0.55,
   });
-  const ClampPostGeometry = new THREE.BoxGeometry(0.18, 1.35, 0.18);
-  const ClampBarXGeometry = new THREE.BoxGeometry(0.95, 0.12, 0.14);
-  const ClampBarZGeometry = new THREE.BoxGeometry(0.14, 0.12, 0.7);
-  const ClampBaseGeometry = new THREE.BoxGeometry(1.02, 0.16, 0.78);
-  const ClampLockGeometry = new THREE.OctahedronGeometry(0.16, 0);
-  const ClampHoopGeometry = new THREE.TorusGeometry(0.48, 0.085, 8, 20);
+  const ClampPostGeometry = new THREE.BoxGeometry(0.07, 0.42, 0.07);
+  const ClampBarXGeometry = new THREE.BoxGeometry(0.32, 0.045, 0.05);
+  const ClampBarZGeometry = new THREE.BoxGeometry(0.05, 0.045, 0.24);
+  const ClampBaseGeometry = new THREE.BoxGeometry(0.34, 0.06, 0.26);
+  const ClampLockGeometry = new THREE.OctahedronGeometry(0.055, 0);
+  const ClampHoopGeometry = new THREE.TorusGeometry(0.16, 0.028, 8, 20);
   const ClampPostOffsets = [
-    [-0.38, 0, -0.28],
-    [0.38, 0, -0.28],
-    [-0.38, 0, 0.28],
-    [0.38, 0, 0.28],
+    [-0.12, 0, -0.09],
+    [0.12, 0, -0.09],
+    [-0.12, 0, 0.09],
+    [0.12, 0, 0.09],
   ];
 
   function createHostileClampCage(Material) {
@@ -40,28 +40,28 @@ export function createWardenVisuals(THREE, Scene, host) {
       Post.position.set(OffsetX, OffsetY, OffsetZ);
       Cage.add(Post);
     }
-    for (const RingY of [0.52, 0.08, -0.36]) {
+    for (const RingY of [0.16, 0.02, -0.12]) {
       const Front = new THREE.Mesh(ClampBarXGeometry, Material);
-      Front.position.set(0, RingY, 0.28);
+      Front.position.set(0, RingY, 0.09);
       const Back = new THREE.Mesh(ClampBarXGeometry, Material);
-      Back.position.set(0, RingY, -0.28);
+      Back.position.set(0, RingY, -0.09);
       const Left = new THREE.Mesh(ClampBarZGeometry, Material);
-      Left.position.set(-0.38, RingY, 0);
+      Left.position.set(-0.12, RingY, 0);
       const Right = new THREE.Mesh(ClampBarZGeometry, Material);
-      Right.position.set(0.38, RingY, 0);
+      Right.position.set(0.12, RingY, 0);
       Cage.add(Front, Back, Left, Right);
     }
     const Base = new THREE.Mesh(ClampBaseGeometry, Material);
-    Base.position.y = -0.62;
+    Base.position.y = -0.2;
     const Lock = new THREE.Mesh(ClampLockGeometry, Material);
-    Lock.position.y = 0.78;
+    Lock.position.y = 0.24;
     const Hoop = new THREE.Mesh(ClampHoopGeometry, Material);
-    Hoop.position.y = 0.18;
+    Hoop.position.y = 0.06;
     Cage.add(Base, Lock, Hoop);
     return Cage;
   }
 
-  const ClampHitGeometry = new THREE.SphereGeometry(2.05, 12, 8);
+  const ClampHitGeometry = new THREE.SphereGeometry(0.42, 12, 8);
   const ClampHitMaterial = new THREE.MeshBasicMaterial({
     visible: false,
     transparent: true,
@@ -286,8 +286,8 @@ export function createWardenVisuals(THREE, Scene, host) {
     for (const ClampMesh of HostilePylonGroup.children) {
       ClampMesh.visible = false;
     }
-    const CageScale = Math.max(0.95, WorldDefinition.radius * 0.32);
-    const ClampDistance = WorldDefinition.radius + (0.22 * CageScale);
+    const CageScale = Math.min(0.32, Math.max(0.2, WorldDefinition.radius * 0.09));
+    const ClampDistance = WorldDefinition.radius + 0.14;
     for (const Clamp of EncounterState.clamps) {
       const ClampMesh = HostilePylonGroup.children[Clamp.id];
       if (!ClampMesh) continue;

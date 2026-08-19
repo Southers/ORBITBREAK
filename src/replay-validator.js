@@ -220,23 +220,19 @@ export function validateReplay(Replay) {
         RunState = SeedstoneLanding.runState;
         FlightSettled = true;
       } else if (StepResult.collisionBody?.definition.kind === 'worldheart') {
-        if (
-          Runtime.commandWorldRequiresShieldBreaks
-          && WardenState.status !== 'exposed'
-        ) {
-          return invalid('Replay reaches the Command World before breaking both shields.');
+        if (IsWorldheartOpen && !Worldheart.restored) {
+          const CommandLanding = settleCommandLanding({
+            runtime: Runtime,
+            worldheart: Worldheart,
+            scoreState: ScoreState,
+            runState: RunState,
+            wardenState: WardenState,
+          });
+          RunState = CommandLanding.runState;
+          CurrentNodeIdentifier = CommandLanding.nodeIdentifier;
+          ReachedCommandThisFlight = true;
+          FlightSettled = true;
         }
-        const CommandLanding = settleCommandLanding({
-          runtime: Runtime,
-          worldheart: Worldheart,
-          scoreState: ScoreState,
-          runState: RunState,
-          wardenState: WardenState,
-        });
-        RunState = CommandLanding.runState;
-        CurrentNodeIdentifier = CommandLanding.nodeIdentifier;
-        ReachedCommandThisFlight = true;
-        FlightSettled = true;
       } else if (StepResult.collisionWorld) {
         const WorldLanding = settleWorldLanding({
           runtime: Runtime,

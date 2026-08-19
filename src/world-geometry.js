@@ -469,38 +469,29 @@ export function createWorldVisuals(THREE, Scene, {
       ScatterGroup.add(createScatterInstances(CultureGeometry, CultureMaterial, WorldDefinition, {
         count: CultureCount,
         nextRandomValue,
-        minimumScale: 2.35,
-        maximumScale: 3.4,
+        minimumScale: 0.55,
+        maximumScale: 0.85,
       }));
     }
 
     return ScatterGroup;
   }
 
-  /** Wraps an occupied world in a rigid, readable Stillness control field. */
+  /** A thin orbital-plane bracelet. Meridian tori read as planet-filling slabs. */
   function createStillnessCage(WorldDefinition) {
     const CageGroup = new THREE.Group();
     const CageMaterial = new THREE.MeshBasicMaterial({
-      color: 0xc5f3ff,
+      color: 0x82a8b4,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.16,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
-    const CageRadius = WorldDefinition.radius * 1.14;
-    const Rotations = [
-      [Math.PI * 0.5, 0, 0],
-      [Math.PI * 0.22, Math.PI * 0.34, Math.PI * 0.08],
-      [Math.PI * 0.72, Math.PI * -0.2, Math.PI * 0.38],
-    ];
-    for (const [RotationX, RotationY, RotationZ] of Rotations) {
-      const CageRing = new THREE.Mesh(
-        new THREE.TorusGeometry(CageRadius, 0.042, 6, 72),
-        CageMaterial,
-      );
-      CageRing.rotation.set(RotationX, RotationY, RotationZ);
-      CageGroup.add(CageRing);
-    }
+    const CageRing = new THREE.Mesh(
+      new THREE.TorusGeometry(WorldDefinition.radius * 1.04, 0.012, 6, 64),
+      CageMaterial,
+    );
+    CageGroup.add(CageRing);
     CageGroup.visible = !WorldDefinition.restored;
     return { group: CageGroup, material: CageMaterial };
   }
@@ -828,7 +819,7 @@ export function createWorldVisuals(THREE, Scene, {
   }
 
   /** Places a local-Y-up prop against a spherical surface and registers wave metadata. */
-  const SurfacePropDioramaScale = 0.48;
+  const SurfacePropDioramaScale = 0.22;
   function placeSurfaceProp(
     PropObject,
     SurfaceDirection,
@@ -958,7 +949,7 @@ export function createWorldVisuals(THREE, Scene, {
   }
 
   /** Places one geometry on a spherical surface before it enters a merged one-call landmark. */
-  const MergedLandmarkDioramaScale = 0.52;
+  const MergedLandmarkDioramaScale = 0.22;
   function createPlacedLandmarkGeometry(
     SourceGeometry,
     SurfaceDirection,
@@ -974,7 +965,9 @@ export function createWorldVisuals(THREE, Scene, {
     Placement.position.copy(NormalizedDirection).multiplyScalar(WorldRadius);
     Placement.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), NormalizedDirection);
     Placement.rotateY(TangentRotationRadians);
-    Placement.scale.setScalar(Scale * MergedLandmarkDioramaScale);
+    Placement.scale.setScalar(
+      Scale * MergedLandmarkDioramaScale * getToyDioramaScale(WorldRadius),
+    );
     Placement.updateMatrix();
     LandmarkGeometry.applyMatrix4(Placement.matrix);
     addRestorationGeometryAttributes(LandmarkGeometry, NormalizedDirection, 1);
@@ -997,7 +990,9 @@ export function createWorldVisuals(THREE, Scene, {
     const Placement = new THREE.Object3D();
     Placement.position.set(OffsetX, OffsetY, WorldRadius);
     Placement.rotation.z = RotationRadians;
-    Placement.scale.setScalar(Scale * MergedLandmarkDioramaScale);
+    Placement.scale.setScalar(
+      Scale * MergedLandmarkDioramaScale * getToyDioramaScale(WorldRadius),
+    );
     Placement.updateMatrix();
     LandmarkGeometry.applyMatrix4(Placement.matrix);
     LandmarkGeometry.rotateY(SurfaceYawRadians);
@@ -1158,7 +1153,7 @@ export function createWorldVisuals(THREE, Scene, {
   /** Builds Vault's protective ribs around its memory core in one draw call. */
   function createVaultSurfaceGeometry(WorldDefinition) {
     const Geometries = createMergedWorldSurfaceBase(WorldDefinition);
-    const RibSource = new THREE.TorusGeometry(0.82, 0.1, 5, 24, Math.PI);
+    const RibSource = new THREE.TorusGeometry(0.28, 0.035, 5, 24, Math.PI);
     const RibYaws = [0, Math.PI * 0.5, Math.PI, -Math.PI * 0.5];
     RibYaws.forEach((RibYaw, RibIndex) => {
       Geometries.push(createFrontLandmarkGeometry(
@@ -1179,7 +1174,7 @@ export function createWorldVisuals(THREE, Scene, {
   function createGroveSurfaceGeometry(WorldDefinition) {
     const Geometries = createMergedWorldSurfaceBase(WorldDefinition);
 
-    const RootArchSource = new THREE.TorusGeometry(0.92, 0.14, 5, 20, Math.PI);
+    const RootArchSource = new THREE.TorusGeometry(0.32, 0.045, 5, 20, Math.PI);
     Geometries.push(createFrontLandmarkGeometry(
       RootArchSource,
       WorldDefinition.radius - 0.04,
@@ -1245,11 +1240,11 @@ export function createWorldVisuals(THREE, Scene, {
   /** Builds Tide's three repeating wave crests into its existing surface call. */
   function createTideSurfaceGeometry(WorldDefinition) {
     const Geometries = createMergedWorldSurfaceBase(WorldDefinition);
-    const WaveCrestSource = new THREE.TorusGeometry(0.75, 0.16, 5, 18, Math.PI);
+    const WaveCrestSource = new THREE.TorusGeometry(0.28, 0.045, 5, 18, Math.PI);
     const WaveCrestRows = [
-      { y: 0.52, scale: 0.7, rotation: 0.08 },
+      { y: 0.16, scale: 0.7, rotation: 0.08 },
       { y: 0, scale: 0.86, rotation: 0 },
-      { y: -0.52, scale: 0.72, rotation: -0.08 },
+      { y: -0.16, scale: 0.72, rotation: -0.08 },
     ];
     const WaveClusterYaws = [0, Math.PI * 0.5, Math.PI, -Math.PI * 0.5];
     WaveClusterYaws.forEach((WaveClusterYaw) => {
@@ -1774,44 +1769,44 @@ export function createWorldVisuals(THREE, Scene, {
       roughness: 0.4,
     });
 
-    const Walls = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.62, 0.72), WallMaterial);
-    Walls.position.y = 0.37;
+    const Walls = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.22, 0.24), WallMaterial);
+    Walls.position.y = 0.13;
     Cottage.add(Walls);
 
-    const Roof = new THREE.Mesh(new THREE.ConeGeometry(0.72, 0.52, 4), RoofMaterial);
-    Roof.position.y = 0.92;
+    const Roof = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.18, 4), RoofMaterial);
+    Roof.position.y = 0.32;
     Roof.rotation.y = Math.PI * 0.25;
     Cottage.add(Roof);
 
-    const Chimney = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.28, 0.14), DoorMaterial);
-    Chimney.position.set(0.22, 1.02, -0.08);
+    const Chimney = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1, 0.05), DoorMaterial);
+    Chimney.position.set(0.08, 0.36, -0.03);
     Cottage.add(Chimney);
 
-    const Door = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.38, 0.05), DoorMaterial);
-    Door.position.set(0, 0.24, 0.38);
+    const Door = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.12, 0.02), DoorMaterial);
+    Door.position.set(0, 0.08, 0.13);
     Cottage.add(Door);
 
-    const WindowGeometry = new THREE.BoxGeometry(0.2, 0.18, 0.04);
+    const WindowGeometry = new THREE.BoxGeometry(0.07, 0.06, 0.015);
     const WindowPlacements = [
-      [-0.26, 0.46, 0.385],
-      [0.26, 0.46, 0.385],
-      [-0.26, 0.46, -0.385],
-      [0.26, 0.46, -0.385],
+      [-0.08, 0.16, 0.13],
+      [0.08, 0.16, 0.13],
+      [-0.08, 0.16, -0.13],
+      [0.08, 0.16, -0.13],
     ];
     for (const [WindowX, WindowY, WindowZ] of WindowPlacements) {
       const WindowMesh = new THREE.Mesh(WindowGeometry, WindowMaterial);
       WindowMesh.position.set(WindowX, WindowY, WindowZ);
       Cottage.add(WindowMesh);
     }
-    const SideWindowGeometry = new THREE.BoxGeometry(0.04, 0.18, 0.18);
+    const SideWindowGeometry = new THREE.BoxGeometry(0.015, 0.06, 0.06);
     for (const Side of [-1, 1]) {
       const SideWindow = new THREE.Mesh(SideWindowGeometry, WindowMaterial);
-      SideWindow.position.set(Side * 0.45, 0.46, 0);
+      SideWindow.position.set(Side * 0.15, 0.16, 0);
       Cottage.add(SideWindow);
     }
 
-    const Porch = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.06, 0.18), DoorMaterial);
-    Porch.position.set(0, 0.05, 0.42);
+    const Porch = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, 0.06), DoorMaterial);
+    Porch.position.set(0, 0.02, 0.14);
     Cottage.add(Porch);
 
     placeSurfaceProp(Cottage, SurfaceDirection, WorldDefinition.radius, 1.12, 0.02);
@@ -2095,7 +2090,7 @@ export function createWorldVisuals(THREE, Scene, {
       emissiveIntensity: 1.35,
       roughness: 0.45,
     });
-    const ColumnHeights = [0.56, 0.82, 0.43, 0.67, 0.36];
+    const ColumnHeights = [0.22, 0.3, 0.18, 0.26, 0.16];
     const ColumnPositions = [
       [-0.18, 0], [0, 0.03], [0.18, 0.02], [-0.08, 0.18], [0.13, 0.17],
     ];
@@ -2542,11 +2537,11 @@ export function createWorldVisuals(THREE, Scene, {
     ];
     TowerDirections.forEach((Direction, Index) => {
       const Tower = new THREE.Group();
-      const Keep = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.72, 0.42), StoneMaterial);
-      Keep.position.y = 0.36;
+      const Keep = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.28, 0.16), StoneMaterial);
+      Keep.position.y = 0.14;
       Tower.add(Keep);
-      const Lamp = new THREE.Mesh(new THREE.SphereGeometry(0.1, 7, 6), LampMaterial);
-      Lamp.position.y = 0.82;
+      const Lamp = new THREE.Mesh(new THREE.SphereGeometry(0.04, 7, 6), LampMaterial);
+      Lamp.position.y = 0.32;
       Tower.add(Lamp);
       placeSurfaceProp(Tower, Direction, WorldDefinition.radius, 1.08 + ((Index % 2) * 0.08), 0.02);
       registerRestorableMaterial(Tower, StoneMaterial);
@@ -2709,11 +2704,11 @@ export function createWorldVisuals(THREE, Scene, {
       tide: createTideOverlayProps,
       vault: createBastionOverlayProps,
     };
-    const SurfaceMarkerGroup = SurfacePropFactories[WorldDefinition.visualKey]
-      ? SurfacePropFactories[WorldDefinition.visualKey](WorldDefinition)
+    const SurfaceMarkerGroup = UsesMergedSurfaceLandmarks
+      ? new THREE.Group()
       : (
-        UsesMergedSurfaceLandmarks
-          ? new THREE.Group()
+        SurfacePropFactories[WorldDefinition.visualKey]
+          ? SurfacePropFactories[WorldDefinition.visualKey](WorldDefinition)
           : createPlaceholderSurfaceProps(WorldDefinition)
       );
 

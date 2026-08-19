@@ -15,15 +15,18 @@ export const LandedPointerTargets = Object.freeze({
 });
 
 /**
- * Cage, then ship, then crust, then empty space. A finger on or near a cage
- * always Destroys; ship pull stays launch-only when the press is clearly on
- * the ship and not on a cage.
+ * Hull mesh wins over a cage halo so Bastion ship-pull still aims. A finger
+ * on the cage itself still Destroys. Proximity ship halo still yields to cage.
  */
 export function classifyLandedPointerStart({
   isOverShip = false,
   isOverCage = false,
   isOverWorld = false,
+  isOverShipMesh = false,
 } = {}) {
+  if (isOverShipMesh === true) {
+    return LandedPointerTargets.ship;
+  }
   if (isOverCage === true) {
     return LandedPointerTargets.cage;
   }

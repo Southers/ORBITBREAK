@@ -104,6 +104,13 @@ export const OrbitTrapMinSteps = 96;
 /** 3 s at 120 Hz: a crawl that never completes a revolution still recovers. */
 export const FlightStallTimeoutSteps = 360;
 export const FlightStallDisplacement = 0.5;
+/**
+ * 1.5 s at 120 Hz. A skim just outside collision looks landed, kills walk,
+ * and never completes a revolution. Recapture before the run dies.
+ */
+export const FlightSkimTimeoutSteps = 180;
+/** World-space shell beyond radius that counts as a stuck near-surface skim. */
+export const FlightSkimClearance = 1.35;
 
 /** Creates persistent orbit-trap accumulators shared by live flight, prediction and replay. */
 export function createOrbitTrapState() {
@@ -116,6 +123,8 @@ export function createOrbitTrapState() {
     stallY: 0,
     stallSteps: 0,
     stallAnchored: false,
+    skimWorldIdentifier: null,
+    skimSteps: 0,
   };
 }
 
@@ -164,7 +173,24 @@ export function advanceOrbitTrap(TrapState, Position, WorldDefinitions) {
     TrapState.lastAngle = 0;
     TrapState.accumulatedAngle = 0;
     TrapState.steps = 0;
+    TrapState.skimWorldIdentifier = null;
+    TrapState.skimSteps = 0;
     return false;
+  }
+  const SkimLimit = NearestWorld.radius + FlightSkimClearance;
+  if (NearestDistance <= SkimLimit) {
+    if (TrapState.skimWorldIdentifier !== NearestWorld.id) {
+      TrapState.skimWorldIdentifier = NearestWorld.id;
+      TrapState.skimSteps = 1;
+    } else {
+      TrapState.skimSteps += 1;
+      if (TrapState.skimSteps >= FlightSkimTimeoutSteps) {
+        return true;
+      }
+    }
+  } else {
+    TrapState.skimWorldIdentifier = null;
+    TrapState.skimSteps = 0;
   }
   const Angle = Math.atan2(
     Position.y - NearestWorld.position.y,

@@ -7,10 +7,49 @@ import {
   getSectorWardenRevealFlag,
   isFurtherReachLive,
   isInnerClusterLive,
+  shouldOpenCommandWorldRoute,
 } from '../src/sector.js';
 
 const InnerCluster = BreakerReachSystemDefinition.innerClusterWorldIdentifiers;
 const FurtherReach = BreakerReachSystemDefinition.furtherReachWorldIdentifiers;
+
+test('Command opens after a live neighbourhood plus further travel, or after shields crack', () => {
+  const InnerCluster = BreakerReachSystemDefinition.innerClusterWorldIdentifiers;
+  const FurtherReach = BreakerReachSystemDefinition.furtherReachWorldIdentifiers;
+  const NeighbourhoodTour = ['meadow', 'ember', 'grove', 'tide', 'bastion'];
+  assert.equal(shouldOpenCommandWorldRoute({
+    restorationUnlocked: true,
+    liveWorldIdentifiers: NeighbourhoodTour,
+    innerClusterWorldIdentifiers: InnerCluster,
+    furtherReachWorldIdentifiers: FurtherReach,
+    requiresShieldBreaks: true,
+    wardenStatus: 'hunting',
+  }), true);
+  assert.equal(shouldOpenCommandWorldRoute({
+    restorationUnlocked: true,
+    liveWorldIdentifiers: ['meadow', 'ember', 'grove'],
+    innerClusterWorldIdentifiers: InnerCluster,
+    furtherReachWorldIdentifiers: FurtherReach,
+    requiresShieldBreaks: true,
+    wardenStatus: 'hunting',
+  }), false);
+  assert.equal(shouldOpenCommandWorldRoute({
+    restorationUnlocked: true,
+    liveWorldIdentifiers: ['meadow', 'ember', 'grove'],
+    innerClusterWorldIdentifiers: InnerCluster,
+    furtherReachWorldIdentifiers: FurtherReach,
+    requiresShieldBreaks: true,
+    wardenStatus: 'exposed',
+  }), true);
+  assert.equal(shouldOpenCommandWorldRoute({
+    restorationUnlocked: false,
+    liveWorldIdentifiers: NeighbourhoodTour,
+    innerClusterWorldIdentifiers: InnerCluster,
+    furtherReachWorldIdentifiers: FurtherReach,
+    requiresShieldBreaks: true,
+    wardenStatus: 'hidden',
+  }), true);
+});
 
 test('inner cluster is live only when every neighbourhood world holds a relay', () => {
   assert.equal(isInnerClusterLive(['meadow', 'ember'], InnerCluster), false);
