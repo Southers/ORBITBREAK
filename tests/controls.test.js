@@ -188,12 +188,14 @@ test('sphere walking crosses the poles and flattens back to the equator for laun
   const North = adjustSurfacePose(Equator, { north: 1 });
   assert.ok(North.latitude > 0);
   let Pose = Equator;
-  for (let Step = 0; Step < 90; Step += 1) {
+  const HalfMeridianSteps = Math.ceil(Math.PI / SurfaceWalkTapRadians);
+  for (let Step = 0; Step < HalfMeridianSteps; Step += 1) {
     Pose = adjustSurfacePose(Pose, { north: 1 });
   }
-  assert.ok(Math.abs(Pose.latitude) < 0.2);
+  assert.ok(Math.abs(Pose.latitude) < SurfaceWalkTapRadians);
   assert.ok(Math.abs(Math.abs(Pose.longitude) - Math.PI) < 0.2);
-  for (let Step = 0; Step < 10; Step += 1) {
+  const ExtraSouthSteps = Math.max(1, Math.round((20 * Math.PI / 180) / SurfaceWalkTapRadians));
+  for (let Step = 0; Step < ExtraSouthSteps; Step += 1) {
     Pose = adjustSurfacePose(Pose, { north: 1 });
   }
   assert.ok(Pose.latitude < 0);

@@ -438,9 +438,11 @@ export function auditReleaseReadiness() {
     'Replay progress must remain a visible overlay at a legible type floor.',
   );
   requireCondition(
-    /\.route-label,\s*\.tactical-label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
+    /\.route-label,\s*\.here-label,\s*\.tactical-label\s*\{[^}]*font-size:\s*10px;[^}]*line-height:\s*1\.2;/s.test(StyleSheet)
       && /\.tactical-label\s*\{[^}]*font-size:\s*10px;[^}]*white-space:\s*nowrap;/s.test(StyleSheet)
       && /\.route-label\s*\{[^}]*white-space:\s*nowrap;/s.test(StyleSheet)
+      && /\.here-label\s*\{[^}]*white-space:\s*nowrap;/s.test(StyleSheet)
+      && IndexHtml.includes('class="here-label"')
       && RoutePresentationSource.includes('separateRouteLabelsFromTacticalLabels(')
       && RoutePresentationSource.includes('separateOverlappingTacticalLabels(')
       && RoutePresentationSource.includes('getTacticalLabelHorizontalMargin(')
