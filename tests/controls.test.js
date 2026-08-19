@@ -18,6 +18,8 @@ import {
   LandedPointerTargets,
   SeedScreenGrabRadiusPixels,
   SeedOnGlobeGrabRadiusPixels,
+  SeedOnGlobeGrabMinRadiusPixels,
+  SeedOnGlobeGrabWorldRadiusScale,
   getLandedShipGrabRadiusPixels,
   CageScreenGrabRadiusPixels,
   getLandedCageGrabRadiusPixels,
@@ -276,17 +278,57 @@ test('landed ship grab stays small on the visible crust so planet drags can walk
     isOverWorld: true,
     worldScreenRadiusPixels: 220,
   });
-  assert.equal(OnGlobe, SeedOnGlobeGrabRadiusPixels);
+  assert.equal(
+    OnGlobe,
+    Math.min(
+      SeedOnGlobeGrabRadiusPixels,
+      Math.max(SeedOnGlobeGrabMinRadiusPixels, 220 * SeedOnGlobeGrabWorldRadiusScale),
+    ),
+  );
+  assert.ok(OnGlobe <= SeedOnGlobeGrabRadiusPixels);
   assert.ok(OnGlobe < SeedScreenGrabRadiusPixels);
   const TightDisc = getLandedShipGrabRadiusPixels({
     isOverWorld: true,
     worldScreenRadiusPixels: 48,
   });
+  assert.equal(TightDisc, SeedOnGlobeGrabMinRadiusPixels);
   assert.ok(TightDisc < 48 * 0.5);
   assert.equal(classifyLandedPointerStart({
     isOverShip: false,
     isOverWorld: true,
   }), LandedPointerTargets.world);
+});
+
+test('a filling phone globe grabs the parked hull, not a fraction of the world disc', () => {
+  assert.equal(SeedOnGlobeGrabRadiusPixels, 28);
+  assert.equal(SeedOnGlobeGrabMinRadiusPixels, 20);
+  assert.equal(SeedOnGlobeGrabWorldRadiusScale, 0.12);
+  const FillingRadius = 195;
+  const Hull = getLandedShipGrabRadiusPixels({
+    isOverWorld: true,
+    worldScreenRadiusPixels: FillingRadius,
+  });
+  assert.equal(
+    Hull,
+    Math.min(
+      SeedOnGlobeGrabRadiusPixels,
+      Math.max(SeedOnGlobeGrabMinRadiusPixels, FillingRadius * SeedOnGlobeGrabWorldRadiusScale),
+    ),
+  );
+  assert.ok(Hull <= SeedOnGlobeGrabRadiusPixels);
+  assert.ok(Hull < FillingRadius * 0.2);
+  const InVoidBesideGlobe = getLandedShipGrabRadiusPixels({
+    isOverWorld: false,
+    worldScreenRadiusPixels: FillingRadius,
+  });
+  assert.equal(InVoidBesideGlobe, Hull);
+  const Occupancy = (Math.PI * Hull * Hull) / (390 * 844);
+  assert.ok(Occupancy < 0.02);
+  const SmallScout = getLandedShipGrabRadiusPixels({
+    isOverWorld: false,
+    worldScreenRadiusPixels: 40,
+  });
+  assert.equal(SmallScout, SeedScreenGrabRadiusPixels);
 });
 
 test('a cage under the finger beats the ship halo, and leftover cages sit outside that halo', () => {

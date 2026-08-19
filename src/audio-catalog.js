@@ -16,7 +16,7 @@ import {
   getHowToPlayPresentation,
 } from './presentation.js';
 
-export const AudioAssetVersion = '20260819-ob127';
+export const AudioAssetVersion = '20260819-ob128';
 export const AudioAssetRoot = './assets/audio';
 
 /** Stock ElevenLabs library voices. Do not clone a real person. */

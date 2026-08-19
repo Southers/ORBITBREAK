@@ -37,48 +37,68 @@ export function classifyLandedPointerStart({
 }
 
 /**
- * Generous screen halo around the ship, larger than the tiny diorama mesh.
- * A miss inside this halo still aims instead of walking when no cage is under
- * the finger, so first-timers stop fumbling grabs against the terminator glow.
+ * Generous screen halo around the ship in empty space, larger than the tiny
+ * diorama mesh. Used only when the parked world is a small scout target.
  */
 export const SeedScreenGrabRadiusPixels = 96;
 /**
- * When the pointer is already on the visible crust, the 96px halo would swallow
- * the disc (the Runner sits at screen-centre after crust-spin). Keep a small hull
- * grab so the rest of the planet can walk.
+ * On a filling phone globe, min(72, worldRadius*0.38) became a ~210px disc
+ * that armed launch over half of 390px. Grab the parked hull only.
  */
-export const SeedOnGlobeGrabRadiusPixels = 72;
+export const SeedOnGlobeGrabRadiusPixels = 28;
+/** Floor so a tiny world still has a tappable hull disk. */
+export const SeedOnGlobeGrabMinRadiusPixels = 20;
+/**
+ * Hull disk as a fraction of world screen radius. 0.38 of a filling planet
+ * swallowed the crust; 0.12 stays on the mesh.
+ */
+export const SeedOnGlobeGrabWorldRadiusScale = 0.12;
 
 /**
- * Ship grab is generous in empty space and tight on the globe, so a crust drag
- * cannot be stolen by the hull halo.
+ * Ship grab is the parked hull on a filling globe, and the 96px empty-space
+ * halo only when the world is a small scout target. Crust drags walk; a
+ * finger on or near a cage still Destroy.
  */
 export function getLandedShipGrabRadiusPixels({
   isOverWorld = false,
   worldScreenRadiusPixels = Number.POSITIVE_INFINITY,
   haloPixels = SeedScreenGrabRadiusPixels,
   onGlobePixels = SeedOnGlobeGrabRadiusPixels,
+  onGlobeMinPixels = SeedOnGlobeGrabMinRadiusPixels,
+  onGlobeWorldRadiusScale = SeedOnGlobeGrabWorldRadiusScale,
 } = {}) {
   if (
     !(haloPixels > 0)
     || !Number.isFinite(haloPixels)
     || !(onGlobePixels > 0)
     || !Number.isFinite(onGlobePixels)
+    || !(onGlobeMinPixels > 0)
+    || !Number.isFinite(onGlobeMinPixels)
+    || !(onGlobeWorldRadiusScale > 0)
+    || !Number.isFinite(onGlobeWorldRadiusScale)
   ) {
     throw new Error('Ship grab radius requires positive finite pixel sizes.');
   }
-  if (isOverWorld !== true) {
-    return haloPixels;
-  }
-  const WorldRadiusPixels = Number.isFinite(worldScreenRadiusPixels)
+  const HasMeasuredWorld = Number.isFinite(worldScreenRadiusPixels);
+  const WorldRadiusPixels = HasMeasuredWorld
     ? Math.max(0, worldScreenRadiusPixels)
     : Number.POSITIVE_INFINITY;
-  return Math.min(onGlobePixels, Math.max(22, WorldRadiusPixels * 0.38));
+  const ScaledHullPixels = Number.isFinite(WorldRadiusPixels)
+    ? WorldRadiusPixels * onGlobeWorldRadiusScale
+    : onGlobePixels;
+  const HullPixels = Math.min(onGlobePixels, Math.max(onGlobeMinPixels, ScaledHullPixels));
+  // A filling globe is as large as the empty-space halo, so that 96px disc
+  // would arm launch around the parked hull even for presses in the void.
+  const WorldFillsScreen = HasMeasuredWorld && WorldRadiusPixels >= haloPixels;
+  if (isOverWorld === true || WorldFillsScreen) {
+    return HullPixels;
+  }
+  return haloPixels;
 }
 
 /**
- * Phone-thumb halo around a Destroy cage. Larger than the on-globe ship grab
- * so a 390px-wide phone can tap the cage after walking near it.
+ * Phone-thumb halo around a Destroy cage. Larger than the hull-sized ship grab
+ * so a finger on or near a cage Destroy, not launch.
  */
 export const CageScreenGrabRadiusPixels = 88;
 
