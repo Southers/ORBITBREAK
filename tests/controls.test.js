@@ -254,6 +254,16 @@ test('landed pointer-down locks ship, world or space before the drag moves', () 
     isOverShip: false,
     isOverWorld: false,
   }), LandedPointerTargets.space);
+  assert.equal(classifyLandedPointerStart({
+    isOverShip: false,
+    isOverCage: true,
+    isOverWorld: true,
+  }), LandedPointerTargets.cage);
+  assert.equal(classifyLandedPointerStart({
+    isOverShip: true,
+    isOverCage: true,
+    isOverWorld: true,
+  }), LandedPointerTargets.ship);
   assert.ok(SeedScreenGrabRadiusPixels > 44);
 });
 

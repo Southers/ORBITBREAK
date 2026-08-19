@@ -225,7 +225,7 @@ export function auditReleaseReadiness() {
       && RestorationVisualsSource.includes('spinIdleWorldCrust(')
       && CameraSource.includes('const WorldCameraUp = Object.freeze({ x: 0, y: 0, z: 1 })')
       && InputControllerSource.includes('getLogicalSurfaceDirectionFromWorldHit(')
-      && LivingWorldSource.includes('CrustOffset.applyQuaternion(WorldGroup.quaternion)')
+      && LivingWorldSource.includes('CrustOffset.applyMatrix4(WorldGroup.matrixWorld)')
       && !CameraSource.includes('PoleLock'),
     'Landed walk must spin only the occupied world under the Runner, plant feet on the visual crust, and keep camera up on world +Z.',
   );
@@ -263,7 +263,7 @@ export function auditReleaseReadiness() {
       && PresentationSource.includes('Drag the planet to walk. The world turns under you.')
       && PresentationSource.includes('Pull the ship and let go to fly to another tiny world.')
       && PresentationSource.includes('Landing links worlds. Linked worlds prosper.')
-      && PresentationSource.includes('Occupied worlds have Warden cages. Pull the ship through a cage to break it.')
+      && PresentationSource.includes('Occupied worlds have Warden cages. Tap the cage to break it.')
       && PresentationSource.includes('Drag empty space to look around. C pulls the camera back.')
       && PresentationSource.includes('R starts the run over.')
       && PresentationSource.includes('export function shouldShowHowToPlayAfterOpening({')

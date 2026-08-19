@@ -19,6 +19,8 @@ import {
   getRunUnlockState,
   getSlingshotBandVisualState,
   getSphereLifePlacement,
+  shouldHideLandedOrbitalOverlays,
+  shouldShowProsperityWindows,
   getTradeHullColor,
   getTradeHullFamily,
   getTradeHullKind,
@@ -83,6 +85,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   }
 
   function shouldSkipStridedPresentation() {
+    if (host.GamePhase === 'attached' || host.GamePhase === 'restoring') {
+      return false;
+    }
     const QualitySettings = host.AdaptivePresentationSettings;
     const Stride = QualitySettings?.instanceStride ?? 1;
     if (Stride <= 1) {
@@ -280,15 +285,17 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   }
 
   function isLandedCloseUpView() {
-    return (host.GamePhase === 'attached' || host.GamePhase === 'restoring')
-      && (host.CameraDistanceScale ?? 1) < 0.72;
+    return shouldHideLandedOrbitalOverlays({
+      gamePhase: host.GamePhase,
+      isAiming: host.IsPointerAiming === true || host.IsKeyboardAiming === true,
+    });
   }
 
   function getWorldLifePlacement(WorldDefinition, Site, RadialOffset) {
-    const Placement = getSphereLifePlacement({
-      worldX: WorldDefinition.position.x,
-      worldY: WorldDefinition.position.y,
-      worldZ: WorldDefinition.position.z ?? 0,
+    const LocalPlacement = getSphereLifePlacement({
+      worldX: 0,
+      worldY: 0,
+      worldZ: 0,
       worldRadius: WorldDefinition.radius,
       longitude: Site.longitude,
       latitude: Site.latitude,
@@ -296,25 +303,40 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     });
     const WorldGroup = WorldRuntimeByIdentifier.get(WorldDefinition.id)?.group;
     if (!WorldGroup) {
-      return Placement;
+      return getSphereLifePlacement({
+        worldX: WorldDefinition.position.x,
+        worldY: WorldDefinition.position.y,
+        worldZ: WorldDefinition.position.z ?? 0,
+        worldRadius: WorldDefinition.radius,
+        longitude: Site.longitude,
+        latitude: Site.latitude,
+        radialOffset: RadialOffset,
+      });
     }
-    CrustOffset.set(
-      Placement.x - WorldDefinition.position.x,
-      Placement.y - WorldDefinition.position.y,
-      Placement.z - (WorldDefinition.position.z ?? 0),
+    WorldGroup.updateWorldMatrix(true, false);
+    CrustOffset.set(LocalPlacement.x, LocalPlacement.y, LocalPlacement.z);
+    CrustOffset.applyMatrix4(WorldGroup.matrixWorld);
+    CrustDirection.set(
+      LocalPlacement.directionX,
+      LocalPlacement.directionY,
+      LocalPlacement.directionZ,
     );
-    CrustOffset.applyQuaternion(WorldGroup.quaternion);
-    CrustDirection.set(Placement.directionX, Placement.directionY, Placement.directionZ);
-    CrustDirection.applyQuaternion(WorldGroup.quaternion);
+    CrustDirection.transformDirection(WorldGroup.matrixWorld);
     return {
-      ...Placement,
-      x: WorldDefinition.position.x + CrustOffset.x,
-      y: WorldDefinition.position.y + CrustOffset.y,
-      z: (WorldDefinition.position.z ?? 0) + CrustOffset.z,
+      ...LocalPlacement,
+      x: CrustOffset.x,
+      y: CrustOffset.y,
+      z: CrustOffset.z,
       directionX: CrustDirection.x,
       directionY: CrustDirection.y,
       directionZ: CrustDirection.z,
     };
+  }
+
+  function shouldHideFarSideLife(WorldDefinition, Placement) {
+    return isLandedCloseUpView()
+      && WorldDefinition.id === host.CurrentWorldIdentifier
+      && Placement.directionZ < 0.22;
   }
 
   /** Equatorial scoring wells make slingshot chains readable while aiming and flying. */
@@ -725,9 +747,16 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         continue;
       }
       const Height = Scar.profile.height * (1 + ((Scar.patternIndex % 2) * 0.12));
+      const ScarPlacement = getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.12);
+      if (shouldHideFarSideLife(Scar.worldDefinition, ScarPlacement)) {
+        hideInstance(OccupationScarTransform, OccupationMineMesh, ScarIndex);
+        hideInstance(OccupationScarTransform, OccupationClampMesh, ScarIndex);
+        hideInstance(OccupationScarTransform, OccupationFumeMesh, ScarIndex);
+        continue;
+      }
       applySphereInstance(
         OccupationScarTransform,
-        getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.12),
+        ScarPlacement,
         Scar.profile.depth * ScarStrength,
         Height * ScarStrength,
         Scar.profile.depth * ScarStrength,
@@ -1075,16 +1104,21 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         continue;
       }
       NextVisibleProsperityBuildingCount += 1;
-      const StanceScale = 4.4;
+      const StanceScale = 1.35;
       const Height = BuildingProfile.height
         * Presence
         * StanceScale
         * (1 + ((Building.patternIndex % 3) * 0.08));
       const IsDockLit = BuildingKind === 'dock'
         && DockedWorldIdentifiers.has(Building.worldDefinition.id);
+      const Placement = getWorldLifePlacement(Building.worldDefinition, Building.site, Height * 0.02);
+      if (shouldHideFarSideLife(Building.worldDefinition, Placement)) {
+        hideInstance(ProsperityBuildingTransform, FamilyMesh, Building.familyIndex);
+        continue;
+      }
       applySphereInstance(
         ProsperityBuildingTransform,
-        getWorldLifePlacement(Building.worldDefinition, Building.site, Height * 0.08),
+        Placement,
         BuildingProfile.width * Presence * StanceScale,
         Height,
         BuildingProfile.depth * Presence * StanceScale,
@@ -1102,7 +1136,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       }
       FamilyMesh.setColorAt(Building.familyIndex, ProsperityBuildingColor);
 
-      if (BuildingProfile.hasWindow) {
+      if (BuildingProfile.hasWindow && shouldShowProsperityWindows(ProsperityStage)) {
         applySphereInstance(
           ProsperityWindowTransform,
           getWorldLifePlacement(Building.worldDefinition, Building.site, Height * 0.42),
@@ -1139,10 +1173,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
     ProsperityWindowMesh.count = NextVisibleWindowCount;
     ProsperityWindowMesh.visible = NextVisibleWindowCount > 0;
     const HasLiveCircuit = getFrameLiveRelayCircuits().length > 0;
-    const WindowPulse = PrefersReducedMotion
-      ? 0.68
-      : 0.58 + (Math.sin(ElapsedTimeSeconds * (HasLiveCircuit ? 4.2 : 2.4)) * 0.28);
-    ProsperityBuildingMaterial.emissiveIntensity = WindowPulse;
+    ProsperityBuildingMaterial.emissiveIntensity = 0.05;
     ProsperityWindowMaterial.opacity = PrefersReducedMotion
       ? 0.72
       : 0.64 + (Math.sin(ElapsedTimeSeconds * (HasLiveCircuit ? 5.1 : 2.8)) * 0.18);
@@ -1324,6 +1355,11 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         gatherSite: GatherSite,
         gatherBlend: GatherBlend,
       });
+      const LifePlacement = getWorldLifePlacement(Inhabitant.worldDefinition, SurfaceSite, 0.02);
+      if (shouldHideFarSideLife(Inhabitant.worldDefinition, LifePlacement)) {
+        hideInstance(InhabitantTransform, FamilyMesh, Inhabitant.familyIndex);
+        continue;
+      }
       const HeldHeight = IsGuard ? 1.08 : 0.58;
       const BobScale = PrefersReducedMotion
         ? 1
@@ -1336,10 +1372,10 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       const HeightScale = THREE.MathUtils.lerp(HeldHeight, 1, Freedom) * BobScale;
       const Silhouette = getInhabitantSilhouette(Inhabitant.slotIndex);
       const FacingYaw = Inhabitant.phase + (WalkingOffset * 14);
-      const InhabitantReadableScale = 3.2;
+      const InhabitantReadableScale = 1.4;
       applySphereInstance(
         InhabitantTransform,
-        getWorldLifePlacement(Inhabitant.worldDefinition, SurfaceSite, 0.02),
+        LifePlacement,
         Presence * Silhouette.scale.x * InhabitantReadableScale,
         Presence * HeightScale * Silhouette.scale.y * InhabitantReadableScale,
         Presence * Silhouette.scale.z * InhabitantReadableScale,

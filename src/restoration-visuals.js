@@ -17,6 +17,7 @@ import {
   getCageClearPulseDurationSeconds,
   LiberationCelebrateHoldSeconds,
   getStillnessPresentation,
+  shouldHideLandedOrbitalOverlays,
   shouldHoldWorldCrustIdleSpin,
 } from './presentation.js';
 import {
@@ -48,6 +49,12 @@ export function createRestorationVisuals(THREE, host) {
   const SuppressionDurationSeconds = 0.92;
 
   function isWorldCloseUp(WorldRuntime) {
+    if (shouldHideLandedOrbitalOverlays({
+      gamePhase: host.GamePhase,
+      isAiming: host.IsPointerAiming === true || host.IsKeyboardAiming === true,
+    })) {
+      return true;
+    }
     if (host.GamePhase !== 'attached' && host.GamePhase !== 'restoring') {
       return false;
     }

@@ -491,6 +491,23 @@ export function getLandedVerbHighlight({
   };
 }
 
+/**
+ * Landed close-up must not keep equatorial map gizmos. Those sit in scene XY,
+ * so a +Z camera pins them to the screen rim as a fake crown. Hide them while
+ * walking; aiming and flight may show destination markers.
+ */
+export function shouldHideLandedOrbitalOverlays({
+  gamePhase,
+  isAiming = false,
+} = {}) {
+  return (gamePhase === 'attached' || gamePhase === 'restoring') && isAiming !== true;
+}
+
+/** Lit windows mean the world is talking. Isolated houses stay dark clay. */
+export function shouldShowProsperityWindows(stage) {
+  return stage === 'linked' || stage === 'busy' || stage === 'circuit';
+}
+
 /** Deterministic occupation-cage transition driven by restoration progress. */
 export function getStillnessPresentation(IsRestored, RestorationProgress = 0) {
   if (!IsRestored) {
@@ -1868,7 +1885,7 @@ export const HowToPlayLines = Object.freeze([
   'Drag the planet to walk. The world turns under you.',
   'Pull the ship and let go to fly to another tiny world.',
   'Landing links worlds. Linked worlds prosper.',
-  'Occupied worlds have Warden cages. Pull the ship through a cage to break it.',
+  'Occupied worlds have Warden cages. Tap the cage to break it.',
   'Drag empty space to look around. C pulls the camera back.',
   'R starts the run over.',
 ]);

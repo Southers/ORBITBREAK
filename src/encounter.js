@@ -181,6 +181,28 @@ export function resolveHostileCut(State, Origin, End, World) {
   };
 }
 
+/** Tap/swipe the cage itself. Misses do not spend a launch. */
+export function resolveClampTap(State, ClampId) {
+  if (State.completed) {
+    return { state: State, hitIds: [] };
+  }
+  const Target = State.clamps.find((Clamp) => Clamp.id === ClampId && Clamp.remaining);
+  if (!Target) {
+    return { state: State, hitIds: [] };
+  }
+  const NextClamps = State.clamps.map((Clamp) => (
+    Clamp.id === ClampId ? { ...Clamp, remaining: false } : Clamp
+  ));
+  return {
+    state: {
+      ...State,
+      clamps: NextClamps,
+      completed: NextClamps.every((Clamp) => !Clamp.remaining),
+    },
+    hitIds: [ClampId],
+  };
+}
+
 /** Keyboard/Space shortcut: a cut from the ship toward the nearest remaining clamp. */
 export function getNearestClampCut(State, Origin, World, RunnerSurfaceAngle) {
   const NearestClamp = getNearestRemainingClamp(State, RunnerSurfaceAngle);

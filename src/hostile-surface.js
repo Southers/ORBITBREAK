@@ -210,26 +210,26 @@ export function createHostileSurface(THREE, host) {
       showInstruction(
         CommandApproachTitle,
         RemainingCount === 3
-          ? 'Grab the ship and drag through the cage. Drag back onto it to cancel.'
-          : `${RemainingCount} left. A longer drag can take more than one.`,
+          ? 'Tap the cage to break it. Pull the ship to fly.'
+          : `${RemainingCount} left. Walk near a cage, then tap it.`,
       );
     } else if (RemainingCount === host.ActiveHostileEncounterState.clamps.length
       && RemainingCount === 1) {
       showInstruction(
         `${AttachedWorld.label} has one leftover cage.`,
-        'Grab the ship and drag through the cage.',
+        'Tap the cage to break it. Pull the ship to fly.',
       );
     } else if (RemainingCount === 3) {
       showInstruction(
         `${AttachedWorld.label} still has cages.`,
-        'Grab the ship and drag through the cage. Walk the globe if destroy cannot reach.',
+        'Walk near the cage, then tap it. Pull the ship to fly.',
       );
     } else {
       showInstruction(
         `${RemainingCount} clamp${RemainingCount === 1 ? '' : 's'} left on ${AttachedWorld.label}.`,
         DistanceDegrees > 18
-          ? `Walk ${MoveKey} toward the next one, then drag through it.`
-          : 'A longer drag can take more than one.',
+          ? `Walk ${MoveKey} toward the next one, then tap the cage.`
+          : 'Tap each cage. Walk the globe if one sits on the far face.',
       );
     }
     return true;

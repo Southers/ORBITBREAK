@@ -29,10 +29,9 @@ import {
   SurfaceWalkTapRadians,
 } from './controls.js';
 import {
-  getHostileEncounterAngularDistance,
-  getHostileEncounterMoveDirection,
-  getNearestClampCut,
+  getNearestRemainingClamp,
   getRemainingClamps,
+  resolveClampTap,
   resolveHostileCut,
 } from './encounter.js';
 import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js';
@@ -200,6 +199,9 @@ function getPointerWorldPosition(PointerEventData, UnprojectCamera = Camera) {
 const SeedScreenProjection = new THREE.Vector3();
 const WorldScreenCenter = new THREE.Vector3();
 const WorldScreenLimb = new THREE.Vector3();
+const CageWorldPosition = new THREE.Vector3();
+const CageScreenProjection = new THREE.Vector3();
+const CagePointerScreenRadiusPixels = 56;
 
 function isPointerOverShipMesh() {
   return PointerRaycaster.intersectObject(SeedPointerHitMesh, false).length > 0;
@@ -246,11 +248,72 @@ function getLandedPointerOccupancy(PointerEventData, WorldPosition = null) {
   });
   const OverShip = OverShipMesh
     || getScreenDistanceToSeed(PointerEventData) <= GrabRadiusPixels;
+  const CageClampId = pickCageClampId(PointerEventData);
   return {
     isOverShipMesh: OverShipMesh,
     isOverWorld: OverWorld,
     isOverShip: OverShip,
+    isOverCage: CageClampId !== null,
+    cageClampId: CageClampId,
   };
+}
+
+function pickCageClampId(PointerEventData) {
+  if (!host.ActiveHostileEncounterState || host.GamePhase !== 'attached') {
+    return null;
+  }
+  const RemainingClamps = getRemainingClamps(host.ActiveHostileEncounterState);
+  if (RemainingClamps.length < 1 || !HostilePylonGroup?.visible) {
+    return null;
+  }
+  const RayHits = PointerRaycaster.intersectObject(HostilePylonGroup, true);
+  for (const Hit of RayHits) {
+    let Node = Hit.object;
+    while (Node && Node !== HostilePylonGroup) {
+      if (Number.isInteger(Node.userData?.clampId)) {
+        const Clamp = RemainingClamps.find((Entry) => Entry.id === Node.userData.clampId);
+        if (Clamp) {
+          return Clamp.id;
+        }
+      }
+      Node = Node.parent;
+    }
+  }
+  const CanvasBounds = GameCanvas.getBoundingClientRect();
+  let BestId = null;
+  let BestDistance = CagePointerScreenRadiusPixels;
+  for (const Clamp of RemainingClamps) {
+    const ClampMesh = HostilePylonGroup.children[Clamp.id];
+    if (!ClampMesh?.visible) {
+      continue;
+    }
+    ClampMesh.getWorldPosition(CageWorldPosition);
+    CageScreenProjection.copy(CageWorldPosition).project(Camera);
+    if (CageScreenProjection.z > 1) {
+      continue;
+    }
+    const ScreenX = CanvasBounds.left + (((CageScreenProjection.x + 1) / 2) * CanvasBounds.width);
+    const ScreenY = CanvasBounds.top + (((1 - CageScreenProjection.y) / 2) * CanvasBounds.height);
+    const Distance = Math.hypot(
+      PointerEventData.clientX - ScreenX,
+      PointerEventData.clientY - ScreenY,
+    );
+    if (Distance < BestDistance) {
+      BestDistance = Distance;
+      BestId = Clamp.id;
+    }
+  }
+  return BestId;
+}
+
+let CageBreakClampId = null;
+let CageBreakStartX = 0;
+let CageBreakStartY = 0;
+
+function clearCageBreak() {
+  CageBreakClampId = null;
+  host.IsCageBreaking = false;
+  GameCanvas.classList.remove('is-cage-breaking');
 }
 
 function isPointerOverSeed(PointerEventData) {
@@ -767,57 +830,11 @@ function handleKeyboardAimKey(KeyboardEventData) {
     return true;
   }
   if (host.ActiveHostileEncounterState && host.GamePhase === 'attached' && !host.IsKeyboardAiming) {
-    const IsCutKey = PressedKey === ' ';
-    if (!IsCutKey && PressedKey !== 'enter' && RotationDirection === 0 && PowerDirection === 0) {
-      return false;
-    }
-    if (IsCutKey || RotationDirection !== 0 || PowerDirection !== 0) {
+    if (PressedKey === ' ') {
       KeyboardEventData.preventDefault();
-      if (IsCutKey) {
-        if (KeyboardEventData.repeat) return true;
-        if (host.IsCutAiming) fireHostileCutFromPreview();
-        else fireNearestHostileCut();
-        return true;
-      }
-      const AttachedWorld = getCurrentAttachedWorld();
-      const Origin = getShipCutOrigin();
-      const BasisPointer = host.CutAimPointer ?? (
-        AttachedWorld
-          ? getNearestClampCut(
-            host.ActiveHostileEncounterState,
-            Origin,
-            AttachedWorld,
-            getRunnerSurfaceAngle(AttachedWorld),
-          )?.end
-          : null
-      ) ?? { x: Origin.x + 1, y: Origin.y };
-      host.KeyboardAimState = createKeyboardAimState({
-        directionX: BasisPointer.x - Origin.x,
-        directionY: BasisPointer.y - Origin.y,
-        powerRatio: Math.min(
-          1,
-          Math.max(
-            0.2,
-            Math.hypot(BasisPointer.x - Origin.x, BasisPointer.y - Origin.y)
-              / host.ActiveHostileEncounterState.maxCutLength,
-          ),
-        ),
-      });
-      host.IsCutAiming = true;
-      GameCanvas.classList.add('is-aiming');
-      host.KeyboardAimState = adjustKeyboardAimState(host.KeyboardAimState, {
-        rotationDirection: RotationDirection,
-        powerDirection: PowerDirection,
-        fine: KeyboardEventData.shiftKey,
-      });
-      const Drag = getKeyboardAimDragVector(
-        host.KeyboardAimState,
-        host.ActiveHostileEncounterState.maxCutLength,
-      );
-      updateCutAimPreview({
-        x: Origin.x + Drag.x,
-        y: Origin.y + Drag.y,
-      });
+      if (KeyboardEventData.repeat) return true;
+      if (host.IsCutAiming) fireHostileCutFromPreview();
+      else fireNearestClampTap();
       return true;
     }
   }
@@ -948,6 +965,28 @@ function applyHostileCut(Origin, End) {
     showHostileEncounterInstruction();
     return false;
   }
+  return applyResolvedClampHits(Resolved);
+}
+
+function applyClampTap(ClampId) {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld || !host.ActiveHostileEncounterState || host.ReplayPlaybackState !== null) {
+    return false;
+  }
+  const Resolved = resolveClampTap(host.ActiveHostileEncounterState, ClampId);
+  if (Resolved.hitIds.length < 1) {
+    showStatusToast('MISSED', 700);
+    showHostileEncounterInstruction();
+    return false;
+  }
+  return applyResolvedClampHits(Resolved);
+}
+
+function applyResolvedClampHits(Resolved) {
+  const AttachedWorld = getCurrentAttachedWorld();
+  if (!AttachedWorld) {
+    return false;
+  }
   HostilePylonGroup.userData.breakClamps?.(
     AttachedWorld,
     Resolved.hitIds,
@@ -982,7 +1021,7 @@ function applyHostileCut(Origin, End) {
     showStatusToast('THE RIM IS CLEAR', 1350);
     showInstruction(
       `${AttachedWorld.label} can fly.`,
-      'Pull away from the ship to aim and build a relay. Drag the globe to walk. Drag empty space to look around.',
+      'Pull the ship to fly. Drag the globe to walk. Drag empty space to look around.',
     );
     flushQueuedStoryBoardsIfReady();
     return true;
@@ -999,8 +1038,8 @@ function applyHostileCut(Origin, End) {
   showInstruction(
     `${RemainingCount} left on ${AttachedWorld.label}.`,
     RemainingCount === 1
-      ? 'One cage remains. Drag through it.'
-      : 'A longer drag can take more than one.',
+      ? 'One cage remains. Walk near it, then tap it.'
+      : 'Walk near each cage, then tap it.',
   );
   return true;
 }
@@ -1023,44 +1062,19 @@ function releaseCutAim() {
   return fireHostileCutFromPreview();
 }
 
-function fireNearestHostileCut() {
+function fireNearestClampTap() {
   const AttachedWorld = getCurrentAttachedWorld();
   if (!AttachedWorld || !host.ActiveHostileEncounterState) return false;
-  host.CutAimPointer = null;
-  let Preview = getCurrentCutPreview();
-  if (!Preview || Preview.hits.length < 1) {
-    // Out of reach: each tap walks the rim toward the nearest clamp so the
-    // one-pointer DESTROY button can never feel like a soft-lock.
-    const RunnerPose = getRunnerSurfacePose(AttachedWorld);
-    const MoveDirection = getHostileEncounterMoveDirection(
-      host.ActiveHostileEncounterState,
-      RunnerPose.longitude,
-    );
-    const AngularDistance = getHostileEncounterAngularDistance(
-      host.ActiveHostileEncounterState,
-      RunnerPose.longitude,
-    );
-    const StepRadians = Math.min(0.35, Math.max(0, AngularDistance - 0.45));
-    const LatitudeStep = Math.min(0.18, Math.abs(RunnerPose.latitude));
-    if (MoveDirection !== 0 && (StepRadians > 0.001 || LatitudeStep > 0.001)) {
-      setRunnerSurfacePose({
-        longitude: RunnerPose.longitude + (MoveDirection * StepRadians),
-        latitude: RunnerPose.latitude > 0
-          ? RunnerPose.latitude - LatitudeStep
-          : RunnerPose.latitude + LatitudeStep,
-      }, 'keyboard');
-      Preview = getCurrentCutPreview();
-    }
-    if (!Preview || Preview.hits.length < 1) {
-      showStatusToast(
-        MoveDirection !== 0 ? 'WALKING TO THE CLAMP · DESTROY AGAIN' : 'TOO FAR',
-        950,
-      );
-      showHostileEncounterInstruction();
-      return false;
-    }
-  }
-  return applyHostileCut(Preview.origin, Preview.end);
+  const NearestClamp = getNearestRemainingClamp(
+    host.ActiveHostileEncounterState,
+    getRunnerSurfaceAngle(AttachedWorld),
+  );
+  if (!NearestClamp) return false;
+  return applyClampTap(NearestClamp.id);
+}
+
+function fireNearestHostileCut() {
+  return fireNearestClampTap();
 }
 
 function beginBurnAim(WorldPosition) {
@@ -1261,16 +1275,9 @@ function handlePointerDown(PointerEventData) {
 
   cancelKeyboardAim();
   const Occupancy = getLandedPointerOccupancy(PointerEventData, CurrentPointerWorldPosition);
-  if (Occupancy.isOverShip && host.ActiveHostileEncounterState) {
-    setScoutMode(false);
-    host.PointerGestureMode = SurfaceGestureModes.aim;
-    beginCutAim(CurrentPointerWorldPosition);
-    PointerEventData.preventDefault();
-    return;
-  }
-
   const PointerStartTarget = classifyLandedPointerStart({
-    isOverShip: Occupancy.isOverShip && !host.ActiveHostileEncounterState,
+    isOverShip: Occupancy.isOverShip,
+    isOverCage: Occupancy.isOverCage,
     isOverWorld: Occupancy.isOverWorld,
   });
   if (PointerStartTarget === LandedPointerTargets.ship) {
@@ -1283,6 +1290,20 @@ function handlePointerDown(PointerEventData) {
     GameCanvas.classList.remove('is-walking', 'is-walk-ready');
     PointerGestureStartWorldPosition.copy(CurrentPointerWorldPosition);
     LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
+    PointerEventData.preventDefault();
+    return;
+  }
+
+  if (PointerStartTarget === LandedPointerTargets.cage) {
+    setScoutMode(false);
+    host.PointerGestureMode = SurfaceGestureModes.pending;
+    host.IsPointerWalking = false;
+    host.IsCageBreaking = true;
+    CageBreakClampId = Occupancy.cageClampId;
+    CageBreakStartX = CurrentPointerWorldPosition.x;
+    CageBreakStartY = CurrentPointerWorldPosition.y;
+    GameCanvas.classList.add('is-cage-breaking');
+    GameCanvas.classList.remove('is-walking', 'is-walk-ready', 'is-ship-armed');
     PointerEventData.preventDefault();
     return;
   }
@@ -1354,6 +1375,11 @@ function handlePointerMove(PointerEventData) {
     }
   }
   if (PointerEventData.pointerId !== host.ActivePointerIdentifier) {
+    return;
+  }
+
+  if (host.IsCageBreaking || CageBreakClampId !== null) {
+    PointerEventData.preventDefault();
     return;
   }
 
@@ -1532,7 +1558,7 @@ function updateBreakerBurnInterface() {
     const EncounterWorldId = host.ActiveHostileEncounterState.worldIdentifier;
     if (host.DestroyTeachWorldIdentifier !== EncounterWorldId) {
       host.DestroyTeachWorldIdentifier = EncounterWorldId;
-      showStatusToast('Grab the ship and drag through the cage', 2400);
+      showStatusToast('Tap the cage to break it. Pull the ship to fly.', 2400);
       showHostileEncounterInstruction();
     }
     publishHostileEncounterState();
@@ -1637,6 +1663,18 @@ function handlePointerUp(PointerEventData) {
     GameCanvas.releasePointerCapture(PointerEventData.pointerId);
   }
 
+  if (host.IsCageBreaking || CageBreakClampId !== null) {
+    const ClampId = CageBreakClampId;
+    clearCageBreak();
+    host.ActivePointerIdentifier = null;
+    host.PointerGestureMode = SurfaceGestureModes.pending;
+    if (Number.isInteger(ClampId) && host.ActiveHostileEncounterState) {
+      applyClampTap(ClampId);
+    }
+    PointerEventData.preventDefault();
+    return;
+  }
+
   if (host.IsCutAiming) {
     const CurrentCutPointerWorldPosition = getPointerWorldPosition(PointerEventData);
     if (CurrentCutPointerWorldPosition) {
@@ -1722,6 +1760,16 @@ function handlePointerCancel(PointerEventData) {
   if (PointerEventData.pointerId !== host.ActivePointerIdentifier) return;
   if (GameCanvas.hasPointerCapture(PointerEventData.pointerId)) {
     GameCanvas.releasePointerCapture(PointerEventData.pointerId);
+  }
+  if (host.IsCageBreaking || CageBreakClampId !== null) {
+    clearCageBreak();
+    host.ActivePointerIdentifier = null;
+    host.PointerGestureMode = SurfaceGestureModes.pending;
+    GameCanvas.classList.remove('is-ship-armed', 'is-aiming', 'is-walking', 'is-scouting');
+    if (!showHostileEncounterInstruction()) {
+      showWalkFacingInstruction(getCurrentAttachedWorld());
+    }
+    return;
   }
   if (host.IsCutAiming) {
     cancelCutAim();
