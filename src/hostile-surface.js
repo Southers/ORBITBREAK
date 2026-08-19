@@ -12,7 +12,7 @@ import {
   getSphereSurfacePosition,
   getSurfacePoseFromPosition,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260819-ob140';
+} from './controls.js?v=20260819-ob141';
 import {
   createHostileEncounterState,
   getCutEndPoint,
@@ -22,9 +22,13 @@ import {
   getHostileEncounterMoveDirection,
   getNearestClampCut,
   getRemainingClamps,
-} from './encounter.js?v=20260819-ob140';
-import { createVector } from './physics.js?v=20260819-ob140';
-import { calculateSurfaceRestPosition as calculateSharedSurfaceRestPosition } from './flight-resolver.js?v=20260819-ob140';
+} from './encounter.js?v=20260819-ob141';
+import { createVector } from './physics.js?v=20260819-ob141';
+import { calculateSurfaceRestPosition as calculateSharedSurfaceRestPosition } from './flight-resolver.js?v=20260819-ob141';
+import {
+  CageSmashHint,
+  listHostileCageSites,
+} from './presentation.js?v=20260819-ob141';
 
 export function createHostileSurface(THREE, host) {
   const {
@@ -206,31 +210,35 @@ export function createHostileSurface(THREE, host) {
     const IsCommandApproach = AttachedWorld.kind === 'worldheart';
     const CommandApproachTitle = ActiveSystem.commandApproachLine
       ?? 'The lattice is open.';
-    const RunnerSurfaceAngle = getRunnerSurfaceAngle(AttachedWorld);
+    const RunnerPose = getRunnerSurfacePose(AttachedWorld);
     const MoveKey = getHostileEncounterMoveDirection(
       host.ActiveHostileEncounterState,
-      RunnerSurfaceAngle,
+      RunnerPose.longitude,
     ) > 0 ? 'Q' : 'E';
     const DistanceDegrees = Math.round(THREE.MathUtils.radToDeg(
-      getHostileEncounterAngularDistance(host.ActiveHostileEncounterState, RunnerSurfaceAngle),
+      getHostileEncounterAngularDistance(
+        host.ActiveHostileEncounterState,
+        RunnerPose.longitude,
+        RunnerPose.latitude,
+      ),
     ));
     if (IsCommandApproach) {
       showInstruction(
         CommandApproachTitle,
         RemainingCount === 3
-          ? 'Tap the cage to break it. Pull the ship to fly.'
+          ? CageSmashHint
           : `${RemainingCount} left. Tap a cage.`,
       );
     } else if (RemainingCount === host.ActiveHostileEncounterState.clamps.length
       && RemainingCount === 1) {
       showInstruction(
         `${AttachedWorld.label} has one leftover cage.`,
-        'Tap the cage to break it. Pull the ship to fly.',
+        CageSmashHint,
       );
     } else if (RemainingCount === 3) {
       showInstruction(
         `${AttachedWorld.label} still has cages.`,
-        'Tap the cage. Pull the ship to fly.',
+        'Tap the red cage. Pull the ship to fly.',
       );
     } else {
       showInstruction(
@@ -257,10 +265,20 @@ export function createHostileSurface(THREE, host) {
       return true;
     }
     cancelCutAim({ announce: false });
+    const RunnerPose = getRunnerSurfacePose(WorldDefinition);
+    const EncounterOffsets = EncounterDefinition.clampOffsetsRadians;
     host.ActiveHostileEncounterState = createHostileEncounterState({
       worldIdentifier: WorldDefinition.id,
-      runnerSurfaceAngle: getRunnerSurfaceAngle(WorldDefinition),
+      runnerSurfaceAngle: RunnerPose.longitude,
       ...EncounterDefinition,
+      cageSites: listHostileCageSites(WorldDefinition, {
+        clampCount: Array.isArray(EncounterOffsets) && EncounterOffsets.length > 0
+          ? EncounterOffsets.length
+          : 1,
+        clampOffsetsRadians: EncounterOffsets,
+        runnerLongitude: RunnerPose.longitude,
+        runnerLatitude: RunnerPose.latitude,
+      }),
     });
     host.IsKeyboardAiming = false;
     host.IsPointerAiming = false;

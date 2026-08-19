@@ -1,4 +1,4 @@
-import { FirstLightSystemDefinition } from './first-light.js?v=20260819-ob140';
+import { FirstLightSystemDefinition } from './first-light.js?v=20260819-ob141';
 
 /** ORBITBREAK's first score-attack arena, spanning several camera views. */
 export const BreakerReachSystemDefinition = {
@@ -147,7 +147,7 @@ export const BreakerReachSystemDefinition = {
           kicker: 'WATCH OPENS',
           portrait: 'bastion',
           title: 'The battery stands down.',
-          body: 'You opened the watch. Occupied worlds have Warden cages. Tap the cage to break it, then launch.',
+          body: 'You opened the watch. If a red cage is in the way, tap it, then pull the ship to fly.',
         },
       ],
     },
@@ -292,7 +292,7 @@ export const BreakerReachSystemDefinition = {
           kicker: 'CORE LATTICE',
           portrait: 'command',
           title: 'You are on the crown.',
-          body: 'Occupied worlds have Warden cages. Tap the cage to break it.',
+          body: 'If a red cage is in the way, tap it. Pull the ship to fly.',
         },
       ],
     },

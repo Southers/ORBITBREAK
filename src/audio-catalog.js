@@ -8,15 +8,16 @@
 import {
   AuthoredCampaignSystemIdentifiers,
   AuthoredSystemDefinitions,
-} from './content.js?v=20260819-ob140';
+} from './content.js?v=20260819-ob141';
 import {
   FirstRunCoachBodies,
   HowToPlayLines,
+  CageSmashHint,
   formatStoryBoardCopy,
   getHowToPlayPresentation,
-} from './presentation.js?v=20260819-ob140';
+} from './presentation.js?v=20260819-ob141';
 
-export const AudioAssetVersion = '20260819-ob140';
+export const AudioAssetVersion = '20260819-ob141';
 export const AudioAssetRoot = './assets/audio';
 
 /** Stock ElevenLabs library voices. Do not clone a real person. */
@@ -64,7 +65,7 @@ export const NarrativeToastLines = Object.freeze([
   Object.freeze({
     id: 'toast/tap-cage',
     voice: 'runner',
-    text: 'Tap the cage to break it. Pull the ship to fly.',
+    text: CageSmashHint,
   }),
   Object.freeze({
     id: 'toast/rim-clear',

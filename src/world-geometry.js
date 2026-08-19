@@ -2,7 +2,7 @@
  * World mesh factory. Presentation-only; never enters ranked simulation.
  */
 
-import { getToyDioramaScale, getWorldSurfaceFinish } from './presentation.js?v=20260819-ob140';
+import { getToyDioramaScale, getWorldSurfaceFinish } from './presentation.js?v=20260819-ob141';
 
 export function createWorldVisuals(THREE, Scene, {
   worldDefinitions: WorldDefinitions,
