@@ -142,6 +142,19 @@ export function auditReleaseReadiness() {
     'Aiming must frame the readable neighbourhood, lift fog and keep pinch zoom on the exact remaining path.',
   );
   requireCondition(
+    ControlsSource.includes('KeyboardAimDefaultPowerRatio = 0.62')
+      && ControlsSource.includes('KeyboardAimCoarseDegrees = 12')
+      && InputControllerSource.includes("dataset.keyboardAimAssist = 'direct'")
+      && InputControllerSource.includes('Opens keyboard aim from the current launch face')
+      && PresentationSource.includes('export function getCommandWorldTacticalLabel(')
+      && RoutePresentationSource.includes('getCommandWorldTacticalLabel(')
+      && HostileSurfaceSource.includes('hasTappableHostileCage')
+      && HostileSurfaceSource.includes('HostilePylonGroup?.visible !== true')
+      && MainSource.includes('TrajectoryLine.visible = PreviewPointCount > 1')
+      && LandingDirectorSource.includes('includeRestored: !CompletedHostileEncounterWorldIdentifiers.has'),
+    'Keyboard aim must free-steer from the launch face at mid power, keep the arc drawn, label Command once, and show the cage banner only when a cage is up.',
+  );
+  requireCondition(
     InputControllerSource.includes('classifyPendingShipGrab(')
       && InputControllerSource.includes('classifyLandedPointerStart(')
       && InputControllerSource.includes('LandedPointerTargets.ship')
@@ -455,8 +468,10 @@ export function auditReleaseReadiness() {
     RoutePresentationSource.includes('const RouteLabelMinimumGap = IsShortLandscape ? 160 : 76')
       && RoutePresentationSource.includes('horizontalClearance: IsShortLandscape ? 180 : 100')
       && RoutePresentationSource.includes('verticalClearance: IsShortLandscape ? 22 : 30')
-      && RoutePresentationSource.includes('WorldheartDefinition.routeAvailable && !IsShortLandscape'),
-    'Short-landscape Command exposure must separate choices and omit its duplicate tactical chip.',
+      && RoutePresentationSource.includes('getCommandWorldTacticalLabel(')
+      && RoutePresentationSource.includes("WorldDefinition.kind === 'worldheart'")
+      && PresentationSource.includes('compact === true'),
+    'Short-landscape Command stays one labelled target; route pills must not duplicate the tactical chip.',
   );
   requireCondition(
     /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-width:\s*640px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.result-actions\s+button\s*\{[^}]*padding:\s*10px\s+8px;[^}]*font-size:\s*13px;[^}]*line-height:\s*1\.2;[^}]*white-space:\s*nowrap;/s.test(StyleSheet),

@@ -511,6 +511,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   });
   const PullGuideLine = new THREE.Line(PullGuideGeometry, PullGuideMaterial);
   PullGuideLine.visible = false;
+  PullGuideLine.frustumCulled = false;
   PullGuideLine.renderOrder = 20;
   Scene.add(PullGuideLine);
   const PullGuideRibbon = createPlanarRibbon(THREE, Scene, {

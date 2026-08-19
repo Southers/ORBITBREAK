@@ -584,8 +584,10 @@ export const PlanningNeighbourhoodPadding = 3.4;
 
 /**
  * Default aim frames the readable neighbourhood, not the whole dark Reach.
- * Before the veil lifts that is the inner cluster. Afterward it is the current
- * world plus its authored neighbours. Predicted landings and Command expand it.
+ * Before the veil lifts that is the inner cluster. Afterward the alive sector
+ * plus Command stay in frame so a keyboard sweep can leave the linked garden.
+ * Predicted landings still expand it. The aim polyline does not, or W/S
+ * would reframe every power step into the same on-screen length.
  */
 export function getPlanningFocusWorldIdentifiers({
   innerClusterLive = false,
@@ -596,6 +598,7 @@ export function getPlanningFocusWorldIdentifiers({
   furtherReachWorldIdentifiers = [],
   commandWorldIdentifier = 'worldheart',
   nearbyWorldIdentifiers = [],
+  sectorWorldIdentifiers = [],
 } = {}) {
   if (typeof innerClusterLive !== 'boolean') {
     throw new Error('Planning focus requires an inner-cluster flag.');
@@ -612,6 +615,9 @@ export function getPlanningFocusWorldIdentifiers({
   if (!Array.isArray(nearbyWorldIdentifiers)) {
     throw new Error('Planning focus requires a nearby-world list.');
   }
+  if (!Array.isArray(sectorWorldIdentifiers)) {
+    throw new Error('Planning focus requires a sector-world list.');
+  }
   const Identifiers = new Set();
   if (typeof currentWorldIdentifier === 'string' && currentWorldIdentifier.length > 0) {
     Identifiers.add(currentWorldIdentifier);
@@ -621,10 +627,18 @@ export function getPlanningFocusWorldIdentifiers({
       Identifiers.add(WorldIdentifier);
     }
   } else {
-    for (const WorldIdentifier of nearbyWorldIdentifiers) {
+    for (const WorldIdentifier of [
+      ...innerClusterWorldIdentifiers,
+      ...nearbyWorldIdentifiers,
+      ...furtherReachWorldIdentifiers,
+      ...sectorWorldIdentifiers,
+    ]) {
       if (typeof WorldIdentifier === 'string' && WorldIdentifier.length > 0) {
         Identifiers.add(WorldIdentifier);
       }
+    }
+    if (typeof commandWorldIdentifier === 'string' && commandWorldIdentifier.length > 0) {
+      Identifiers.add(commandWorldIdentifier);
     }
   }
   if (commandRouteAvailable === true && typeof commandWorldIdentifier === 'string') {
@@ -636,6 +650,28 @@ export function getPlanningFocusWorldIdentifiers({
     }
   }
   return [...Identifiers];
+}
+
+/**
+ * One Command chip. Scout and aim always name the body; EXPOSED vs LOCKED
+ * is the only state change. Route pills must not repeat this label.
+ */
+export function getCommandWorldTacticalLabel({
+  label = 'COMMAND WORLD',
+  routeAvailable = false,
+  isMoving = false,
+  compact = false,
+} = {}) {
+  if (typeof label !== 'string' || label.trim() === '') {
+    throw new Error('Command label requires a name.');
+  }
+  if (compact === true) {
+    return routeAvailable === true ? `${label} · OPEN` : `${label} · LOCKED`;
+  }
+  if (routeAvailable === true) {
+    return isMoving === true ? `${label} · EXPOSED · MOVING` : `${label} · EXPOSED`;
+  }
+  return isMoving === true ? `${label} · LOCKED · MOVING` : `${label} · LOCKED`;
 }
 
 /** Lifts exponential fog while aiming or flying so the planning map stays readable. */

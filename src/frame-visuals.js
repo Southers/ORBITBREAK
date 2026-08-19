@@ -751,7 +751,9 @@ export function createFrameVisuals(THREE, host) {
       && !host.HasLaunchedOnce
       && !host.IsOpeningBriefingActive
       && !host.IsHowToPlayOpen;
-    PullGuideLine.visible = false;
+    if (host.IsKeyboardAiming !== true) {
+      PullGuideLine.visible = false;
+    }
     PullGuideRibbon.mesh.visible = false;
     updateTargetBeacons(ElapsedTimeSeconds);
     if (IsOpeningCoachVisible) {

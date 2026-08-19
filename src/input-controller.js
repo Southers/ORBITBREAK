@@ -10,6 +10,7 @@ import {
   classifyPendingShipGrab,
   classifyLandedPointerStart,
   createKeyboardAimState,
+  KeyboardAimDefaultPowerRatio,
   findNearestKeyboardAimAngle,
   getAimCameraStage,
   getKeyboardAimDragVector,
@@ -29,13 +30,13 @@ import {
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob129';
+} from './controls.js?v=20260819-ob130';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
   resolveClampTap,
   resolveHostileCut,
-} from './encounter.js?v=20260819-ob129';
+} from './encounter.js?v=20260819-ob130';
 import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js';
 import {
   getCageClearPulseDurationSeconds,
@@ -655,7 +656,7 @@ function createSuggestedKeyboardAimState(SuggestedTarget) {
   const DirectAimState = createKeyboardAimState({
     directionX: SuggestedTarget.position.x - host.SeedPhysicsState.position.x,
     directionY: SuggestedTarget.position.y - host.SeedPhysicsState.position.y,
-    powerRatio: 1,
+    powerRatio: KeyboardAimDefaultPowerRatio,
   });
   const IsMovingCommandTarget = SuggestedTarget.id === WorldheartDefinition.id
     && Boolean(WorldheartDefinition.orbit)
@@ -694,7 +695,11 @@ function createSuggestedKeyboardAimState(SuggestedTarget) {
   return { ...DirectAimState, angleRadians: AssistedAngleRadians };
 }
 
-/** Opens keyboard aim toward the first authored route while retaining free steering. */
+/**
+ * Opens keyboard aim from the current launch face. Route beacons still mark
+ * useful neighbours; A/D after this is free and must not re-snap to them.
+ * Command lock stays a finale gift when the suggested body is Command.
+ */
 function beginKeyboardAim() {
   if (
     host.GamePhase !== 'attached'
@@ -711,25 +716,31 @@ function beginKeyboardAim() {
   clearWalkFacingDataset();
   clearAimScreenDistance();
   const SuggestedTarget = getCurrentRouteChoices(1)[0];
-  const SuggestedTargetPosition = SuggestedTarget?.position ?? {
-    x: host.SeedPhysicsState.position.x + 1,
-    y: host.SeedPhysicsState.position.y,
-  };
-  if (!SuggestedTarget) GameCanvas.dataset.keyboardAimAssist = 'direct';
-  host.KeyboardAimState = SuggestedTarget
-    ? createSuggestedKeyboardAimState(SuggestedTarget)
-    : createKeyboardAimState({
-      directionX: SuggestedTargetPosition.x - host.SeedPhysicsState.position.x,
-      directionY: SuggestedTargetPosition.y - host.SeedPhysicsState.position.y,
-      powerRatio: 1,
+  const AttachedWorld = getCurrentAttachedWorld();
+  const OutwardX = AttachedWorld
+    ? host.SeedPhysicsState.position.x - AttachedWorld.position.x
+    : 1;
+  const OutwardY = AttachedWorld
+    ? host.SeedPhysicsState.position.y - AttachedWorld.position.y
+    : 0;
+  const IsCommandSuggestion = SuggestedTarget?.id === WorldheartDefinition.id
+    || SuggestedTarget?.kind === 'worldheart';
+  if (IsCommandSuggestion) {
+    host.KeyboardAimState = createSuggestedKeyboardAimState(SuggestedTarget);
+  } else {
+    GameCanvas.dataset.keyboardAimAssist = 'direct';
+    host.KeyboardAimState = createKeyboardAimState({
+      directionX: OutwardX,
+      directionY: OutwardY,
+      powerRatio: KeyboardAimDefaultPowerRatio,
     });
+  }
   host.HasGrabbedShipOnce = true;
   host.IsKeyboardAiming = true;
   CameraPanOffset.set(0, 0, 0);
   host.AimZoomScale = 1;
   WorldseedSound.beginAim();
   GameCanvas.classList.add('is-aiming');
-  PullGuideLine.visible = false;
   if (host.PullGuideRibbon) {
     host.PullGuideRibbon.mesh.visible = false;
   }
@@ -1614,7 +1625,7 @@ function updateBreakerBurnInterface() {
     : 0;
   if (IsHostileCut) {
     const EncounterWorldId = host.ActiveHostileEncounterState.worldIdentifier;
-    if (host.DestroyTeachWorldIdentifier !== EncounterWorldId) {
+    if (host.DestroyTeachWorldIdentifier !== EncounterWorldId && RemainingCount > 0) {
       host.DestroyTeachWorldIdentifier = EncounterWorldId;
       showStatusToast('Tap the cage to break it. Pull the ship to fly.', 2400);
       showHostileEncounterInstruction();

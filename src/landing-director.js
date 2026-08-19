@@ -18,7 +18,7 @@ import { calculateNormalizedSphericalDistance } from './restoration.js';
 import { addCircuitBonus, addVictoryBonus } from './scoring.js';
 import { settleRunFlight } from './run.js';
 import { WardenPursuitEvents } from './warden.js';
-import { getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob129';
+import { getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob130';
 
 export function createLandingDirector(THREE, host) {
   const {
@@ -71,6 +71,7 @@ export function createLandingDirector(THREE, host) {
     }
     const Encounter = getOccupiedWorldCageEncounter(WorldDefinition, {
       leftoverUnlocked: countLiveRelayWorlds(host.RelayNetworkState) >= 2,
+      includeRestored: !CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id),
     });
     if (!Encounter) {
       return;

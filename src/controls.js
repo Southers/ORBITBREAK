@@ -514,19 +514,36 @@ export function getScoutZoomPresentation(
   };
 }
 
+/**
+ * Mid power so W and S both change the throw. Full power from the inner
+ * wells dumps every line into a neighbour; starting at 1 made W a no-op.
+ */
+export const KeyboardAimDefaultPowerRatio = 0.62;
+/** Coarse A/D step. 8° still read as neighbour-snapping inside a tight cluster. */
+export const KeyboardAimCoarseDegrees = 12;
+export const KeyboardAimRepeatDegrees = 16;
+export const KeyboardAimFineDegrees = 3;
+export const KeyboardAimFineRepeatDegrees = 6;
+export const KeyboardAimCoarsePowerStep = 0.08;
+export const KeyboardAimFinePowerStep = 0.02;
+
 /** Keeps keyboard aim state finite, normalized and inside the playable power range. */
 export function createKeyboardAimState({
   directionX = 1,
   directionY = 0,
-  powerRatio = 1,
+  powerRatio = KeyboardAimDefaultPowerRatio,
 } = {}) {
   const DirectionLength = Math.hypot(directionX, directionY);
   const AngleRadians = DirectionLength > 0
     ? Math.atan2(directionY / DirectionLength, directionX / DirectionLength)
     : 0;
+  const FallbackPower = KeyboardAimDefaultPowerRatio;
   return {
     angleRadians: (AngleRadians + FullCircleRadians) % FullCircleRadians,
-    powerRatio: Math.min(1, Math.max(0.04, Number.isFinite(powerRatio) ? powerRatio : 1)),
+    powerRatio: Math.min(
+      1,
+      Math.max(0.04, Number.isFinite(powerRatio) ? powerRatio : FallbackPower),
+    ),
   };
 }
 
@@ -535,10 +552,10 @@ export function adjustKeyboardAimState(
   AimState,
   { rotationDirection = 0, powerDirection = 0, fine = false, repeat = false } = {},
 ) {
-  const CoarseDegrees = repeat === true ? 10 : 8;
-  const FineDegrees = repeat === true ? 4 : 2;
+  const CoarseDegrees = repeat === true ? KeyboardAimRepeatDegrees : KeyboardAimCoarseDegrees;
+  const FineDegrees = repeat === true ? KeyboardAimFineRepeatDegrees : KeyboardAimFineDegrees;
   const RotationStepRadians = (fine ? FineDegrees : CoarseDegrees) * (Math.PI / 180);
-  const PowerStep = fine ? 0.01 : 0.04;
+  const PowerStep = fine ? KeyboardAimFinePowerStep : KeyboardAimCoarsePowerStep;
   return {
     angleRadians: (
       AimState.angleRadians

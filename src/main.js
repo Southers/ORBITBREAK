@@ -10,7 +10,7 @@ import {
   isEditingTextField,
   LaunchCancelRadius,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260819-ob129';
+} from './controls.js?v=20260819-ob130';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -32,19 +32,19 @@ import { addEnvironment } from './environment.js?v=20260818-ob109';
 import { createWorldVisuals } from './world-geometry.js?v=20260819-ob129';
 import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260819-ob129';
 import { createWardenVisuals } from './warden-visuals.js?v=20260819-ob129';
-import { createPlayerVisuals } from './player-visuals.js?v=20260819-ob129';
+import { createPlayerVisuals } from './player-visuals.js?v=20260819-ob130';
 import { createStoryDirector } from './story-director.js?v=20260819-ob128';
 import { createHud } from './hud.js?v=20260819-ob128';
-import { createAimPreview } from './aim-preview.js?v=20260817-ob99';
-import { createLandingDirector } from './landing-director.js?v=20260819-ob129';
-import { createCameraController } from './camera-controller.js?v=20260819-ob129';
-import { createInputController } from './input-controller.js?v=20260819-ob129';
-import { createHostileSurface } from './hostile-surface.js?v=20260819-ob129';
+import { createAimPreview } from './aim-preview.js?v=20260819-ob130';
+import { createLandingDirector } from './landing-director.js?v=20260819-ob130';
+import { createCameraController } from './camera-controller.js?v=20260819-ob130';
+import { createInputController } from './input-controller.js?v=20260819-ob130';
+import { createHostileSurface } from './hostile-surface.js?v=20260819-ob130';
 import { createScanner } from './scanner.js?v=20260817-ob99';
-import { createRoutePresentation } from './route-presentation.js?v=20260819-ob129';
+import { createRoutePresentation } from './route-presentation.js?v=20260819-ob130';
 import { createRecordsUi } from './records-ui.js?v=20260819-ob128';
-import { createFrameVisuals } from './frame-visuals.js?v=20260819-ob129';
-import { createRestorationVisuals } from './restoration-visuals.js?v=20260819-ob129';
+import { createFrameVisuals } from './frame-visuals.js?v=20260819-ob130';
+import { createRestorationVisuals } from './restoration-visuals.js?v=20260819-ob130';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
 import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=0.179.1';
@@ -154,7 +154,7 @@ import {
   getLandedCameraScale,
   getHowToPlayPresentation,
   shouldShowHowToPlayAfterOpening,
-} from './presentation.js?v=20260819-ob129';
+} from './presentation.js?v=20260819-ob130';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -301,7 +301,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260819-ob129';
+GameCanvas.dataset.build = '20260819-ob130';
 GameCanvas.dataset.howToPlay = 'closed';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
@@ -2348,6 +2348,7 @@ const {
 function clearTrajectoryPreview() {
   TrajectoryLine.visible = false;
   TrajectoryRibbon.mesh.visible = false;
+  PullGuideLine.visible = false;
   LandingMarkerMesh.visible = false;
   TrajectoryGeometry.setDrawRange(0, 0);
   PredictedStardustIdentifiers.clear();
@@ -2362,13 +2363,15 @@ function clearTrajectoryPreview() {
 
 function renderTrajectoryLine(PredictionPoints) {
   const PreviewSampleStride = TrajectoryPreviewSampleStride;
+  const MaximumPreviewPointCount = TrajectoryPositionValues.length / 3;
   let PreviewPointCount = 0;
+  const SafePoints = Array.isArray(PredictionPoints) ? PredictionPoints : [];
   for (
     let PredictionPointIndex = 0;
-    PredictionPointIndex < PredictionPoints.length;
+    PredictionPointIndex < SafePoints.length && PreviewPointCount < MaximumPreviewPointCount;
     PredictionPointIndex += PreviewSampleStride
   ) {
-    const PredictionPoint = PredictionPoints[PredictionPointIndex];
+    const PredictionPoint = SafePoints[PredictionPointIndex];
     TrajectoryPositionAttribute.setXYZ(
       PreviewPointCount,
       PredictionPoint.x,
@@ -2378,27 +2381,35 @@ function renderTrajectoryLine(PredictionPoints) {
     PreviewPointCount += 1;
   }
 
-  const FinalVisiblePredictionPoint = PredictionPoints[PredictionPoints.length - 1];
-  const LastPreviewOffset = Math.max(0, (PreviewPointCount - 1) * 3);
-  const FinalPointDifferenceX = TrajectoryPositionValues[LastPreviewOffset] - FinalVisiblePredictionPoint.x;
-  const FinalPointDifferenceY = TrajectoryPositionValues[LastPreviewOffset + 1] - FinalVisiblePredictionPoint.y;
-  if (
-    PreviewPointCount === 0
-    || ((FinalPointDifferenceX * FinalPointDifferenceX) + (FinalPointDifferenceY * FinalPointDifferenceY)) > 0.01
-  ) {
-    TrajectoryPositionAttribute.setXYZ(
-      PreviewPointCount,
-      FinalVisiblePredictionPoint.x,
-      FinalVisiblePredictionPoint.y,
-      0.12,
-    );
-    PreviewPointCount += 1;
+  if (SafePoints.length > 0 && PreviewPointCount > 0) {
+    const FinalVisiblePredictionPoint = SafePoints[SafePoints.length - 1];
+    const LastPreviewOffset = Math.max(0, (PreviewPointCount - 1) * 3);
+    const FinalPointDifferenceX = TrajectoryPositionValues[LastPreviewOffset] - FinalVisiblePredictionPoint.x;
+    const FinalPointDifferenceY = TrajectoryPositionValues[LastPreviewOffset + 1] - FinalVisiblePredictionPoint.y;
+    if (
+      ((FinalPointDifferenceX * FinalPointDifferenceX) + (FinalPointDifferenceY * FinalPointDifferenceY)) > 0.01
+      && PreviewPointCount < MaximumPreviewPointCount
+    ) {
+      TrajectoryPositionAttribute.setXYZ(
+        PreviewPointCount,
+        FinalVisiblePredictionPoint.x,
+        FinalVisiblePredictionPoint.y,
+        0.12,
+      );
+      PreviewPointCount += 1;
+    }
   }
 
   TrajectoryPositionAttribute.needsUpdate = true;
   TrajectoryGeometry.setDrawRange(0, PreviewPointCount);
   TrajectoryGeometry.computeBoundingSphere();
-  TrajectoryLine.visible = false;
+  const PowerRatio = THREE.MathUtils.clamp(
+    AimDragVector.length() / MaximumDragDistance,
+    0.04,
+    1,
+  );
+  TrajectoryMaterial.opacity = 0.4 + (PowerRatio * 0.48);
+  TrajectoryLine.visible = PreviewPointCount > 1;
   const RibbonPoints = [];
   for (let PreviewIndex = 0; PreviewIndex < PreviewPointCount; PreviewIndex += 1) {
     RibbonPoints.push({
@@ -2406,7 +2417,26 @@ function renderTrajectoryLine(PredictionPoints) {
       y: TrajectoryPositionValues[(PreviewIndex * 3) + 1],
     });
   }
-  writePlanarRibbon(TrajectoryRibbon, RibbonPoints, 0.11);
+  writePlanarRibbon(TrajectoryRibbon, RibbonPoints, 0.06 + (PowerRatio * 0.14));
+  if (IsKeyboardAiming && PreviewPointCount > 0) {
+    const StemLength = 1.15 + (PowerRatio * 4.4);
+    const DirectionX = Math.cos(KeyboardAimState.angleRadians);
+    const DirectionY = Math.sin(KeyboardAimState.angleRadians);
+    const StemStart = new THREE.Vector3(
+      SeedPhysicsState.position.x,
+      SeedPhysicsState.position.y,
+      0.14,
+    );
+    const StemEnd = new THREE.Vector3(
+      SeedPhysicsState.position.x + (DirectionX * StemLength),
+      SeedPhysicsState.position.y + (DirectionY * StemLength),
+      0.14,
+    );
+    PullGuideGeometry.setFromPoints([StemStart, StemEnd]);
+    PullGuideLine.computeLineDistances();
+    PullGuideLine.visible = true;
+    PullGuideMaterial.opacity = 0.38 + (PowerRatio * 0.5);
+  }
 }
 
 function captureCommittedLaunchPrediction(LaunchVelocity) {

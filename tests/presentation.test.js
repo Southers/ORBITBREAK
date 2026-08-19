@@ -15,6 +15,7 @@ import {
   getRelayLinkOpacity,
   getPlanningAtmosphere,
   getPlanningFocusWorldIdentifiers,
+  getCommandWorldTacticalLabel,
   getRelayRevealHoldDurationSeconds,
   getRelayRevealLookTarget,
   getRunUnlockState,
@@ -740,19 +741,26 @@ test('default planning focus stays on the neighbourhood until the outer Reach is
     currentWorldIdentifier: 'meadow',
     ...BreakerReachCluster,
   }).sort(), ['ember', 'grove', 'meadow']);
-  assert.deepEqual(getPlanningFocusWorldIdentifiers({
+  const AliveFocus = getPlanningFocusWorldIdentifiers({
     innerClusterLive: true,
     commandRouteAvailable: false,
     currentWorldIdentifier: 'grove',
     nearbyWorldIdentifiers: ['tide', 'bastion'],
+    sectorWorldIdentifiers: ['glasswing', 'cinder'],
     ...BreakerReachCluster,
-  }).sort(), ['bastion', 'grove', 'tide']);
+  });
+  assert.ok(AliveFocus.includes('grove'));
+  assert.ok(AliveFocus.includes('tide'));
+  assert.ok(AliveFocus.includes('bastion'));
+  assert.ok(AliveFocus.includes('frost'));
+  assert.ok(AliveFocus.includes('worldheart'));
+  assert.ok(AliveFocus.includes('glasswing'));
   assert.equal(getPlanningFocusWorldIdentifiers({
     innerClusterLive: true,
     commandRouteAvailable: false,
     currentWorldIdentifier: 'grove',
     ...BreakerReachCluster,
-  }).includes('tide'), false);
+  }).includes('worldheart'), true);
   assert.ok(getPlanningFocusWorldIdentifiers({
     innerClusterLive: true,
     commandRouteAvailable: true,
@@ -1548,6 +1556,18 @@ test('occupied atmospheres and surface finishes keep Ember, Grove and Frost dist
     toastVisible: true,
   }), false);
   assert.equal(shouldShowPlayfieldWorldLabels({}), false);
+  assert.equal(getCommandWorldTacticalLabel({
+    routeAvailable: false,
+    isMoving: true,
+  }), 'COMMAND WORLD · LOCKED · MOVING');
+  assert.equal(getCommandWorldTacticalLabel({
+    routeAvailable: true,
+    isMoving: true,
+  }), 'COMMAND WORLD · EXPOSED · MOVING');
+  assert.equal(getCommandWorldTacticalLabel({
+    routeAvailable: false,
+    compact: true,
+  }), 'COMMAND WORLD · LOCKED');
   assert.equal(isProjectedLabelInsideWorldDisc({
     labelNdcX: 0.02,
     labelNdcY: 0.01,

@@ -238,6 +238,16 @@ test('occupied unrestored worlds expose a tappable rim cage', () => {
     restored: true,
     occupationSites: [{ longitude: 0.2, latitude: 0.1 }],
   }, { leftoverUnlocked: true, includeRestored: true }), getLeftoverHostileEncounter());
+  assert.deepEqual(getOccupiedWorldCageEncounter({
+    id: 'ember',
+    initiallyRestored: false,
+    restored: true,
+    hostileEncounter: {
+      clampOffsetsRadians: [1.5],
+      cutHitRadius: 0.48,
+      maxCutLength: 2.85,
+    },
+  }, { leftoverUnlocked: true, includeRestored: true }).clampOffsetsRadians, [1.5]);
 });
 
 test('tapping a cage shears only that clamp and a miss spends nothing', () => {

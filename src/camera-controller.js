@@ -190,6 +190,9 @@ function getPlanningFocusPoints() {
     ],
     currentWorldIdentifier: CurrentWorldIdentifier,
     nearbyWorldIdentifiers: NearbyWorldIdentifiers,
+    sectorWorldIdentifiers: isLiveInnerCluster()
+      ? WorldDefinitions.map((WorldDefinition) => WorldDefinition.id)
+      : [],
     ...getSectorClusterRules(),
   }));
   const FocusPoints = WorldDefinitions
