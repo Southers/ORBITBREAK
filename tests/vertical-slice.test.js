@@ -15,6 +15,7 @@ import {
   predictTrajectory,
   simulatePhysicsStep,
 } from '../src/physics.js';
+import { LaunchClearancePadding } from '../src/sim-constants.js';
 import { validateSerializedReplay } from '../src/replay-validator.js';
 import { predictSlingshotEvents } from '../src/scoring.js';
 import { loadReplayFixture, loadSerializedReplayFixture } from './fixtures/load-fixture.js';
@@ -81,7 +82,7 @@ function simulateOpeningBurnRoute(Runtime, {
     if (
       IgnoredWorldIdentifier
       && calculateDistanceSquared(PhysicsState.position, Haven.position)
-        > (Haven.radius + SeedRadius + 0.35) ** 2
+        > (Haven.radius + SeedRadius + LaunchClearancePadding) ** 2
     ) {
       IgnoredWorldIdentifier = null;
     }

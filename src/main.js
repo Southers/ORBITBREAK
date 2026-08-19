@@ -8,9 +8,10 @@ import {
   getSphereSurfacePosition,
   getSurfacePosition,
   isEditingTextField,
+  isSpaceKeyboardEvent,
   LaunchCancelRadius,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260819-ob131';
+} from './controls.js?v=20260819-ob132';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -38,7 +39,7 @@ import { createHud } from './hud.js?v=20260819-ob128';
 import { createAimPreview } from './aim-preview.js?v=20260819-ob130';
 import { createLandingDirector } from './landing-director.js?v=20260819-ob131';
 import { createCameraController } from './camera-controller.js?v=20260819-ob130';
-import { createInputController } from './input-controller.js?v=20260819-ob131';
+import { createInputController } from './input-controller.js?v=20260819-ob132';
 import { createHostileSurface } from './hostile-surface.js?v=20260819-ob130';
 import { createScanner } from './scanner.js?v=20260817-ob99';
 import { createRoutePresentation } from './route-presentation.js?v=20260819-ob131';
@@ -77,14 +78,14 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260819-ob131';
+} from './physics.js?v=20260819-ob132';
 import {
   FixedPhysicsStepHertz,
   FixedPhysicsStepSeconds,
   RunnerRadius,
   StardustCollectionRadius,
   StardustPickupRadius,
-} from './sim-constants.js?v=20260815-ob89';
+} from './sim-constants.js?v=20260819-ob132';
 import {
   getSectorWardenRevealFlag,
   isFurtherReachLive,
@@ -302,7 +303,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260819-ob131';
+GameCanvas.dataset.build = '20260819-ob132';
 GameCanvas.dataset.howToPlay = 'closed';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
@@ -4030,10 +4031,11 @@ window.addEventListener('keydown', (KeyboardEventData) => {
   }
   const PressedKey = KeyboardEventData.key.toLowerCase();
   if (
-    PressedKey === ' '
+    isSpaceKeyboardEvent(KeyboardEventData)
     && ActiveHostileEncounterState
     && GamePhase === 'attached'
     && !IsKeyboardAiming
+    && !IsPointerAiming
   ) {
     KeyboardEventData.preventDefault();
     if (IsCutAiming) fireHostileCutFromPreview();

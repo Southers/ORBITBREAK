@@ -6,6 +6,8 @@
  * and suitable for use both by the live seed simulation and the trajectory preview.
  */
 
+import { LaunchClearancePadding } from './sim-constants.js';
+
 /**
  * Creates a small immutable-style vector object used by the deterministic physics layer.
  *
@@ -94,8 +96,8 @@ export function applyBreakerBurn(PhysicsState, Impulse = BreakerBurnImpulse, Dir
   return NextState;
 }
 
-/** Fast enough for adjacent hops, slow enough that a hard pull still has to ride gravity. */
-export const MaximumLaunchSpeed = 12.5;
+/** Fast enough to leave Grove and Ember after the first hop; a mid pull still rides gravity. */
+export const MaximumLaunchSpeed = 16.5;
 
 /** Tight wells that never intersect still recover after this many revolutions. */
 export const OrbitTrapOuterRadiusFactor = 2.8;
@@ -463,7 +465,9 @@ export function predictTrajectory(
       );
 
       if (StartingWorldDefinition) {
-        const ClearDistance = StartingWorldDefinition.radius + PredictionSettings.seedRadius + 0.35;
+        const ClearDistance = StartingWorldDefinition.radius
+          + PredictionSettings.seedRadius
+          + LaunchClearancePadding;
         if (calculateDistanceSquared(PredictedState.position, StartingWorldDefinition.position) > (ClearDistance * ClearDistance)) {
           IgnoredWorldIdentifier = null;
         }

@@ -257,7 +257,7 @@ After Haven, Ember and Grove are all live:
 - Scout may zoom further out;
 - the coach says the dark is not as wide as they said.
 
-Launch power stays the current 12.5 cap unless a later checkpoint proves the outer Reach is unflyable without a network-derived envelope. Further travel should come from the slingshot skill the hopeful act just taught. Outer worlds remain in the physics scene the whole time so prediction, ghosts and replays stay honest; the veil is presentation and camera, keyed to network state.
+Launch power is 16.5 so Grove and Ember can still escape their own wells after the first hop. 12.5 sat below those escape speeds, so a max pull looped home and W looked capped. Default keyboard power stays mid so adjacent hops still ride gravity; W stretches the throw to unlinked bodies. Origin ignore lasts 1.2 world units so a just-escaping throw is not recaptured on the first beat. Further travel should still come from the slingshot skill the hopeful act taught. Outer worlds remain in the physics scene the whole time so prediction, ghosts and replays stay honest; the veil is presentation and camera, keyed to network state.
 
 ### Warden timing, precisely
 

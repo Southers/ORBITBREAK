@@ -522,13 +522,31 @@ export function getScoutZoomPresentation(
  * wells dumps every line into a neighbour; starting at 1 made W a no-op.
  */
 export const KeyboardAimDefaultPowerRatio = 0.62;
-/** Coarse A/D step. 8° still read as neighbour-snapping inside a tight cluster. */
-export const KeyboardAimCoarseDegrees = 12;
-export const KeyboardAimRepeatDegrees = 16;
+/** Coarse A/D tap. Hold repeats faster so a 135° re-aim is not twenty-odd taps. */
+export const KeyboardAimCoarseDegrees = 18;
+export const KeyboardAimRepeatDegrees = 26;
 export const KeyboardAimFineDegrees = 3;
 export const KeyboardAimFineRepeatDegrees = 6;
-export const KeyboardAimCoarsePowerStep = 0.08;
+export const KeyboardAimCoarsePowerStep = 0.1;
+export const KeyboardAimRepeatPowerStep = 0.14;
 export const KeyboardAimFinePowerStep = 0.02;
+export const KeyboardAimHoldDelayMs = 160;
+export const KeyboardAimHoldIntervalMs = 45;
+
+/** Space and Enter both fire the aimed throw, including Numpad Enter. */
+export function isLaunchKeyboardEvent(KeyboardEventData) {
+  const Key = String(KeyboardEventData?.key ?? '').toLowerCase();
+  const Code = String(KeyboardEventData?.code ?? '');
+  return Key === 'enter' || Key === ' ' || Key === 'spacebar'
+    || Code === 'Enter' || Code === 'NumpadEnter' || Code === 'Space';
+}
+
+/** Space alone smashes a leftover cage when the ship is not already aiming. */
+export function isSpaceKeyboardEvent(KeyboardEventData) {
+  const Key = String(KeyboardEventData?.key ?? '').toLowerCase();
+  const Code = String(KeyboardEventData?.code ?? '');
+  return Key === ' ' || Key === 'spacebar' || Code === 'Space';
+}
 
 /** Keeps keyboard aim state finite, normalized and inside the playable power range. */
 export function createKeyboardAimState({
@@ -558,7 +576,9 @@ export function adjustKeyboardAimState(
   const CoarseDegrees = repeat === true ? KeyboardAimRepeatDegrees : KeyboardAimCoarseDegrees;
   const FineDegrees = repeat === true ? KeyboardAimFineRepeatDegrees : KeyboardAimFineDegrees;
   const RotationStepRadians = (fine ? FineDegrees : CoarseDegrees) * (Math.PI / 180);
-  const PowerStep = fine ? KeyboardAimFinePowerStep : KeyboardAimCoarsePowerStep;
+  const PowerStep = fine
+    ? KeyboardAimFinePowerStep
+    : (repeat === true ? KeyboardAimRepeatPowerStep : KeyboardAimCoarsePowerStep);
   return {
     angleRadians: (
       AimState.angleRadians
