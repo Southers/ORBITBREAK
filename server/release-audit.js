@@ -156,8 +156,8 @@ export function auditReleaseReadiness() {
       && ControlsSource.includes('if (isOverCage === true)')
       && ControlsSource.includes('CageScreenGrabRadiusPixels = 88')
       && ControlsSource.includes('SeedScreenGrabRadiusPixels = 96')
-      && ControlsSource.includes('SeedOnGlobeGrabRadiusPixels = 28')
-      && ControlsSource.includes('SeedOnGlobeGrabWorldRadiusScale = 0.12')
+      && ControlsSource.includes('SeedOnGlobeGrabRadiusPixels = 48')
+      && ControlsSource.includes('SeedOnGlobeGrabWorldRadiusScale = 0.22')
       && !InputControllerSource.includes('Walk near')
       && !HostileSurfaceSource.includes('Walk near')
       && InputControllerSource.includes('finishArmedCageTap(')
@@ -170,7 +170,7 @@ export function auditReleaseReadiness() {
     'First-timer walk vs aim must lock from where the drag starts, not how it moves, with sticky walk-then-launch captions.',
   );
   requireCondition(
-    PlayerSource.includes('const SeedHaloGeometry = new THREE.TorusGeometry(0.07, 0.01, 8, 24)')
+    PlayerSource.includes('const SeedHaloGeometry = new THREE.TorusGeometry(0.55, 0.06, 8, 24)')
       && PlayerSource.includes('new THREE.PointLight(0x72dcff, 0, 0.01, 2)')
       && PlayerSource.includes('SeedPointLight.visible = false')
       && !PlayerSource.includes('SeedGroup.add(SeedPointLight)')
