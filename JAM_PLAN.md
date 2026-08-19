@@ -1068,6 +1068,15 @@ worlds live plus further travel) and can be exposed. Occupied worlds keep
 a tappable equatorial cage, including Grove. Drag-walk, shared
 cache-bust, Q/E 14°, Scout HERE and normal-reload boot stay.
 
+Checkpoint 31 — 19 August 2026: exposed Command cannot skim-lock.
+A throw whose line ends on Command lands on the moving body or
+recaptures with controls back; a landed Command still wins through
+its lattice. Dragging the hull out and back onto the on-screen ship
+cancels. The endpoint ring uses Command's collision-time pose so it
+cannot sit on Command while the ship hits Glasswing. Grove Escape
+cancel, Zoom ±, Command EXPOSE, rim cages, drag-walk and shared
+cache-bust stay.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

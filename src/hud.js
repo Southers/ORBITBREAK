@@ -3,10 +3,10 @@
  * GameCanvas.dataset diagnostic writes stay on the same canvas contract.
  */
 
-import { countRestoredWorlds } from './campaign.js?v=20260819-ob135';
-import { countLiveRelayWorlds, listRelayCircuits } from './network.js?v=20260819-ob135';
-import { getCoachClipId } from './audio-catalog.js?v=20260819-ob135';
-import { getFirstRunCoachPresentation, getLoopObjectivePresentation } from './presentation.js?v=20260819-ob135';
+import { countRestoredWorlds } from './campaign.js?v=20260819-ob136';
+import { countLiveRelayWorlds, listRelayCircuits } from './network.js?v=20260819-ob136';
+import { getCoachClipId } from './audio-catalog.js?v=20260819-ob136';
+import { getFirstRunCoachPresentation, getLoopObjectivePresentation } from './presentation.js?v=20260819-ob136';
 
 const TaughtCaptionStorageKey = 'orbitbreak.taughtCaptions';
 const FirstRunCaptionKinds = new Set(['break', 'missed-port']);

@@ -5,26 +5,26 @@
  * presents honest results and never pretends a local score is online.
  */
 
-import { getSystemEmblems } from './campaign.js?v=20260819-ob135';
-import { getReplayGhostWaypoints } from './ghost.js?v=20260819-ob135';
+import { getSystemEmblems } from './campaign.js?v=20260819-ob136';
+import { getReplayGhostWaypoints } from './ghost.js?v=20260819-ob136';
 import {
   getPersonalBestStatus,
   getRunResourceSummary,
-} from './presentation.js?v=20260819-ob135';
+} from './presentation.js?v=20260819-ob136';
 import {
   createRunResult,
   loadPersonalBest,
   savePersonalBest,
-} from './records.js?v=20260819-ob135';
+} from './records.js?v=20260819-ob136';
 import {
   finishReplay,
   getPersonalBestGhostStorageKey,
   getReplayStorageKey,
   parseReplay,
   serializeReplay,
-} from './replay.js?v=20260819-ob135';
-import { createReplayPlaybackState } from './replay-playback.js?v=20260819-ob135';
-import { validateSerializedReplay } from './replay-validator.js?v=20260819-ob135';
+} from './replay.js?v=20260819-ob136';
+import { createReplayPlaybackState } from './replay-playback.js?v=20260819-ob136';
+import { validateSerializedReplay } from './replay-validator.js?v=20260819-ob136';
 
 export function createRecordsUi(THREE, host) {
   const {

@@ -1,14 +1,20 @@
-import { createAuthoredSystemRuntime, getAuthoredSystemDefinition } from './content.js?v=20260819-ob135';
-import { calculateBodyPositionAtTime, createOrbitTrapState, createVector } from './physics.js?v=20260819-ob135';
+import { createAuthoredSystemRuntime, getAuthoredSystemDefinition } from './content.js?v=20260819-ob136';
+import {
+  calculateBodyPositionAtTime,
+  createOrbitTrapState,
+  createVector,
+  FlightSkimClearance,
+  getTacticalBodyCollisionRadius,
+} from './physics.js?v=20260819-ob136';
 import {
   PhysicsModelVersion,
   ReplaySchemaVersion,
   parseReplay,
-} from './replay.js?v=20260819-ob135';
-import { createScoreState } from './scoring.js?v=20260819-ob135';
-import { createRunState, releaseRunLaunch } from './run.js?v=20260819-ob135';
-import { createRelayNetworkState } from './network.js?v=20260819-ob135';
-import { createWardenPursuitState } from './warden.js?v=20260819-ob135';
+} from './replay.js?v=20260819-ob136';
+import { createScoreState } from './scoring.js?v=20260819-ob136';
+import { createRunState, releaseRunLaunch } from './run.js?v=20260819-ob136';
+import { createRelayNetworkState } from './network.js?v=20260819-ob136';
+import { createWardenPursuitState } from './warden.js?v=20260819-ob136';
 import {
   advanceSimulatedFlightStep,
   applyFlightBreakerBurn,
@@ -19,14 +25,14 @@ import {
   settleFailedFlight,
   settleSeedstoneLanding,
   settleWorldLanding,
-} from './flight-resolver.js?v=20260819-ob135';
+} from './flight-resolver.js?v=20260819-ob136';
 import {
   FixedPhysicsStepHertz,
   MaximumValidatedFlightSteps,
   RunnerRadius,
   SurfaceOriginTolerance,
   SurfaceRestLift,
-} from './sim-constants.js?v=20260819-ob135';
+} from './sim-constants.js?v=20260819-ob136';
 
 function invalid(Reason) {
   return { valid: false, reason: Reason, result: null };
@@ -233,6 +239,19 @@ export function validateReplay(Replay) {
           CurrentNodeIdentifier = CommandLanding.nodeIdentifier;
           ReachedCommandThisFlight = true;
           FlightSettled = true;
+        } else {
+          const Failed = settleFailedFlight({
+            runState: RunState,
+            scoreState: ScoreState,
+            stardust: Runtime.stardust,
+            flightCollectedStardust: FlightCollectedStardust,
+            lastSafeNodeIdentifier: LastSafeNodeIdentifier,
+            lastSafePosition: LastSafePosition,
+          });
+          RunState = Failed.runState;
+          CurrentNodeIdentifier = Failed.nodeIdentifier;
+          CurrentPosition = Failed.position;
+          FlightSettled = true;
         }
       } else if (StepResult.collisionWorld) {
         const WorldLanding = settleWorldLanding({
@@ -256,18 +275,50 @@ export function validateReplay(Replay) {
         RunState = WorldLanding.runState;
         FlightSettled = true;
       } else if (StepResult.outOfBounds || StepResult.orbitTrapped) {
-        const Failed = settleFailedFlight({
-          runState: RunState,
-          scoreState: ScoreState,
-          stardust: Runtime.stardust,
-          flightCollectedStardust: FlightCollectedStardust,
-          lastSafeNodeIdentifier: LastSafeNodeIdentifier,
-          lastSafePosition: LastSafePosition,
-        });
-        RunState = Failed.runState;
-        CurrentNodeIdentifier = Failed.nodeIdentifier;
-        CurrentPosition = Failed.position;
-        FlightSettled = true;
+        const TrappedOnCommand = StepResult.orbitTrapped
+          && (
+            OrbitTrapState.worldIdentifier === Worldheart.id
+            || OrbitTrapState.skimWorldIdentifier === Worldheart.id
+          );
+        if (TrappedOnCommand && IsWorldheartOpen && !Worldheart.restored) {
+          const CommandPosition = calculateBodyPositionAtTime(Worldheart, SimulationTimeSeconds);
+          const CommandCatch = getTacticalBodyCollisionRadius(Worldheart)
+            + RunnerRadius
+            + FlightSkimClearance;
+          const CommandDistance = Math.hypot(
+            PhysicsState.position.x - CommandPosition.x,
+            PhysicsState.position.y - CommandPosition.y,
+          );
+          if (CommandDistance <= CommandCatch) {
+            const CommandLanding = settleCommandLanding({
+              runtime: Runtime,
+              worldheart: Worldheart,
+              scoreState: ScoreState,
+              runState: RunState,
+              wardenState: WardenState,
+              impactPosition: PhysicsState.position,
+              bodyPosition: CommandPosition,
+            });
+            RunState = CommandLanding.runState;
+            CurrentNodeIdentifier = CommandLanding.nodeIdentifier;
+            ReachedCommandThisFlight = true;
+            FlightSettled = true;
+          }
+        }
+        if (!FlightSettled) {
+          const Failed = settleFailedFlight({
+            runState: RunState,
+            scoreState: ScoreState,
+            stardust: Runtime.stardust,
+            flightCollectedStardust: FlightCollectedStardust,
+            lastSafeNodeIdentifier: LastSafeNodeIdentifier,
+            lastSafePosition: LastSafePosition,
+          });
+          RunState = Failed.runState;
+          CurrentNodeIdentifier = Failed.nodeIdentifier;
+          CurrentPosition = Failed.position;
+          FlightSettled = true;
+        }
       }
 
       if (FlightSettled) {
