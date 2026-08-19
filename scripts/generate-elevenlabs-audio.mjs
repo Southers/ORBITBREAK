@@ -19,6 +19,19 @@ const ScriptDirectory = dirname(fileURLToPath(import.meta.url));
 const RepositoryRoot = resolve(ScriptDirectory, '..');
 const AudioRoot = resolve(RepositoryRoot, 'assets/audio');
 const ApiOrigin = 'https://api.elevenlabs.io';
+const SfxDurationMinimumSeconds = 0.5;
+const SfxDurationMaximumSeconds = 30;
+
+function clampSfxDurationSeconds(DurationSeconds) {
+  const Duration = Number(DurationSeconds);
+  if (!Number.isFinite(Duration)) {
+    return SfxDurationMinimumSeconds;
+  }
+  return Math.min(
+    SfxDurationMaximumSeconds,
+    Math.max(SfxDurationMinimumSeconds, Duration),
+  );
+}
 
 function readApiKey() {
   const Key = typeof process.env.ELEVENLABS_API_KEY === 'string'
@@ -81,7 +94,7 @@ async function generateVoiceClip(ApiKey, Clip) {
 async function generateSfxClip(ApiKey, Clip) {
   const Bytes = await postAudio(ApiKey, '/v1/sound-generation', {
     text: Clip.prompt,
-    duration_seconds: Clip.durationSeconds,
+    duration_seconds: clampSfxDurationSeconds(Clip.durationSeconds),
     prompt_influence: 0.35,
   });
   await writeAudioFile(Clip.file, Bytes);

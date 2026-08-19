@@ -142,7 +142,7 @@ export const SfxDefinitions = Object.freeze([
     kind: 'sfx',
     file: 'sfx/ui-continue.mp3',
     prompt: 'Short tiny UI continue blip. Soft wooden click. Miniature and friendly.',
-    durationSeconds: 0.28,
+    durationSeconds: 0.5,
   }),
 ]);
 
