@@ -532,7 +532,8 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     /id="ScoutZoomStatus"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/.test(IndexHtml)
-      && /updateScoutZoomInterface\(\{\s*announce:\s*DidChange\s*\}\)/.test(CameraSource)
+      && /refreshPlanningZoomControls\(\{\s*announce:\s*DidChange\s*\}\)/.test(CameraSource)
+      && /host\.ScoutZoomScale = THREE\.MathUtils\.clamp\(/.test(CameraSource)
       && /ScoutZoomInButtonElement\.setAttribute\('aria-disabled',\s*String\(!Presentation\.canZoomIn\)\)/.test(CameraSource)
       && /ScoutZoomOutButtonElement\.setAttribute\('aria-disabled',\s*String\(!Presentation\.canZoomOut\)\)/.test(CameraSource)
       && /GameCanvas\.dataset\.scoutZoom\s*=\s*host\.ScoutZoomScale\.toFixed\(2\)/.test(CameraSource)

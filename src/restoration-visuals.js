@@ -6,9 +6,9 @@
  * (memory toast, hostile-encounter start, victory reveal).
  */
 
-import { getLeftoverHostileEncounter, getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob134';
-import { countLiveRelayWorlds } from './network.js?v=20260819-ob134';
-import { consumePendingDiscoveryToast } from './discoveries.js?v=20260819-ob134';
+import { getLeftoverHostileEncounter, getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob135';
+import { countLiveRelayWorlds } from './network.js?v=20260819-ob135';
+import { consumePendingDiscoveryToast } from './discoveries.js?v=20260819-ob135';
 import {
   getOccupiedAtmosphereOpacity,
   getAtmosphereDistanceFade,
@@ -19,12 +19,12 @@ import {
   getStillnessPresentation,
   shouldHideLandedOrbitalOverlays,
   shouldHoldWorldCrustIdleSpin,
-} from './presentation.js?v=20260819-ob134';
+} from './presentation.js?v=20260819-ob135';
 import {
   calculateRestorationWaveProgress,
   calculateStagedGrowthProgress,
-} from './restoration.js?v=20260819-ob134';
-import { WardenPursuitEvents } from './warden.js?v=20260819-ob134';
+} from './restoration.js?v=20260819-ob135';
+import { WardenPursuitEvents } from './warden.js?v=20260819-ob135';
 
 export function createRestorationVisuals(THREE, host) {
   const {
@@ -34,6 +34,7 @@ export function createRestorationVisuals(THREE, host) {
     WorldseedSound,
     getSectorClusterRules,
     isLiveInnerCluster,
+    isLiveFurtherReach,
     setSurfacePropRestorationProgress,
     showStatusToast,
     hideInstruction,
@@ -128,7 +129,12 @@ export function createRestorationVisuals(THREE, host) {
     const VeilStrength = getRangeVeilStrength(
       WorldDefinition.id,
       InnerClusterLive,
-      getSectorClusterRules(),
+      {
+        ...getSectorClusterRules(),
+        hasTravelledFurther: typeof isLiveFurtherReach === 'function'
+          ? isLiveFurtherReach()
+          : false,
+      },
     );
     if (VeilStrength <= 0) {
       return 0;
@@ -374,7 +380,7 @@ export function createRestorationVisuals(THREE, host) {
               }
               const EncounterDefinition = WorldDefinition.hostileEncounter
                 ?? getOccupiedWorldCageEncounter(WorldDefinition, {
-                  leftoverUnlocked: countLiveRelayWorlds(host.RelayNetworkState) >= 2,
+                  leftoverUnlocked: countLiveRelayWorlds(host.RelayNetworkState) >= 1,
                   includeRestored: true,
                 })
                 ?? (

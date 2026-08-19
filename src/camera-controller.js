@@ -3,8 +3,8 @@
  * Trajectory line drawing stays in the playable shell next to player meshes.
  */
 
-import { getScoutZoomPresentation } from './controls.js?v=20260819-ob134';
-import { countLiveRelayWorlds, listRelayCircuits } from './network.js?v=20260819-ob134';
+import { getScoutZoomPresentation } from './controls.js?v=20260819-ob135';
+import { countLiveRelayWorlds, listRelayCircuits } from './network.js?v=20260819-ob135';
 import {
   getActiveViewZoomMinimumScale,
   getLandedCameraScale,
@@ -14,7 +14,7 @@ import {
   getPlanningFocusWorldIdentifiers,
   getSectorPlanningCamera,
   shouldHoldCommittedPrediction,
-} from './presentation.js?v=20260819-ob134';
+} from './presentation.js?v=20260819-ob135';
 
 /** How quickly the camera height eases between landed, Scout and flight. */
 const CameraRigStiffness = 4.2;
@@ -184,6 +184,9 @@ function getPlanningFocusPoints() {
   const AllowedIdentifiers = new Set(getPlanningFocusWorldIdentifiers({
     innerClusterLive: isLiveInnerCluster(),
     commandRouteAvailable: WorldheartDefinition.routeAvailable === true,
+    hasTravelledFurther: typeof host.isLiveFurtherReach === 'function'
+      ? host.isLiveFurtherReach()
+      : false,
     predictedBodyIdentifiers: [
       host.LastPredictedBodyIdentifier,
       ...PredictedSlingshotWorldIdentifiers,
@@ -266,6 +269,31 @@ function clearCommittedAimCamera() {
   GameCanvas.dataset.aimCamera = '';
 }
 
+/** Snaps the parked globe back after aim cancel so Grove cannot stay a sector map. */
+function restoreLandedViewAfterAim({ snap = true } = {}) {
+  clearCommittedAimCamera();
+  releaseAimInteractionCamera();
+  if (host.IsScoutMode) {
+    refreshPlanningZoomControls();
+    return;
+  }
+  if (host.GamePhase !== 'attached' && host.GamePhase !== 'restoring') {
+    refreshPlanningZoomControls();
+    return;
+  }
+  const LandedWorld = getLandedCameraWorld();
+  if (LandedWorld) {
+    const LandedScale = getLandedCameraScale({
+      worldRadius: LandedWorld.radius,
+      viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
+    });
+    host.CameraDistanceScale = LandedScale * (Number(host.CameraZoomScale) > 0
+      ? host.CameraZoomScale
+      : 1);
+  }
+  centerLandedCamera({ snap });
+}
+
 function updateFlightPlanningPresentation() {
   const LiveRelayCount = countLiveRelayWorlds(host.RelayNetworkState);
   if (shouldHoldCommittedPrediction({
@@ -294,7 +322,8 @@ function updateFlightPlanningPresentation() {
 }
 
 function refreshPlanningZoomControls({ announce = false } = {}) {
-  const Visible = host.IsScoutMode
+  const Visible = host.IsPauseSheetOpen === true
+    || host.IsScoutMode
     || shouldUseSectorPlanningCamera()
     || (
       ActiveSystem.camera?.followPlayer === true
@@ -311,13 +340,14 @@ function refreshPlanningZoomControls({ announce = false } = {}) {
     if (!host.IsScoutMode) ScoutZoomStatusElement.textContent = '';
     return;
   }
-  const Scale = shouldUseSectorPlanningCamera() && !host.IsScoutMode
+  const UsingPlanning = shouldUseSectorPlanningCamera() && !host.IsScoutMode;
+  const Scale = UsingPlanning
     ? host.AimZoomScale
     : (host.IsScoutMode ? host.ScoutZoomScale : host.CameraZoomScale);
   const Presentation = getScoutZoomPresentation(Scale, {
     minimumScale: getActiveViewZoomMinimumScale({
       isScoutMode: host.IsScoutMode === true,
-      isPlanningCamera: shouldUseSectorPlanningCamera(),
+      isPlanningCamera: UsingPlanning,
     }),
     maximumScale: getActiveMaximumScoutZoomScale(),
   });
@@ -382,33 +412,48 @@ function adjustScoutZoom(Direction) {
 
 function adjustViewZoom(Direction) {
   const MaximumScale = getActiveMaximumScoutZoomScale();
+  const UsingPlanning = shouldUseSectorPlanningCamera() && !host.IsScoutMode;
   const MinimumScale = getActiveViewZoomMinimumScale({
     isScoutMode: host.IsScoutMode === true,
-    isPlanningCamera: shouldUseSectorPlanningCamera(),
+    isPlanningCamera: UsingPlanning,
   });
-  if (shouldUseSectorPlanningCamera()) {
+  const Step = Math.sign(Direction) * 0.1;
+  if (UsingPlanning) {
     const PreviousScale = host.AimZoomScale;
     host.AimZoomScale = THREE.MathUtils.clamp(
-      host.AimZoomScale + (Math.sign(Direction) * 0.1),
+      host.AimZoomScale + Step,
       MinimumScale,
       MaximumScale,
     );
     const DidChange = host.AimZoomScale !== PreviousScale;
+    refreshPlanningZoomControls({ announce: true });
     if (DidChange) {
-      refreshPlanningZoomControls({ announce: true });
       GameCanvas.dataset.aimZoom = host.AimZoomScale.toFixed(2);
     }
     return DidChange;
   }
+  if (host.IsScoutMode) {
+    const PreviousScale = host.ScoutZoomScale;
+    host.ScoutZoomScale = THREE.MathUtils.clamp(
+      host.ScoutZoomScale + Step,
+      MinimumScale,
+      MaximumScale,
+    );
+    const DidChange = host.ScoutZoomScale !== PreviousScale;
+    refreshPlanningZoomControls({ announce: true });
+    if (!DidChange) return false;
+    GameCanvas.dataset.scoutZoom = host.ScoutZoomScale.toFixed(2);
+    resizeRenderer();
+    return true;
+  }
   const PreviousScale = host.CameraZoomScale;
   host.CameraZoomScale = THREE.MathUtils.clamp(
-    host.CameraZoomScale + (Math.sign(Direction) * 0.1),
+    host.CameraZoomScale + Step,
     MinimumScale,
     MaximumScale,
   );
-  host.ScoutZoomScale = host.CameraZoomScale;
   const DidChange = host.CameraZoomScale !== PreviousScale;
-  updateScoutZoomInterface({ announce: DidChange });
+  refreshPlanningZoomControls({ announce: DidChange });
   if (!DidChange) return false;
   GameCanvas.dataset.scoutZoom = host.CameraZoomScale.toFixed(2);
   resizeRenderer();
@@ -683,6 +728,7 @@ function updateCamera(DeltaTimeSeconds) {
     snapLiveCameraToPlanningView,
     commitAimPlanningCamera,
     clearCommittedAimCamera,
+    restoreLandedViewAfterAim,
     shouldUseSectorPlanningCamera,
     updateFlightPlanningPresentation,
     refreshPlanningZoomControls,

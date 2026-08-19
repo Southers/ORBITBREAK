@@ -1,4 +1,4 @@
-import { FirstLightSystemDefinition } from './first-light.js?v=20260819-ob134';
+import { FirstLightSystemDefinition } from './first-light.js?v=20260819-ob135';
 
 /** ORBITBREAK's first score-attack arena, spanning several camera views. */
 export const BreakerReachSystemDefinition = {
@@ -449,6 +449,11 @@ export const BreakerReachSystemDefinition = {
         { longitude: 0.62, latitude: -0.44 },
         { longitude: -0.9, latitude: 0.88 },
       ],
+      hostileEncounter: {
+        clampOffsetsRadians: [1.5],
+        cutHitRadius: 0.48,
+        maxCutLength: 2.85,
+      },
       memory: 'Roots split the perfect grid from below.',
       restoration: {
         ...FirstLightSystemDefinition.worlds[2].restoration,

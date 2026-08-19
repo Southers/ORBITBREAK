@@ -69,6 +69,7 @@ export function getLandedShipGrabRadiusPixels({
   onGlobePixels = SeedOnGlobeGrabRadiusPixels,
   onGlobeMinPixels = SeedOnGlobeGrabMinRadiusPixels,
   onGlobeWorldRadiusScale = SeedOnGlobeGrabWorldRadiusScale,
+  useEmptySpaceHalo = false,
 } = {}) {
   if (
     !(haloPixels > 0)
@@ -93,6 +94,9 @@ export function getLandedShipGrabRadiusPixels({
   // A filling globe is as large as the empty-space halo, so that 96px disc
   // would arm launch around the parked hull even for presses in the void.
   const WorldFillsScreen = HasMeasuredWorld && WorldRadiusPixels >= haloPixels;
+  if (useEmptySpaceHalo === true) {
+    return haloPixels;
+  }
   if (isOverWorld === true || WorldFillsScreen) {
     return HullPixels;
   }
@@ -501,19 +505,18 @@ export function getScoutZoomPresentation(
     || !Number.isFinite(maximumScale)
     || minimumScale <= 0
     || maximumScale <= minimumScale
-    || Scale < minimumScale
-    || Scale > maximumScale
   ) {
     throw new Error('Scout zoom presentation requires a scale inside valid bounds.');
   }
-  const Percentage = Math.round(100 / Scale);
+  const ClampedScale = Math.min(maximumScale, Math.max(minimumScale, Scale));
+  const Percentage = Math.round(100 / ClampedScale);
   return {
     percentage: Percentage,
     status: `Scout zoom ${Percentage}%`,
     zoomInLabel: `Scout zoom in, currently ${Percentage}%`,
     zoomOutLabel: `Scout zoom out, currently ${Percentage}%`,
-    canZoomIn: Scale > minimumScale,
-    canZoomOut: Scale < maximumScale,
+    canZoomIn: ClampedScale > minimumScale,
+    canZoomOut: ClampedScale < maximumScale,
   };
 }
 
@@ -765,14 +768,16 @@ export const LaunchCancelScreenRadiusPixels = 52;
 
 /**
  * A committed pull still launches. Dragging back onto the ship, or never pulling far
- * enough, cancels without spending the flight. After aiming zooms out, world units shrink
- * on screen, so a constant pixel radius around the visible ship is also a cancel.
+ * enough, cancels without spending the flight. Before the planning camera jumps, a
+ * constant pixel disk around the visible hull is also a cancel. After that jump the
+ * hull shrinks into a tiny screen disc, so cancel uses only the aim-camera world drag.
  */
 export function shouldCancelAimedLaunch({
   pointerDistanceFromShip,
   cancelRadius = LaunchCancelRadius,
   screenDistancePixels = Number.POSITIVE_INFINITY,
   screenCancelRadiusPixels = LaunchCancelScreenRadiusPixels,
+  planningCameraCommitted = false,
 } = {}) {
   if (!Number.isFinite(pointerDistanceFromShip) || pointerDistanceFromShip < 0) {
     throw new Error('Launch cancel requires a non-negative ship distance.');
@@ -785,6 +790,9 @@ export function shouldCancelAimedLaunch({
   }
   if (!(screenCancelRadiusPixels > 0) || !Number.isFinite(screenCancelRadiusPixels)) {
     throw new Error('Launch cancel requires a positive screen cancel radius.');
+  }
+  if (planningCameraCommitted === true) {
+    return pointerDistanceFromShip <= cancelRadius;
   }
   const ScreenCancel = Number.isFinite(screenDistancePixels)
     && screenDistancePixels <= screenCancelRadiusPixels;

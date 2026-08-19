@@ -3,7 +3,7 @@
  * Trajectory colour and relay-port beacons encode lock, dock and hazard; there is no aim meter.
  */
 
-import { evaluateRelayPortLanding } from './flight-resolver.js?v=20260819-ob134';
+import { evaluateRelayPortLanding } from './flight-resolver.js?v=20260819-ob135';
 
 export function createAimPreview(THREE, host) {
   /**
@@ -28,6 +28,7 @@ export function createAimPreview(THREE, host) {
       pointerDistanceFromShip: host.AimDragVector.length(),
       cancelRadius: host.LaunchCancelRadius,
       screenDistancePixels: host.LastAimScreenDistancePixels,
+      planningCameraCommitted: host.HasCommittedAimCamera === true,
     });
     host.GameCanvas.dataset.aimCancel = String(WillCancel);
     host.GameCanvas.dataset.aimPower = WillCancel ? '0' : String(Math.round(PowerRatio * 100));

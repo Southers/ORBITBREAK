@@ -1059,6 +1059,15 @@ calls Seedstone a launch. Motion in pause reads as a three-way toggle.
 Cache-bust, Command expose, outer leave, skim recapture and toy props
 stay.
 
+Checkpoint 30 — 19 August 2026: Grove aim cannot jam the camera. A hull
+pull still zooms to the neighbourhood map, but a long pull launches
+instead of cancelling on the shrunken screen disc; cancel or Resume snaps
+the landed close-up back so the ship stays grabbable. Pause Zoom −/+ stay
+in Scout. Command appears after leaving the inner cluster (two inner
+worlds live plus further travel) and can be exposed. Occupied worlds keep
+a tappable equatorial cage, including Grove. Drag-walk, shared
+cache-bust, Q/E 14°, Scout HERE and normal-reload boot stay.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

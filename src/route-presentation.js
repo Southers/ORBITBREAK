@@ -4,9 +4,9 @@
  * authored suggestions; every physical destination stays valid.
  */
 
-import { getRouteChoices, isSystemRestored } from './campaign.js?v=20260819-ob134';
-import { countLiveRelayWorlds, wouldCloseRelayCircuit } from './network.js?v=20260819-ob134';
-import { calculateBodyPositionAtTime } from './physics.js?v=20260819-ob134';
+import { getRouteChoices, isSystemRestored } from './campaign.js?v=20260819-ob135';
+import { countLiveRelayWorlds, wouldCloseRelayCircuit } from './network.js?v=20260819-ob135';
+import { calculateBodyPositionAtTime } from './physics.js?v=20260819-ob135';
 import {
   getHiddenWardenRouteCoach,
   getPlayfieldLabelVerticalBounds,
@@ -23,7 +23,7 @@ import {
   getCommandWorldTacticalLabel,
   getHereWorldLabel,
   getSeedstoneTacticalLabel,
-} from './presentation.js?v=20260819-ob134';
+} from './presentation.js?v=20260819-ob135';
 
 export function createRoutePresentation(THREE, host) {
   const {
@@ -54,6 +54,7 @@ export function createRoutePresentation(THREE, host) {
     ActiveSystem,
     showInstruction,
     isLiveInnerCluster,
+    isLiveFurtherReach,
     getWorldDefinition,
     synchronizeSeedstonePosition,
     synchronizeWorldheartPosition,
@@ -525,9 +526,26 @@ export function createRoutePresentation(THREE, host) {
         !ShouldShowTacticalLayer
         || !TacticalLabelDefinition
         || host.GamePhase !== 'attached'
-        || !(host.IsPointerAiming || host.IsKeyboardAiming || host.IsScoutMode)
-        || StatusToastElement.classList.contains('is-visible')
       ) {
+        hidePlayfieldLabel(TacticalLabelElement);
+        continue;
+      }
+      const IsCommandChip = TacticalLabelDefinition.definition.kind === 'worldheart';
+      const TravelledFurther = typeof isLiveFurtherReach === 'function'
+        && isLiveFurtherReach();
+      const ShowCommandChip = IsCommandChip && (
+        host.IsPointerAiming
+        || host.IsKeyboardAiming
+        || host.IsScoutMode
+        || WorldheartDefinition.routeAvailable === true
+        || TravelledFurther
+      );
+      const ShowOtherTactical = !IsCommandChip && (
+        host.IsPointerAiming
+        || host.IsKeyboardAiming
+        || host.IsScoutMode
+      );
+      if (!ShowCommandChip && !ShowOtherTactical) {
         hidePlayfieldLabel(TacticalLabelElement);
         continue;
       }

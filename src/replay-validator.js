@@ -1,14 +1,14 @@
-import { createAuthoredSystemRuntime, getAuthoredSystemDefinition } from './content.js?v=20260819-ob134';
-import { calculateBodyPositionAtTime, createOrbitTrapState, createVector } from './physics.js?v=20260819-ob134';
+import { createAuthoredSystemRuntime, getAuthoredSystemDefinition } from './content.js?v=20260819-ob135';
+import { calculateBodyPositionAtTime, createOrbitTrapState, createVector } from './physics.js?v=20260819-ob135';
 import {
   PhysicsModelVersion,
   ReplaySchemaVersion,
   parseReplay,
-} from './replay.js?v=20260819-ob134';
-import { createScoreState } from './scoring.js?v=20260819-ob134';
-import { createRunState, releaseRunLaunch } from './run.js?v=20260819-ob134';
-import { createRelayNetworkState } from './network.js?v=20260819-ob134';
-import { createWardenPursuitState } from './warden.js?v=20260819-ob134';
+} from './replay.js?v=20260819-ob135';
+import { createScoreState } from './scoring.js?v=20260819-ob135';
+import { createRunState, releaseRunLaunch } from './run.js?v=20260819-ob135';
+import { createRelayNetworkState } from './network.js?v=20260819-ob135';
+import { createWardenPursuitState } from './warden.js?v=20260819-ob135';
 import {
   advanceSimulatedFlightStep,
   applyFlightBreakerBurn,
@@ -19,14 +19,14 @@ import {
   settleFailedFlight,
   settleSeedstoneLanding,
   settleWorldLanding,
-} from './flight-resolver.js?v=20260819-ob134';
+} from './flight-resolver.js?v=20260819-ob135';
 import {
   FixedPhysicsStepHertz,
   MaximumValidatedFlightSteps,
   RunnerRadius,
   SurfaceOriginTolerance,
   SurfaceRestLift,
-} from './sim-constants.js?v=20260819-ob134';
+} from './sim-constants.js?v=20260819-ob135';
 
 function invalid(Reason) {
   return { valid: false, reason: Reason, result: null };

@@ -34,23 +34,23 @@ import {
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob134';
+} from './controls.js?v=20260819-ob135';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
   resolveClampTap,
   resolveHostileCut,
-} from './encounter.js?v=20260819-ob134';
-import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob134';
+} from './encounter.js?v=20260819-ob135';
+import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob135';
 import {
   getCageClearPulseDurationSeconds,
   getActiveViewZoomMinimumScale,
   getLaunchFacingPresentation,
   getLogicalSurfaceDirectionFromWorldHit,
   shouldAssistCommandLock,
-} from './presentation.js?v=20260819-ob134';
-import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob134';
-import { releaseRunLaunch } from './run.js?v=20260819-ob134';
+} from './presentation.js?v=20260819-ob135';
+import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob135';
+import { releaseRunLaunch } from './run.js?v=20260819-ob135';
 
 export function createInputController(THREE, host) {
   const {
@@ -122,6 +122,7 @@ export function createInputController(THREE, host) {
     applySectorPlanningCamera,
     commitAimPlanningCamera,
     clearCommittedAimCamera,
+    restoreLandedViewAfterAim,
     clearTrajectoryPreview,
     updateAimPreview,
     updateKeyboardAimPreview,
@@ -322,6 +323,7 @@ function getLandedPointerOccupancy(PointerEventData, WorldPosition = null) {
   const GrabRadiusPixels = getLandedShipGrabRadiusPixels({
     isOverWorld: OverWorld,
     worldScreenRadiusPixels: getAttachedWorldScreenRadiusPixels(),
+    useEmptySpaceHalo: Number(host.CameraDistanceScale) >= 0.85,
   });
   const OverShipHalo = getScreenDistanceToSeed(PointerEventData) <= GrabRadiusPixels;
   const CageClampId = pickCageClampId(PointerEventData);
@@ -942,6 +944,7 @@ function cancelAimedLaunch({ announce = true } = {}) {
   GameCanvas.dataset.keyboardAimAssist = '';
   releaseAimInteractionCamera();
   clearCommittedAimCamera();
+  restoreLandedViewAfterAim({ snap: true });
   clearTrajectoryPreview();
   if (WasAiming) WorldseedSound.endAim();
   if (WasAiming && announce) showStatusToast('LAUNCH CANCELED', 700);
@@ -981,6 +984,14 @@ function handleKeyboardAimKey(KeyboardEventData) {
     && host.ReplayPlaybackState === null
   ) {
     KeyboardEventData.preventDefault();
+    if (
+      host.IsPointerAiming
+      || host.IsKeyboardAiming
+      || host.HasCommittedAimCamera
+      || host.ActivePointerIdentifier !== null
+    ) {
+      cancelAimedLaunch({ announce: false });
+    }
     setScoutMode(false);
     HeldWalkFine = KeyboardEventData.shiftKey === true;
     HeldWalkKeys.add(PressedKey);
@@ -1487,8 +1498,18 @@ function handlePointerDown(PointerEventData) {
     PointerEventData.preventDefault();
     return;
   }
-  if (host.ActivePointerIdentifier !== null || host.PinchState) {
+  if (host.PinchState) {
     return;
+  }
+  if (host.ActivePointerIdentifier !== null) {
+    if (
+      host.ActivePointerIdentifier !== PointerEventData.pointerId
+      || PointerEventData.buttons === 0
+    ) {
+      cancelAimedLaunch({ announce: false });
+    } else {
+      return;
+    }
   }
 
   const CurrentPointerWorldPosition = getPointerWorldPosition(PointerEventData);
@@ -1725,6 +1746,9 @@ function releaseAimedLaunch({ cancelIfShort = true } = {}) {
     clearHeldAimKeys();
     releaseAimInteractionCamera();
     clearCommittedAimCamera();
+    if (typeof restoreLandedViewAfterAim === 'function') {
+      restoreLandedViewAfterAim({ snap: true });
+    }
     clearTrajectoryPreview();
     WorldseedSound.endAim();
     return false;
@@ -2021,6 +2045,7 @@ function handlePointerUp(PointerEventData) {
     pointerDistanceFromShip: AimDragVector.length(),
     cancelRadius: LaunchCancelRadius,
     screenDistancePixels: host.LastAimScreenDistancePixels,
+    planningCameraCommitted: host.HasCommittedAimCamera === true,
   })) {
     cancelAimedLaunch();
     PointerEventData.preventDefault();
@@ -2063,6 +2088,7 @@ function handlePointerCancel(PointerEventData) {
   GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting', 'is-ship-armed');
   releaseAimInteractionCamera();
   clearCommittedAimCamera();
+  restoreLandedViewAfterAim({ snap: true });
   clearTrajectoryPreview();
   if (WasAiming) WorldseedSound.endAim();
   clearAimScreenDistance();
