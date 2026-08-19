@@ -6,7 +6,7 @@
  * and suitable for use both by the live seed simulation and the trajectory preview.
  */
 
-import { hasClearedLaunchOrigin } from './sim-constants.js?v=20260819-ob138';
+import { hasClearedLaunchOrigin } from './sim-constants.js?v=20260819-ob139';
 
 /**
  * Creates a small immutable-style vector object used by the deterministic physics layer.

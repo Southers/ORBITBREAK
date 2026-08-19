@@ -8,21 +8,21 @@
 export {
   validateAuthoredSystemDefinition,
   assertValidAuthoredSystemDefinition,
-} from './content/schema.js?v=20260819-ob138';
-export { createAuthoredSystemRuntime } from './content/runtime.js?v=20260819-ob138';
-export { FirstLightSystemDefinition } from './content/systems/first-light.js?v=20260819-ob138';
-export { BreakerReachSystemDefinition } from './content/systems/breaker-reach.js?v=20260819-ob138';
-export { BrokenBeltSystemDefinition } from './content/systems/broken-belt.js?v=20260819-ob138';
-export { WanderingGardenSystemDefinition } from './content/systems/wandering-garden.js?v=20260819-ob138';
-export { LongNightSystemDefinition } from './content/systems/long-night.js?v=20260819-ob138';
-export { WorldheartSystemDefinition } from './content/systems/worldheart.js?v=20260819-ob138';
+} from './content/schema.js?v=20260819-ob139';
+export { createAuthoredSystemRuntime } from './content/runtime.js?v=20260819-ob139';
+export { FirstLightSystemDefinition } from './content/systems/first-light.js?v=20260819-ob139';
+export { BreakerReachSystemDefinition } from './content/systems/breaker-reach.js?v=20260819-ob139';
+export { BrokenBeltSystemDefinition } from './content/systems/broken-belt.js?v=20260819-ob139';
+export { WanderingGardenSystemDefinition } from './content/systems/wandering-garden.js?v=20260819-ob139';
+export { LongNightSystemDefinition } from './content/systems/long-night.js?v=20260819-ob139';
+export { WorldheartSystemDefinition } from './content/systems/worldheart.js?v=20260819-ob139';
 
-import { FirstLightSystemDefinition } from './content/systems/first-light.js?v=20260819-ob138';
-import { BreakerReachSystemDefinition } from './content/systems/breaker-reach.js?v=20260819-ob138';
-import { BrokenBeltSystemDefinition } from './content/systems/broken-belt.js?v=20260819-ob138';
-import { WanderingGardenSystemDefinition } from './content/systems/wandering-garden.js?v=20260819-ob138';
-import { LongNightSystemDefinition } from './content/systems/long-night.js?v=20260819-ob138';
-import { WorldheartSystemDefinition } from './content/systems/worldheart.js?v=20260819-ob138';
+import { FirstLightSystemDefinition } from './content/systems/first-light.js?v=20260819-ob139';
+import { BreakerReachSystemDefinition } from './content/systems/breaker-reach.js?v=20260819-ob139';
+import { BrokenBeltSystemDefinition } from './content/systems/broken-belt.js?v=20260819-ob139';
+import { WanderingGardenSystemDefinition } from './content/systems/wandering-garden.js?v=20260819-ob139';
+import { LongNightSystemDefinition } from './content/systems/long-night.js?v=20260819-ob139';
+import { WorldheartSystemDefinition } from './content/systems/worldheart.js?v=20260819-ob139';
 
 export const DefaultAuthoredSystemIdentifier = BreakerReachSystemDefinition.id;
 
