@@ -225,7 +225,7 @@ export function auditReleaseReadiness() {
       && RestorationVisualsSource.includes('spinIdleWorldCrust(')
       && CameraSource.includes('const WorldCameraUp = Object.freeze({ x: 0, y: 0, z: 1 })')
       && InputControllerSource.includes('getLogicalSurfaceDirectionFromWorldHit(')
-      && LivingWorldSource.includes('CrustOffset.applyQuaternion(WorldGroup.quaternion)')
+      && LivingWorldSource.includes('CrustOffset.applyMatrix4(WorldGroup.matrixWorld)')
       && !CameraSource.includes('PoleLock'),
     'Landed walk must spin only the occupied world under the Runner, plant feet on the visual crust, and keep camera up on world +Z.',
   );
