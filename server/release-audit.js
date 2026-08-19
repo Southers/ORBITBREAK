@@ -52,6 +52,7 @@ export function auditReleaseReadiness() {
   const HudSource = readRepositoryFile('src/hud.js');
   const LandingDirectorSource = readRepositoryFile('src/landing-director.js');
   const InputControllerSource = readRepositoryFile('src/input-controller.js');
+  const HostileSurfaceSource = readRepositoryFile('src/hostile-surface.js');
   const ControlsSource = readRepositoryFile('src/controls.js');
   const CameraSource = readRepositoryFile('src/camera-controller.js');
   const ScannerSource = readRepositoryFile('src/scanner.js');
@@ -155,6 +156,10 @@ export function auditReleaseReadiness() {
       && ControlsSource.includes('if (isOverCage === true)')
       && ControlsSource.includes('CageScreenGrabRadiusPixels = 88')
       && ControlsSource.includes('SeedScreenGrabRadiusPixels = 96')
+      && ControlsSource.includes('SeedOnGlobeGrabRadiusPixels = 28')
+      && ControlsSource.includes('SeedOnGlobeGrabWorldRadiusScale = 0.12')
+      && !InputControllerSource.includes('Walk near')
+      && !HostileSurfaceSource.includes('Walk near')
       && InputControllerSource.includes('finishArmedCageTap(')
       && PresentationSource.includes("title: 'Drag the planet to walk'")
       && PresentationSource.includes("title: 'Pull the ship, then let go'")
