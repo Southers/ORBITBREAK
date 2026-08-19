@@ -288,6 +288,14 @@ export function createRoutePresentation(THREE, host) {
         hidePlayfieldLabel(RouteLabelElement);
         continue;
       }
+      if (
+        WorldDefinition.id === WorldheartDefinition.id
+        || WorldDefinition.kind === 'worldheart'
+        || WorldDefinition.label === WorldheartDefinition.label
+      ) {
+        hidePlayfieldLabel(RouteLabelElement);
+        continue;
+      }
 
       RouteLabelProjection.set(
         WorldDefinition.position.x,
@@ -484,6 +492,19 @@ export function createRoutePresentation(THREE, host) {
       ) {
         hidePlayfieldLabel(TacticalLabelElement);
         continue;
+      }
+      if (TacticalLabelDefinition.definition.kind === 'hazard') {
+        const OverlapsWorld = WorldDefinitions.some((WorldDefinition) => {
+          const Distance = Math.hypot(
+            WorldDefinition.position.x - TacticalLabelDefinition.position.x,
+            WorldDefinition.position.y - TacticalLabelDefinition.position.y,
+          );
+          return Distance < WorldDefinition.radius + 3.2;
+        });
+        if (OverlapsWorld) {
+          hidePlayfieldLabel(TacticalLabelElement);
+          continue;
+        }
       }
 
       RouteLabelProjection.set(

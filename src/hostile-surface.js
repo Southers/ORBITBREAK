@@ -22,7 +22,7 @@ import {
   getHostileEncounterMoveDirection,
   getNearestClampCut,
   getRemainingClamps,
-} from './encounter.js?v=20260819-ob126';
+} from './encounter.js?v=20260819-ob129';
 import { createVector } from './physics.js';
 import { calculateSurfaceRestPosition as calculateSharedSurfaceRestPosition } from './flight-resolver.js';
 
@@ -242,6 +242,11 @@ export function createHostileSurface(THREE, host) {
       || CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id)
     ) {
       return false;
+    }
+    if (host.ActiveHostileEncounterState?.worldIdentifier === WorldDefinition.id) {
+      publishHostileEncounterState();
+      showHostileEncounterInstruction();
+      return true;
     }
     cancelCutAim({ announce: false });
     host.ActiveHostileEncounterState = createHostileEncounterState({

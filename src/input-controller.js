@@ -25,16 +25,17 @@ import {
   SeedScreenGrabRadiusPixels,
   getLandedShipGrabRadiusPixels,
   getLandedCageGrabRadiusPixels,
+  clampLandedCameraPanOffset,
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob127';
+} from './controls.js?v=20260819-ob129';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
   resolveClampTap,
   resolveHostileCut,
-} from './encounter.js?v=20260819-ob126';
+} from './encounter.js?v=20260819-ob129';
 import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js';
 import {
   getCageClearPulseDurationSeconds,
@@ -57,6 +58,7 @@ export function createInputController(THREE, host) {
     PointerByIdentifier,
     SeedGroup,
     SeedPointerHitMesh,
+    ShipVisualGroup,
     LaunchPulseMesh,
     PullGuideLine,
     CameraPanOffset,
@@ -203,7 +205,27 @@ const WorldScreenLimb = new THREE.Vector3();
 const CageWorldPosition = new THREE.Vector3();
 const CageScreenProjection = new THREE.Vector3();
 
+function getShipGrabWorldPosition() {
+  const Fallback = new THREE.Vector3();
+  SeedGroup.getWorldPosition(Fallback);
+  if (!ShipVisualGroup) {
+    return Fallback;
+  }
+  const ShipPosition = new THREE.Vector3();
+  ShipVisualGroup.getWorldPosition(ShipPosition);
+  if (!Number.isFinite(ShipPosition.x) || !Number.isFinite(ShipPosition.y)) {
+    return Fallback;
+  }
+  return ShipPosition;
+}
+
 function isPointerOverShipMesh() {
+  if (ShipVisualGroup) {
+    const ShipHits = PointerRaycaster.intersectObject(ShipVisualGroup, true);
+    if (ShipHits.length > 0) {
+      return true;
+    }
+  }
   return PointerRaycaster.intersectObject(SeedPointerHitMesh, false).length > 0;
 }
 
@@ -341,7 +363,8 @@ function isPointerOverSeed(PointerEventData) {
 
 function getScreenDistanceToSeed(PointerEventData) {
   const CanvasBounds = GameCanvas.getBoundingClientRect();
-  SeedScreenProjection.copy(SeedGroup.position).project(Camera);
+  const GrabPosition = getShipGrabWorldPosition();
+  SeedScreenProjection.copy(GrabPosition).project(Camera);
   const SeedScreenX = CanvasBounds.left + (((SeedScreenProjection.x + 1) / 2) * CanvasBounds.width);
   const SeedScreenY = CanvasBounds.top + (((1 - SeedScreenProjection.y) / 2) * CanvasBounds.height);
   return Math.hypot(
@@ -879,6 +902,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
     rotationDirection: RotationDirection,
     powerDirection: PowerDirection,
     fine: KeyboardEventData.shiftKey,
+    repeat: KeyboardEventData.repeat === true,
   });
   updateKeyboardAimPreview();
   return true;
@@ -927,6 +951,14 @@ function updateCameraPan(WorldPosition) {
     return;
   }
   CameraPanOffset.set(NextX, NextY, 0);
+  if (!host.IsScoutMode && host.GamePhase === 'attached') {
+    const AttachedWorld = getCurrentAttachedWorld();
+    const Clamped = clampLandedCameraPanOffset(
+      CameraPanOffset,
+      AttachedWorld?.radius,
+    );
+    CameraPanOffset.set(Clamped.x, Clamped.y, 0);
+  }
   GameCanvas.dataset.scoutX = CameraPanOffset.x.toFixed(2);
   GameCanvas.dataset.scoutY = CameraPanOffset.y.toFixed(2);
 }
@@ -1296,6 +1328,7 @@ function handlePointerDown(PointerEventData) {
   });
   if (PointerStartTarget === LandedPointerTargets.ship) {
     setScoutMode(false);
+    const FirstShipGrab = host.HasGrabbedShipOnce !== true;
     host.HasGrabbedShipOnce = true;
     host.PointerGestureMode = SurfaceGestureModes.aim;
     host.IsPointerWalking = false;
@@ -1304,6 +1337,9 @@ function handlePointerDown(PointerEventData) {
     GameCanvas.classList.remove('is-walking', 'is-walk-ready');
     PointerGestureStartWorldPosition.copy(CurrentPointerWorldPosition);
     LastAimPointerWorldPosition.copy(CurrentPointerWorldPosition);
+    if (FirstShipGrab) {
+      showStatusToast('Pull to aim - release to launch', 900);
+    }
     PointerEventData.preventDefault();
     return;
   }
@@ -1715,6 +1751,11 @@ function handlePointerUp(PointerEventData) {
     host.IsPointerScouting = false;
     host.ActivePointerIdentifier = null;
     GameCanvas.classList.remove('is-scouting');
+    if (!host.IsScoutMode && host.GamePhase === 'attached') {
+      CameraPanOffset.set(0, 0, 0);
+      GameCanvas.dataset.scoutX = '0.00';
+      GameCanvas.dataset.scoutY = '0.00';
+    }
     PointerEventData.preventDefault();
     return;
   }

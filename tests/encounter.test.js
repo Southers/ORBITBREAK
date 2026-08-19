@@ -10,6 +10,7 @@ import {
   getCutMaxLength,
   getHostileEncounterAngularDistance,
   getHostileEncounterMoveDirection,
+  getOccupiedWorldCageEncounter,
   getLeftoverHostileEncounter,
   getNearestClampCut,
   getNearestRemainingClamp,
@@ -192,6 +193,51 @@ test('leftover Destroy is a single cage, not a Bastion cage', () => {
   assert.equal(Leftover.clampOffsetsRadians[0], 1.5);
   assert.equal(DefaultClampOffsetsRadians[0], 1.5);
   assert.ok(LeftoverClampOffsetsRadians[0] >= 1.5);
+});
+
+test('occupied unrestored worlds expose a tappable rim cage', () => {
+  assert.equal(getOccupiedWorldCageEncounter({
+    id: 'haven',
+    initiallyRestored: true,
+    restored: true,
+    occupationSites: [{ longitude: 0, latitude: 0 }],
+  }, { leftoverUnlocked: true }), null);
+  const EmberEncounter = getOccupiedWorldCageEncounter({
+    id: 'ember',
+    initiallyRestored: false,
+    restored: false,
+    hostileEncounter: {
+      clampOffsetsRadians: [1.5],
+      cutHitRadius: 0.48,
+      maxCutLength: 2.85,
+    },
+  }, { leftoverUnlocked: false });
+  assert.deepEqual(EmberEncounter.clampOffsetsRadians, [1.5]);
+  assert.equal(getOccupiedWorldCageEncounter({
+    id: 'grove',
+    initiallyRestored: false,
+    restored: false,
+    occupationSites: [{ longitude: 0.2, latitude: 0.1 }],
+  }, { leftoverUnlocked: false }), null);
+  const GroveEncounter = getOccupiedWorldCageEncounter({
+    id: 'grove',
+    initiallyRestored: false,
+    restored: false,
+    occupationSites: [{ longitude: 0.2, latitude: 0.1 }],
+  }, { leftoverUnlocked: true });
+  assert.deepEqual(GroveEncounter, getLeftoverHostileEncounter());
+  assert.equal(getOccupiedWorldCageEncounter({
+    id: 'grove',
+    initiallyRestored: false,
+    restored: true,
+    occupationSites: [{ longitude: 0.2, latitude: 0.1 }],
+  }, { leftoverUnlocked: true }), null);
+  assert.deepEqual(getOccupiedWorldCageEncounter({
+    id: 'grove',
+    initiallyRestored: false,
+    restored: true,
+    occupationSites: [{ longitude: 0.2, latitude: 0.1 }],
+  }, { leftoverUnlocked: true, includeRestored: true }), getLeftoverHostileEncounter());
 });
 
 test('tapping a cage shears only that clamp and a miss spends nothing', () => {

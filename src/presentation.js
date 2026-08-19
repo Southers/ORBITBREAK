@@ -173,9 +173,9 @@ export const CameraFacingPole = Object.freeze({ x: 0, y: 0, z: 1 });
  */
 export const RunnerFootLocalY = -0.46;
 /** Must match the landed RunnerVisualGroup scale in player-visuals. */
-export const LandedRunnerPresentationScale = 0.26;
+export const LandedRunnerPresentationScale = 0.38;
 /** Must match the parked courier scale in getParkedShipPresentation. */
-export const ParkedShipPresentationScale = 0.08;
+export const ParkedShipPresentationScale = 0.14;
 /** Local cylinder radius of the parked hull before ship scale. */
 export const ParkedShipHullLocalRadius = 0.13;
 
@@ -553,9 +553,22 @@ export function getRangeVeilStrength(
   return getAuthoredRangeVeilStrength(worldIdentifier, innerClusterLive, SectorRules);
 }
 
+/** Overlay and prosperity props are authored for ~radius-3 globes. */
+export const ToyDioramaReferenceRadius = 3.2;
+
+/** Shrinks toy props on outposts so houses and trees stay smaller than the crust. */
+export function getToyDioramaScale(worldRadius, referenceRadius = ToyDioramaReferenceRadius) {
+  const Radius = Number(worldRadius);
+  const Reference = Number(referenceRadius);
+  if (!Number.isFinite(Radius) || Radius <= 0 || !Number.isFinite(Reference) || Reference <= 0) {
+    return 1;
+  }
+  return Math.min(1, Radius / Reference);
+}
+
 /** Scout and aim stay a sector view; landed close-up may take one extra zoom-in notch. */
 export const ScoutMinimumZoomScale = 0.38;
-export const LandedMinimumZoomScale = 0.28;
+export const LandedMinimumZoomScale = 0.18;
 export const PlanningMinimumZoomScale = ScoutMinimumZoomScale;
 export const PlanningMaximumZoomScale = 3.85;
 
@@ -1128,8 +1141,8 @@ export function getLandedSurfaceCameraPose({
 export function getLandedCameraScale({
   worldRadius,
   viewportWorldHeight,
-  minimumScale = 0.32,
-  maximumScale = 0.46,
+  minimumScale = 0.18,
+  maximumScale = 0.28,
 } = {}) {
   if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
     throw new Error('Landed camera requires a positive world radius.');
@@ -1137,7 +1150,7 @@ export function getLandedCameraScale({
   if (!Number.isFinite(viewportWorldHeight) || viewportWorldHeight <= 0) {
     throw new Error('Landed camera requires a positive viewport height.');
   }
-  const FramedHeight = worldRadius * 2.48;
+  const FramedHeight = worldRadius * 1.92;
   return Math.min(
     maximumScale,
     Math.max(minimumScale, FramedHeight / viewportWorldHeight),
@@ -1888,12 +1901,12 @@ export function shouldPlayOpeningBriefing({
 
 /** One-page control card. Shown after the intro (or Skip intro) before the first walk. */
 export const HowToPlayLines = Object.freeze([
-  'Drag the planet to walk. The world turns under you.',
-  'Pull the ship and let go to fly to another tiny world.',
-  'Landing links worlds. Linked worlds prosper.',
-  'Occupied worlds have Warden cages. Tap the cage to break it.',
-  'Drag empty space to look around. C pulls the camera back.',
-  'R starts the run over.',
+  'Drag the planet to walk, or use Q and E. T and F walk the poles.',
+  'Pull the ship to aim and release to fly. A and D steer; W and S change power.',
+  'Landing links worlds. Land in the gold beacon to restore them.',
+  'Occupied worlds have a red Warden cage. Tap the cage to break it.',
+  'Drag empty space to look around. C opens the Scout map.',
+  'R starts the run over. Reach the moving Command World to finish.',
 ]);
 
 export function getHowToPlayPresentation() {

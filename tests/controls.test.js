@@ -24,6 +24,7 @@ import {
   CageScreenGrabRadiusPixels,
   getLandedCageGrabRadiusPixels,
   doLandedCageAndShipHalosOverlap,
+  clampLandedCameraPanOffset,
   createSurfacePose,
   flattenSurfacePoseToEquator,
   getSphereSurfacePosition,
@@ -83,7 +84,7 @@ test('keyboard steering wraps angles and offers coarse and fine control', () => 
   assert.ok(CoarseState.angleRadians > Math.PI);
   assert.ok(FineState.angleRadians > CoarseState.angleRadians);
   assert.ok(Math.abs(
-    FineState.angleRadians - ((Math.PI * 2) - (1.5 * Math.PI / 180)),
+    FineState.angleRadians - ((Math.PI * 2) - (6 * Math.PI / 180)),
   ) < 1e-12);
 });
 
@@ -292,7 +293,7 @@ test('landed ship grab stays small on the visible crust so planet drags can walk
     worldScreenRadiusPixels: 48,
   });
   assert.equal(TightDisc, SeedOnGlobeGrabMinRadiusPixels);
-  assert.ok(TightDisc < 48 * 0.5);
+  assert.ok(TightDisc < 48 * 0.7);
   assert.equal(classifyLandedPointerStart({
     isOverShip: false,
     isOverWorld: true,
@@ -300,9 +301,9 @@ test('landed ship grab stays small on the visible crust so planet drags can walk
 });
 
 test('a filling phone globe grabs the parked hull, not a fraction of the world disc', () => {
-  assert.equal(SeedOnGlobeGrabRadiusPixels, 28);
-  assert.equal(SeedOnGlobeGrabMinRadiusPixels, 20);
-  assert.equal(SeedOnGlobeGrabWorldRadiusScale, 0.12);
+  assert.equal(SeedOnGlobeGrabRadiusPixels, 48);
+  assert.equal(SeedOnGlobeGrabMinRadiusPixels, 28);
+  assert.equal(SeedOnGlobeGrabWorldRadiusScale, 0.22);
   const FillingRadius = 195;
   const Hull = getLandedShipGrabRadiusPixels({
     isOverWorld: true,
@@ -316,7 +317,7 @@ test('a filling phone globe grabs the parked hull, not a fraction of the world d
     ),
   );
   assert.ok(Hull <= SeedOnGlobeGrabRadiusPixels);
-  assert.ok(Hull < FillingRadius * 0.2);
+  assert.ok(Hull < FillingRadius * 0.25);
   const InVoidBesideGlobe = getLandedShipGrabRadiusPixels({
     isOverWorld: false,
     worldScreenRadiusPixels: FillingRadius,
@@ -426,6 +427,13 @@ test('returning the pull onto the ship cancels launch', () => {
   assert.equal(shouldCancelAimedLaunch({ pointerDistanceFromShip: 0.85 }), true);
   assert.equal(shouldCancelAimedLaunch({ pointerDistanceFromShip: 0.86 }), false);
   assert.throws(() => shouldCancelAimedLaunch({ pointerDistanceFromShip: -1 }), /non-negative/);
+});
+
+test('landed empty-space pans stay inside the current world so the courier cannot leave the frame', () => {
+  assert.deepEqual(clampLandedCameraPanOffset({ x: 0.2, y: 0 }, 4), { x: 0.2, y: 0 });
+  const Clamped = clampLandedCameraPanOffset({ x: 10, y: 0 }, 4);
+  assert.ok(Math.abs(Clamped.x - 1.68) < 1e-12);
+  assert.equal(Clamped.y, 0);
 });
 
 test('a zoomed-out aim still cancels inside a constant screen disk around the ship', () => {

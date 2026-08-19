@@ -660,19 +660,13 @@ export function createFrameVisuals(THREE, host) {
     if (ShowShipCue) {
       SeedHaloMesh.position.set(0, 0, 0);
       SeedHaloMesh.scale.setScalar(
-        1 + (Math.sin(ElapsedTimeSeconds * (VerbHighlight.shipHaloCharge ? 7.4 : 4.2)) * 0.04),
+        1 + (Math.sin(ElapsedTimeSeconds * (VerbHighlight.shipHaloCharge ? 7.4 : 4.2)) * 0.06),
       );
-      if (RunnerAnimationState === 'recovering') {
-        SeedHaloMaterial.color.setHex(0xff766d);
-      } else {
-        if (RunnerAnimationState === 'recovering') {
-        SeedHaloMaterial.color.setHex(0xff766d);
-      } else {
-        SeedHaloMaterial.color.setHex(0xc4f7a6);
-      }
-      }
-      SeedHaloMaterial.opacity = 0.38
-        + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.05);
+      SeedHaloMaterial.color.setHex(
+        RunnerAnimationState === 'recovering' ? 0xff766d : 0xc4f7a6,
+      );
+      SeedHaloMaterial.opacity = 0.72
+        + (Math.sin(ElapsedTimeSeconds * 4.2) * 0.12);
     } else {
       SeedHaloMaterial.opacity = 0;
     }

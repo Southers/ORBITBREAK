@@ -33,6 +33,42 @@ export function getLeftoverHostileEncounter() {
   };
 }
 
+/**
+ * Occupied unrestored worlds always have a tappable rim cage. Authored
+ * encounters win; leftover worlds get one cage once the first links exist.
+ * Starting gardens stay free. Post-liberation can opt back in.
+ */
+export function getOccupiedWorldCageEncounter(world, {
+  leftoverUnlocked = false,
+  includeRestored = false,
+} = {}) {
+  if (!world) {
+    return null;
+  }
+  if (world.initiallyRestored === true) {
+    return null;
+  }
+  if (world.restored === true && includeRestored !== true) {
+    return null;
+  }
+  if (world.hostileEncounter) {
+    return {
+      ...world.hostileEncounter,
+      clampOffsetsRadians: [...world.hostileEncounter.clampOffsetsRadians],
+    };
+  }
+  if (leftoverUnlocked !== true) {
+    return null;
+  }
+  const HasOccupation = Boolean(world.occupation)
+    || (Array.isArray(world.occupationSites) && world.occupationSites.length > 0)
+    || (Array.isArray(world.occupationScarAngles) && world.occupationScarAngles.length > 0);
+  if (!HasOccupation) {
+    return null;
+  }
+  return getLeftoverHostileEncounter();
+}
+
 function normalizeAngle(AngleRadians) {
   return ((AngleRadians + Math.PI) % FullCircleRadians + FullCircleRadians) % FullCircleRadians
     - Math.PI;
