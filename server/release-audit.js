@@ -258,6 +258,28 @@ export function auditReleaseReadiness() {
     'The selected sector must open with a story board that names the Runner, the Reach and the charge.',
   );
   requireCondition(
+    PresentationSource.includes('export function getHowToPlayPresentation(')
+      && PresentationSource.includes("title: 'How to play'")
+      && PresentationSource.includes('Drag the planet to walk. The world turns under you.')
+      && PresentationSource.includes('Pull the ship and let go to fly to another tiny world.')
+      && PresentationSource.includes('Landing links worlds. Linked worlds prosper.')
+      && PresentationSource.includes('Occupied worlds have Warden cages. Tap the cage to break it.')
+      && PresentationSource.includes('Drag empty space to look around. C pulls the camera back.')
+      && PresentationSource.includes('R starts the run over.')
+      && PresentationSource.includes('export function shouldShowHowToPlayAfterOpening({')
+      && /id="HowToPlay"[^>]*role="dialog"[^>]*aria-modal="true"/.test(IndexHtml)
+      && /id="HowToPlayContinueButton"/.test(IndexHtml)
+      && /id="HowToPlayButton"/.test(IndexHtml)
+      && /\.how-to-play\s*\{[^}]*user-select:\s*none;/s.test(StyleSheet)
+      && /\.how-to-play\s*\{[^}]*-webkit-user-select:\s*none;/s.test(StyleSheet)
+      && /#HowToPlayContinueButton\s*\{[^}]*min-height:\s*44px;/s.test(StyleSheet)
+      && MainSource.includes('function showHowToPlay(')
+      && MainSource.includes('function presentHowToPlayAfterOpening(')
+      && StoryDirectorSource.includes('presentHowToPlayAfterOpening')
+      && !IndexHtml.includes('\u2014'),
+    'Play must gate the first walk with one How to play card after the intro, also reachable from pause.',
+  );
+  requireCondition(
     AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
       ?.storyBoards?.wardenArrival?.pages?.length >= 2
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
@@ -326,10 +348,11 @@ export function auditReleaseReadiness() {
       && /id="MotionButton"/.test(IndexHtml)
       && /id="AudioButton"/.test(IndexHtml)
       && /id="ResetButton"/.test(IndexHtml)
+      && /id="HowToPlayButton"/.test(IndexHtml)
       && /\.pause-button\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/s.test(StyleSheet)
       && MainSource.includes('function setPauseSheetOpen(')
       && MainSource.includes("PressedKey === 'escape'"),
-    'Play must keep a 44px pause control that opens a labelled sheet of Scout, zoom, Ghost, Motion, Audio and Reset.',
+    'Play must keep a 44px pause control that opens a labelled sheet of How to play, Scout, zoom, Ghost, Motion, Audio and Reset.',
   );
   requireCondition(
     HudSource.includes('function updateFuelLights()')

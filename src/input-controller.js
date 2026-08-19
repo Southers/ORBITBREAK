@@ -413,13 +413,17 @@ function getHeldWalkAxes() {
   return { east: East, north: North };
 }
 
+function isPlayInputBlocked() {
+  return host.IsOpeningBriefingActive === true || host.IsHowToPlayOpen === true;
+}
+
 function canHoldWalkKeys() {
   return host.GamePhase === 'attached'
     && host.ReplayPlaybackState === null
     && host.IsKeyboardAiming !== true
     && host.IsPointerAiming !== true
     && host.IsCutAiming !== true
-    && host.IsOpeningBriefingActive !== true;
+    && !isPlayInputBlocked();
 }
 
 function applyKeyboardWalkStep(StepRadians) {
@@ -746,7 +750,7 @@ function cancelKeyboardAim() {
 
 /** Routes focused canvas keys into the same aim and launch state as a pointer gesture. */
 function handleKeyboardAimKey(KeyboardEventData) {
-  if (host.IsOpeningBriefingActive) {
+  if (isPlayInputBlocked()) {
     return false;
   }
   if (host.getActiveElement() !== GameCanvas) {
@@ -1225,7 +1229,7 @@ function getLogicalWalkPose(AttachedWorld, Hit) {
  * @param {PointerEvent} PointerEventData - Browser pointer event.
  */
 function handlePointerDown(PointerEventData) {
-  if (host.IsOpeningBriefingActive) {
+  if (isPlayInputBlocked()) {
     return;
   }
   if (host.RunState.status !== 'active' || host.ReplayPlaybackState !== null) {
@@ -1339,7 +1343,7 @@ function handlePointerMove(PointerEventData) {
       'is-grab-ready',
       CanGrabSeed
       && host.ReplayPlaybackState === null
-      && !host.IsOpeningBriefingActive
+      && !isPlayInputBlocked()
       && (
         host.GamePhase === 'attached'
           ? LandedOccupancy.isOverShip
@@ -1349,7 +1353,7 @@ function handlePointerMove(PointerEventData) {
     if (
       host.GamePhase === 'attached'
       && host.ReplayPlaybackState === null
-      && !host.IsOpeningBriefingActive
+      && !isPlayInputBlocked()
       && !LandedOccupancy.isOverShip
     ) {
       const IsWalkReady = LandedOccupancy.isOverWorld === true;

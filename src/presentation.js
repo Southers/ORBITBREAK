@@ -432,11 +432,13 @@ export function getFirstRunCoachPresentation({
   hasGrabbedShipOnce = false,
   hasLaunchedOnce = false,
   isOpeningBriefingActive = false,
+  isHowToPlayOpen = false,
   runStatus = 'active',
 } = {}) {
   if (
     gamePhase !== 'attached'
     || isOpeningBriefingActive === true
+    || isHowToPlayOpen === true
     || runStatus !== 'active'
     || hasLaunchedOnce === true
   ) {
@@ -1876,6 +1878,35 @@ export function shouldPlayOpeningBriefing({
     return false;
   }
   return hasCompletedOpeningBriefing !== true;
+}
+
+/** One-page control card. Shown after the intro (or Skip intro) before the first walk. */
+export const HowToPlayLines = Object.freeze([
+  'Drag the planet to walk. The world turns under you.',
+  'Pull the ship and let go to fly to another tiny world.',
+  'Landing links worlds. Linked worlds prosper.',
+  'Occupied worlds have Warden cages. Tap the cage to break it.',
+  'Drag empty space to look around. C pulls the camera back.',
+  'R starts the run over.',
+]);
+
+export function getHowToPlayPresentation() {
+  return {
+    title: 'How to play',
+    continueLabel: 'Continue',
+    lines: [...HowToPlayLines],
+  };
+}
+
+/** How to play gates the first walk once per session; Reset/R does not replay it. */
+export function shouldShowHowToPlayAfterOpening({
+  hasCompletedHowToPlay = false,
+  replayActive = false,
+} = {}) {
+  if (replayActive === true) {
+    return false;
+  }
+  return hasCompletedHowToPlay !== true;
 }
 
 /** Describes the visual scanner without turning moving coordinates into live announcements. */

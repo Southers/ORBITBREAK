@@ -272,6 +272,7 @@ export function createHud(host) {
       hasGrabbedShipOnce: host.HasGrabbedShipOnce === true,
       hasLaunchedOnce: host.HasLaunchedOnce === true,
       isOpeningBriefingActive: host.IsOpeningBriefingActive === true,
+      isHowToPlayOpen: host.IsHowToPlayOpen === true,
       runStatus: host.RunState?.status ?? 'active',
     });
     if (!Coach.visible) {

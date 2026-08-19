@@ -414,7 +414,7 @@ function adjustViewZoom(Direction) {
 }
 
 function handleScoutWheel(WheelEventData) {
-  if (host.IsOpeningBriefingActive || host.ReplayPlaybackState !== null) return;
+  if (host.IsOpeningBriefingActive || host.IsHowToPlayOpen || host.ReplayPlaybackState !== null) return;
   if (host.GamePhase === 'victory' || host.GamePhase === 'runFailed' || host.GamePhase === 'victoryPending') {
     return;
   }

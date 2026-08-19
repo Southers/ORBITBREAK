@@ -15,7 +15,7 @@ Keep and reuse what already works:
 - optional provider-neutral leaderboard code, not deployed;
 - adaptive performance, accessibility and desktop/mobile test coverage.
 
-The play screen is diegetic: menus are briefing, pause and results. Fuel lives on the ship, Warden telegraph lives on the vessel and target world, and first-run captions then go silent.
+The play screen is diegetic: menus are briefing, How to play, pause and results. Fuel lives on the ship, Warden telegraph lives on the vessel and target world, and first-run captions then go silent.
 
 The fixed eight-launch campaign and inherited five-chapter structure are no longer design constraints.
 
@@ -1029,6 +1029,10 @@ furnaces, canopy halls and jetties are merged toy buildings. Ground scatter
 is biome-true (grass, trees with brown trunks, cacti, ice spikes, reeds) at
 lower density so each silhouette can be read. Meadow cottages gained chimneys,
 doors and windows on every face; trees are trunk-plus-cone.
+
+Checkpoint 26 — 18 August 2026: How to play. After the two-page opening, or
+Skip intro, a single Continue-gated card sits in front of the first walk.
+Pause can open the same page later. Copy is six short lines. Not a HUD.
 
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
