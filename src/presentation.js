@@ -427,6 +427,12 @@ export function getLandedSurfacePlant({
  * walk drag never reads as entering aim mode; the aim line then holds until the
  * first launch.
  */
+/** Sticky first-run coach bodies. Walk names prosper; aim names the cage. */
+export const FirstRunCoachBodies = Object.freeze({
+  walk: 'Linking them lets those worlds prosper.',
+  aim: 'Occupied worlds have Warden cages. Pull the ship through a cage to break it.',
+});
+
 export function getFirstRunCoachPresentation({
   gamePhase = 'attached',
   hasGrabbedShipOnce = false,
@@ -449,14 +455,14 @@ export function getFirstRunCoachPresentation({
       visible: true,
       kind: 'walk',
       title: 'Drag the planet to walk',
-      body: '',
+      body: FirstRunCoachBodies.walk,
     };
   }
   return {
     visible: true,
     kind: 'aim',
     title: 'Pull the ship, then let go',
-    body: '',
+    body: FirstRunCoachBodies.aim,
   };
 }
 

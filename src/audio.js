@@ -1,9 +1,22 @@
 /**
- * Small procedural score and sound-design system for ORBITBREAK.
+ * Mixed sampled and procedural audio for ORBITBREAK.
  *
- * Every voice is generated with the Web Audio API after the first player gesture, so the
- * jam build ships no external audio files and remains safe under browser autoplay rules.
+ * Sampled voice, SFX and music are committed files under assets/audio/. They are
+ * decoded into the Web Audio graph after the first player gesture. Missing files
+ * fall back to the in-engine bed. The browser never calls ElevenLabs.
  */
+
+import {
+  AudioAssetVersion,
+  getAudioAssetUrl,
+  getClipById,
+  getHowToPlayClipIds,
+  findVoiceClipByText,
+  listMusicClips,
+  listSfxClips,
+  listVoiceClips,
+} from './audio-catalog.js';
+
 export class WorldseedAudio {
   constructor() {
     this.context = null;
@@ -19,6 +32,17 @@ export class WorldseedAudio {
     this.lastRestoredWorldCount = 0;
     this.lastWorldLifeMix = { rumble: 0, garden: 0, dock: 0 };
     this.storyPaused = false;
+    this.prefersReducedMotion = false;
+    this.lastStoryMusicStage = 'quiet';
+    this.decodedBuffers = new Map();
+    this.missingClips = new Set();
+    this.pendingLoads = new Map();
+    this.sampledVoiceSource = null;
+    this.sampledMusicSource = null;
+    this.sampledMusicGain = null;
+    this.voicePlayToken = 0;
+    this.howToPlayToken = 0;
+    this.audioAssetVersion = AudioAssetVersion;
   }
 
   /** Creates the graph lazily inside a trusted pointer or button gesture. */
@@ -48,7 +72,306 @@ export class WorldseedAudio {
 
     this.createNoiseBuffer();
     this.createMusicBed();
+    this.preloadSampledLibrary();
     return true;
+  }
+
+  setReducedMotion(IsReduced) {
+    this.prefersReducedMotion = IsReduced === true;
+    if (this.prefersReducedMotion) {
+      this.stopSampledMusic();
+    } else if (!this.storyPaused) {
+      this.syncSampledMusic(this.lastStoryMusicStage, { force: true });
+    }
+  }
+
+  clipUrl(Clip) {
+    return getAudioAssetUrl(Clip.file);
+  }
+
+  preloadSampledLibrary() {
+    for (const Clip of [...listSfxClips(), ...listMusicClips()]) {
+      this.loadClip(Clip);
+    }
+    for (const Clip of listVoiceClips()) {
+      if (Clip.group === 'howto' || Clip.group === 'opening' || Clip.group === 'coach') {
+        this.loadClip(Clip);
+      }
+    }
+  }
+
+  loadClip(Clip) {
+    if (!Clip?.file || !this.context) {
+      return Promise.resolve(null);
+    }
+    if (this.decodedBuffers.has(Clip.id)) {
+      return Promise.resolve(this.decodedBuffers.get(Clip.id));
+    }
+    if (this.missingClips.has(Clip.id)) {
+      return Promise.resolve(null);
+    }
+    const Pending = this.pendingLoads.get(Clip.id);
+    if (Pending) {
+      return Pending;
+    }
+    const Request = fetch(this.clipUrl(Clip))
+      .then((Response) => {
+        if (!Response.ok) {
+          this.missingClips.add(Clip.id);
+          return null;
+        }
+        return Response.arrayBuffer();
+      })
+      .then((ArrayBufferData) => {
+        if (!ArrayBufferData || !this.context) {
+          return null;
+        }
+        return this.context.decodeAudioData(ArrayBufferData.slice(0));
+      })
+      .then((Buffer) => {
+        this.pendingLoads.delete(Clip.id);
+        if (!Buffer) {
+          this.missingClips.add(Clip.id);
+          return null;
+        }
+        this.decodedBuffers.set(Clip.id, Buffer);
+        return Buffer;
+      })
+      .catch(() => {
+        this.pendingLoads.delete(Clip.id);
+        this.missingClips.add(Clip.id);
+        return null;
+      });
+    this.pendingLoads.set(Clip.id, Request);
+    return Request;
+  }
+
+  stopSampledVoice({ cancelPlaylist = true } = {}) {
+    this.voicePlayToken += 1;
+    if (cancelPlaylist) {
+      this.howToPlayToken += 1;
+    }
+    if (!this.sampledVoiceSource) {
+      return;
+    }
+    try {
+      this.sampledVoiceSource.stop();
+    } catch {
+      // Already stopped.
+    }
+    try {
+      this.sampledVoiceSource.disconnect();
+    } catch {
+      // Already disconnected.
+    }
+    this.sampledVoiceSource = null;
+  }
+
+  stopSampledMusic() {
+    if (this.sampledMusicSource) {
+      try {
+        this.sampledMusicSource.stop();
+      } catch {
+        // Already stopped.
+      }
+      try {
+        this.sampledMusicSource.disconnect();
+      } catch {
+        // Already disconnected.
+      }
+    }
+    if (this.sampledMusicGain) {
+      try {
+        this.sampledMusicGain.disconnect();
+      } catch {
+        // Already disconnected.
+      }
+    }
+    this.sampledMusicSource = null;
+    this.sampledMusicGain = null;
+  }
+
+  startBuffer(Buffer, {
+    volume = 0.7,
+    loop = false,
+    channel = 'voice',
+  } = {}) {
+    if (!this.ensureStarted() || !Buffer) {
+      return null;
+    }
+    const Source = this.context.createBufferSource();
+    const Gain = this.context.createGain();
+    Source.buffer = Buffer;
+    Source.loop = loop === true;
+    Gain.gain.value = volume;
+    Source.connect(Gain).connect(this.masterGain);
+    if (channel === 'voice') {
+      if (this.sampledVoiceSource) {
+        try {
+          this.sampledVoiceSource.stop();
+        } catch {
+          // Replaced by the next spoken line.
+        }
+        try {
+          this.sampledVoiceSource.disconnect();
+        } catch {
+          // Already silent.
+        }
+      }
+      this.sampledVoiceSource = Source;
+      Source.addEventListener('ended', () => {
+        if (this.sampledVoiceSource === Source) {
+          this.sampledVoiceSource = null;
+        }
+      }, { once: true });
+    } else {
+      this.transientSources.add(Source);
+      Source.addEventListener('ended', () => this.transientSources.delete(Source), { once: true });
+    }
+    Source.start();
+    return Source;
+  }
+
+  playStoryVoice(ClipId) {
+    const Clip = getClipById(ClipId);
+    if (!Clip || !this.ensureStarted()) {
+      return false;
+    }
+    this.stopSampledVoice();
+    const Token = this.voicePlayToken;
+    this.loadClip(Clip).then((Buffer) => {
+      if (!Buffer || Token !== this.voicePlayToken) {
+        if (!Buffer && Token === this.voicePlayToken) {
+          this.briefingVoice(Clip.speaker);
+        }
+        return;
+      }
+      const Volume = Clip.voice === 'warden' ? 0.82 : 0.58;
+      this.startBuffer(Buffer, { volume: Volume, channel: 'voice' });
+    });
+    return true;
+  }
+
+  playSpokenText(Text) {
+    const Clip = findVoiceClipByText(Text);
+    if (!Clip) {
+      return false;
+    }
+    return this.playStoryVoice(Clip.id);
+  }
+
+  playHowToPlay() {
+    if (!this.ensureStarted()) {
+      return false;
+    }
+    this.stopSampledVoice();
+    const Token = this.howToPlayToken;
+    const ClipIds = getHowToPlayClipIds();
+    const playNext = (Index) => {
+      if (Token !== this.howToPlayToken || Index >= ClipIds.length) {
+        return;
+      }
+      const Clip = getClipById(ClipIds[Index]);
+      if (!Clip) {
+        playNext(Index + 1);
+        return;
+      }
+      this.loadClip(Clip).then((Buffer) => {
+        if (Token !== this.howToPlayToken) {
+          return;
+        }
+        if (!Buffer) {
+          playNext(Index + 1);
+          return;
+        }
+        const Source = this.startBuffer(Buffer, { volume: 0.58, channel: 'voice' });
+        if (!Source) {
+          playNext(Index + 1);
+          return;
+        }
+        Source.addEventListener('ended', () => playNext(Index + 1), { once: true });
+      });
+    };
+    playNext(0);
+    return true;
+  }
+
+  playSfxKind(Kind) {
+    const Clip = getClipById(`sfx/${Kind}`);
+    if (!Clip || this.storyPaused || !this.ensureStarted()) {
+      return false;
+    }
+    if (this.missingClips.has(Clip.id)) {
+      return false;
+    }
+    const ReadyBuffer = this.decodedBuffers.get(Clip.id);
+    if (ReadyBuffer) {
+      this.startBuffer(ReadyBuffer, { volume: 0.5, channel: 'sfx' });
+      return true;
+    }
+    this.loadClip(Clip);
+    return false;
+  }
+
+  playUiContinue() {
+    const Clip = getClipById('sfx/ui-continue');
+    if (!Clip || !this.ensureStarted()) {
+      return false;
+    }
+    this.loadClip(Clip).then((Buffer) => {
+      if (!Buffer) {
+        return;
+      }
+      this.startBuffer(Buffer, { volume: 0.42, channel: 'sfx' });
+    });
+    return true;
+  }
+
+  syncSampledMusic(Stage, { force = false, stageChanged = false } = {}) {
+    if (!this.context || this.storyPaused || this.prefersReducedMotion) {
+      this.stopSampledMusic();
+      return;
+    }
+    const WantsLoop = Stage === 'quiet' || Stage === 'hope';
+    const LoopClip = listMusicClips().find((Clip) => Clip.id === 'music/tiny-worlds');
+    if (WantsLoop && LoopClip && (force || !this.sampledMusicSource)) {
+      this.loadClip(LoopClip).then((Buffer) => {
+        if (!Buffer || this.storyPaused || this.prefersReducedMotion) {
+          return;
+        }
+        if (this.sampledMusicSource && !force) {
+          return;
+        }
+        this.stopSampledMusic();
+        const Source = this.context.createBufferSource();
+        const Gain = this.context.createGain();
+        Source.buffer = Buffer;
+        Source.loop = true;
+        Gain.gain.value = 0.0001;
+        Source.connect(Gain).connect(this.masterGain);
+        Source.start();
+        Gain.gain.setTargetAtTime(0.11, this.context.currentTime, 1.1);
+        this.sampledMusicSource = Source;
+        this.sampledMusicGain = Gain;
+        this.musicLayerGains.forEach((MusicLayer) => {
+          MusicLayer.gain.gain.setTargetAtTime(0, this.context.currentTime, 0.6);
+        });
+      });
+    }
+    if (!WantsLoop) {
+      this.stopSampledMusic();
+    }
+    if ((Stage === 'hunt' || Stage === 'crown') && (force || stageChanged)) {
+      const Sting = listMusicClips().find((Clip) => Clip.id === 'music/warden-sting');
+      if (Sting) {
+        this.loadClip(Sting).then((Buffer) => {
+          if (!Buffer || this.storyPaused) {
+            return;
+          }
+          this.startBuffer(Buffer, { volume: 0.28, channel: 'sfx' });
+        });
+      }
+    }
   }
 
   createNoiseBuffer() {
@@ -119,6 +442,7 @@ export class WorldseedAudio {
     if (this.storyPaused || (StageUnchanged && !force)) {
       return;
     }
+    this.syncSampledMusic(SafeStage, { force, stageChanged: !StageUnchanged });
     const Now = this.context.currentTime;
     for (const [LayerKey, StoryLayer] of Object.entries(this.storyLayerGains)) {
       const IsActive = SafeStage === LayerKey;
@@ -335,6 +659,11 @@ export class WorldseedAudio {
 
   launch(PowerRatio) {
     this.endAim();
+    if (this.playSfxKind('launch')) {
+      this.startFlightVoice();
+      this.closePassPlayed = false;
+      return;
+    }
     this.playNoise({ duration: 0.2, volume: 0.09 + (PowerRatio * 0.05), frequency: 1500 });
     this.playTone({
       frequency: 150 + (PowerRatio * 70),
@@ -350,6 +679,9 @@ export class WorldseedAudio {
   /** Metallic snap for Destroy. Distinct from landing impact so a cut never sounds like a port. */
   cut(HitCount = 1) {
     if (this.storyPaused || !this.ensureStarted()) {
+      return;
+    }
+    if (this.playSfxKind('cage-break')) {
       return;
     }
     const Count = Math.max(1, HitCount);
@@ -454,6 +786,9 @@ export class WorldseedAudio {
 
   impact(WorldIdentifier) {
     this.endFlight();
+    if (this.playSfxKind('land')) {
+      return;
+    }
     const ImpactPitch = WorldIdentifier === 'ember' ? 92 : WorldIdentifier === 'frost' ? 132 : 110;
     this.playNoise({ duration: 0.24, volume: 0.14, frequency: 520 });
     this.playTone({ frequency: ImpactPitch, endFrequency: ImpactPitch * 0.66, duration: 0.28, volume: 0.14, type: 'triangle' });
@@ -609,6 +944,7 @@ export class WorldseedAudio {
     this.storyPaused = false;
     this.endAim();
     this.endFlight();
+    this.stopSampledVoice();
     this.stopTransients();
     this.setRestoredWorldCount(0);
     this.setWorldLifeMix({ rumble: 0, garden: 0, dock: 0 });
@@ -647,6 +983,9 @@ export class WorldseedAudio {
     this.stopTransients();
     this.endAim();
     this.endFlight();
+    if (ShouldPause) {
+      this.stopSampledMusic();
+    }
     if (!this.context) {
       return;
     }

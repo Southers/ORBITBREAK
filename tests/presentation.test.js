@@ -850,6 +850,7 @@ test('first-run captions stay until the ship is grabbed, then until launch, then
   });
   assert.equal(Opening.visible, true);
   assert.equal(Opening.title, 'Drag the planet to walk');
+  assert.equal(Opening.body, 'Linking them lets those worlds prosper.');
   const AfterWalkBeforeGrab = getFirstRunCoachPresentation({
     gamePhase: 'attached',
     hasGrabbedShipOnce: false,
@@ -862,6 +863,7 @@ test('first-run captions stay until the ship is grabbed, then until launch, then
     hasLaunchedOnce: false,
   });
   assert.equal(AfterGrab.title, 'Pull the ship, then let go');
+  assert.equal(AfterGrab.body, 'Occupied worlds have Warden cages. Pull the ship through a cage to break it.');
   const AfterLaunch = getFirstRunCoachPresentation({
     gamePhase: 'attached',
     hasGrabbedShipOnce: true,

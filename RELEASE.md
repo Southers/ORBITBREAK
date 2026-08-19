@@ -29,7 +29,7 @@ Every successful route leaves a relay behind. Close two unique circuits before t
 - Assist, Deep and Razor slingshots plus distinct-body chain multipliers.
 - Mouse, pen, touch and complete keyboard play, plus persistent reduced-motion controls.
 - Versioned replays that independently re-simulate every verified result and an optional local-best route ghost.
-- Procedural Three.js art, animation and Web Audio with no downloaded asset pack.
+- Procedural Three.js art and animation, with optional committed ElevenLabs voice/SFX/music under `assets/audio/` and an in-engine Web Audio fallback.
 
 ## Controls copy
 
@@ -84,7 +84,8 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
-- Build `20260818-ob124` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (How to play overlay, pause sheet, ship fuel lights, Warden vessel telegraph).
+- Build `20260819-ob126` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (How to play overlay, pause sheet, ship fuel lights, Warden vessel telegraph).
+- Highlight kill (`ob126`): sampled ElevenLabs voice/SFX/music play from committed `assets/audio/` files after the first gesture, with mute, reduced-motion music-off, and the in-engine bed as fallback. The browser never calls ElevenLabs. Last-pass +Z camera, planet spin, readable life, cage destroy, How to play, copy boards, and the no glow-disc/grid/mint-ribbon kills stay.
 - Highlight kill (`ob124`): the opening still did not teach the verbs before the first walk. After the two-page story (or Skip intro) a single How to play card now blocks play until Continue. Pause can open the same page later. Last-pass +Z camera, planet spin, readable life, cage destroy, copy boards, and the no glow-disc/grid/mint-ribbon kills stay.
 - Highlight kill (`ob121`): live ob120 locked the camera to world +Z, which made walking toward the rim take the Runner over the horizon — only the camera-facing hemisphere was playable, and the torso pivot sat on the physics crust so feet hovered. Landed walk now rotates that world's `WorldRuntime.group` under the Runner so they stay on the toy-planet top; other worlds keep their idle restoration spins. Feet and the parked hull plant on the visual radius. Camera.up stays world +Z. Glow-disc, grid, parked-ship tangent mapping, hidden PullGuideRibbon and `user-select: none` stay.
 - Highlight kill (`ob120`): live ob119 flipped and bounced the camera in landed and Scout/aim because the rig blended a surface-normal facing up into world +Z (and PoleLock swapped up near the poles). Camera.up is now locked to world +Z in every mode. Landed framing stays over the current planet so the Runner walks under a camera that does not orbit the globe; Scout/aim/flight are the same top-down with a soft look-target ease. Canvas, html/body and overlay labels set `user-select: none` and `-webkit-user-select: none`; the game canvas also uses `touch-action: none` so a walk/aim drag cannot highlight "Drag the planet to walk".
