@@ -1,5 +1,6 @@
 name: Generate ElevenLabs audio
 
+# After ELEVENLABS_API_KEY is a real sk_ key, run Actions → Generate ElevenLabs audio → Run workflow.
 on:
   workflow_dispatch:
   push:
