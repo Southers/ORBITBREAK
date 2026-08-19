@@ -28,7 +28,7 @@ import {
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob126';
+} from './controls.js?v=20260819-ob127';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
@@ -1052,8 +1052,8 @@ function applyResolvedClampHits(Resolved) {
   showInstruction(
     `${RemainingCount} left on ${AttachedWorld.label}.`,
     RemainingCount === 1
-      ? 'One cage remains. Walk near it, then tap it.'
-      : 'Walk near each cage, then tap it.',
+      ? 'One cage remains. Tap it.'
+      : 'Tap each cage.',
   );
   return true;
 }

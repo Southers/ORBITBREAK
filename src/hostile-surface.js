@@ -211,7 +211,7 @@ export function createHostileSurface(THREE, host) {
         CommandApproachTitle,
         RemainingCount === 3
           ? 'Tap the cage to break it. Pull the ship to fly.'
-          : `${RemainingCount} left. Walk near a cage, then tap it.`,
+          : `${RemainingCount} left. Tap a cage.`,
       );
     } else if (RemainingCount === host.ActiveHostileEncounterState.clamps.length
       && RemainingCount === 1) {
@@ -222,7 +222,7 @@ export function createHostileSurface(THREE, host) {
     } else if (RemainingCount === 3) {
       showInstruction(
         `${AttachedWorld.label} still has cages.`,
-        'Walk near the cage, then tap it. Pull the ship to fly.',
+        'Tap the cage. Pull the ship to fly.',
       );
     } else {
       showInstruction(
