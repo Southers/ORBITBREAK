@@ -1898,26 +1898,33 @@ test('Command World graze uses the skim shell and recaptures if it never lands',
   );
 
   const CollisionTimeSeconds = StartTimeSeconds + 6.4;
-  const CollisionPoint = calculateBodyPositionAtTime(Command, CollisionTimeSeconds);
+  const NowCenter = calculateBodyPositionAtTime(Command, StartTimeSeconds);
+  const CollisionCenter = calculateBodyPositionAtTime(Command, CollisionTimeSeconds);
+  assert.ok(Math.hypot(
+    CollisionCenter.x - NowCenter.x,
+    CollisionCenter.y - NowCenter.y,
+  ) > 2);
+  const CollisionSample = createVector(CollisionCenter.x + 1.2, CollisionCenter.y, 0);
   const NowMarker = getBodySurfaceMarkerPosition(
     Command,
-    CollisionPoint,
+    CollisionSample,
     StartTimeSeconds,
   );
   const CollisionMarker = getBodySurfaceMarkerPosition(
     Command,
-    CollisionPoint,
+    CollisionSample,
     CollisionTimeSeconds,
   );
-  const MarkerSeparation = Math.hypot(
-    CollisionMarker.x - NowMarker.x,
-    CollisionMarker.y - NowMarker.y,
+  const CollisionMarkerDistance = Math.hypot(
+    CollisionMarker.x - CollisionCenter.x,
+    CollisionMarker.y - CollisionCenter.y,
   );
-  assert.ok(MarkerSeparation > 2);
-  assert.ok(Math.hypot(
-    CollisionMarker.x - CollisionPoint.x,
-    CollisionMarker.y - CollisionPoint.y,
-  ) < 1.1);
+  const NowMarkerDistance = Math.hypot(
+    NowMarker.x - CollisionCenter.x,
+    NowMarker.y - CollisionCenter.y,
+  );
+  assert.ok(CollisionMarkerDistance < 1.1);
+  assert.ok(NowMarkerDistance > CollisionMarkerDistance + 0.35);
 
   const Worlds = [
     { id: 'glasswing', radius: 1.15, position: { x: 34, y: 24, z: 0 } },
