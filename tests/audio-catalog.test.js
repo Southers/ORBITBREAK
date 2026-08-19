@@ -104,6 +104,7 @@ test('playable sources never call ElevenLabs and the workflow never echoes the s
   assert.equal(Workflow.includes('echo $ELEVENLABS_API_KEY'), false);
   assert.equal(Generator.includes('process.env.ELEVENLABS_API_KEY'), true);
   assert.equal(Generator.includes('console.log(ApiKey)'), false);
+  assert.equal(Generator.includes('const Error = new Error'), false);
   assert.equal(Credits.includes('ElevenLabs'), true);
   assert.equal(Readme.includes('ElevenLabs'), true);
   const InputSource = readRepo('src/input-controller.js');

@@ -50,9 +50,9 @@ async function postAudio(ApiKey, Path, Body) {
   if (!Response.ok) {
     const Detail = await Response.text();
     const SafeDetail = Detail.slice(0, 400).replace(/sk_[a-zA-Z0-9]+/g, '[redacted]');
-    const Error = new Error(`ElevenLabs ${Path} failed (${Response.status}): ${SafeDetail}`);
-    Error.status = Response.status;
-    throw Error;
+    const RequestError = new Error(`ElevenLabs ${Path} failed (${Response.status}): ${SafeDetail}`);
+    RequestError.status = Response.status;
+    throw RequestError;
   }
   const BufferData = Buffer.from(await Response.arrayBuffer());
   if (BufferData.length < 64) {
@@ -110,15 +110,15 @@ async function generateMusicClip(ApiKey, Clip) {
       const Bytes = await postAudio(ApiKey, Attempt.path, Attempt.body);
       await writeAudioFile(Clip.file, Bytes);
       return true;
-    } catch (Error) {
-      LastError = Error;
-      if (Error.status === 404 || Error.status === 405 || Error.status === 422) {
+    } catch (Caught) {
+      LastError = Caught;
+      if (Caught.status === 404 || Caught.status === 405 || Caught.status === 422) {
         continue;
       }
       if (Clip.optional) {
         return false;
       }
-      throw Error;
+      throw Caught;
     }
   }
   if (Clip.optional || LastError?.status === 404 || LastError?.status === 405) {
@@ -164,7 +164,7 @@ async function main() {
   console.log('ElevenLabs generation finished.');
 }
 
-main().catch((Error) => {
-  console.error(Error.message);
+main().catch((Caught) => {
+  console.error(Caught.message);
   process.exitCode = 1;
 });
