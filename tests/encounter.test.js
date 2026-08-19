@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  DefaultClampOffsetsRadians,
+  LeftoverClampOffsetsRadians,
   createHostileEncounterState,
   getCutEndPoint,
   getCutHits,
@@ -25,7 +27,7 @@ test('clamps sit a short walk ahead of the landing, not stacked on one button', 
     runnerSurfaceAngle: 0,
   });
   assert.equal(State.clamps.length, 3);
-  assert.ok(State.clamps[0].surfaceAngle > 0.3);
+  assert.ok(State.clamps[0].surfaceAngle > 1.2);
   assert.ok(State.clamps[2].surfaceAngle - State.clamps[0].surfaceAngle > 0.7);
   assert.equal(getRemainingClamps(State).length, 3);
   assert.equal(getNearestRemainingClamp(State, 0).id, 0);
@@ -51,6 +53,7 @@ test('a drag through one clamp shears only that clamp', () => {
   const State = createHostileEncounterState({
     worldIdentifier: 'bastion',
     runnerSurfaceAngle: 0,
+    clampOffsetsRadians: [0.4, 0.85, 1.3],
   });
   const Origin = { x: BastionWorld.radius + 0.49, y: 0 };
   const FirstClampAngle = State.clamps[0].surfaceAngle;
@@ -186,6 +189,9 @@ test('leftover Destroy is a single cage, not a Bastion cage', () => {
   });
   assert.equal(State.clamps.length, 1);
   assert.equal(Leftover.clampOffsetsRadians.length, 1);
+  assert.equal(Leftover.clampOffsetsRadians[0], 1.5);
+  assert.equal(DefaultClampOffsetsRadians[0], 1.5);
+  assert.ok(LeftoverClampOffsetsRadians[0] >= 1.5);
 });
 
 test('tapping a cage shears only that clamp and a miss spends nothing', () => {

@@ -167,7 +167,7 @@ The local personal-best replay becomes a visible ghost in Scout view and during 
 
 Story is delivered through authored story boards at the campaign's turning points, then short coaches while you aim. It is not a control dump, a lore dump or a dialogue tree.
 
-The opening is two skippable pages before any launch. Page one is the Warden's edict. Page two is short: fly the Orbitbreaker to other tiny worlds, linking them lets those worlds prosper, occupied worlds have Warden cages, pull the ship through a cage to break it. After that, the same skippable board returns at first answer, second voice, range unlock, neighbourhood, Warden arrival, first circuit, suppression, recapture, Command exposure and a lost run. A landing always plays its liberation and relay camera first. The board then pauses the game. Dialogue voices stop when the player continues or skips, and the game bed returns. Reading never advances pursuit. Replay playback skips every board.
+The opening is two skippable pages before any launch. Page one is the Warden's edict. Page two is short: fly the Orbitbreaker to other tiny worlds, linking them lets those worlds prosper, occupied worlds have Warden cages, tap the cage to break it. After that, the same skippable board returns at first answer, second voice, range unlock, neighbourhood, Warden arrival, first circuit, suppression, recapture, Command exposure and a lost run. A landing always plays its liberation and relay camera first. The board then pauses the game. Dialogue voices stop when the player continues or skips, and the game bed returns. Reading never advances pursuit. Replay playback skips every board.
 
 Story is spaced so it never stacks: one flavour board at most per landing, with any others held for later landings. Rule-changing beats — Warden arrival, circuit closed, suppression, recapture, Command exposure, the Reach answering and a lost run — jump ahead of waiting flavour beats and may present back-to-back because they change what the player must do next. Skip and Escape dismiss the whole queued conversation, not one card of it.
 
@@ -370,7 +370,7 @@ Proposed ladder, earliest first:
 
 1. **Break** — already the first flight verb. Directed drag is the tutorial unlock; heading Space remains the accessible fallback.
 2. **Longer prediction** — after the first live link the committed chain stays on the map 1.7s; reduced motion skips the hold.
-3. **Destroy** — Ember keeps one leftover bar after the first live link. Same drag, earlier in the run. Bastion and Command keep the full cage.
+3. **Destroy** — Ember keeps one leftover cage after the first live link. Walk near it, then tap. Bastion and Command keep the full cage.
 4. **Second Break** — only after the neighbourhood is talking, still one at a time, still recorded. Never a spray. Ranked schema bump still required.
 5. **Circuit beacon** — after the first loop, a visible gold ghost of the next closing edge. Information, not an auto-aim.
 6. **Command lock** — after both shields crack, keyboard/pointer lead on the moving crown. Finale gift only.

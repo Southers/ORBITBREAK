@@ -152,7 +152,10 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     ControlsSource.includes('export function classifyLandedPointerStart(')
+      && ControlsSource.includes('if (isOverCage === true)')
+      && ControlsSource.includes('CageScreenGrabRadiusPixels = 88')
       && ControlsSource.includes('SeedScreenGrabRadiusPixels = 96')
+      && InputControllerSource.includes('finishArmedCageTap(')
       && PresentationSource.includes("title: 'Drag the planet to walk'")
       && PresentationSource.includes("title: 'Pull the ship, then let go'")
       && HudSource.includes('function updateFirstRunCoach(')
@@ -563,11 +566,11 @@ export function auditReleaseReadiness() {
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
         ?.openingBriefing?.[1]?.body.includes('Orbitbreaker to other tiny worlds')
       && AuthoredSystemDefinitions[DefaultAuthoredSystemIdentifier]
-        ?.openingBriefing?.[1]?.body.includes('Pull the ship through a cage to break it')
+        ?.openingBriefing?.[1]?.body.includes('Tap the cage to break it')
       && RoutePresentationSource.includes('getHiddenWardenRouteCoach(')
       && HudSource.includes('getLoopObjectivePresentation(')
       && HudSource.includes('Linking them lets those worlds prosper.')
-      && HudSource.includes('Pull the ship through a cage to break it.')
+      && HudSource.includes('Tap the cage to break it.')
       && PresentationSource.includes('export function getRelayRevealLookTarget(')
       && LandingDirectorSource.includes('getRelayRevealLookTarget(')
       && LandingDirectorSource.includes('function restoreWorld(')

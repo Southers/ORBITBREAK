@@ -64,7 +64,7 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   );
   assert.match(
     BreakerReachSystemDefinition.openingBriefing[1].body,
-    /Pull the ship through a cage to break it/,
+    /Tap the cage to break it/,
   );
   assert.equal(BreakerReachSystemDefinition.openingBody, 'Linking them lets those worlds prosper.');
   assert.equal(BreakerReachSystemDefinition.storyBoards.firstAnswer.pages.length, 2);
@@ -139,7 +139,7 @@ test("Breaker\'s Reach is the large-system score-attack entry", () => {
   const EmberDefinition = BreakerReachSystemDefinition.worlds.find(
     (WorldDefinition) => WorldDefinition.id === 'ember',
   );
-  assert.deepEqual(EmberDefinition.hostileEncounter.clampOffsetsRadians, [0.55]);
+  assert.deepEqual(EmberDefinition.hostileEncounter.clampOffsetsRadians, [1.5]);
   const BastionDefinition = BreakerReachSystemDefinition.worlds.find(
     (WorldDefinition) => WorldDefinition.id === 'bastion',
   );
