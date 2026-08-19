@@ -221,6 +221,7 @@ test('sphere walking steps toward a far hit instead of snapping across the globe
   const Opposite = createSurfacePose({ longitude: Math.PI, latitude: 0 });
   const Limited = stepSurfacePoseToward(Start, Opposite, 0.2);
   assert.ok(getGreatCircleAngle(Start, Limited) < 0.21);
+  assert.ok(getGreatCircleAngle(Start, Limited) > 0.19, 'an antipodal step must travel the capped arc, not collapse');
   assert.ok(getGreatCircleAngle(Limited, Opposite) > 2);
   const Arrived = stepSurfacePoseToward(Start, createSurfacePose({ longitude: 0.05, latitude: 0 }), 0.2);
   assert.ok(Math.abs(Arrived.longitude - 0.05) < 1e-9);
@@ -287,7 +288,9 @@ test('a huge pointer swipe cannot exceed the courier walk cap', () => {
   assert.ok(OneFrameTravel < 0.03, 'one frame cannot dump a visible whip');
 
   const Lagged = stepPointerSurfaceWalk(Start, Opposite, 0.5, { dragAgeSeconds: 8 });
-  assert.ok(getGreatCircleAngle(Start, Lagged) <= SurfaceWalkMaxRadiansPerSample + 1e-12);
+  const LaggedTravel = getGreatCircleAngle(Start, Lagged);
+  assert.ok(LaggedTravel <= SurfaceWalkMaxRadiansPerSample + 1e-6);
+  assert.ok(LaggedTravel > SurfaceWalkMaxRadiansPerSample * 0.8);
 
   let Pose = Start;
   const SwipeSeconds = 0.1;
