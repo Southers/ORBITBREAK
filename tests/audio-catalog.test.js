@@ -13,6 +13,7 @@ import {
   FirstRunCoachBodies,
 } from '../src/presentation.js';
 import {
+  SfxDefinitions,
   TaughtCaptionLines,
   countCatalogStats,
   getClipById,
@@ -81,6 +82,16 @@ test('generate jobs share files for identical spoken lines', () => {
   const Jobs = listGenerateJobs();
   const Files = Jobs.voices.map((Clip) => Clip.file);
   assert.equal(new Set(Files).size, Files.length);
+});
+
+test('SFX durations stay toy-scale and meet ElevenLabs sound-generation limits', () => {
+  const Generator = readRepo('scripts/generate-elevenlabs-audio.mjs');
+  assert.equal(Generator.includes('clampSfxDurationSeconds'), true);
+  for (const Clip of SfxDefinitions) {
+    assert.ok(Clip.durationSeconds >= 0.5, Clip.id);
+    assert.ok(Clip.durationSeconds <= 0.7, Clip.id);
+  }
+  assert.equal(getClipById('sfx/ui-continue').durationSeconds, 0.5);
 });
 
 test('playable sources never call ElevenLabs and the workflow never echoes the secret', () => {
