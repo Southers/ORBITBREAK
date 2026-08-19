@@ -25,8 +25,9 @@ below it, never above.
 │                        player-visuals, audio, leaderboard-client,    │
 │                        preferences, performance                      │
 ├──────────────────────────────────────────────────────────────────────┤
-│ Presentation rules     src/presentation.js                           │
-│   pure functions: layout bounds, coach copy, pose/stage selection    │
+│ Presentation rules     src/presentation.js, src/audio-catalog.js     │
+│   pure functions: layout bounds, coach copy, pose/stage selection,   │
+│                   sampled-audio inventory (no ElevenLabs calls)      │
 ├──────────────────────────────────────────────────────────────────────┤
 │ Ranked simulation      physics, sim-constants, controls, encounter,  │
 │   (framework-free)     scoring, run, network, warden, campaign,      │

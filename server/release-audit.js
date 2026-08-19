@@ -574,7 +574,9 @@ export function auditReleaseReadiness() {
         ?.openingBriefing?.[1]?.body.includes('Tap the cage to break it')
       && RoutePresentationSource.includes('getHiddenWardenRouteCoach(')
       && HudSource.includes('getLoopObjectivePresentation(')
-      && HudSource.includes('Linking them lets those worlds prosper.')
+      && PresentationSource.includes('Linking them lets those worlds prosper.')
+      && PresentationSource.includes('Occupied worlds have Warden cages. Tap the cage to break it.')
+      && HudSource.includes('getFirstRunCoachPresentation(')
       && HudSource.includes('Tap the cage to break it.')
       && PresentationSource.includes('export function getRelayRevealLookTarget(')
       && LandingDirectorSource.includes('getRelayRevealLookTarget(')
@@ -651,8 +653,16 @@ export function auditReleaseReadiness() {
   requireCondition(
     Credits.includes('Opening briefing portraits')
       && Credits.includes('assets/runner-portrait.jpg')
-      && Credits.includes('original ORBITBREAK stills'),
+      && Credits.includes('original ORBITBREAK stills')
+      && Credits.includes('ElevenLabs'),
     'CREDITS.md must explicitly state the current external-asset status.',
+  );
+  requireCondition(
+    AudioSource.includes("from './audio-catalog.js'")
+      && AudioSource.includes('playStoryVoice')
+      && !AudioSource.includes('api.elevenlabs.io')
+      && !MainSource.includes('api.elevenlabs.io'),
+    'Sampled audio must play committed assets/audio files and never call ElevenLabs from the browser.',
   );
   requireCondition(
     ReleaseBrief.includes('Never perform these without the user'),

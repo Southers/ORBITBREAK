@@ -40,6 +40,12 @@ npm run release:audit
 
 Optional: `npm run test:boot` loads the playable shell in headless Chromium, and `npm run leaderboard:benchmark` times the golden replay validator. `npm ci` is only needed for those tooling scripts.
 
+## Audio
+
+Story boards, How to play, first-run coaches, destroy/launch toasts, landing memories, Warden broadcasts and win/lose boards can play committed ElevenLabs clips from `assets/audio/` after the first tap. Mute (`M`), reduced-motion (music off) and the in-engine Web Audio bed still work if those files have not been generated yet.
+
+Generation is a GitHub Action (`Generate ElevenLabs audio`) that reads `secrets.ELEVENLABS_API_KEY` and never ships the key to Pages. Run it with **workflow_dispatch** after the secret exists. Do not put an API key in the tree, a `.env`, or a pull request.
+
 ## Current development controls
 
 - Drag the ship to aim and release away from it to launch. Drag back onto the ship, or press `Escape`, to cancel without spending the flight. Aim for the pulsing gold beacon arc: landing inside it liberates the world and grades CLEAN or BULLSEYE; landing outside only docks.

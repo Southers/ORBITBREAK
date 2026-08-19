@@ -149,6 +149,7 @@ export function createRestorationVisuals(THREE, host) {
     const DiscoveryToast = consumePendingDiscoveryToast();
     if (DiscoveryToast) {
       showStatusToast(DiscoveryToast, 1450);
+      WorldseedSound.playSfxKind('discover');
     }
     const InnerClusterLive = isLiveInnerCluster();
     const VeiledWorldIdentifiers = [];

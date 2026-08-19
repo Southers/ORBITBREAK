@@ -11,7 +11,9 @@
 
 ## External art and audio assets
 
-Opening briefing portraits `assets/runner-portrait.jpg`, `assets/warden-portrait.jpg`, `assets/haven-portrait.jpg`, `assets/orbitbreaker-portrait.jpg`, `assets/ember-portrait.jpg`, `assets/grove-portrait.jpg`, `assets/tide-portrait.jpg`, `assets/frost-portrait.jpg`, `assets/bastion-portrait.jpg` and `assets/command-portrait.jpg` are original ORBITBREAK stills generated for this project during development. They are not third-party stock. All other geometry, materials, particles, interface, music and sound effects are generated in code. Procedural audio uses the browser Web Audio API and contains no sampled or third-party source material.
+Opening briefing portraits `assets/runner-portrait.jpg`, `assets/warden-portrait.jpg`, `assets/haven-portrait.jpg`, `assets/orbitbreaker-portrait.jpg`, `assets/ember-portrait.jpg`, `assets/grove-portrait.jpg`, `assets/tide-portrait.jpg`, `assets/frost-portrait.jpg`, `assets/bastion-portrait.jpg` and `assets/command-portrait.jpg` are original ORBITBREAK stills generated for this project during development. They are not third-party stock.
+
+Sampled voice, SFX and music under `assets/audio/` are generated with [ElevenLabs](https://elevenlabs.io/) using two stock library voices (Daniel for the Warden broadcast, Charlie for the Runner and world replies). They are produced in GitHub Actions from `secrets.ELEVENLABS_API_KEY` and committed as static files. The playable Pages build never calls ElevenLabs. Until those files are present, procedural Web Audio remains the fallback. All other geometry, materials, particles, interface beds and in-engine tones are generated in code.
 
 The ORBITBREAK Runner model, Stillness cages, liberation effects, orbit-mark SVG and all animation are built entirely from procedural Three.js primitives, shaders, SVG and CSS and introduce no external asset.
 

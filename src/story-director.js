@@ -3,6 +3,7 @@
  * Relay-reveal-hold still flushes from the playable shell after the look target clears.
  */
 
+import { getStoryVoiceClipId } from './audio-catalog.js';
 import {
   getStoryBoardPresentation,
   isCampaignStoryBoardReadyToPresent,
@@ -56,6 +57,7 @@ export function createStoryDirector(host) {
       'is-bastion',
       'is-command',
     );
+    WorldseedSound.stopSampledVoice();
     WorldseedSound.setStoryPaused(false);
   }
 
@@ -118,7 +120,15 @@ export function createStoryDirector(host) {
     });
     WorldseedSound.setStoryPaused(true);
     if (playVoice) {
-      WorldseedSound.briefingVoice(Presentation.speaker);
+      WorldseedSound.playUiContinue();
+      const ClipId = getStoryVoiceClipId(
+        ActiveSystem.id,
+        host.ActiveStoryBoardId,
+        PageIndex,
+      );
+      if (!WorldseedSound.playStoryVoice(ClipId)) {
+        WorldseedSound.briefingVoice(Presentation.speaker);
+      }
     }
     BriefingContinueButtonElement.focus({ preventScroll: true });
   }

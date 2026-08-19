@@ -5,6 +5,7 @@
 
 import { countRestoredWorlds } from './campaign.js';
 import { countLiveRelayWorlds, listRelayCircuits } from './network.js';
+import { getCoachClipId } from './audio-catalog.js';
 import { getFirstRunCoachPresentation, getLoopObjectivePresentation } from './presentation.js';
 
 const TaughtCaptionStorageKey = 'orbitbreak.taughtCaptions';
@@ -214,6 +215,7 @@ export function createHud(host) {
     StatusToastElement.classList.add('is-visible');
     StatusToastElement.hidden = false;
     announceLive(VisibleMessage);
+    host.WorldseedSound?.playSpokenText(VisibleMessage);
 
     host.StatusToastTimeoutIdentifier = host.setTimeout(() => {
       host.StatusToastTimeoutIdentifier = null;
@@ -256,6 +258,10 @@ export function createHud(host) {
       PlayCaptionElement.classList.add('is-fading');
     }
     announceLive(`${Title}. ${Body}`);
+    const CoachId = getCoachClipId(Kind);
+    if (CoachId) {
+      host.WorldseedSound?.playStoryVoice(CoachId);
+    }
     if (PlayCaptionTimeoutIdentifier !== null) {
       host.clearTimeout(PlayCaptionTimeoutIdentifier);
     }
@@ -307,6 +313,10 @@ export function createHud(host) {
     PlayCaptionElement.classList.remove('is-fading');
     PlayCaptionElement.dataset.coachKind = Coach.kind;
     announceLive(CoachBody ? `${Coach.title}. ${CoachBody}` : Coach.title);
+    const CoachId = getCoachClipId(Coach.kind);
+    if (CoachId) {
+      host.WorldseedSound?.playStoryVoice(CoachId);
+    }
   }
 
   function announceWarden(Message) {

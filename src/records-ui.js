@@ -289,6 +289,11 @@ export function createRecordsUi(THREE, host) {
     VictoryBodyElement.textContent = `${CompletionBody}${EndingReveal} ${getRunResourceSummary(
       host.RunState,
     )} · ${formatFlightTime(RunResult.flightTimeMilliseconds)} flight time.`;
+    host.WorldseedSound?.playStoryVoice(
+      EarnedEmblemCount === 3
+        ? `win/${ActiveSystem.id}/perfect`
+        : `win/${ActiveSystem.id}/standard`,
+    );
     GameCanvas.dataset.personalBest = String(PersonalBestScore);
     GameCanvas.dataset.isNewPersonalBest = String(PersonalBestUpdate?.isNewPersonalBest === true);
     GameCanvas.dataset.flightTimeMilliseconds = String(RunResult.flightTimeMilliseconds);
