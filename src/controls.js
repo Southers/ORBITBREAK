@@ -295,14 +295,26 @@ export function adjustSurfacePose(Pose, { east = 0, north = 0, fine = false, ste
   });
 }
 
-/** Caps how far one walk sample may travel so the globe has weight. */
-export const SurfaceWalkRadiansPerSecond = 1.25;
-/** Hard cap so a lagged pointer sample cannot dump a huge arc. */
-export const SurfaceWalkMaxRadiansPerSample = 0.12;
+/**
+ * Courier walk pace around a toy globe. One equator lap takes this many
+ * seconds at cruise, so a drag cannot whip the marble like a fidget spinner.
+ */
+export const SurfaceWalkCruiseLapSeconds = 7;
+export const SurfaceWalkRadiansPerSecond = FullCircleRadians / SurfaceWalkCruiseLapSeconds;
+/**
+ * Hard dump limit for one pointer or hold sample. Even a lagged 50ms event
+ * cannot dump more than a small step; the rad/s cap still wins on 60Hz input.
+ */
+export const SurfaceWalkMaxRadiansPerSample = 0.05;
 /** Ignore globe-hit jitter until the pointer actually traces the crust. */
 export const SurfaceWalkPointerDeadzoneRadians = 0.045;
 /** Seconds of sustained drag before pointer walk reaches full cruise speed. */
 export const SurfaceWalkAccelerationSeconds = 0.32;
+/**
+ * First readable pointer step after leaving the press dead-zone. Must stay
+ * far below a Q/E tap so a flick cannot steal the keyboard 14° dump.
+ */
+export const SurfaceWalkPointerNudgeRadians = 2 * (Math.PI / 180);
 
 export function getSurfaceWalkArcLimit(DeltaTimeSeconds) {
   if (!Number.isFinite(DeltaTimeSeconds) || DeltaTimeSeconds < 0) {
@@ -318,14 +330,40 @@ export function getSurfaceWalkArcLimit(DeltaTimeSeconds) {
  * Pointer walk ramps from a standstill so a flick across the disc cannot
  * sling the Runner around the globe at cruise speed.
  */
-export function getSurfaceWalkPointerArcLimit(DeltaTimeSeconds, DragAgeSeconds) {
+export function getSurfaceWalkPointerArcLimit(
+  DeltaTimeSeconds,
+  DragAgeSeconds,
+  { justLeftDeadzone = false } = {},
+) {
   const BaseLimit = getSurfaceWalkArcLimit(DeltaTimeSeconds);
-  if (!(DragAgeSeconds > 0) || !Number.isFinite(DragAgeSeconds)) {
-    return 0;
+  let Limit = 0;
+  if (DragAgeSeconds > 0 && Number.isFinite(DragAgeSeconds)) {
+    const Ramp = Math.max(0, Math.min(1, DragAgeSeconds / SurfaceWalkAccelerationSeconds));
+    const EasedRamp = Ramp * Ramp * (3 - (2 * Ramp));
+    Limit = BaseLimit * EasedRamp;
   }
-  const Ramp = Math.max(0, Math.min(1, DragAgeSeconds / SurfaceWalkAccelerationSeconds));
-  const EasedRamp = Ramp * Ramp * (3 - (2 * Ramp));
-  return BaseLimit * EasedRamp;
+  if (justLeftDeadzone === true) {
+    Limit = Math.max(
+      Limit,
+      Math.min(SurfaceWalkPointerNudgeRadians, SurfaceWalkMaxRadiansPerSample),
+    );
+  }
+  return Limit;
+}
+
+/**
+ * One pointer-walk sample toward a globe hit. A huge requested arc still
+ * cannot exceed the cruise cap or the per-sample dump limit.
+ */
+export function stepPointerSurfaceWalk(FromPose, ToPose, DeltaTimeSeconds, {
+  dragAgeSeconds = 0,
+  justLeftDeadzone = false,
+} = {}) {
+  return stepSurfacePoseToward(
+    FromPose,
+    ToPose,
+    getSurfaceWalkPointerArcLimit(DeltaTimeSeconds, dragAgeSeconds, { justLeftDeadzone }),
+  );
 }
 
 /** True once a pointer trace has left the press dead-zone on the sphere. */

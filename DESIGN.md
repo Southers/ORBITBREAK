@@ -41,8 +41,8 @@ There is no wall-clock countdown during scouting or surface planning.
 
 The game remains one-pointer/touch accessible.
 
-- Drag the **globe** to walk. Drag the **ship** and pull away to aim and build a relay. The two gestures never share a grab. A ship pull commits aim even while the finger is still over the crust; the neighbourhood map waits until the pull leaves the cancel disk. After that map jump, cancel is a short world-space drag back onto the hull (or Escape), not a tiny screen disc around the shrunken ship. Cancel and Resume snap the camera back to the landed close-up so the hull stays grabbable. Landed play never uses the enlarged in-flight pick sphere; empty crust is walk, the parked hull (and its small on-globe disk) is fly, and a cage tap is Destroy.
-- Q/E walk around, T/F walk over the poles. One tap is a readable arc; holding keeps circling. R always resets the run. Keyboard and pointer reach the same sphere.
+- Drag the **globe** to walk. A normal drag moves at courier pace: one equator lap takes about seven seconds. A fast flick cannot wrap the planet. Drag the **ship** and pull away to aim and build a relay. The two gestures never share a grab. A ship pull commits aim even while the finger is still over the crust; the neighbourhood map waits until the pull leaves the cancel disk. After that map jump, cancel is a short world-space drag back onto the hull (or Escape), not a tiny screen disc around the shrunken ship. Cancel and Resume snap the camera back to the landed close-up so the hull stays grabbable. Landed play never uses the enlarged in-flight pick sphere; empty crust is walk, the parked hull (and its small on-globe disk) is fly, and a cage tap is Destroy.
+- Q/E walk around, T/F walk over the poles. One tap is about 14°. Holding matches the same courier pace as a capped drag. R always resets the run. Keyboard and pointer reach the same sphere.
 - The face you stand on is the launch azimuth. Walk until this face looks toward the world you want; over the poles is the short path to the far side. Flattening for aim keeps flight in the orbital plane. The first walk gets a fading caption; after that the globe and aim line teach facing. Do not add surface pickups or extra destinations.
 - Drag empty space to pan. Pinch, −/+, or mouse wheel to zoom out from a landed world to the whole Reach. Pause Zoom −/+ stay available in Scout and do not vanish after one click. C toggles Scout: the camera pulls back to read the neighbourhood, then returns to the Runner.
 - During flight, drag from the ship to **break** your line in any direction, then release. Space still breaks along heading. The preview cannot solve a future player-timed break at launch time.
@@ -55,7 +55,7 @@ The game remains one-pointer/touch accessible.
 - First walk, first aim, first Break and first missed port get a fading caption; later play stays silent except toasts. Route names appear only while aiming or scouting, plus a HERE chip on the current world.
 - One 44px pause control, or Escape when not aiming, opens How to play, Scout, zoom, Ghost, Motion, Audio and Reset. Those keyboard shortcuts stay live during play so desktop never needs the sheet.
 
-Surface movement is spherical and weighty. It exists so the Runner can choose which face looks at a destination, and so a clamp on a hostile rim is reachable. It is not a tour, a collectathon or a platformer. Aiming flattens back onto the orbital plane so gravity paths stay 2D and deterministic.
+Surface movement is spherical and weighty. Crust drag is capped in rad/s so the planet turns under a walking courier, not a fidget spinner. It exists so the Runner can choose which face looks at a destination, and so a clamp on a hostile rim is reachable. It is not a tour, a collectathon or a platformer. Aiming flattens back onto the orbital plane so gravity paths stay 2D and deterministic.
 
 ## Flight skill
 

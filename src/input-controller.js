@@ -23,8 +23,8 @@ import {
   getSurfacePoseFromDirection,
   getSurfacePoseFromPosition,
   getSurfaceWalkArcLimit,
-  getSurfaceWalkPointerArcLimit,
   hasLeftSurfaceWalkDeadzone,
+  stepPointerSurfaceWalk,
   intersectRaySphere,
   projectRayOntoSphere,
   SeedScreenGrabRadiusPixels,
@@ -32,25 +32,24 @@ import {
   getLandedCageGrabRadiusPixels,
   clampLandedCameraPanOffset,
   shouldCancelAimedLaunch,
-  stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob139';
+} from './controls.js?v=20260819-ob140';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
   resolveClampTap,
   resolveHostileCut,
-} from './encounter.js?v=20260819-ob139';
-import { applyBreakerBurn, calculateBodyPositionAtTime, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob139';
+} from './encounter.js?v=20260819-ob140';
+import { applyBreakerBurn, calculateBodyPositionAtTime, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob140';
 import {
   getCageClearPulseDurationSeconds,
   getActiveViewZoomMinimumScale,
   getLaunchFacingPresentation,
   getLogicalSurfaceDirectionFromWorldHit,
   shouldAssistCommandLock,
-} from './presentation.js?v=20260819-ob139';
-import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob139';
-import { releaseRunLaunch } from './run.js?v=20260819-ob139';
+} from './presentation.js?v=20260819-ob140';
+import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob140';
+import { releaseRunLaunch } from './run.js?v=20260819-ob140';
 
 export function createInputController(THREE, host) {
   const {
@@ -708,15 +707,15 @@ function walkRunnerToGlobeHit(Hit, InputKind = 'pointer') {
   }
   const DeltaSeconds = consumeSurfaceWalkDeltaSeconds();
   SurfaceWalkDragAgeSeconds += DeltaSeconds;
-  let MaxArc = getSurfaceWalkPointerArcLimit(DeltaSeconds, SurfaceWalkDragAgeSeconds);
-  if (JustLeftDeadzone) {
-    MaxArc = Math.max(MaxArc, SurfaceWalkTapRadians);
-  }
   const DidMove = setRunnerSurfacePose(
-    stepSurfacePoseToward(
+    stepPointerSurfaceWalk(
       CurrentPose,
       TargetPose,
-      MaxArc,
+      DeltaSeconds,
+      {
+        dragAgeSeconds: SurfaceWalkDragAgeSeconds,
+        justLeftDeadzone: JustLeftDeadzone,
+      },
     ),
     InputKind,
   );

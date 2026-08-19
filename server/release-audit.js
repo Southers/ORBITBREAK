@@ -224,6 +224,14 @@ export function auditReleaseReadiness() {
     'Landed crust drags must walk, keyboard walk must circle a tiny world, spent Break must cue, and Scout must name HERE plus Seedstone launches.',
   );
   requireCondition(
+    ControlsSource.includes('SurfaceWalkCruiseLapSeconds = 7')
+      && ControlsSource.includes('export function stepPointerSurfaceWalk(')
+      && InputControllerSource.includes('stepPointerSurfaceWalk(')
+      && !InputControllerSource.includes('Math.max(MaxArc, SurfaceWalkTapRadians)')
+      && ControlsSource.includes('SurfaceWalkPointerNudgeRadians = 2'),
+    'Crust drag must walk at a capped courier pace so a swipe cannot whip the planet.',
+  );
+  requireCondition(
     PlayerSource.includes('const SeedHaloGeometry = new THREE.TorusGeometry(0.55, 0.06, 8, 24)')
       && PlayerSource.includes('new THREE.PointLight(0x72dcff, 0, 0.01, 2)')
       && PlayerSource.includes('SeedPointLight.visible = false')
