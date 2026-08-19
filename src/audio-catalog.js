@@ -8,15 +8,15 @@
 import {
   AuthoredCampaignSystemIdentifiers,
   AuthoredSystemDefinitions,
-} from './content.js?v=20260819-ob137';
+} from './content.js?v=20260819-ob138';
 import {
   FirstRunCoachBodies,
   HowToPlayLines,
   formatStoryBoardCopy,
   getHowToPlayPresentation,
-} from './presentation.js?v=20260819-ob137';
+} from './presentation.js?v=20260819-ob138';
 
-export const AudioAssetVersion = '20260819-ob137';
+export const AudioAssetVersion = '20260819-ob138';
 export const AudioAssetRoot = './assets/audio';
 
 /** Stock ElevenLabs library voices. Do not clone a real person. */

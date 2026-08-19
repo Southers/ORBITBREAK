@@ -100,6 +100,8 @@ export function auditReleaseReadiness() {
     requireCondition(
       IndexHtml.includes(`'sha256-${ImportMapHash}'`)
         && IndexHtml.includes("connect-src 'self' http://127.0.0.1:* http://localhost:*")
+        && IndexHtml.includes("media-src 'self'")
+        && !IndexHtml.includes("media-src 'none'")
         && !/connect-src[^"]*https:/.test(IndexHtml),
       'The public CSP must hash the import map and keep network access fail-closed.',
     );

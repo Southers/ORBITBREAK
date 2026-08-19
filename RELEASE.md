@@ -84,6 +84,9 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
+- Build `20260819-ob138` is the local candidate after live ob137 stayed silent on first tap. Pages cache-bust is `20260819-ob138`.
+- Highlight kill (`ob138`): a new AudioContext started suspended and never resumed in the same gesture, so sampled clips and short procedural tones stayed mute. First tap now resumes, plays a one-sample unlock buffer, and waits until the context is running before starting short sources. How-to missing lines fall back to the in-engine briefing voice. CSP `media-src` is `'self'`. Command skim-lock, hull cancel, Zoom ± and rim cages stay.
+- Build `20260819-ob138` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (How to play overlay, pause sheet, ship fuel lights, Warden vessel telegraph).
 - Build `20260819-ob137` is the local candidate after live ob136 still froze on exposed Command. Pages cache-bust is `20260819-ob137`.
 - Highlight kill (`ob137`): the ob136 skim shell still parked the courier ~80px off Command with aim keys, Space, Escape and drag dead. Command's visual catch is now wide enough that a Glasswing throw and a Bastion near-miss land; landing wins immediately instead of trapping the player on unread lattice cages. Committed hull cancel is 36px; a 40px Grove pull still launches. Drag-walk, Escape-cancel, Zoom ±, Command EXPOSE and rim cages stay.
 - Build `20260819-ob137` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (How to play overlay, pause sheet, ship fuel lights, Warden vessel telegraph).
