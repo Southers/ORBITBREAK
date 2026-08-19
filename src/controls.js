@@ -765,12 +765,19 @@ export function isEditingTextField(Target) {
 export const LaunchCancelRadius = 0.85;
 /** Screen-space cancel disk so a zoomed-out aim can still be dropped on the visible ship. */
 export const LaunchCancelScreenRadiusPixels = 52;
+/**
+ * After the planning camera jumps, the 52px disk covers a shrunken Grove. A tight
+ * hull disk still cancels a drag-back that looks parked on the ship on screen
+ * even when the aim-camera unproject maps that pixel to the planet centre.
+ */
+export const LaunchCancelCommittedScreenRadiusPixels = 28;
 
 /**
  * A committed pull still launches. Dragging back onto the ship, or never pulling far
  * enough, cancels without spending the flight. Before the planning camera jumps, a
- * constant pixel disk around the visible hull is also a cancel. After that jump the
- * hull shrinks into a tiny screen disc, so cancel uses only the aim-camera world drag.
+ * constant pixel disk around the visible hull is also a cancel. After that jump a
+ * long world-space pull launches, but a short drag back onto the on-screen hull
+ * still cancels.
  */
 export function shouldCancelAimedLaunch({
   pointerDistanceFromShip,
@@ -778,6 +785,7 @@ export function shouldCancelAimedLaunch({
   screenDistancePixels = Number.POSITIVE_INFINITY,
   screenCancelRadiusPixels = LaunchCancelScreenRadiusPixels,
   planningCameraCommitted = false,
+  committedScreenCancelRadiusPixels = LaunchCancelCommittedScreenRadiusPixels,
 } = {}) {
   if (!Number.isFinite(pointerDistanceFromShip) || pointerDistanceFromShip < 0) {
     throw new Error('Launch cancel requires a non-negative ship distance.');
@@ -791,10 +799,20 @@ export function shouldCancelAimedLaunch({
   if (!(screenCancelRadiusPixels > 0) || !Number.isFinite(screenCancelRadiusPixels)) {
     throw new Error('Launch cancel requires a positive screen cancel radius.');
   }
-  if (planningCameraCommitted === true) {
-    return pointerDistanceFromShip <= cancelRadius;
+  if (
+    !(committedScreenCancelRadiusPixels > 0)
+    || !Number.isFinite(committedScreenCancelRadiusPixels)
+  ) {
+    throw new Error('Launch cancel requires a positive committed screen cancel radius.');
   }
-  const ScreenCancel = Number.isFinite(screenDistancePixels)
-    && screenDistancePixels <= screenCancelRadiusPixels;
-  return pointerDistanceFromShip <= cancelRadius || ScreenCancel;
+  if (pointerDistanceFromShip <= cancelRadius) {
+    return true;
+  }
+  if (!Number.isFinite(screenDistancePixels)) {
+    return false;
+  }
+  if (planningCameraCommitted === true) {
+    return screenDistancePixels <= committedScreenCancelRadiusPixels;
+  }
+  return screenDistancePixels <= screenCancelRadiusPixels;
 }

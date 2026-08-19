@@ -5,7 +5,7 @@
  * module so scoring, relays and Warden pursuit cannot drift apart.
  */
 
-import { isWorldheartUnlocked } from './campaign.js?v=20260819-ob135';
+import { isWorldheartUnlocked } from './campaign.js?v=20260819-ob136';
 import {
   applyBreakerBurn,
   calculateBodyPositionAtTime,
@@ -16,15 +16,15 @@ import {
   findCollidingWorld,
   simulatePhysicsStep,
   advanceOrbitTrap,
-} from './physics.js?v=20260819-ob135';
+} from './physics.js?v=20260819-ob136';
 import {
   addCircuitBonus,
   addVictoryBonus,
   bankFlightScore,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260819-ob135';
-import { settleRunFlight } from './run.js?v=20260819-ob135';
+} from './scoring.js?v=20260819-ob136';
+import { settleRunFlight } from './run.js?v=20260819-ob136';
 import {
   connectRelayWorlds,
   countLiveRelayWorlds,
@@ -32,7 +32,7 @@ import {
   listProtectedRelayWorlds,
   listVulnerableRelayWorlds,
   suppressRelayWorld,
-} from './network.js?v=20260819-ob135';
+} from './network.js?v=20260819-ob136';
 import {
   WardenPursuitEvents,
   chooseWardenTarget,
@@ -40,12 +40,12 @@ import {
   resolveWardenPursuit,
   shouldRevealWarden,
   shouldWardenCatchRunner,
-} from './warden.js?v=20260819-ob135';
+} from './warden.js?v=20260819-ob136';
 import {
   hasTravelledFurther,
   isInnerClusterLive,
   shouldOpenCommandWorldRoute,
-} from './sector.js?v=20260819-ob135';
+} from './sector.js?v=20260819-ob136';
 import {
   DefaultLiberationValue,
   hasClearedLaunchOrigin,
@@ -55,7 +55,7 @@ import {
   RunnerRadius,
   StardustCollectionRadiusSquared,
   SurfaceRestLift,
-} from './sim-constants.js?v=20260819-ob135';
+} from './sim-constants.js?v=20260819-ob136';
 
 /** Snaps an impact onto a body's orbital-plane circumference. */
 export function calculateSurfaceRestPosition(BodyDefinition, ImpactPosition, BodyPosition) {
@@ -277,6 +277,11 @@ export function advanceSimulatedFlightStep({
     NextPhysicsState.position,
     worlds,
     NextIgnoredWorldIdentifier,
+    {
+      extraBodies: tacticalBodies,
+      elapsedTimeSeconds: simulationTimeSeconds,
+      ignoredBodyIdentifier: NextIgnoredBodyIdentifier,
+    },
   );
 
   return {

@@ -19,9 +19,10 @@ import {
   applyBreakerBurn,
   getBreakerBurnDirection,
   advanceOrbitTrap,
-  FlightStallTimeoutSteps,
+  FlightSkimClearance,
   FlightSkimTimeoutSteps,
   FlightStallDisplacement,
+  FlightStallTimeoutSteps,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
   calculateGravityAcceleration,
@@ -29,6 +30,8 @@ import {
   createVector,
   findCollidingBody,
   findCollidingWorld,
+  getBodySurfaceMarkerPosition,
+  getTacticalBodyCollisionRadius,
   predictTrajectory,
   simulatePhysicsStep,
 } from '../src/physics.js';
@@ -1864,4 +1867,135 @@ test('a crawl that never completes a revolution still recovers after the stall t
       z: 0,
     }, [World]), false);
   }
+});
+
+test('Command World graze uses the skim shell and recaptures if it never lands', () => {
+  const Command = {
+    id: 'worldheart',
+    kind: 'worldheart',
+    radius: 0.9,
+    position: createVector(40, 18, 0),
+    orbit: {
+      centre: createVector(40, 18, 0),
+      radius: 4.5,
+      phaseRadians: 0,
+      angularSpeedRadiansPerSecond: 0.08,
+    },
+  };
+  const SeedRadius = 0.46;
+  const AuthoredCatch = Command.radius + SeedRadius;
+  const CommandCatch = getTacticalBodyCollisionRadius(Command) + SeedRadius;
+  assert.equal(getTacticalBodyCollisionRadius(Command), Command.radius + FlightSkimClearance);
+  assert.ok(CommandCatch > AuthoredCatch);
+
+  const StartTimeSeconds = 8;
+  const CommandNow = calculateBodyPositionAtTime(Command, StartTimeSeconds);
+  const GrazeOffset = AuthoredCatch + 0.28;
+  const GrazePosition = createVector(CommandNow.x + GrazeOffset, CommandNow.y, 0);
+  assert.equal(
+    findCollidingBody(GrazePosition, SeedRadius, [Command], StartTimeSeconds)?.definition.id,
+    'worldheart',
+  );
+
+  const CollisionTimeSeconds = StartTimeSeconds + 6.4;
+  const CollisionPoint = calculateBodyPositionAtTime(Command, CollisionTimeSeconds);
+  const NowMarker = getBodySurfaceMarkerPosition(
+    Command,
+    CollisionPoint,
+    StartTimeSeconds,
+  );
+  const CollisionMarker = getBodySurfaceMarkerPosition(
+    Command,
+    CollisionPoint,
+    CollisionTimeSeconds,
+  );
+  const MarkerSeparation = Math.hypot(
+    CollisionMarker.x - NowMarker.x,
+    CollisionMarker.y - NowMarker.y,
+  );
+  assert.ok(MarkerSeparation > 2);
+  assert.ok(Math.hypot(
+    CollisionMarker.x - CollisionPoint.x,
+    CollisionMarker.y - CollisionPoint.y,
+  ) < 1.1);
+
+  const Worlds = [
+    { id: 'glasswing', radius: 1.15, position: { x: 34, y: 24, z: 0 } },
+  ];
+  const SkimState = createOrbitTrapState();
+  const SkimRadius = getTacticalBodyCollisionRadius(Command) + 0.2;
+  let Trapped = false;
+  let StepCount = 0;
+  while (!Trapped && StepCount < FlightSkimTimeoutSteps + 2) {
+    const SampleTime = StartTimeSeconds + (StepCount / 120);
+    const CommandAtTime = calculateBodyPositionAtTime(Command, SampleTime);
+    Trapped = advanceOrbitTrap(
+      SkimState,
+      {
+        x: CommandAtTime.x + SkimRadius,
+        y: CommandAtTime.y,
+        z: 0,
+      },
+      Worlds,
+      null,
+      {
+        extraBodies: [Command],
+        elapsedTimeSeconds: SampleTime,
+      },
+    );
+    StepCount += 1;
+  }
+  assert.equal(Trapped, true);
+  assert.equal(SkimState.skimWorldIdentifier, 'worldheart');
+  assert.equal(StepCount, FlightSkimTimeoutSteps);
+});
+
+test('prediction and live flight agree on an orbiting Command graze', () => {
+  const Worlds = [
+    { id: 'glasswing', position: createVector(34, 24, 0), radius: 1.15, gravitationalParameter: 26 },
+  ];
+  const Command = {
+    id: 'worldheart',
+    kind: 'worldheart',
+    radius: 0.9,
+    position: createVector(44.5, 18, 0),
+    orbit: {
+      centre: createVector(40, 18, 0),
+      radius: 4.5,
+      phaseRadians: 0,
+      angularSpeedRadiansPerSecond: 0.08,
+    },
+  };
+  const StartTimeSeconds = 2;
+  const CommandNow = calculateBodyPositionAtTime(Command, StartTimeSeconds);
+  const LaunchPosition = createVector(CommandNow.x - 3.4, CommandNow.y, 0);
+  const LaunchVelocity = createVector(6.2, 0.4, 0);
+  const Settings = {
+    seedRadius: 0.46,
+    fixedStepSeconds: 1 / 120,
+    maximumSteps: 720,
+    collisionBodyDefinitions: [Command],
+    startTimeSeconds: StartTimeSeconds,
+  };
+  const Prediction = predictTrajectory(LaunchPosition, LaunchVelocity, Worlds, Settings);
+  let LiveState = { position: LaunchPosition, velocity: LaunchVelocity };
+  let LiveCollision = null;
+  let LiveCollisionStep = null;
+  for (let StepIndex = 1; StepIndex <= 720; StepIndex += 1) {
+    LiveState = simulatePhysicsStep(LiveState, Worlds, Settings.fixedStepSeconds);
+    LiveCollision = findCollidingBody(
+      LiveState.position,
+      Settings.seedRadius,
+      [Command],
+      StartTimeSeconds + (StepIndex * Settings.fixedStepSeconds),
+    );
+    if (LiveCollision) {
+      LiveCollisionStep = StepIndex;
+      break;
+    }
+  }
+  assert.equal(Prediction.collisionKind, 'worldheart');
+  assert.equal(Prediction.collisionBodyIdentifier, 'worldheart');
+  assert.equal(LiveCollision?.definition.id, 'worldheart');
+  assert.equal(LiveCollisionStep, Prediction.points.length - 1);
 });

@@ -3,7 +3,8 @@
  * Trajectory colour and relay-port beacons encode lock, dock and hazard; there is no aim meter.
  */
 
-import { evaluateRelayPortLanding } from './flight-resolver.js?v=20260819-ob135';
+import { evaluateRelayPortLanding } from './flight-resolver.js?v=20260819-ob136';
+import { getBodySurfaceMarkerPosition } from './physics.js?v=20260819-ob136';
 
 export function createAimPreview(THREE, host) {
   /**
@@ -103,18 +104,15 @@ export function createAimPreview(THREE, host) {
       host.TrajectoryMaterial.color.set(0xffd678);
       host.TrajectoryMaterial.opacity = 0.9;
       host.LandingMarkerMaterial.color.set(0xffd678);
-      const LandingDirection = host.TemporaryThreeVector.set(
-        FinalPredictionPoint.x - host.WorldheartDefinition.position.x,
-        FinalPredictionPoint.y - host.WorldheartDefinition.position.y,
-        0,
-      ).normalize();
-      host.LandingMarkerMesh.position.set(
-        host.WorldheartDefinition.position.x
-          + (LandingDirection.x * (host.WorldheartDefinition.radius + 0.08)),
-        host.WorldheartDefinition.position.y
-          + (LandingDirection.y * (host.WorldheartDefinition.radius + 0.08)),
-        0.2,
+      const CommandCollisionTime = Number.isFinite(TrajectoryPrediction.collisionTimeSeconds)
+        ? TrajectoryPrediction.collisionTimeSeconds
+        : host.PhysicsElapsedTimeSeconds;
+      const CommandMarker = getBodySurfaceMarkerPosition(
+        host.WorldheartDefinition,
+        FinalPredictionPoint,
+        CommandCollisionTime,
       );
+      host.LandingMarkerMesh.position.set(CommandMarker.x, CommandMarker.y, CommandMarker.z);
       host.LandingMarkerMesh.visible = true;
     } else if (IsOutcomeVisible && TrajectoryPrediction.collisionWorldIdentifier) {
       const LandingWorldDefinition = host.getWorldDefinition(TrajectoryPrediction.collisionWorldIdentifier);

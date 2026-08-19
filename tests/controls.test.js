@@ -535,6 +535,24 @@ test('a committed planning aim launches from a long pull even if the hull is a t
   }), true);
 });
 
+test('a committed drag back onto the on-screen hull cancels even when world unproject is huge', () => {
+  assert.equal(shouldCancelAimedLaunch({
+    pointerDistanceFromShip: 2,
+    screenDistancePixels: 12,
+    planningCameraCommitted: true,
+  }), true);
+  assert.equal(shouldCancelAimedLaunch({
+    pointerDistanceFromShip: 2,
+    screenDistancePixels: 28,
+    planningCameraCommitted: true,
+  }), true);
+  assert.equal(shouldCancelAimedLaunch({
+    pointerDistanceFromShip: 2,
+    screenDistancePixels: 29,
+    planningCameraCommitted: true,
+  }), false);
+});
+
 test('game hotkeys yield to typing in callsign and other text fields', () => {
   assert.equal(isEditingTextField({ tagName: 'INPUT', type: 'text' }), true);
   assert.equal(isEditingTextField({ tagName: 'TEXTAREA' }), true);

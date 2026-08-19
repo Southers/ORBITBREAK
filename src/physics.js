@@ -6,7 +6,7 @@
  * and suitable for use both by the live seed simulation and the trajectory preview.
  */
 
-import { hasClearedLaunchOrigin } from './sim-constants.js?v=20260819-ob135';
+import { hasClearedLaunchOrigin } from './sim-constants.js?v=20260819-ob136';
 
 /**
  * Creates a small immutable-style vector object used by the deterministic physics layer.
@@ -115,6 +115,43 @@ export const FlightSkimTimeoutSteps = 240;
 /** Thin shell beyond the collision radius. Origin-world launch height is ignored. */
 export const FlightSkimClearance = 0.72;
 
+/**
+ * Command is a small orbiting tactical body, not a gravity world. A visual graze
+ * that looks landed must still catch, using the same skim shell as recapture.
+ */
+export function getTacticalBodyCollisionRadius(BodyDefinition) {
+  const AuthoredRadius = Number(BodyDefinition?.radius);
+  const Radius = Number.isFinite(AuthoredRadius) && AuthoredRadius > 0 ? AuthoredRadius : 0;
+  if (BodyDefinition?.kind === 'worldheart') {
+    return Radius + FlightSkimClearance;
+  }
+  return Radius;
+}
+
+/**
+ * Places the aim endpoint on the body at the predicted collision time, not the
+ * current pose. Orbiting Command otherwise parks the ring on where it is now.
+ */
+export function getBodySurfaceMarkerPosition(
+  BodyDefinition,
+  SamplePoint,
+  SimulationTimeSeconds,
+  Lift = 0.08,
+) {
+  const BodyPosition = calculateBodyPositionAtTime(BodyDefinition, SimulationTimeSeconds);
+  const OffsetX = SamplePoint.x - BodyPosition.x;
+  const OffsetY = SamplePoint.y - BodyPosition.y;
+  const Length = Math.hypot(OffsetX, OffsetY);
+  const DirectionX = Length > 1e-8 ? OffsetX / Length : 1;
+  const DirectionY = Length > 1e-8 ? OffsetY / Length : 0;
+  const Radius = Number(BodyDefinition?.radius) || 0;
+  return createVector(
+    BodyPosition.x + (DirectionX * (Radius + Lift)),
+    BodyPosition.y + (DirectionY * (Radius + Lift)),
+    0.2,
+  );
+}
+
 /** Creates persistent orbit-trap accumulators shared by live flight, prediction and replay. */
 export function createOrbitTrapState() {
   return {
@@ -140,7 +177,13 @@ export function advanceOrbitTrap(
   Position,
   WorldDefinitions,
   IgnoredWorldIdentifier = null,
+  TrapOptions = null,
 ) {
+  const ExtraBodies = Array.isArray(TrapOptions?.extraBodies) ? TrapOptions.extraBodies : [];
+  const ElapsedTimeSeconds = Number(TrapOptions?.elapsedTimeSeconds);
+  const SampleTimeSeconds = Number.isFinite(ElapsedTimeSeconds) ? ElapsedTimeSeconds : 0;
+  const IgnoredBodyIdentifier = TrapOptions?.ignoredBodyIdentifier ?? null;
+
   if (!TrapState.stallAnchored) {
     TrapState.stallX = Position.x;
     TrapState.stallY = Position.y;
@@ -163,16 +206,38 @@ export function advanceOrbitTrap(
     }
   }
 
+  const Wells = [];
+  for (const WorldDefinition of WorldDefinitions) {
+    Wells.push({
+      id: WorldDefinition.id,
+      radius: WorldDefinition.radius,
+      position: WorldDefinition.position,
+    });
+  }
+  for (const BodyDefinition of ExtraBodies) {
+    if (BodyDefinition?.kind !== 'worldheart' || BodyDefinition.active === false) {
+      continue;
+    }
+    if (BodyDefinition.id === IgnoredBodyIdentifier) {
+      continue;
+    }
+    Wells.push({
+      id: BodyDefinition.id,
+      radius: getTacticalBodyCollisionRadius(BodyDefinition),
+      position: calculateBodyPositionAtTime(BodyDefinition, SampleTimeSeconds),
+    });
+  }
+
   let NearestWorld = null;
   let NearestDistance = Infinity;
-  for (const WorldDefinition of WorldDefinitions) {
+  for (const Well of Wells) {
     const Distance = Math.hypot(
-      Position.x - WorldDefinition.position.x,
-      Position.y - WorldDefinition.position.y,
+      Position.x - Well.position.x,
+      Position.y - Well.position.y,
     );
-    const OuterRadius = WorldDefinition.radius * OrbitTrapOuterRadiusFactor;
+    const OuterRadius = Well.radius * OrbitTrapOuterRadiusFactor;
     if (Distance <= OuterRadius && Distance < NearestDistance) {
-      NearestWorld = WorldDefinition;
+      NearestWorld = Well;
       NearestDistance = Distance;
     }
   }
@@ -401,7 +466,7 @@ export function findCollidingBody(
     }
 
     const BodyPosition = calculateBodyPositionAtTime(BodyDefinition, SimulationTimeSeconds);
-    const CollisionDistance = BodyDefinition.radius + SeedRadius;
+    const CollisionDistance = getTacticalBodyCollisionRadius(BodyDefinition) + SeedRadius;
     if (
       calculateDistanceSquared(SeedPosition, BodyPosition)
       <= (CollisionDistance * CollisionDistance)
@@ -520,6 +585,11 @@ export function predictTrajectory(
       PredictedState.position,
       WorldDefinitions,
       IgnoredWorldIdentifier,
+      {
+        extraBodies: CollisionBodyDefinitions,
+        elapsedTimeSeconds: PredictionTimeSeconds,
+        ignoredBodyIdentifier: IgnoredCollisionBodyIdentifier,
+      },
     )) {
       break;
     }
