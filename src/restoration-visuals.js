@@ -6,7 +6,7 @@
  * (memory toast, hostile-encounter start, victory reveal).
  */
 
-import { getLeftoverHostileEncounter } from './encounter.js';
+import { getLeftoverHostileEncounter } from './encounter.js?v=20260819-ob126';
 import { countLiveRelayWorlds } from './network.js';
 import { consumePendingDiscoveryToast } from './discoveries.js?v=20260818-ob123';
 import {

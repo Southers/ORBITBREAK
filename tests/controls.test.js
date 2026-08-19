@@ -19,6 +19,9 @@ import {
   SeedScreenGrabRadiusPixels,
   SeedOnGlobeGrabRadiusPixels,
   getLandedShipGrabRadiusPixels,
+  CageScreenGrabRadiusPixels,
+  getLandedCageGrabRadiusPixels,
+  doLandedCageAndShipHalosOverlap,
   createSurfacePose,
   flattenSurfacePoseToEquator,
   getSphereSurfacePosition,
@@ -263,7 +266,7 @@ test('landed pointer-down locks ship, world or space before the drag moves', () 
     isOverShip: true,
     isOverCage: true,
     isOverWorld: true,
-  }), LandedPointerTargets.ship);
+  }), LandedPointerTargets.cage);
   assert.ok(SeedScreenGrabRadiusPixels > 44);
 });
 
@@ -284,6 +287,27 @@ test('landed ship grab stays small on the visible crust so planet drags can walk
     isOverShip: false,
     isOverWorld: true,
   }), LandedPointerTargets.world);
+});
+
+test('a cage under the finger beats the ship halo, and leftover cages sit outside that halo', () => {
+  assert.equal(CageScreenGrabRadiusPixels, 88);
+  const PhoneGlobe = getLandedCageGrabRadiusPixels({
+    worldScreenRadiusPixels: 140,
+  });
+  assert.equal(PhoneGlobe, 88);
+  const ShipHalo = getLandedShipGrabRadiusPixels({
+    isOverWorld: true,
+    worldScreenRadiusPixels: 140,
+  });
+  assert.ok(PhoneGlobe > ShipHalo);
+  assert.equal(doLandedCageAndShipHalosOverlap({
+    angularSeparationRadians: 0.4,
+    worldScreenRadiusPixels: 140,
+  }), true);
+  assert.equal(doLandedCageAndShipHalosOverlap({
+    angularSeparationRadians: 1.5,
+    worldScreenRadiusPixels: 140,
+  }), false);
 });
 
 test('a ship grab aims from a screen pull even while the globe is still under the pointer', () => {

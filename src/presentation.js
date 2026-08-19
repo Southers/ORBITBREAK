@@ -430,7 +430,7 @@ export function getLandedSurfacePlant({
 /** Sticky first-run coach bodies. Walk names prosper; aim names the cage. */
 export const FirstRunCoachBodies = Object.freeze({
   walk: 'Linking them lets those worlds prosper.',
-  aim: 'Occupied worlds have Warden cages. Pull the ship through a cage to break it.',
+  aim: 'Occupied worlds have Warden cages. Tap the cage to break it.',
 });
 
 export function getFirstRunCoachPresentation({

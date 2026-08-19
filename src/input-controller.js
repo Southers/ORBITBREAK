@@ -24,16 +24,17 @@ import {
   projectRayOntoSphere,
   SeedScreenGrabRadiusPixels,
   getLandedShipGrabRadiusPixels,
+  getLandedCageGrabRadiusPixels,
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js';
+} from './controls.js?v=20260819-ob126';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
   resolveClampTap,
   resolveHostileCut,
-} from './encounter.js';
+} from './encounter.js?v=20260819-ob126';
 import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js';
 import {
   getCageClearPulseDurationSeconds,
@@ -201,7 +202,6 @@ const WorldScreenCenter = new THREE.Vector3();
 const WorldScreenLimb = new THREE.Vector3();
 const CageWorldPosition = new THREE.Vector3();
 const CageScreenProjection = new THREE.Vector3();
-const CagePointerScreenRadiusPixels = 56;
 
 function isPointerOverShipMesh() {
   return PointerRaycaster.intersectObject(SeedPointerHitMesh, false).length > 0;
@@ -281,7 +281,9 @@ function pickCageClampId(PointerEventData) {
   }
   const CanvasBounds = GameCanvas.getBoundingClientRect();
   let BestId = null;
-  let BestDistance = CagePointerScreenRadiusPixels;
+  let BestDistance = getLandedCageGrabRadiusPixels({
+    worldScreenRadiusPixels: getAttachedWorldScreenRadiusPixels(),
+  });
   for (const Clamp of RemainingClamps) {
     const ClampMesh = HostilePylonGroup.children[Clamp.id];
     if (!ClampMesh?.visible) {
@@ -314,6 +316,18 @@ function clearCageBreak() {
   CageBreakClampId = null;
   host.IsCageBreaking = false;
   GameCanvas.classList.remove('is-cage-breaking');
+}
+
+function finishArmedCageTap() {
+  const ClampId = CageBreakClampId;
+  clearCageBreak();
+  host.ActivePointerIdentifier = null;
+  host.PointerGestureMode = SurfaceGestureModes.pending;
+  if (Number.isInteger(ClampId) && host.ActiveHostileEncounterState) {
+    applyClampTap(ClampId);
+    return true;
+  }
+  return false;
 }
 
 function isPointerOverSeed(PointerEventData) {
@@ -1346,15 +1360,23 @@ function handlePointerMove(PointerEventData) {
       && !isPlayInputBlocked()
       && (
         host.GamePhase === 'attached'
-          ? LandedOccupancy.isOverShip
+          ? (LandedOccupancy.isOverShip && !LandedOccupancy.isOverCage)
           : isPointerOverSeed(PointerEventData)
       ),
+    );
+    GameCanvas.classList.toggle(
+      'is-cage-ready',
+      host.GamePhase === 'attached'
+      && host.ReplayPlaybackState === null
+      && !isPlayInputBlocked()
+      && LandedOccupancy.isOverCage === true,
     );
     if (
       host.GamePhase === 'attached'
       && host.ReplayPlaybackState === null
       && !isPlayInputBlocked()
       && !LandedOccupancy.isOverShip
+      && !LandedOccupancy.isOverCage
     ) {
       const IsWalkReady = LandedOccupancy.isOverWorld === true;
       GameCanvas.classList.toggle('is-walk-ready', IsWalkReady);
@@ -1664,13 +1686,7 @@ function handlePointerUp(PointerEventData) {
   }
 
   if (host.IsCageBreaking || CageBreakClampId !== null) {
-    const ClampId = CageBreakClampId;
-    clearCageBreak();
-    host.ActivePointerIdentifier = null;
-    host.PointerGestureMode = SurfaceGestureModes.pending;
-    if (Number.isInteger(ClampId) && host.ActiveHostileEncounterState) {
-      applyClampTap(ClampId);
-    }
+    finishArmedCageTap();
     PointerEventData.preventDefault();
     return;
   }
@@ -1762,13 +1778,8 @@ function handlePointerCancel(PointerEventData) {
     GameCanvas.releasePointerCapture(PointerEventData.pointerId);
   }
   if (host.IsCageBreaking || CageBreakClampId !== null) {
-    clearCageBreak();
-    host.ActivePointerIdentifier = null;
-    host.PointerGestureMode = SurfaceGestureModes.pending;
-    GameCanvas.classList.remove('is-ship-armed', 'is-aiming', 'is-walking', 'is-scouting');
-    if (!showHostileEncounterInstruction()) {
-      showWalkFacingInstruction(getCurrentAttachedWorld());
-    }
+    finishArmedCageTap();
+    PointerEventData.preventDefault();
     return;
   }
   if (host.IsCutAiming) {

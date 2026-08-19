@@ -61,7 +61,7 @@ export function createWardenVisuals(THREE, Scene, host) {
     return Cage;
   }
 
-  const ClampHitGeometry = new THREE.SphereGeometry(1.2, 10, 8);
+  const ClampHitGeometry = new THREE.SphereGeometry(2.05, 12, 8);
   const ClampHitMaterial = new THREE.MeshBasicMaterial({
     visible: false,
     transparent: true,

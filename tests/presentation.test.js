@@ -863,7 +863,7 @@ test('first-run captions stay until the ship is grabbed, then until launch, then
     hasLaunchedOnce: false,
   });
   assert.equal(AfterGrab.title, 'Pull the ship, then let go');
-  assert.equal(AfterGrab.body, 'Occupied worlds have Warden cages. Pull the ship through a cage to break it.');
+  assert.equal(AfterGrab.body, 'Occupied worlds have Warden cages. Tap the cage to break it.');
   const AfterLaunch = getFirstRunCoachPresentation({
     gamePhase: 'attached',
     hasGrabbedShipOnce: true,

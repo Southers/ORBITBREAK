@@ -290,7 +290,12 @@ export function createHud(host) {
       }
       return;
     }
-    const CoachBody = Coach.body;
+    const CoachBody = Coach.body
+      || (Coach.kind === 'walk'
+        ? 'Linking them lets those worlds prosper.'
+        : Coach.kind === 'aim'
+          ? 'Occupied worlds have Warden cages. Tap the cage to break it.'
+          : '');
     const SameCaption = PlayCaptionElement.dataset.coachKind === Coach.kind
       && PlayCaptionTitleElement.textContent === Coach.title
       && PlayCaptionBodyElement.textContent === CoachBody
