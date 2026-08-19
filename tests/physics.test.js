@@ -23,6 +23,7 @@ import {
   FlightSkimTimeoutSteps,
   FlightStallDisplacement,
   FlightStallTimeoutSteps,
+  WorldheartCollisionClearance,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
   calculateGravityAcceleration,
@@ -1885,7 +1886,7 @@ test('Command World graze uses the skim shell and recaptures if it never lands',
   const SeedRadius = 0.46;
   const AuthoredCatch = Command.radius + SeedRadius;
   const CommandCatch = getTacticalBodyCollisionRadius(Command) + SeedRadius;
-  assert.equal(getTacticalBodyCollisionRadius(Command), Command.radius + FlightSkimClearance);
+  assert.equal(getTacticalBodyCollisionRadius(Command), Command.radius + WorldheartCollisionClearance);
   assert.ok(CommandCatch > AuthoredCatch);
 
   const StartTimeSeconds = 8;

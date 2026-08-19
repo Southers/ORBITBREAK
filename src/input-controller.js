@@ -34,23 +34,23 @@ import {
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob136';
+} from './controls.js?v=20260819-ob137';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
   resolveClampTap,
   resolveHostileCut,
-} from './encounter.js?v=20260819-ob136';
-import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob136';
+} from './encounter.js?v=20260819-ob137';
+import { applyBreakerBurn, calculateBodyPositionAtTime, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob137';
 import {
   getCageClearPulseDurationSeconds,
   getActiveViewZoomMinimumScale,
   getLaunchFacingPresentation,
   getLogicalSurfaceDirectionFromWorldHit,
   shouldAssistCommandLock,
-} from './presentation.js?v=20260819-ob136';
-import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob136';
-import { releaseRunLaunch } from './run.js?v=20260819-ob136';
+} from './presentation.js?v=20260819-ob137';
+import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob137';
+import { releaseRunLaunch } from './run.js?v=20260819-ob137';
 
 export function createInputController(THREE, host) {
   const {
@@ -820,26 +820,49 @@ function createSuggestedKeyboardAimState(SuggestedTarget) {
   }
 
   const MaximumLaunchSpeed = MaximumDragDistance * LaunchVelocityPerDragUnit;
+  const PowerRatios = [KeyboardAimDefaultPowerRatio, 0.78, 1];
   let DidFindCommandLock = false;
-  const AssistedAngleRadians = findNearestKeyboardAimAngle(
-    DirectAimState.angleRadians,
-    (CandidateAngleRadians) => {
-      const Prediction = predictCurrentLaunchTrajectory(
-        {
-          x: Math.cos(CandidateAngleRadians) * MaximumLaunchSpeed,
-          y: Math.sin(CandidateAngleRadians) * MaximumLaunchSpeed,
-        },
-      );
-      DidFindCommandLock = Prediction.collisionBodyIdentifier === WorldheartDefinition.id;
-      return DidFindCommandLock;
-    },
-  );
+  let AssistedAngleRadians = DirectAimState.angleRadians;
+  let LockedPowerRatio = DirectAimState.powerRatio;
+  for (const PowerRatio of PowerRatios) {
+    const CandidateSpeed = MaximumLaunchSpeed * PowerRatio;
+    const LockedAngle = findNearestKeyboardAimAngle(
+      DirectAimState.angleRadians,
+      (CandidateAngleRadians) => {
+        const Prediction = predictCurrentLaunchTrajectory(
+          {
+            x: Math.cos(CandidateAngleRadians) * CandidateSpeed,
+            y: Math.sin(CandidateAngleRadians) * CandidateSpeed,
+          },
+        );
+        return Prediction.collisionBodyIdentifier === WorldheartDefinition.id;
+      },
+      {
+        stepRadians: 3 * (Math.PI / 180),
+        maximumOffsetRadians: 90 * (Math.PI / 180),
+      },
+    );
+    const LockPrediction = predictCurrentLaunchTrajectory({
+      x: Math.cos(LockedAngle) * CandidateSpeed,
+      y: Math.sin(LockedAngle) * CandidateSpeed,
+    });
+    if (LockPrediction.collisionBodyIdentifier === WorldheartDefinition.id) {
+      DidFindCommandLock = true;
+      AssistedAngleRadians = LockedAngle;
+      LockedPowerRatio = PowerRatio;
+      break;
+    }
+  }
   GameCanvas.dataset.keyboardAimAssist = DidFindCommandLock ? 'command-lock' : 'command-direct';
   if (DidFindCommandLock && !host.HasAnnouncedCommandLockGift) {
     host.HasAnnouncedCommandLockGift = true;
     showStatusToast('COMMAND WORLD LOCKED', 1400);
   }
-  return { ...DirectAimState, angleRadians: AssistedAngleRadians };
+  return {
+    ...DirectAimState,
+    angleRadians: AssistedAngleRadians,
+    powerRatio: LockedPowerRatio,
+  };
 }
 
 /**
@@ -862,7 +885,7 @@ function beginKeyboardAim() {
   flattenRunnerToEquator('keyboard');
   clearWalkFacingDataset();
   clearAimScreenDistance();
-  const SuggestedTarget = getCurrentRouteChoices(1)[0];
+  const RouteTarget = getCurrentRouteChoices(1)[0];
   const AttachedWorld = getCurrentAttachedWorld();
   const OutwardX = AttachedWorld
     ? host.SeedPhysicsState.position.x - AttachedWorld.position.x
@@ -870,6 +893,29 @@ function beginKeyboardAim() {
   const OutwardY = AttachedWorld
     ? host.SeedPhysicsState.position.y - AttachedWorld.position.y
     : 0;
+  const CommandPosition = calculateBodyPositionAtTime(
+    WorldheartDefinition,
+    host.PhysicsElapsedTimeSeconds,
+  );
+  const ToCommandX = CommandPosition.x - host.SeedPhysicsState.position.x;
+  const ToCommandY = CommandPosition.y - host.SeedPhysicsState.position.y;
+  const OutwardLength = Math.hypot(OutwardX, OutwardY) || 1;
+  const ToCommandLength = Math.hypot(ToCommandX, ToCommandY) || 1;
+  const FacesCommand = ((OutwardX * ToCommandX) + (OutwardY * ToCommandY))
+    / (OutwardLength * ToCommandLength) > 0.25;
+  const CommandIsFinaleGift = WorldheartDefinition.routeAvailable === true
+    && WorldheartDefinition.restored !== true
+    && host.WardenPursuitState.status === 'exposed';
+  const SuggestedTarget = (
+    CommandIsFinaleGift
+    && (
+      RouteTarget?.id === WorldheartDefinition.id
+      || RouteTarget?.kind === 'worldheart'
+      || FacesCommand
+    )
+  )
+    ? WorldheartDefinition
+    : RouteTarget;
   const IsCommandSuggestion = SuggestedTarget?.id === WorldheartDefinition.id
     || SuggestedTarget?.kind === 'worldheart';
   if (IsCommandSuggestion) {

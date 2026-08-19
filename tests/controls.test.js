@@ -543,12 +543,12 @@ test('a committed drag back onto the on-screen hull cancels even when world unpr
   }), true);
   assert.equal(shouldCancelAimedLaunch({
     pointerDistanceFromShip: 2,
-    screenDistancePixels: 28,
+    screenDistancePixels: 36,
     planningCameraCommitted: true,
   }), true);
   assert.equal(shouldCancelAimedLaunch({
     pointerDistanceFromShip: 2,
-    screenDistancePixels: 29,
+    screenDistancePixels: 37,
     planningCameraCommitted: true,
   }), false);
 });

@@ -6,7 +6,7 @@
  * and suitable for use both by the live seed simulation and the trajectory preview.
  */
 
-import { hasClearedLaunchOrigin } from './sim-constants.js?v=20260819-ob136';
+import { hasClearedLaunchOrigin } from './sim-constants.js?v=20260819-ob137';
 
 /**
  * Creates a small immutable-style vector object used by the deterministic physics layer.
@@ -117,13 +117,16 @@ export const FlightSkimClearance = 0.72;
 
 /**
  * Command is a small orbiting tactical body, not a gravity world. A visual graze
- * that looks landed must still catch, using the same skim shell as recapture.
+ * that looks landed (~80px off the rim in the close-up) must still catch. The
+ * previous skim shell (0.72) still parked live throws just outside the disc.
  */
+export const WorldheartCollisionClearance = 1.85;
+
 export function getTacticalBodyCollisionRadius(BodyDefinition) {
   const AuthoredRadius = Number(BodyDefinition?.radius);
   const Radius = Number.isFinite(AuthoredRadius) && AuthoredRadius > 0 ? AuthoredRadius : 0;
   if (BodyDefinition?.kind === 'worldheart') {
-    return Radius + FlightSkimClearance;
+    return Radius + WorldheartCollisionClearance;
   }
   return Radius;
 }
