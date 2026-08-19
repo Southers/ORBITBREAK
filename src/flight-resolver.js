@@ -5,7 +5,7 @@
  * module so scoring, relays and Warden pursuit cannot drift apart.
  */
 
-import { isWorldheartUnlocked } from './campaign.js?v=20260819-ob136';
+import { isWorldheartUnlocked } from './campaign.js?v=20260819-ob137';
 import {
   applyBreakerBurn,
   calculateBodyPositionAtTime,
@@ -16,15 +16,15 @@ import {
   findCollidingWorld,
   simulatePhysicsStep,
   advanceOrbitTrap,
-} from './physics.js?v=20260819-ob136';
+} from './physics.js?v=20260819-ob137';
 import {
   addCircuitBonus,
   addVictoryBonus,
   bankFlightScore,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260819-ob136';
-import { settleRunFlight } from './run.js?v=20260819-ob136';
+} from './scoring.js?v=20260819-ob137';
+import { settleRunFlight } from './run.js?v=20260819-ob137';
 import {
   connectRelayWorlds,
   countLiveRelayWorlds,
@@ -32,7 +32,7 @@ import {
   listProtectedRelayWorlds,
   listVulnerableRelayWorlds,
   suppressRelayWorld,
-} from './network.js?v=20260819-ob136';
+} from './network.js?v=20260819-ob137';
 import {
   WardenPursuitEvents,
   chooseWardenTarget,
@@ -40,12 +40,12 @@ import {
   resolveWardenPursuit,
   shouldRevealWarden,
   shouldWardenCatchRunner,
-} from './warden.js?v=20260819-ob136';
+} from './warden.js?v=20260819-ob137';
 import {
   hasTravelledFurther,
   isInnerClusterLive,
   shouldOpenCommandWorldRoute,
-} from './sector.js?v=20260819-ob136';
+} from './sector.js?v=20260819-ob137';
 import {
   DefaultLiberationValue,
   hasClearedLaunchOrigin,
@@ -55,18 +55,21 @@ import {
   RunnerRadius,
   StardustCollectionRadiusSquared,
   SurfaceRestLift,
-} from './sim-constants.js?v=20260819-ob136';
+} from './sim-constants.js?v=20260819-ob137';
 
 /** Snaps an impact onto a body's orbital-plane circumference. */
 export function calculateSurfaceRestPosition(BodyDefinition, ImpactPosition, BodyPosition) {
   const DifferenceX = ImpactPosition.x - BodyPosition.x;
   const DifferenceY = ImpactPosition.y - BodyPosition.y;
+  const SurfacePadding = BodyDefinition.kind === 'worldheart'
+    ? 0.12
+    : RunnerRadius + SurfaceRestLift;
   if ((DifferenceX * DifferenceX) + (DifferenceY * DifferenceY) < 0.0001) {
-    const SurfaceDistance = BodyDefinition.radius + RunnerRadius + SurfaceRestLift;
+    const SurfaceDistance = BodyDefinition.radius + SurfacePadding;
     return createVector(BodyPosition.x + SurfaceDistance, BodyPosition.y, 0);
   }
   const Distance = Math.hypot(DifferenceX, DifferenceY);
-  const SurfaceDistance = BodyDefinition.radius + RunnerRadius + SurfaceRestLift;
+  const SurfaceDistance = BodyDefinition.radius + SurfacePadding;
   return createVector(
     BodyPosition.x + ((DifferenceX / Distance) * SurfaceDistance),
     BodyPosition.y + ((DifferenceY / Distance) * SurfaceDistance),

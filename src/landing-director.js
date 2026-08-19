@@ -4,21 +4,21 @@
  * the playable shell / flight resolver.
  */
 
-import { countRestoredWorlds } from './campaign.js?v=20260819-ob136';
-import { evaluateRelayPortLanding } from './flight-resolver.js?v=20260819-ob136';
-import { countLiveRelayWorlds, connectRelayWorlds } from './network.js?v=20260819-ob136';
-import { createVector } from './physics.js?v=20260819-ob136';
+import { countRestoredWorlds } from './campaign.js?v=20260819-ob137';
+import { evaluateRelayPortLanding } from './flight-resolver.js?v=20260819-ob137';
+import { countLiveRelayWorlds, connectRelayWorlds } from './network.js?v=20260819-ob137';
+import { createVector } from './physics.js?v=20260819-ob137';
 import {
   getRelayRevealLookTarget,
   LiberationCelebrateHoldSeconds,
   getStillnessPresentation,
   getTriggeredCampaignStoryBoardIds,
-} from './presentation.js?v=20260819-ob136';
-import { calculateNormalizedSphericalDistance } from './restoration.js?v=20260819-ob136';
-import { addCircuitBonus, addVictoryBonus } from './scoring.js?v=20260819-ob136';
-import { settleRunFlight } from './run.js?v=20260819-ob136';
-import { WardenPursuitEvents } from './warden.js?v=20260819-ob136';
-import { getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob136';
+} from './presentation.js?v=20260819-ob137';
+import { calculateNormalizedSphericalDistance } from './restoration.js?v=20260819-ob137';
+import { addCircuitBonus, addVictoryBonus } from './scoring.js?v=20260819-ob137';
+import { settleRunFlight } from './run.js?v=20260819-ob137';
+import { WardenPursuitEvents } from './warden.js?v=20260819-ob137';
+import { getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob137';
 
 export function createLandingDirector(THREE, host) {
   const {
@@ -575,18 +575,10 @@ export function createLandingDirector(THREE, host) {
     host.GamePhase = 'attached';
     clearTrajectoryPreview();
     updateWorldheartObjective();
-    const HasSurfaceApproach = host.beginHostileEncounter(host.WorldheartDefinition);
-    if (host.ReplayPlaybackState !== null || !HasSurfaceApproach) {
-      completeWorldheartLiberation();
-    } else {
-      showStatusToast('COMMAND LANDED · CORE LATTICE ACTIVE', 1500);
-      host.enqueueCampaignStoryBoards(
-        getTriggeredCampaignStoryBoardIds({
-          shownIds: [...ShownStoryBoardIds],
-          commandJustLanded: true,
-        }),
-      );
-    }
+    // Command's 0.9 disc puts the parked hull off the visual rim and its three
+    // lattice cages never read as tappable. Landing the exposed Command World
+    // is the run's ending; ranked settlement already skips the cages.
+    completeWorldheartLiberation();
     host.updateBreakerBurnInterface();
     return true;
   }

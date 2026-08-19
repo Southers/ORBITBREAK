@@ -32,6 +32,15 @@ test('surface rest uses a stable +X fallback when the impact sits on the body ce
   assert.equal(Rest.z, 0);
 });
 
+test('Command rest plants on the visual rim instead of floating a seed-radius off it', () => {
+  const Command = { kind: 'worldheart', radius: 0.9 };
+  const Centre = createVector(40, 18, 0);
+  const Impact = createVector(42, 18, 0);
+  const Rest = calculateSurfaceRestPosition(Command, Impact, Centre);
+  assert.ok(Math.abs(Rest.x - (40 + 0.9 + 0.12)) < 1e-9);
+  assert.equal(Rest.y, 18);
+});
+
 test('Breaker\'s Reach starting position sits on Haven facing Ember', () => {
   const Runtime = createAuthoredSystemRuntime(
     getAuthoredSystemDefinition('breaker-reach'),

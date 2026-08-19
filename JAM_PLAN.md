@@ -1077,6 +1077,13 @@ cannot sit on Command while the ship hits Glasswing. Grove Escape
 cancel, Zoom ±, Command EXPOSE, rim cages, drag-walk and shared
 cache-bust stay.
 
+Checkpoint 32 — 19 August 2026: live ob136 still froze ~80px off
+Command. A throw at EXPOSED Command now lands and wins; a Glasswing
+and Bastion flight test must settle rather than time out. Hull
+drag-back cancel is a little wider (36px) without eating a 40px
+Grove pull. Grove Escape cancel, Zoom ±, Command EXPOSE, rim cages
+and drag-walk stay.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

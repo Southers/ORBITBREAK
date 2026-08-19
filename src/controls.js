@@ -770,7 +770,7 @@ export const LaunchCancelScreenRadiusPixels = 52;
  * hull disk still cancels a drag-back that looks parked on the ship on screen
  * even when the aim-camera unproject maps that pixel to the planet centre.
  */
-export const LaunchCancelCommittedScreenRadiusPixels = 28;
+export const LaunchCancelCommittedScreenRadiusPixels = 36;
 
 /**
  * A committed pull still launches. Dragging back onto the ship, or never pulling far

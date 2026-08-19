@@ -3,15 +3,15 @@
  * Relay-reveal-hold still flushes from the playable shell after the look target clears.
  */
 
-import { getStoryVoiceClipId } from './audio-catalog.js?v=20260819-ob136';
+import { getStoryVoiceClipId } from './audio-catalog.js?v=20260819-ob137';
 import {
   getStoryBoardPresentation,
   isCampaignStoryBoardReadyToPresent,
   isCriticalStoryBoard,
   getStoryBoardCameraFocus,
   shouldPlayOpeningBriefing,
-} from './presentation.js?v=20260819-ob136';
-import { getRouteChoices } from './campaign.js?v=20260819-ob136';
+} from './presentation.js?v=20260819-ob137';
+import { getRouteChoices } from './campaign.js?v=20260819-ob137';
 
 export function createStoryDirector(host) {
   const {
