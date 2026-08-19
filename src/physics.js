@@ -105,12 +105,13 @@ export const OrbitTrapMinSteps = 96;
 export const FlightStallTimeoutSteps = 360;
 export const FlightStallDisplacement = 0.5;
 /**
- * 1.5 s at 120 Hz. A skim just outside collision looks landed, kills walk,
- * and never completes a revolution. Recapture before the run dies.
+ * 2 s at 120 Hz. A skim just outside collision looks landed, kills walk,
+ * and never completes a revolution. Recapture before the run dies. The
+ * launch-origin world is ignored so a normal throw can leave the dock.
  */
-export const FlightSkimTimeoutSteps = 180;
-/** World-space shell beyond radius that counts as a stuck near-surface skim. */
-export const FlightSkimClearance = 1.35;
+export const FlightSkimTimeoutSteps = 240;
+/** Thin shell beyond the collision radius. Origin-world launch height is ignored. */
+export const FlightSkimClearance = 0.72;
 
 /** Creates persistent orbit-trap accumulators shared by live flight, prediction and replay. */
 export function createOrbitTrapState() {
@@ -132,7 +133,12 @@ export function createOrbitTrapState() {
  * Counts wrapped travel around the nearest well. A graze that never collides still
  * recovers once the Runner has looped instead of flying forever.
  */
-export function advanceOrbitTrap(TrapState, Position, WorldDefinitions) {
+export function advanceOrbitTrap(
+  TrapState,
+  Position,
+  WorldDefinitions,
+  IgnoredWorldIdentifier = null,
+) {
   if (!TrapState.stallAnchored) {
     TrapState.stallX = Position.x;
     TrapState.stallY = Position.y;
@@ -178,7 +184,10 @@ export function advanceOrbitTrap(TrapState, Position, WorldDefinitions) {
     return false;
   }
   const SkimLimit = NearestWorld.radius + FlightSkimClearance;
-  if (NearestDistance <= SkimLimit) {
+  if (
+    NearestDistance <= SkimLimit
+    && NearestWorld.id !== IgnoredWorldIdentifier
+  ) {
     if (TrapState.skimWorldIdentifier !== NearestWorld.id) {
       TrapState.skimWorldIdentifier = NearestWorld.id;
       TrapState.skimSteps = 1;
@@ -495,7 +504,12 @@ export function predictTrajectory(
       break;
     }
 
-    if (advanceOrbitTrap(OrbitTrapState, PredictedState.position, WorldDefinitions)) {
+    if (advanceOrbitTrap(
+      OrbitTrapState,
+      PredictedState.position,
+      WorldDefinitions,
+      IgnoredWorldIdentifier,
+    )) {
       break;
     }
 

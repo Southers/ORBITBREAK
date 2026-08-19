@@ -259,7 +259,12 @@ export function advanceSimulatedFlightStep({
     > (outOfBoundsDistance ** 2)
   );
   const TrapState = orbitTrapState ?? createOrbitTrapState();
-  const OrbitTrapped = advanceOrbitTrap(TrapState, NextPhysicsState.position, worlds);
+  const OrbitTrapped = advanceOrbitTrap(
+    TrapState,
+    NextPhysicsState.position,
+    worlds,
+    NextIgnoredWorldIdentifier,
+  );
 
   return {
     physicsState: NextPhysicsState,
