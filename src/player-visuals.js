@@ -380,6 +380,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   SeedHaloMesh.visible = false;
   SeedHaloMesh.frustumCulled = false;
   SeedHaloMesh.renderOrder = 8;
+  SeedHaloMesh.raycast = () => {};
   ShipVisualGroup.add(SeedHaloMesh);
 
   const WorldWalkHaloMaterial = new THREE.MeshBasicMaterial({

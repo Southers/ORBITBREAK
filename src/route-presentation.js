@@ -4,9 +4,9 @@
  * authored suggestions; every physical destination stays valid.
  */
 
-import { getRouteChoices, isSystemRestored } from './campaign.js?v=20260819-ob133';
-import { countLiveRelayWorlds, wouldCloseRelayCircuit } from './network.js?v=20260819-ob133';
-import { calculateBodyPositionAtTime } from './physics.js?v=20260819-ob133';
+import { getRouteChoices, isSystemRestored } from './campaign.js?v=20260819-ob134';
+import { countLiveRelayWorlds, wouldCloseRelayCircuit } from './network.js?v=20260819-ob134';
+import { calculateBodyPositionAtTime } from './physics.js?v=20260819-ob134';
 import {
   getHiddenWardenRouteCoach,
   getPlayfieldLabelVerticalBounds,
@@ -21,13 +21,16 @@ import {
   separateRouteLabelsFromTacticalLabels,
   shouldShowPlayfieldWorldLabels,
   getCommandWorldTacticalLabel,
-} from './presentation.js?v=20260819-ob133';
+  getHereWorldLabel,
+  getSeedstoneTacticalLabel,
+} from './presentation.js?v=20260819-ob134';
 
 export function createRoutePresentation(THREE, host) {
   const {
     Camera,
     StatusToastElement,
     RouteLabelElements,
+    HereLabelElement,
     TacticalLabelElements,
     TacticalLabelScreenPositions,
     RouteLabelProjection,
@@ -259,6 +262,7 @@ export function createRoutePresentation(THREE, host) {
       RouteLabelsLayer.hidden = !LabelsActive;
     }
     if (!LabelsActive) {
+      hidePlayfieldLabel(HereLabelElement);
       for (const RouteLabelElement of RouteLabelElements) {
         hidePlayfieldLabel(RouteLabelElement);
       }
@@ -375,6 +379,32 @@ export function createRoutePresentation(THREE, host) {
       VisibleRouteLabelElements[LabelIndex].style.left = `${ClearedLabelPositions[LabelIndex].x}px`;
       VisibleRouteLabelElements[LabelIndex].style.top = `${ClearedLabelPositions[LabelIndex].y}px`;
     }
+
+    const CurrentWorld = getWorldDefinition(host.CurrentWorldIdentifier);
+    if (!CurrentWorld?.label || !HereLabelElement) {
+      hidePlayfieldLabel(HereLabelElement);
+    } else {
+      RouteLabelProjection.set(
+        CurrentWorld.position.x,
+        CurrentWorld.position.y - CurrentWorld.radius - 0.92,
+        0,
+      ).project(Camera);
+      const HereText = getHereWorldLabel(CurrentWorld.label);
+      writePlayfieldLabel(HereLabelElement, HereText);
+      const HereMargin = getRouteLabelHorizontalMargin(HereText);
+      HereLabelElement.style.left = `${Math.round(
+        THREE.MathUtils.clamp(
+          (RouteLabelProjection.x * 0.5 + 0.5) * window.innerWidth,
+          HereMargin,
+          window.innerWidth - HereMargin,
+        ),
+      )}px`;
+      HereLabelElement.style.top = `${Math.round(THREE.MathUtils.clamp(
+        (-RouteLabelProjection.y * 0.5 + 0.5) * window.innerHeight,
+        LabelVerticalBounds.minimumY,
+        LabelVerticalBounds.maximumY,
+      ))}px`;
+    }
   }
 
   /** Updates deterministic tactical-body transforms and their world-space HUD labels. */
@@ -461,11 +491,12 @@ export function createRoutePresentation(THREE, host) {
         ? {
           definition: SeedstoneDefinition,
           position: SeedstonePosition,
-          text: SeedstoneDefinition.orbit
-            ? window.innerWidth <= 520
-              ? `${SeedstoneDefinition.label} · 1 USE`
-              : `${SeedstoneDefinition.label} · MOVING · 1 USE`
-            : `${SeedstoneDefinition.label} · 1 USE`,
+          text: getSeedstoneTacticalLabel({
+            label: SeedstoneDefinition.label,
+            usesRemaining: host.SeedstoneUsesRemaining,
+            isMoving: Boolean(SeedstoneDefinition.orbit),
+            compact: window.innerWidth <= 520,
+          }),
         }
         : null,
       {

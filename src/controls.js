@@ -255,8 +255,8 @@ export function flattenSurfacePoseToEquator(Pose) {
   });
 }
 
-/** One keyboard tap, matching a short weighty pointer step rather than a twitch. */
-export const SurfaceWalkTapRadians = 2 * (Math.PI / 180);
+/** One keyboard tap. 2° made a far-side cage or circuit walk impractical. */
+export const SurfaceWalkTapRadians = 14 * (Math.PI / 180);
 
 /** Walks east/west and north/south on the sphere, wrapping over the poles. */
 export function adjustSurfacePose(Pose, { east = 0, north = 0, fine = false, stepRadians } = {}) {
@@ -292,7 +292,7 @@ export function adjustSurfacePose(Pose, { east = 0, north = 0, fine = false, ste
 }
 
 /** Caps how far one walk sample may travel so the globe has weight. */
-export const SurfaceWalkRadiansPerSecond = 0.7;
+export const SurfaceWalkRadiansPerSecond = 1.25;
 /** Hard cap so a lagged pointer sample cannot dump a huge arc. */
 export const SurfaceWalkMaxRadiansPerSample = 0.12;
 /** Ignore globe-hit jitter until the pointer actually traces the crust. */

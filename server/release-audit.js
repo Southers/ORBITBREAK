@@ -208,6 +208,20 @@ export function auditReleaseReadiness() {
     'First-timer walk vs aim must lock from where the drag starts, not how it moves, with sticky walk-then-launch captions.',
   );
   requireCondition(
+    InputControllerSource.includes("host.GamePhase === 'attached'")
+      && InputControllerSource.includes('isPointerOverAttachedWorldDisc(')
+      && InputControllerSource.includes('announceIfUnavailable')
+      && PlayerSource.includes('SeedHaloMesh.raycast = () => {}')
+      && ControlsSource.includes('SurfaceWalkTapRadians = 14')
+      && PresentationSource.includes('export function getHereWorldLabel(')
+      && PresentationSource.includes('export function getSeedstoneTacticalLabel(')
+      && RoutePresentationSource.includes('getHereWorldLabel(')
+      && RoutePresentationSource.includes('getSeedstoneTacticalLabel(')
+      && IndexHtml.includes('class="here-label"')
+      && !RoutePresentationSource.includes('1 USE'),
+    'Landed crust drags must walk, keyboard walk must circle a tiny world, spent Break must cue, and Scout must name HERE plus Seedstone launches.',
+  );
+  requireCondition(
     PlayerSource.includes('const SeedHaloGeometry = new THREE.TorusGeometry(0.55, 0.06, 8, 24)')
       && PlayerSource.includes('new THREE.PointLight(0x72dcff, 0, 0.01, 2)')
       && PlayerSource.includes('SeedPointLight.visible = false')

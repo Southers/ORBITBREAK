@@ -16,6 +16,8 @@ import {
   getPlanningAtmosphere,
   getPlanningFocusWorldIdentifiers,
   getCommandWorldTacticalLabel,
+  getHereWorldLabel,
+  getSeedstoneTacticalLabel,
   getRelayRevealHoldDurationSeconds,
   getRelayRevealLookTarget,
   getRunUnlockState,
@@ -634,8 +636,8 @@ test('route labels clear nearby tactical annotations without leaving HUD bounds'
     }),
     /requires boolean layout state/,
   );
-  assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · 1 USE'), 72);
-  assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · MOVING · 1 USE'), 108);
+  assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · 1 LAUNCH'), 84);
+  assert.equal(getTacticalLabelHorizontalMargin('SEEDSTONE · MOVING · 1 LAUNCH'), 120);
   assert.equal(getRouteLabelHorizontalMargin('GROVE'), 64);
   assert.equal(getRouteLabelHorizontalMargin('→ GROVE'), 64);
   assert.throws(() => getTacticalLabelHorizontalMargin(' '), /requires visible text/);
@@ -1568,6 +1570,16 @@ test('occupied atmospheres and surface finishes keep Ember, Grove and Frost dist
     routeAvailable: false,
     compact: true,
   }), 'COMMAND WORLD · LOCKED');
+  assert.equal(getHereWorldLabel('HAVEN'), 'HERE · HAVEN');
+  assert.throws(() => getHereWorldLabel('  '), /requires a world name/);
+  assert.equal(getSeedstoneTacticalLabel({}), 'SEEDSTONE · 1 LAUNCH');
+  assert.equal(getSeedstoneTacticalLabel({
+    isMoving: true,
+  }), 'SEEDSTONE · MOVING · 1 LAUNCH');
+  assert.equal(getSeedstoneTacticalLabel({
+    isMoving: true,
+    compact: true,
+  }), 'SEEDSTONE · 1 LAUNCH');
   assert.equal(isProjectedLabelInsideWorldDisc({
     labelNdcX: 0.02,
     labelNdcY: 0.01,

@@ -4,7 +4,7 @@ import {
   isInnerClusterLive,
   hasTravelledFurther,
   shouldOpenCommandWorldRoute,
-} from './sector.js?v=20260819-ob133';
+} from './sector.js?v=20260819-ob134';
 
 /** Maps gameplay state to one legible Runner animation state. */
 export function getRunnerAnimationState(GamePhase, IsPointerAiming, IsWalking = false) {
@@ -675,6 +675,34 @@ export function getCommandWorldTacticalLabel({
     return isMoving === true ? `${label} · EXPOSED · MOVING` : `${label} · EXPOSED`;
   }
   return isMoving === true ? `${label} · LOCKED · MOVING` : `${label} · LOCKED`;
+}
+
+/** Names the parked world on Scout so the current globe is not an unlabeled disc. */
+export function getHereWorldLabel(Label) {
+  if (typeof Label !== 'string' || Label.trim() === '') {
+    throw new Error('Here label requires a world name.');
+  }
+  return `HERE · ${Label.trim()}`;
+}
+
+/** Tells Scout that Seedstone spends one launch, not an undefined "use". */
+export function getSeedstoneTacticalLabel({
+  label = 'SEEDSTONE',
+  usesRemaining = 1,
+  isMoving = false,
+  compact = false,
+} = {}) {
+  if (typeof label !== 'string' || label.trim() === '') {
+    throw new Error('Seedstone label requires a name.');
+  }
+  if (!Number.isInteger(usesRemaining) || usesRemaining < 0) {
+    throw new Error('Seedstone label requires remaining uses.');
+  }
+  const UseWord = usesRemaining === 1 ? '1 LAUNCH' : `${usesRemaining} LAUNCHES`;
+  if (isMoving === true && compact !== true) {
+    return `${label} · MOVING · ${UseWord}`;
+  }
+  return `${label} · ${UseWord}`;
 }
 
 /** Lifts exponential fog while aiming or flying so the planning map stays readable. */
