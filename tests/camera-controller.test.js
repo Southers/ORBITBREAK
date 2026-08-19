@@ -213,6 +213,25 @@ test('aim commit eases to the planning frame without a hard jump', () => {
   );
 });
 
+test('canceling a committed aim snaps back to the landed close-up', () => {
+  const { host, controller } = createHarness();
+  controller.centerLandedCamera({ snap: true });
+  settle(host, controller, 60);
+  const LandedZ = host.Camera.position.z;
+  host.IsPointerAiming = true;
+  controller.commitAimPlanningCamera();
+  settle(host, controller, 180);
+  assert.ok(host.Camera.position.z > LandedZ * 1.4);
+  host.IsPointerAiming = false;
+  controller.restoreLandedViewAfterAim({ snap: true });
+  assert.equal(host.HasCommittedAimCamera, false);
+  assert.equal(host.GameCanvas.dataset.aimCamera, '');
+  assert.ok(
+    host.Camera.position.z < LandedZ * 1.35,
+    `landed restore left the camera at z=${host.Camera.position.z.toFixed(2)} after close-up ${LandedZ.toFixed(2)}`,
+  );
+});
+
 test('relay reveal waits for the liberation wave before panning the look target', () => {
   const { host, controller } = createHarness();
   controller.centerLandedCamera({ snap: true });

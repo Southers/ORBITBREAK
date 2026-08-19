@@ -4,21 +4,21 @@
  * the playable shell / flight resolver.
  */
 
-import { countRestoredWorlds } from './campaign.js?v=20260819-ob134';
-import { evaluateRelayPortLanding } from './flight-resolver.js?v=20260819-ob134';
-import { countLiveRelayWorlds, connectRelayWorlds } from './network.js?v=20260819-ob134';
-import { createVector } from './physics.js?v=20260819-ob134';
+import { countRestoredWorlds } from './campaign.js?v=20260819-ob135';
+import { evaluateRelayPortLanding } from './flight-resolver.js?v=20260819-ob135';
+import { countLiveRelayWorlds, connectRelayWorlds } from './network.js?v=20260819-ob135';
+import { createVector } from './physics.js?v=20260819-ob135';
 import {
   getRelayRevealLookTarget,
   LiberationCelebrateHoldSeconds,
   getStillnessPresentation,
   getTriggeredCampaignStoryBoardIds,
-} from './presentation.js?v=20260819-ob134';
-import { calculateNormalizedSphericalDistance } from './restoration.js?v=20260819-ob134';
-import { addCircuitBonus, addVictoryBonus } from './scoring.js?v=20260819-ob134';
-import { settleRunFlight } from './run.js?v=20260819-ob134';
-import { WardenPursuitEvents } from './warden.js?v=20260819-ob134';
-import { getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob134';
+} from './presentation.js?v=20260819-ob135';
+import { calculateNormalizedSphericalDistance } from './restoration.js?v=20260819-ob135';
+import { addCircuitBonus, addVictoryBonus } from './scoring.js?v=20260819-ob135';
+import { settleRunFlight } from './run.js?v=20260819-ob135';
+import { WardenPursuitEvents } from './warden.js?v=20260819-ob135';
+import { getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob135';
 
 export function createLandingDirector(THREE, host) {
   const {
@@ -66,11 +66,14 @@ export function createLandingDirector(THREE, host) {
   const centerLandedCamera = (...Args) => host.centerLandedCamera(...Args);
 
   function beginOccupiedWorldCagesIfNeeded(WorldDefinition) {
-    if (host.ReplayPlaybackState !== null || host.GamePhase !== 'attached') {
+    if (
+      host.ReplayPlaybackState !== null
+      || (host.GamePhase !== 'attached' && host.GamePhase !== 'restoring')
+    ) {
       return;
     }
     const Encounter = getOccupiedWorldCageEncounter(WorldDefinition, {
-      leftoverUnlocked: countLiveRelayWorlds(host.RelayNetworkState) >= 2,
+      leftoverUnlocked: countLiveRelayWorlds(host.RelayNetworkState) >= 1,
       includeRestored: !CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id),
     });
     if (!Encounter) {

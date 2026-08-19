@@ -395,6 +395,11 @@ test('a filling phone globe grabs the parked hull, not a fraction of the world d
     worldScreenRadiusPixels: 40,
   });
   assert.equal(SmallScout, SeedScreenGrabRadiusPixels);
+  assert.equal(getLandedShipGrabRadiusPixels({
+    isOverWorld: true,
+    worldScreenRadiusPixels: 220,
+    useEmptySpaceHalo: true,
+  }), SeedScreenGrabRadiusPixels);
 });
 
 test('a cage under the finger beats the ship halo, and leftover cages sit outside that halo', () => {
@@ -473,7 +478,8 @@ test('Scout zoom presentation announces percentage and marks only reached limits
   assert.equal(getScoutZoomPresentation(0.38).canZoomIn, false);
   assert.equal(getScoutZoomPresentation(1.95).percentage, 51);
   assert.equal(getScoutZoomPresentation(1.95).canZoomOut, false);
-  assert.throws(() => getScoutZoomPresentation(0.2), /inside valid bounds/);
+  assert.equal(getScoutZoomPresentation(0.2).canZoomIn, false);
+  assert.equal(getScoutZoomPresentation(0.2).percentage, Math.round(100 / 0.38));
 });
 
 test('pinch zoom spreads to zoom in and pinches to zoom out', () => {
@@ -514,6 +520,19 @@ test('a zoomed-out aim still cancels inside a constant screen disk around the sh
     pointerDistanceFromShip: 2,
     screenDistancePixels: -1,
   }), /non-negative screen distance/);
+});
+
+test('a committed planning aim launches from a long pull even if the hull is a tiny screen disc', () => {
+  assert.equal(shouldCancelAimedLaunch({
+    pointerDistanceFromShip: 2,
+    screenDistancePixels: 40,
+    planningCameraCommitted: true,
+  }), false);
+  assert.equal(shouldCancelAimedLaunch({
+    pointerDistanceFromShip: 0.2,
+    screenDistancePixels: 40,
+    planningCameraCommitted: true,
+  }), true);
 });
 
 test('game hotkeys yield to typing in callsign and other text fields', () => {

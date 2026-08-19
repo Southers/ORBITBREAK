@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260819-ob134';
+import { WorldseedAudio } from './audio.js?v=20260819-ob135';
 import {
   SurfaceGestureModes,
   createKeyboardAimState,
@@ -11,7 +11,7 @@ import {
   isSpaceKeyboardEvent,
   LaunchCancelRadius,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260819-ob134';
+} from './controls.js?v=20260819-ob135';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -19,7 +19,7 @@ import {
   getMotionPreferencePresentation,
   parseMotionPreference,
   resolveReducedMotion,
-} from './preferences.js?v=20260819-ob134';
+} from './preferences.js?v=20260819-ob135';
 import {
   AdaptiveSampleWindowSeconds,
   DefaultAdaptivePixelRatioCap,
@@ -28,35 +28,35 @@ import {
   getAdaptiveDeviceCap,
   getAdaptivePresentationSettings,
   getViewportPixelRatioCap,
-} from './performance.js?v=20260819-ob134';
-import { addEnvironment } from './environment.js?v=20260819-ob134';
-import { createWorldVisuals } from './world-geometry.js?v=20260819-ob134';
-import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260819-ob134';
-import { createWardenVisuals } from './warden-visuals.js?v=20260819-ob134';
-import { createPlayerVisuals } from './player-visuals.js?v=20260819-ob134';
-import { createStoryDirector } from './story-director.js?v=20260819-ob134';
-import { createHud } from './hud.js?v=20260819-ob134';
-import { createAimPreview } from './aim-preview.js?v=20260819-ob134';
-import { createLandingDirector } from './landing-director.js?v=20260819-ob134';
-import { createCameraController } from './camera-controller.js?v=20260819-ob134';
-import { createInputController } from './input-controller.js?v=20260819-ob134';
-import { createHostileSurface } from './hostile-surface.js?v=20260819-ob134';
-import { createScanner } from './scanner.js?v=20260819-ob134';
-import { createRoutePresentation } from './route-presentation.js?v=20260819-ob134';
-import { createRecordsUi } from './records-ui.js?v=20260819-ob134';
-import { createFrameVisuals } from './frame-visuals.js?v=20260819-ob134';
-import { createRestorationVisuals } from './restoration-visuals.js?v=20260819-ob134';
-import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=20260819-ob134';
-import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=20260819-ob134';
-import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=20260819-ob134';
-import { OutputPass } from '../vendor/postprocessing/OutputPass.js?v=20260819-ob134';
+} from './performance.js?v=20260819-ob135';
+import { addEnvironment } from './environment.js?v=20260819-ob135';
+import { createWorldVisuals } from './world-geometry.js?v=20260819-ob135';
+import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260819-ob135';
+import { createWardenVisuals } from './warden-visuals.js?v=20260819-ob135';
+import { createPlayerVisuals } from './player-visuals.js?v=20260819-ob135';
+import { createStoryDirector } from './story-director.js?v=20260819-ob135';
+import { createHud } from './hud.js?v=20260819-ob135';
+import { createAimPreview } from './aim-preview.js?v=20260819-ob135';
+import { createLandingDirector } from './landing-director.js?v=20260819-ob135';
+import { createCameraController } from './camera-controller.js?v=20260819-ob135';
+import { createInputController } from './input-controller.js?v=20260819-ob135';
+import { createHostileSurface } from './hostile-surface.js?v=20260819-ob135';
+import { createScanner } from './scanner.js?v=20260819-ob135';
+import { createRoutePresentation } from './route-presentation.js?v=20260819-ob135';
+import { createRecordsUi } from './records-ui.js?v=20260819-ob135';
+import { createFrameVisuals } from './frame-visuals.js?v=20260819-ob135';
+import { createRestorationVisuals } from './restoration-visuals.js?v=20260819-ob135';
+import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=20260819-ob135';
+import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=20260819-ob135';
+import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=20260819-ob135';
+import { OutputPass } from '../vendor/postprocessing/OutputPass.js?v=20260819-ob135';
 
 import {
   DefaultAuthoredSystemIdentifier,
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260819-ob134';
+} from './content.js?v=20260819-ob135';
 
 import {
   getLandingAccolade,
@@ -65,7 +65,7 @@ import {
   getTrajectoryPickupIdentifiers,
   isSystemRestored,
   isWorldheartUnlocked,
-} from './campaign.js?v=20260819-ob134';
+} from './campaign.js?v=20260819-ob135';
 
 import {
   MaximumLaunchSpeed,
@@ -78,27 +78,27 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260819-ob134';
+} from './physics.js?v=20260819-ob135';
 import {
   FixedPhysicsStepHertz,
   FixedPhysicsStepSeconds,
   RunnerRadius,
   StardustCollectionRadius,
   StardustPickupRadius,
-} from './sim-constants.js?v=20260819-ob134';
+} from './sim-constants.js?v=20260819-ob135';
 import {
   getSectorWardenRevealFlag,
   hasTravelledFurther,
   isInnerClusterLive,
   shouldOpenCommandWorldRoute,
-} from './sector.js?v=20260819-ob134';
+} from './sector.js?v=20260819-ob135';
 import {
   advanceSimulatedFlightStep,
   collectFlightStardust,
   resolveWardenAfterNonCommandFlight,
   rollbackFlightStardust as rollbackSharedFlightStardust,
-} from './flight-resolver.js?v=20260819-ob134';
-import { createLeaderboardClient, resolveLeaderboardBaseUrl } from './leaderboard-client.js?v=20260819-ob134';
+} from './flight-resolver.js?v=20260819-ob135';
+import { createLeaderboardClient, resolveLeaderboardBaseUrl } from './leaderboard-client.js?v=20260819-ob135';
 import {
   connectRelayWorlds,
   countLiveRelayWorlds,
@@ -111,14 +111,14 @@ import {
   listProtectedRelayWorlds,
   listRelayCircuits,
   listRelayLinks,
-} from './network.js?v=20260819-ob134';
+} from './network.js?v=20260819-ob135';
 import {
   WardenPursuitEvents,
   createWardenPursuitState,
-} from './warden.js?v=20260819-ob134';
+} from './warden.js?v=20260819-ob135';
 import {
   loadPersonalBest,
-} from './records.js?v=20260819-ob134';
+} from './records.js?v=20260819-ob135';
 import {
   getControlModePresentation,
   getExtractionFreighterTravelProgress,
@@ -156,23 +156,23 @@ import {
   getLandedCameraScale,
   getHowToPlayPresentation,
   shouldShowHowToPlayAfterOpening,
-} from './presentation.js?v=20260819-ob134';
+} from './presentation.js?v=20260819-ob135';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
   recordReplayBurn,
   recordReplayLaunch,
-} from './replay.js?v=20260819-ob134';
+} from './replay.js?v=20260819-ob135';
 import {
   consumeDueReplayBurn,
   consumeDueReplayLaunch,
-} from './replay-playback.js?v=20260819-ob134';
+} from './replay-playback.js?v=20260819-ob135';
 import {
   createRunState,
   failRunToWarden,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260819-ob134';
+} from './run.js?v=20260819-ob135';
 import {
   bankFlightScore,
   createScoreState,
@@ -180,7 +180,7 @@ import {
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260819-ob134';
+} from './scoring.js?v=20260819-ob135';
 
 const PageSearchParameters = new URLSearchParams(window.location.search);
 const RequestedSystemIdentifier = PageSearchParameters.get('system')
@@ -304,7 +304,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260819-ob134';
+GameCanvas.dataset.build = '20260819-ob135';
 GameCanvas.dataset.howToPlay = 'closed';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
@@ -898,15 +898,24 @@ function updatePauseChrome() {
   }
 }
 
+let CancelPlayAimForPause = null;
+let RefreshPauseZoomControls = null;
+
 function setPauseSheetOpen(IsOpen) {
-  if (IsOpen && (isBlockingMenuOpen() || IsPointerAiming || IsKeyboardAiming || IsBurnAiming || IsCutAiming)) {
+  if (IsOpen && isBlockingMenuOpen()) {
     return;
+  }
+  if (IsOpen && typeof CancelPlayAimForPause === 'function') {
+    CancelPlayAimForPause();
   }
   IsPauseSheetOpen = IsOpen === true;
   PauseSheetElement.hidden = !IsPauseSheetOpen;
   PauseButtonElement.setAttribute('aria-expanded', String(IsPauseSheetOpen));
   GameCanvas.dataset.pauseSheet = String(IsPauseSheetOpen);
   if (IsPauseSheetOpen) {
+    if (typeof RefreshPauseZoomControls === 'function') {
+      RefreshPauseZoomControls();
+    }
     PauseResumeButtonElement.focus({ preventScroll: true });
   } else if (!isBlockingMenuOpen()) {
     GameCanvas.focus({ preventScroll: true });
@@ -1623,6 +1632,7 @@ const RoutePresentation = createRoutePresentation(THREE, {
   get IsKeyboardAiming() { return IsKeyboardAiming; },
   get IsScoutMode() { return IsScoutMode; },
   isLiveInnerCluster,
+  isLiveFurtherReach,
   getWorldDefinition,
   synchronizeSeedstonePosition,
   synchronizeWorldheartPosition,
@@ -2190,6 +2200,7 @@ const CameraController = createCameraController(THREE, {
   TrajectoryMaterial,
   MinimumScoutZoomScale,
   isLiveInnerCluster,
+  isLiveFurtherReach,
   getSectorClusterRules,
   calculateBodyPositionAtTime,
   getWorldDefinition,
@@ -2228,6 +2239,7 @@ const CameraController = createCameraController(THREE, {
   get PhysicsElapsedTimeSeconds() { return PhysicsElapsedTimeSeconds; },
   get CameraDistanceScale() { return CameraDistanceScale; },
   set CameraDistanceScale(Value) { CameraDistanceScale = Value; },
+  get IsPauseSheetOpen() { return IsPauseSheetOpen; },
   get CameraImpactLifeSeconds() { return CameraImpactLifeSeconds; },
   set CameraImpactLifeSeconds(Value) { CameraImpactLifeSeconds = Value; },
   get RelayRevealLookTarget() { return RelayRevealLookTarget; },
@@ -2260,6 +2272,7 @@ const {
   applySectorPlanningCamera,
   commitAimPlanningCamera,
   clearCommittedAimCamera,
+  restoreLandedViewAfterAim,
   shouldUseSectorPlanningCamera,
   updateFlightPlanningPresentation,
   refreshPlanningZoomControls,
@@ -2635,6 +2648,7 @@ const InputController = createInputController(THREE, {
   applySectorPlanningCamera,
   commitAimPlanningCamera,
   clearCommittedAimCamera,
+  restoreLandedViewAfterAim,
   clearTrajectoryPreview,
   updateAimPreview,
   updateKeyboardAimPreview,
@@ -2746,6 +2760,7 @@ const InputController = createInputController(THREE, {
   set RunnerWalkLifeSeconds(Value) { RunnerWalkLifeSeconds = Value; },
   get IsOpeningBriefingActive() { return IsOpeningBriefingActive; },
   get IsHowToPlayOpen() { return IsHowToPlayOpen; },
+  get CameraDistanceScale() { return CameraDistanceScale; },
   get IsPauseSheetOpen() { return IsPauseSheetOpen; },
   get AimInteractionCamera() { return AimInteractionCamera; },
   get ScannerProjection() { return Scanner.ScannerProjection; },
@@ -2768,6 +2783,14 @@ const {
   cancelAimedLaunch,
   beginKeyboardAim,
 } = InputController;
+
+CancelPlayAimForPause = () => {
+  if (IsCutAiming) {
+    cancelCutAim();
+  }
+  cancelAimedLaunch({ announce: false });
+};
+RefreshPauseZoomControls = refreshPlanningZoomControls;
 
 
 /**
@@ -3100,6 +3123,7 @@ const RestorationVisuals = createRestorationVisuals(THREE, {
   WorldseedSound,
   getSectorClusterRules,
   isLiveInnerCluster,
+  isLiveFurtherReach,
   setSurfacePropRestorationProgress,
   showStatusToast,
   hideInstruction,

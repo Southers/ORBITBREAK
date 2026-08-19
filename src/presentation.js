@@ -4,7 +4,7 @@ import {
   isInnerClusterLive,
   hasTravelledFurther,
   shouldOpenCommandWorldRoute,
-} from './sector.js?v=20260819-ob134';
+} from './sector.js?v=20260819-ob135';
 
 /** Maps gameplay state to one legible Runner animation state. */
 export function getRunnerAnimationState(GamePhase, IsPointerAiming, IsWalking = false) {
@@ -595,6 +595,7 @@ export const PlanningNeighbourhoodPadding = 3.4;
 export function getPlanningFocusWorldIdentifiers({
   innerClusterLive = false,
   commandRouteAvailable = false,
+  hasTravelledFurther = false,
   predictedBodyIdentifiers = [],
   currentWorldIdentifier = '',
   innerClusterWorldIdentifiers = [],
@@ -644,7 +645,11 @@ export function getPlanningFocusWorldIdentifiers({
       Identifiers.add(commandWorldIdentifier);
     }
   }
-  if (commandRouteAvailable === true && typeof commandWorldIdentifier === 'string') {
+  if (
+    (commandRouteAvailable === true || hasTravelledFurther === true)
+    && typeof commandWorldIdentifier === 'string'
+    && commandWorldIdentifier.length > 0
+  ) {
     Identifiers.add(commandWorldIdentifier);
   }
   for (const BodyIdentifier of predictedBodyIdentifiers) {
@@ -1204,12 +1209,12 @@ export function getLandedSurfaceCameraPose({
   };
 }
 
-/** Frames one landed world so mines, people and houses read, then aiming zooms back out. */
+/** Frames one landed world so the equatorial rim, mines, people and houses read. */
 export function getLandedCameraScale({
   worldRadius,
   viewportWorldHeight,
   minimumScale = 0.18,
-  maximumScale = 0.28,
+  maximumScale = 0.42,
 } = {}) {
   if (!Number.isFinite(worldRadius) || worldRadius <= 0) {
     throw new Error('Landed camera requires a positive world radius.');
@@ -1217,7 +1222,7 @@ export function getLandedCameraScale({
   if (!Number.isFinite(viewportWorldHeight) || viewportWorldHeight <= 0) {
     throw new Error('Landed camera requires a positive viewport height.');
   }
-  const FramedHeight = worldRadius * 1.92;
+  const FramedHeight = worldRadius * 2.55;
   return Math.min(
     maximumScale,
     Math.max(minimumScale, FramedHeight / viewportWorldHeight),

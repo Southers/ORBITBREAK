@@ -71,9 +71,10 @@ export function hasTravelledFurther(
 }
 
 /**
- * Command becomes reachable after a living neighbourhood plus further travel,
- * or after the authored restoration and shield gates. Cage smash alone does not
- * open it. Circuits still expose and weaken the Warden vessel.
+ * Command becomes reachable after two inner worlds are live and the Runner has
+ * travelled further, after the full neighbourhood plus further travel, or after
+ * the authored restoration and shield gates. Cage smash or inner restores alone
+ * do not open it. Circuits still expose and weaken the Warden vessel.
  *
  * A 6-world outer tour that left the neighbourhood still opens Command even if
  * the Warden has already silenced one inner world.
@@ -112,6 +113,9 @@ export function shouldOpenCommandWorldRoute({
   const InnerLiveCount = LiveIdentifiers.filter(
     (WorldIdentifier) => InnerSet.has(WorldIdentifier),
   ).length;
+  if (InnerLiveCount >= 2 && TravelledFurther) {
+    return true;
+  }
   const OuterLiveCount = LiveIdentifiers.filter((WorldIdentifier) => (
     WorldIdentifier !== commandWorldIdentifier
     && !InnerSet.has(WorldIdentifier)
@@ -135,6 +139,7 @@ export function getRangeVeilStrength(
   {
     furtherReachWorldIdentifiers = [],
     commandWorldIdentifier = 'worldheart',
+    hasTravelledFurther = false,
   } = {},
 ) {
   if (typeof worldIdentifier !== 'string' || worldIdentifier.length < 1) {
@@ -154,7 +159,7 @@ export function getRangeVeilStrength(
     worldIdentifier === commandWorldIdentifier
     || FurtherReach.includes(worldIdentifier)
   ) {
-    return 1;
+    return hasTravelledFurther === true ? 0.42 : 1;
   }
   return 0;
 }

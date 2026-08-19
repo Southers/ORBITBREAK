@@ -770,6 +770,13 @@ test('default planning focus stays on the neighbourhood until the outer Reach is
     nearbyWorldIdentifiers: ['tide'],
     ...BreakerReachCluster,
   }).includes('worldheart'));
+  assert.ok(getPlanningFocusWorldIdentifiers({
+    innerClusterLive: false,
+    commandRouteAvailable: false,
+    hasTravelledFurther: true,
+    currentWorldIdentifier: 'bastion',
+    ...BreakerReachCluster,
+  }).includes('worldheart'));
   const NeighbourhoodCamera = getSectorPlanningCamera({
     runner: { x: -22, y: -8 },
     focusPoints: [
@@ -1429,12 +1436,12 @@ test('toy diorama props shrink on outposts instead of swallowing the crust', () 
   assert.ok(Math.abs(getToyDioramaScale(1.1) - (1.1 / 3.2)) < 1e-12);
 });
 
-test('landed camera frames one world tightly enough for surface art to read', () => {
+test('landed camera frames the equatorial rim so Destroy cages stay on-screen', () => {
   const EmberScale = getLandedCameraScale({ worldRadius: 3.2, viewportWorldHeight: 24 });
-  assert.ok(EmberScale >= 0.18 && EmberScale <= 0.28);
-  assert.ok(EmberScale < 0.27);
+  assert.ok(EmberScale >= 0.18 && EmberScale <= 0.42);
+  assert.ok(EmberScale > 0.28);
   const TinyScale = getLandedCameraScale({ worldRadius: 2.15, viewportWorldHeight: 24 });
-  assert.equal(TinyScale, 0.18);
+  assert.ok(TinyScale > 0.18 && TinyScale < 0.28);
 });
 
 test('landed close-up may zoom one extra notch while Scout stays a sector view', () => {
