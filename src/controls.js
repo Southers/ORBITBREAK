@@ -295,14 +295,26 @@ export function adjustSurfacePose(Pose, { east = 0, north = 0, fine = false, ste
   });
 }
 
-/** Caps how far one walk sample may travel so the globe has weight. */
-export const SurfaceWalkRadiansPerSecond = 1.25;
-/** Hard cap so a lagged pointer sample cannot dump a huge arc. */
-export const SurfaceWalkMaxRadiansPerSample = 0.12;
+/**
+ * Courier walk pace around a toy globe. One equator lap takes this many
+ * seconds at cruise, so a drag cannot whip the marble like a fidget spinner.
+ */
+export const SurfaceWalkCruiseLapSeconds = 7;
+export const SurfaceWalkRadiansPerSecond = FullCircleRadians / SurfaceWalkCruiseLapSeconds;
+/**
+ * Hard dump limit for one pointer or hold sample. Even a lagged 50ms event
+ * cannot dump more than a small step; the rad/s cap still wins on 60Hz input.
+ */
+export const SurfaceWalkMaxRadiansPerSample = 0.05;
 /** Ignore globe-hit jitter until the pointer actually traces the crust. */
 export const SurfaceWalkPointerDeadzoneRadians = 0.045;
 /** Seconds of sustained drag before pointer walk reaches full cruise speed. */
 export const SurfaceWalkAccelerationSeconds = 0.32;
+/**
+ * First readable pointer step after leaving the press dead-zone. Must stay
+ * far below a Q/E tap so a flick cannot steal the keyboard 14° dump.
+ */
+export const SurfaceWalkPointerNudgeRadians = 2 * (Math.PI / 180);
 
 export function getSurfaceWalkArcLimit(DeltaTimeSeconds) {
   if (!Number.isFinite(DeltaTimeSeconds) || DeltaTimeSeconds < 0) {
@@ -318,14 +330,40 @@ export function getSurfaceWalkArcLimit(DeltaTimeSeconds) {
  * Pointer walk ramps from a standstill so a flick across the disc cannot
  * sling the Runner around the globe at cruise speed.
  */
-export function getSurfaceWalkPointerArcLimit(DeltaTimeSeconds, DragAgeSeconds) {
+export function getSurfaceWalkPointerArcLimit(
+  DeltaTimeSeconds,
+  DragAgeSeconds,
+  { justLeftDeadzone = false } = {},
+) {
   const BaseLimit = getSurfaceWalkArcLimit(DeltaTimeSeconds);
-  if (!(DragAgeSeconds > 0) || !Number.isFinite(DragAgeSeconds)) {
-    return 0;
+  let Limit = 0;
+  if (DragAgeSeconds > 0 && Number.isFinite(DragAgeSeconds)) {
+    const Ramp = Math.max(0, Math.min(1, DragAgeSeconds / SurfaceWalkAccelerationSeconds));
+    const EasedRamp = Ramp * Ramp * (3 - (2 * Ramp));
+    Limit = BaseLimit * EasedRamp;
   }
-  const Ramp = Math.max(0, Math.min(1, DragAgeSeconds / SurfaceWalkAccelerationSeconds));
-  const EasedRamp = Ramp * Ramp * (3 - (2 * Ramp));
-  return BaseLimit * EasedRamp;
+  if (justLeftDeadzone === true) {
+    Limit = Math.max(
+      Limit,
+      Math.min(SurfaceWalkPointerNudgeRadians, SurfaceWalkMaxRadiansPerSample),
+    );
+  }
+  return Limit;
+}
+
+/**
+ * One pointer-walk sample toward a globe hit. A huge requested arc still
+ * cannot exceed the cruise cap or the per-sample dump limit.
+ */
+export function stepPointerSurfaceWalk(FromPose, ToPose, DeltaTimeSeconds, {
+  dragAgeSeconds = 0,
+  justLeftDeadzone = false,
+} = {}) {
+  return stepSurfacePoseToward(
+    FromPose,
+    ToPose,
+    getSurfaceWalkPointerArcLimit(DeltaTimeSeconds, dragAgeSeconds, { justLeftDeadzone }),
+  );
 }
 
 /** True once a pointer trace has left the press dead-zone on the sphere. */
@@ -346,6 +384,55 @@ export function getGreatCircleAngle(FromPose, ToPose) {
   return Math.acos(Dot);
 }
 
+function clampUnitDot(Value) {
+  return Math.max(-1, Math.min(1, Value));
+}
+
+function cross3(A, B) {
+  return {
+    x: (A.y * B.z) - (A.z * B.y),
+    y: (A.z * B.x) - (A.x * B.z),
+    z: (A.x * B.y) - (A.y * B.x),
+  };
+}
+
+function rotateDirectionAroundAxis(Direction, Axis, AngleRadians) {
+  const Cos = Math.cos(AngleRadians);
+  const Sin = Math.sin(AngleRadians);
+  const Cross = cross3(Axis, Direction);
+  const AxisDot = (Axis.x * Direction.x) + (Axis.y * Direction.y) + (Axis.z * Direction.z);
+  const AxisScale = AxisDot * (1 - Cos);
+  return {
+    x: (Direction.x * Cos) + (Cross.x * Sin) + (Axis.x * AxisScale),
+    y: (Direction.y * Cos) + (Cross.y * Sin) + (Axis.y * AxisScale),
+    z: (Direction.z * Cos) + (Cross.z * Sin) + (Axis.z * AxisScale),
+  };
+}
+
+/**
+ * Rotates Start toward Target by at most ArcRadians. Antipodal globe hits
+ * used to degenerate spherical lerp into a near-zero vector, which could
+ * dump the Runner halfway around in one sample.
+ */
+function rotateDirectionToward(Start, Target, ArcRadians) {
+  const StartUnit = normalize3(Start);
+  const TargetUnit = normalize3(Target);
+  const Angle = Math.acos(clampUnitDot(
+    (StartUnit.x * TargetUnit.x) + (StartUnit.y * TargetUnit.y) + (StartUnit.z * TargetUnit.z),
+  ));
+  if (Angle <= 1e-8 || ArcRadians <= 0) {
+    return StartUnit;
+  }
+  const Apply = Math.min(ArcRadians, Angle);
+  let Axis = cross3(StartUnit, TargetUnit);
+  if (hypot3(Axis.x, Axis.y, Axis.z) < 1e-8) {
+    Axis = Math.abs(StartUnit.z) < 0.9
+      ? { x: -StartUnit.y, y: StartUnit.x, z: 0 }
+      : { x: 0, y: -StartUnit.z, z: StartUnit.y };
+  }
+  return rotateDirectionAroundAxis(StartUnit, normalize3(Axis), Apply);
+}
+
 /** Walks toward a target pose without snapping across the globe. */
 export function stepSurfacePoseToward(FromPose, ToPose, MaxArcRadians) {
   if (!(MaxArcRadians >= 0) || !Number.isFinite(MaxArcRadians)) {
@@ -362,33 +449,12 @@ export function stepSurfacePoseToward(FromPose, ToPose, MaxArcRadians) {
       meridianSign: FromPose.meridianSign,
     });
   }
-  const Start = getSurfaceDirection(FromPose);
-  const Target = getSurfaceDirection(ToPose);
-  const T = MaxArcRadians / Angle;
-  const Dot = Math.max(-1, Math.min(
-    1,
-    (Start.x * Target.x) + (Start.y * Target.y) + (Start.z * Target.z),
-  ));
-  let Stepped;
-  if (Dot > 0.9995) {
-    Stepped = normalize3({
-      x: Start.x + ((Target.x - Start.x) * T),
-      y: Start.y + ((Target.y - Start.y) * T),
-      z: Start.z + ((Target.z - Start.z) * T),
-    });
-  } else {
-    const Theta = Math.acos(Dot);
-    const SinTheta = Math.sin(Theta) || 1;
-    const StartWeight = Math.sin((1 - T) * Theta) / SinTheta;
-    const TargetWeight = Math.sin(T * Theta) / SinTheta;
-    Stepped = {
-      x: (Start.x * StartWeight) + (Target.x * TargetWeight),
-      y: (Start.y * StartWeight) + (Target.y * TargetWeight),
-      z: (Start.z * StartWeight) + (Target.z * TargetWeight),
-    };
-  }
   return createSurfacePose({
-    ...getSurfacePoseFromDirection(Stepped),
+    ...getSurfacePoseFromDirection(rotateDirectionToward(
+      getSurfaceDirection(FromPose),
+      getSurfaceDirection(ToPose),
+      MaxArcRadians,
+    )),
     meridianSign: FromPose.meridianSign,
   });
 }

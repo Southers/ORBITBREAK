@@ -3,7 +3,7 @@
  * These are presentation-only and never enter ranked simulation.
  */
 
-import { getCloseViewPresentation } from './presentation.js?v=20260819-ob139';
+import { getCloseViewPresentation } from './presentation.js?v=20260819-ob140';
 
 function createLighting(THREE, Scene, EnvironmentDefinition) {
   const HemisphereLight = new THREE.HemisphereLight(

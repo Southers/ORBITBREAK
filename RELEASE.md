@@ -84,6 +84,9 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
+- Build `20260819-ob140` is the local candidate after live ob139 let crust drags whip planets like a fidget spinner. Pages cache-bust is `20260819-ob140`.
+- Highlight kill (`ob140`): pointer walk already stepped toward a globe hit, but the first sample after the dead-zone dumped a 14° keyboard tap and cruise was 1.25 rad/s. Drag now uses a 7-second equator lap cap, a 2° first nudge, and a hard per-sample dump limit so a violent swipe cannot wrap the marble. Q/E taps stay 14°. Held keys match the capped drag. Empty crust still walks, hull-pull still flies, cage tap still smashes. Phone audio unlock stays.
+- Build `20260819-ob140` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (How to play overlay, pause sheet, ship fuel lights, Warden vessel telegraph).
 - Build `20260819-ob139` is the local candidate after live ob138 stayed silent on iPhone with the ringer switch on. Pages cache-bust is `20260819-ob139`.
 - Highlight kill (`ob139`): Web Audio still followed the iPhone silent switch after the ob138 resume/unlock buffer. First Continue, Skip, How-to Continue, canvas tap and Audio [M] now also play a same-origin `assets/audio/sfx/ui-continue.mp3` HTMLAudioElement in that gesture so sound uses the speaker media channel, then resume Web Audio. CSP `media-src` stays `'self'`. Command skim-lock, hull cancel, Zoom ± and rim cages stay.
 - Build `20260819-ob139` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (How to play overlay, pause sheet, ship fuel lights, Warden vessel telegraph).

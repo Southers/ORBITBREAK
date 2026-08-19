@@ -34,7 +34,12 @@ import {
   getSurfaceWalkArcLimit,
   getSurfaceWalkPointerArcLimit,
   hasLeftSurfaceWalkDeadzone,
+  SurfaceWalkCruiseLapSeconds,
+  SurfaceWalkMaxRadiansPerSample,
+  SurfaceWalkPointerNudgeRadians,
+  SurfaceWalkRadiansPerSecond,
   SurfaceWalkTapRadians,
+  stepPointerSurfaceWalk,
   stepSurfacePoseToward,
   intersectRaySphere,
   clampCameraZoomScale,
@@ -216,11 +221,13 @@ test('sphere walking steps toward a far hit instead of snapping across the globe
   const Opposite = createSurfacePose({ longitude: Math.PI, latitude: 0 });
   const Limited = stepSurfacePoseToward(Start, Opposite, 0.2);
   assert.ok(getGreatCircleAngle(Start, Limited) < 0.21);
+  assert.ok(getGreatCircleAngle(Start, Limited) > 0.19, 'an antipodal step must travel the capped arc, not collapse');
   assert.ok(getGreatCircleAngle(Limited, Opposite) > 2);
   const Arrived = stepSurfacePoseToward(Start, createSurfacePose({ longitude: 0.05, latitude: 0 }), 0.2);
   assert.ok(Math.abs(Arrived.longitude - 0.05) < 1e-9);
   assert.equal(getSurfaceWalkArcLimit(0), 0);
-  assert.ok(getSurfaceWalkArcLimit(1) <= 0.12);
+  assert.ok(getSurfaceWalkArcLimit(1) <= SurfaceWalkMaxRadiansPerSample);
+  assert.ok(getSurfaceWalkArcLimit(1 / 60) <= SurfaceWalkRadiansPerSecond / 60 + 1e-12);
 });
 
 test('visible-face sphere hits ignore the far side and origin-inside rays', () => {
@@ -264,6 +271,42 @@ test('pointer walk ramps from a dead-zone so a flick cannot sling around the glo
   assert.ok(Cruise <= getSurfaceWalkArcLimit(1 / 60) + 1e-12);
   const FlickTravel = getSurfaceWalkPointerArcLimit(0.05, 0.08);
   assert.ok(FlickTravel < 0.04);
+  const FirstNudge = getSurfaceWalkPointerArcLimit(1 / 60, 1 / 60, { justLeftDeadzone: true });
+  assert.ok(FirstNudge <= SurfaceWalkPointerNudgeRadians + 1e-12);
+  assert.ok(FirstNudge < SurfaceWalkTapRadians);
+});
+
+test('a huge pointer swipe cannot exceed the courier walk cap', () => {
+  const Start = createSurfacePose({ longitude: 0, latitude: 0 });
+  const Opposite = createSurfacePose({ longitude: Math.PI, latitude: 0 });
+  const FrameSeconds = 1 / 60;
+  const OneFrame = stepPointerSurfaceWalk(Start, Opposite, FrameSeconds, {
+    dragAgeSeconds: 8,
+  });
+  const OneFrameTravel = getGreatCircleAngle(Start, OneFrame);
+  assert.ok(OneFrameTravel <= getSurfaceWalkArcLimit(FrameSeconds) + 1e-12);
+  assert.ok(OneFrameTravel < 0.03, 'one frame cannot dump a visible whip');
+
+  const Lagged = stepPointerSurfaceWalk(Start, Opposite, 0.5, { dragAgeSeconds: 8 });
+  const LaggedTravel = getGreatCircleAngle(Start, Lagged);
+  assert.ok(LaggedTravel <= SurfaceWalkMaxRadiansPerSample + 1e-6);
+  assert.ok(LaggedTravel > SurfaceWalkMaxRadiansPerSample * 0.8);
+
+  let Pose = Start;
+  const SwipeSeconds = 0.1;
+  const Samples = 20;
+  const SampleDt = SwipeSeconds / Samples;
+  for (let SampleIndex = 0; SampleIndex < Samples; SampleIndex += 1) {
+    Pose = stepPointerSurfaceWalk(Pose, Opposite, SampleDt, {
+      dragAgeSeconds: SampleIndex === 0 ? SampleDt : 1,
+      justLeftDeadzone: SampleIndex === 0,
+    });
+  }
+  const SwipeTravel = getGreatCircleAngle(Start, Pose);
+  const MaxSwipe = (SwipeSeconds * SurfaceWalkRadiansPerSecond) + SurfaceWalkPointerNudgeRadians;
+  assert.ok(SwipeTravel <= MaxSwipe + 1e-6);
+  assert.ok(SwipeTravel < Math.PI / 2, 'a 100ms flick cannot wrap or half-spin the marble');
+  assert.equal(SurfaceWalkCruiseLapSeconds, 7);
 });
 
 test('keyboard walk can share the pointer cruise step size', () => {
@@ -271,8 +314,13 @@ test('keyboard walk can share the pointer cruise step size', () => {
   const Tapped = adjustSurfacePose(Start, { east: 1 });
   assert.ok(Math.abs(Tapped.longitude - SurfaceWalkTapRadians) < 1e-12);
   assert.ok(SurfaceWalkTapRadians >= (12 * Math.PI) / 180);
+  assert.ok(SurfaceWalkTapRadians < Math.PI / 4, 'a tap is a step, not a sprint lap');
   const Held = adjustSurfacePose(Start, { east: 1, stepRadians: getSurfaceWalkArcLimit(1 / 60) });
   assert.ok(Math.abs(Held.longitude - getSurfaceWalkArcLimit(1 / 60)) < 1e-12);
+  assert.ok(
+    Math.abs(getSurfaceWalkArcLimit(1 / 60) - getSurfaceWalkPointerArcLimit(1 / 60, 1)) < 1e-12,
+    'held keys must match pointer cruise, not outrun a capped drag',
+  );
 });
 
 test('a ray hitting the globe walks and a pull into space aims', () => {
