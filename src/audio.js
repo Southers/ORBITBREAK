@@ -15,7 +15,7 @@ import {
   listMusicClips,
   listSfxClips,
   listVoiceClips,
-} from './audio-catalog.js?v=20260819-ob138';
+} from './audio-catalog.js?v=20260819-ob139';
 
 export class WorldseedAudio {
   constructor() {
@@ -45,18 +45,24 @@ export class WorldseedAudio {
     this.audioAssetVersion = AudioAssetVersion;
     this.resumePromise = Promise.resolve();
     this.didGestureUnlock = false;
+    this.htmlUnlockElement = null;
+    this.htmlUnlockUrl = '';
+    this.suppressHtmlUnlock = false;
   }
 
   /**
    * Creates the graph lazily inside a trusted pointer or button gesture.
    * Mobile browsers start a new AudioContext suspended; resume and a one-sample
    * silent source must run in this same call or the graph stays mute.
+   * iPhone still routes Web Audio through the ringer switch, so the same
+   * gesture also plays a same-origin HTMLAudioElement to open the media channel.
    */
   ensureStarted() {
     if (this.context) {
       if (this.context.state === 'suspended') {
         this.resumeContext();
       }
+      this.playHtmlMediaUnlock();
       return true;
     }
 
@@ -78,6 +84,7 @@ export class WorldseedAudio {
 
     this.resumeContext();
     this.playGestureUnlock();
+    this.playHtmlMediaUnlock();
     this.createNoiseBuffer();
     this.createMusicBed();
     this.preloadSampledLibrary();
@@ -109,6 +116,88 @@ export class WorldseedAudio {
       UnlockSource.start(0);
     } catch {
       this.didGestureUnlock = false;
+    }
+  }
+
+  htmlUnlockClipUrl() {
+    const Clip = getClipById('sfx/ui-continue');
+    if (!Clip?.file) {
+      return '';
+    }
+    return getAudioAssetUrl(Clip.file);
+  }
+
+  /**
+   * Plays one same-origin HTML clip in this gesture. iPhone silent-switch
+   * mutes Web Audio; HTMLAudioElement.play() of a local file uses the media
+   * channel and also unlocks the AudioContext. play() is called immediately,
+   * never after fetch or decode.
+   */
+  playHtmlMediaUnlock({ force = false } = {}) {
+    if (this.suppressHtmlUnlock) {
+      return false;
+    }
+    const ContextStillSuspended = this.context?.state === 'suspended';
+    if (this.htmlUnlockElement && !force && !ContextStillSuspended) {
+      return true;
+    }
+    const UnlockUrl = this.htmlUnlockClipUrl();
+    if (!UnlockUrl || /^https?:\/\//.test(UnlockUrl) || !UnlockUrl.includes('assets/audio/')) {
+      return false;
+    }
+    const AudioConstructor = window.Audio ?? globalThis.Audio;
+    if (typeof AudioConstructor !== 'function') {
+      return false;
+    }
+    try {
+      if (!this.htmlUnlockElement) {
+        const UnlockElement = new AudioConstructor(UnlockUrl);
+        UnlockElement.preload = 'auto';
+        UnlockElement.playsInline = true;
+        UnlockElement.muted = false;
+        UnlockElement.volume = this.isMuted ? 0.0001 : 0.72;
+        if (typeof UnlockElement.setAttribute === 'function') {
+          UnlockElement.setAttribute('playsinline', '');
+          UnlockElement.setAttribute('webkit-playsinline', '');
+        }
+        this.htmlUnlockElement = UnlockElement;
+        this.htmlUnlockUrl = UnlockUrl;
+      }
+      this.htmlUnlockElement.muted = false;
+      this.htmlUnlockElement.volume = this.isMuted ? 0.0001 : 0.72;
+      try {
+        this.htmlUnlockElement.currentTime = 0;
+      } catch {
+        // A fresh element may not expose currentTime until metadata arrives.
+      }
+      const PlayResult = this.htmlUnlockElement.play();
+      if (PlayResult && typeof PlayResult.catch === 'function') {
+        PlayResult.catch(() => {
+          this.playHtmlUnlockFallbackTone();
+        });
+      }
+      return true;
+    } catch {
+      this.playHtmlUnlockFallbackTone();
+      return false;
+    }
+  }
+
+  playHtmlUnlockFallbackTone() {
+    if (this.suppressHtmlUnlock) {
+      return;
+    }
+    this.suppressHtmlUnlock = true;
+    try {
+      this.playTone({
+        frequency: 660,
+        endFrequency: 880,
+        duration: 0.12,
+        volume: 0.14,
+        type: 'triangle',
+      });
+    } finally {
+      this.suppressHtmlUnlock = false;
     }
   }
 
@@ -342,7 +431,7 @@ export class WorldseedAudio {
       frequency: 392,
       endFrequency: 523.25,
       duration: 0.14,
-      volume: 0.05,
+      volume: 0.12,
       type: 'triangle',
     });
     const Token = this.howToPlayToken;
@@ -409,6 +498,9 @@ export class WorldseedAudio {
     if (!this.ensureStarted()) {
       return false;
     }
+    if (this.playHtmlMediaUnlock({ force: true })) {
+      return true;
+    }
     const Clip = getClipById('sfx/ui-continue');
     const ReadyBuffer = Clip && !this.missingClips.has(Clip.id)
       ? this.decodedBuffers.get(Clip.id)
@@ -416,7 +508,7 @@ export class WorldseedAudio {
     if (ReadyBuffer) {
       this.whenContextRunning().then((IsRunning) => {
         if (IsRunning) {
-          this.startBuffer(ReadyBuffer, { volume: 0.42, channel: 'sfx' });
+          this.startBuffer(ReadyBuffer, { volume: 0.55, channel: 'sfx' });
         }
       });
       return true;
@@ -427,8 +519,8 @@ export class WorldseedAudio {
     this.playTone({
       frequency: 660,
       endFrequency: 880,
-      duration: 0.1,
-      volume: 0.05,
+      duration: 0.12,
+      volume: 0.14,
       type: 'triangle',
     });
     return true;

@@ -34,23 +34,23 @@ import {
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob138';
+} from './controls.js?v=20260819-ob139';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
   resolveClampTap,
   resolveHostileCut,
-} from './encounter.js?v=20260819-ob138';
-import { applyBreakerBurn, calculateBodyPositionAtTime, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob138';
+} from './encounter.js?v=20260819-ob139';
+import { applyBreakerBurn, calculateBodyPositionAtTime, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob139';
 import {
   getCageClearPulseDurationSeconds,
   getActiveViewZoomMinimumScale,
   getLaunchFacingPresentation,
   getLogicalSurfaceDirectionFromWorldHit,
   shouldAssistCommandLock,
-} from './presentation.js?v=20260819-ob138';
-import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob138';
-import { releaseRunLaunch } from './run.js?v=20260819-ob138';
+} from './presentation.js?v=20260819-ob139';
+import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob139';
+import { releaseRunLaunch } from './run.js?v=20260819-ob139';
 
 export function createInputController(THREE, host) {
   const {

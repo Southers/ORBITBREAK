@@ -719,9 +719,11 @@ export function auditReleaseReadiness() {
   requireCondition(
     AudioSource.includes("from './audio-catalog.js")
       && AudioSource.includes('playStoryVoice')
+      && AudioSource.includes('playHtmlMediaUnlock')
+      && AudioSource.includes('new AudioConstructor(')
       && !AudioSource.includes('api.elevenlabs.io')
       && !MainSource.includes('api.elevenlabs.io'),
-    'Sampled audio must play committed assets/audio files and never call ElevenLabs from the browser.',
+    'Sampled audio must play committed assets/audio files, unlock iPhone speakers with a same-origin HTML clip, and never call ElevenLabs from the browser.',
   );
   requireCondition(
     ReleaseBrief.includes('Never perform these without the user'),

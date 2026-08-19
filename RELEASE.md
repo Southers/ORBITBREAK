@@ -84,6 +84,9 @@ Suggested 40-second trailer beat sheet:
 
 ## Current local candidate evidence
 
+- Build `20260819-ob139` is the local candidate after live ob138 stayed silent on iPhone with the ringer switch on. Pages cache-bust is `20260819-ob139`.
+- Highlight kill (`ob139`): Web Audio still followed the iPhone silent switch after the ob138 resume/unlock buffer. First Continue, Skip, How-to Continue, canvas tap and Audio [M] now also play a same-origin `assets/audio/sfx/ui-continue.mp3` HTMLAudioElement in that gesture so sound uses the speaker media channel, then resume Web Audio. CSP `media-src` stays `'self'`. Command skim-lock, hull cancel, Zoom ± and rim cages stay.
+- Build `20260819-ob139` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (How to play overlay, pause sheet, ship fuel lights, Warden vessel telegraph).
 - Build `20260819-ob138` is the local candidate after live ob137 stayed silent on first tap. Pages cache-bust is `20260819-ob138`.
 - Highlight kill (`ob138`): a new AudioContext started suspended and never resumed in the same gesture, so sampled clips and short procedural tones stayed mute. First tap now resumes, plays a one-sample unlock buffer, and waits until the context is running before starting short sources. How-to missing lines fall back to the in-engine briefing voice. CSP `media-src` is `'self'`. Command skim-lock, hull cancel, Zoom ± and rim cages stay.
 - Build `20260819-ob138` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (How to play overlay, pause sheet, ship fuel lights, Warden vessel telegraph).

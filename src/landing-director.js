@@ -4,21 +4,21 @@
  * the playable shell / flight resolver.
  */
 
-import { countRestoredWorlds } from './campaign.js?v=20260819-ob138';
-import { evaluateRelayPortLanding } from './flight-resolver.js?v=20260819-ob138';
-import { countLiveRelayWorlds, connectRelayWorlds } from './network.js?v=20260819-ob138';
-import { createVector } from './physics.js?v=20260819-ob138';
+import { countRestoredWorlds } from './campaign.js?v=20260819-ob139';
+import { evaluateRelayPortLanding } from './flight-resolver.js?v=20260819-ob139';
+import { countLiveRelayWorlds, connectRelayWorlds } from './network.js?v=20260819-ob139';
+import { createVector } from './physics.js?v=20260819-ob139';
 import {
   getRelayRevealLookTarget,
   LiberationCelebrateHoldSeconds,
   getStillnessPresentation,
   getTriggeredCampaignStoryBoardIds,
-} from './presentation.js?v=20260819-ob138';
-import { calculateNormalizedSphericalDistance } from './restoration.js?v=20260819-ob138';
-import { addCircuitBonus, addVictoryBonus } from './scoring.js?v=20260819-ob138';
-import { settleRunFlight } from './run.js?v=20260819-ob138';
-import { WardenPursuitEvents } from './warden.js?v=20260819-ob138';
-import { getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob138';
+} from './presentation.js?v=20260819-ob139';
+import { calculateNormalizedSphericalDistance } from './restoration.js?v=20260819-ob139';
+import { addCircuitBonus, addVictoryBonus } from './scoring.js?v=20260819-ob139';
+import { settleRunFlight } from './run.js?v=20260819-ob139';
+import { WardenPursuitEvents } from './warden.js?v=20260819-ob139';
+import { getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob139';
 
 export function createLandingDirector(THREE, host) {
   const {
