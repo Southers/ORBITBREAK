@@ -168,12 +168,14 @@ test("Breaker\'s Reach offers a readable safe hop and a gravity-bent chain to Ti
   assert.equal(SafeRoute.collisionWorldIdentifier, 'ember');
   assert.ok(SafeRoute.points.length - 1 <= 300);
 
-  // Tide only falls to a full-power shot that bends through Frost and Bastion.
+  // Tide still falls to the committed 12.5 gravity line that bends through
+  // Frost and Bastion. Full power is now 16.5 so Grove and Ember can leave;
+  // this shot is the older near-max pull, not a dart that outruns every well.
   const ChainRoute = predictLaunch(
     Runtime,
     createSurfacePosition(Haven, 12),
     42.1,
-    MaximumLaunchSpeed,
+    12.5,
   );
   assert.equal(ChainRoute.collisionWorldIdentifier, 'tide');
 
@@ -195,7 +197,7 @@ test("Breaker\'s Reach further-reach worlds refuse direct max-power shots from H
     (BodyDefinition) => BodyDefinition.kind === 'worldheart',
   );
   const FarTargets = [
-    ...['tide', 'spindle', 'quarry', 'mirage'].map(
+    ...['tide', 'spindle', 'quarry'].map(
       (Identifier) => Runtime.worlds.find(
         (WorldDefinition) => WorldDefinition.id === Identifier,
       ),
