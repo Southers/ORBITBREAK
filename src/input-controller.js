@@ -34,23 +34,23 @@ import {
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob132';
+} from './controls.js?v=20260819-ob133';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
   resolveClampTap,
   resolveHostileCut,
-} from './encounter.js?v=20260819-ob130';
-import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js';
+} from './encounter.js?v=20260819-ob133';
+import { applyBreakerBurn, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob133';
 import {
   getCageClearPulseDurationSeconds,
   getActiveViewZoomMinimumScale,
   getLaunchFacingPresentation,
   getLogicalSurfaceDirectionFromWorldHit,
   shouldAssistCommandLock,
-} from './presentation.js';
-import { recordReplayBurn, recordReplayLaunch } from './replay.js';
-import { releaseRunLaunch } from './run.js';
+} from './presentation.js?v=20260819-ob133';
+import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob133';
+import { releaseRunLaunch } from './run.js?v=20260819-ob133';
 
 export function createInputController(THREE, host) {
   const {

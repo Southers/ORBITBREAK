@@ -2,8 +2,9 @@ import {
   getRangeVeilStrength as getAuthoredRangeVeilStrength,
   isFurtherReachLive,
   isInnerClusterLive,
+  hasTravelledFurther,
   shouldOpenCommandWorldRoute,
-} from './sector.js';
+} from './sector.js?v=20260819-ob133';
 
 /** Maps gameplay state to one legible Runner animation state. */
 export function getRunnerAnimationState(GamePhase, IsPointerAiming, IsWalking = false) {
@@ -545,7 +546,7 @@ export function getWorldLifeStage({ restored, liveLinkCount = 0 } = {}) {
   return liveLinkCount >= 1 ? 'living' : 'isolated';
 }
 
-export { isFurtherReachLive, isInnerClusterLive, shouldOpenCommandWorldRoute };
+export { hasTravelledFurther, isFurtherReachLive, isInnerClusterLive, shouldOpenCommandWorldRoute };
 
 export function getRangeVeilStrength(
   worldIdentifier,

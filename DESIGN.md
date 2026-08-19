@@ -257,7 +257,7 @@ After Haven, Ember and Grove are all live:
 - Scout may zoom further out;
 - the coach says the dark is not as wide as they said.
 
-Launch power is 16.5 so Grove and Ember can still escape their own wells after the first hop. 12.5 sat below those escape speeds, so a max pull looped home and W looked capped. Default keyboard power stays mid so adjacent hops still ride gravity; W stretches the throw to unlinked bodies. Origin ignore lasts 1.2 world units so a just-escaping throw is not recaptured on the first beat. Further travel should still come from the slingshot skill the hopeful act taught. Outer worlds remain in the physics scene the whole time so prediction, ghosts and replays stay honest; the veil is presentation and camera, keyed to network state.
+Launch power is 16.5 so Grove and Ember can still escape their own wells after the first hop. 12.5 sat below those escape speeds, so a max pull looped home and W looked capped. Default keyboard power stays mid so adjacent hops still ride gravity; W stretches the throw to unlinked bodies. Origin ignore lasts 2.4 world units and at least 0.8 s so a just-escaping throw is not recaptured on the first beat, including from later outposts. Command opens once the inner neighbourhood is live and the Runner has landed further — including Ledge, Cinder or Glasswing — or after a 6-world outer tour even if the Warden has already silenced one inner world. Further travel should still come from the slingshot skill the hopeful act taught. Outer worlds remain in the physics scene the whole time so prediction, ghosts and replays stay honest; the veil is presentation and camera, keyed to network state.
 
 ### Warden timing, precisely
 

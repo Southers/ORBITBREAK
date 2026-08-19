@@ -4,9 +4,9 @@
  * authored suggestions; every physical destination stays valid.
  */
 
-import { getRouteChoices, isSystemRestored } from './campaign.js';
-import { countLiveRelayWorlds, wouldCloseRelayCircuit } from './network.js';
-import { calculateBodyPositionAtTime } from './physics.js';
+import { getRouteChoices, isSystemRestored } from './campaign.js?v=20260819-ob133';
+import { countLiveRelayWorlds, wouldCloseRelayCircuit } from './network.js?v=20260819-ob133';
+import { calculateBodyPositionAtTime } from './physics.js?v=20260819-ob133';
 import {
   getHiddenWardenRouteCoach,
   getPlayfieldLabelVerticalBounds,
@@ -21,7 +21,7 @@ import {
   separateRouteLabelsFromTacticalLabels,
   shouldShowPlayfieldWorldLabels,
   getCommandWorldTacticalLabel,
-} from './presentation.js';
+} from './presentation.js?v=20260819-ob133';
 
 export function createRoutePresentation(THREE, host) {
   const {

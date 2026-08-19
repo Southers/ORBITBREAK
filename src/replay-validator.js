@@ -1,14 +1,14 @@
-import { createAuthoredSystemRuntime, getAuthoredSystemDefinition } from './content.js';
-import { calculateBodyPositionAtTime, createOrbitTrapState, createVector } from './physics.js';
+import { createAuthoredSystemRuntime, getAuthoredSystemDefinition } from './content.js?v=20260819-ob133';
+import { calculateBodyPositionAtTime, createOrbitTrapState, createVector } from './physics.js?v=20260819-ob133';
 import {
   PhysicsModelVersion,
   ReplaySchemaVersion,
   parseReplay,
-} from './replay.js';
-import { createScoreState } from './scoring.js';
-import { createRunState, releaseRunLaunch } from './run.js';
-import { createRelayNetworkState } from './network.js';
-import { createWardenPursuitState } from './warden.js';
+} from './replay.js?v=20260819-ob133';
+import { createScoreState } from './scoring.js?v=20260819-ob133';
+import { createRunState, releaseRunLaunch } from './run.js?v=20260819-ob133';
+import { createRelayNetworkState } from './network.js?v=20260819-ob133';
+import { createWardenPursuitState } from './warden.js?v=20260819-ob133';
 import {
   advanceSimulatedFlightStep,
   applyFlightBreakerBurn,
@@ -19,14 +19,14 @@ import {
   settleFailedFlight,
   settleSeedstoneLanding,
   settleWorldLanding,
-} from './flight-resolver.js';
+} from './flight-resolver.js?v=20260819-ob133';
 import {
   FixedPhysicsStepHertz,
   MaximumValidatedFlightSteps,
   RunnerRadius,
   SurfaceOriginTolerance,
   SurfaceRestLift,
-} from './sim-constants.js';
+} from './sim-constants.js?v=20260819-ob133';
 
 function invalid(Reason) {
   return { valid: false, reason: Reason, result: null };
@@ -185,6 +185,7 @@ export function validateReplay(Replay) {
         ignoredBodyIdentifier: IgnoredBodyIdentifier,
         ignoredBodyDefinition: IgnoredBodyIdentifier ? Seedstone : null,
         flightOriginWorldIdentifier: FlightOriginWorldIdentifier,
+        flightElapsedSteps: FlightStepIndex + 1,
         flightCollectedStardust: FlightCollectedStardust,
         outOfBoundsDistance: OutOfBoundsDistance,
         orbitTrapState: OrbitTrapState,

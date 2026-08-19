@@ -3,7 +3,7 @@
  * once with a quiet toast. Ranked flight simulation never samples this file.
  */
 
-import { DiscoveryCollectRadiusRadians, DiscoveryScoreValue } from './sim-constants.js';
+import { DiscoveryCollectRadiusRadians, DiscoveryScoreValue } from './sim-constants.js?v=20260819-ob133';
 
 function site(id, name, longitude, latitude) {
   return { id, name, longitude, latitude };

@@ -3,7 +3,7 @@
  * Trajectory colour and relay-port beacons encode lock, dock and hazard; there is no aim meter.
  */
 
-import { evaluateRelayPortLanding } from './flight-resolver.js';
+import { evaluateRelayPortLanding } from './flight-resolver.js?v=20260819-ob133';
 
 export function createAimPreview(THREE, host) {
   /**

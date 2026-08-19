@@ -1041,6 +1041,15 @@ so a just-escaping throw is not slapped back. A/D hold steers. Enter still
 launches. Command still opens from a live neighbourhood plus further travel,
 not from inner restores alone.
 
+Checkpoint 28 — 19 August 2026: stale module cache, Command exposure,
+outer origin recapture. Every `src/` import carries the same cache-bust
+token as `index.html` and `main.js`, so a normal refresh boots after an
+old Pages cache. Command opens after a live neighbourhood plus further
+travel — outposts count — and stays open if the Warden silences an inner
+world on a 6-world outer tour. Origin ignore lasts 2.4 plus 0.8 s so
+max-power throws from Glasswing, Cinder and Ledge can leave. Skim
+recapture, toy-scale props, Enter=Space and A/D hold stay.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.

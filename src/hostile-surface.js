@@ -12,7 +12,7 @@ import {
   getSphereSurfacePosition,
   getSurfacePoseFromPosition,
   shouldCancelAimedLaunch,
-} from './controls.js';
+} from './controls.js?v=20260819-ob133';
 import {
   createHostileEncounterState,
   getCutEndPoint,
@@ -22,9 +22,9 @@ import {
   getHostileEncounterMoveDirection,
   getNearestClampCut,
   getRemainingClamps,
-} from './encounter.js?v=20260819-ob130';
-import { createVector } from './physics.js';
-import { calculateSurfaceRestPosition as calculateSharedSurfaceRestPosition } from './flight-resolver.js';
+} from './encounter.js?v=20260819-ob133';
+import { createVector } from './physics.js?v=20260819-ob133';
+import { calculateSurfaceRestPosition as calculateSharedSurfaceRestPosition } from './flight-resolver.js?v=20260819-ob133';
 
 export function createHostileSurface(THREE, host) {
   const {

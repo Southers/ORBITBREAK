@@ -134,3 +134,29 @@ test('Warden catch fires when pursuit arrives on the Runner\'s vulnerable world'
   assert.equal(Resolution.caught, true);
   assert.equal(isRelayWorldLive(NetworkState, 'grove'), true);
 });
+
+test('Command stays open when the Warden silences an inner world after a neighbourhood tour', () => {
+  const Runtime = createAuthoredSystemRuntime(
+    getAuthoredSystemDefinition('breaker-reach'),
+    { createVector },
+  );
+  const NetworkState = createRelayNetworkState('meadow');
+  connectRelayWorlds(NetworkState, 'meadow', 'grove');
+  connectRelayWorlds(NetworkState, 'grove', 'ember');
+  connectRelayWorlds(NetworkState, 'ember', 'frost');
+  const WardenState = {
+    ...createWardenPursuitState({ startingDistance: 1 }),
+    status: 'pursuing',
+    targetWorldIdentifier: 'meadow',
+  };
+  const Resolution = resolveWardenAfterNonCommandFlight({
+    runtime: Runtime,
+    networkState: NetworkState,
+    wardenState: WardenState,
+    currentNodeIdentifier: 'frost',
+    firstCircuitClosed: false,
+    isWorldheartOpen: false,
+  });
+  assert.equal(Resolution.isWorldheartOpen, true);
+  assert.equal(isRelayWorldLive(NetworkState, 'meadow'), false);
+});

@@ -5,6 +5,7 @@ import { BreakerReachSystemDefinition } from '../src/content.js';
 import {
   getRangeVeilStrength,
   getSectorWardenRevealFlag,
+  hasTravelledFurther,
   isFurtherReachLive,
   isInnerClusterLive,
   shouldOpenCommandWorldRoute,
@@ -17,6 +18,7 @@ test('Command opens after a live neighbourhood plus further travel, or after shi
   const InnerCluster = BreakerReachSystemDefinition.innerClusterWorldIdentifiers;
   const FurtherReach = BreakerReachSystemDefinition.furtherReachWorldIdentifiers;
   const NeighbourhoodTour = ['meadow', 'ember', 'grove', 'tide', 'bastion'];
+  const OuterTour = ['meadow', 'grove', 'ember', 'frost', 'bastion', 'glasswing', 'cinder'];
   assert.equal(shouldOpenCommandWorldRoute({
     restorationUnlocked: true,
     liveWorldIdentifiers: NeighbourhoodTour,
@@ -49,6 +51,32 @@ test('Command opens after a live neighbourhood plus further travel, or after shi
     requiresShieldBreaks: true,
     wardenStatus: 'hidden',
   }), true);
+  assert.equal(shouldOpenCommandWorldRoute({
+    restorationUnlocked: false,
+    liveWorldIdentifiers: ['meadow', 'ember', 'grove', 'glasswing'],
+    innerClusterWorldIdentifiers: InnerCluster,
+    furtherReachWorldIdentifiers: FurtherReach,
+    requiresShieldBreaks: true,
+    wardenStatus: 'hidden',
+  }), true);
+  assert.equal(shouldOpenCommandWorldRoute({
+    restorationUnlocked: false,
+    liveWorldIdentifiers: OuterTour.filter((WorldIdentifier) => WorldIdentifier !== 'meadow'),
+    innerClusterWorldIdentifiers: InnerCluster,
+    furtherReachWorldIdentifiers: FurtherReach,
+    requiresShieldBreaks: true,
+    wardenStatus: 'pursuing',
+    currentWorldIdentifier: 'cinder',
+  }), true);
+  assert.equal(shouldOpenCommandWorldRoute({
+    restorationUnlocked: false,
+    liveWorldIdentifiers: ['meadow', 'bastion'],
+    innerClusterWorldIdentifiers: InnerCluster,
+    furtherReachWorldIdentifiers: FurtherReach,
+    requiresShieldBreaks: true,
+    wardenStatus: 'hidden',
+    currentWorldIdentifier: 'bastion',
+  }), false);
 });
 
 test('inner cluster is live only when every neighbourhood world holds a relay', () => {
@@ -57,9 +85,16 @@ test('inner cluster is live only when every neighbourhood world holds a relay', 
   assert.equal(isInnerClusterLive(['meadow', 'ember', 'grove'], []), false);
 });
 
-test('further reach is live when any outer world holds a relay', () => {
+test('further travel includes outposts that are not on the authored veil list', () => {
   assert.equal(isFurtherReachLive(['meadow', 'ember', 'grove'], FurtherReach), false);
   assert.equal(isFurtherReachLive(['meadow', 'ember', 'grove', 'tide'], FurtherReach), true);
+  assert.equal(isFurtherReachLive(['meadow', 'ember', 'grove', 'glasswing'], FurtherReach), false);
+  assert.equal(hasTravelledFurther(['meadow', 'ember', 'grove'], InnerCluster, FurtherReach), false);
+  assert.equal(hasTravelledFurther(['meadow', 'ember', 'grove', 'tide'], InnerCluster, FurtherReach), true);
+  assert.equal(
+    hasTravelledFurther(['meadow', 'ember', 'grove', 'glasswing'], InnerCluster, FurtherReach),
+    true,
+  );
 });
 
 test('range veil covers Command and the further Reach until the neighbourhood is live', () => {
@@ -89,6 +124,14 @@ test('Warden reveal requires both a live neighbourhood and a further landing', (
   assert.equal(
     getSectorWardenRevealFlag(
       ['meadow', 'ember', 'grove', 'tide'],
+      InnerCluster,
+      FurtherReach,
+    ),
+    true,
+  );
+  assert.equal(
+    getSectorWardenRevealFlag(
+      ['meadow', 'ember', 'grove', 'glasswing'],
       InnerCluster,
       FurtherReach,
     ),

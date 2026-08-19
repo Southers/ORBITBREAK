@@ -9,7 +9,35 @@ export const FixedPhysicsStepHertz = 120;
 export const FixedPhysicsStepSeconds = 1 / FixedPhysicsStepHertz;
 export const RunnerRadius = 0.46;
 export const SurfaceRestLift = 0.03;
-export const LaunchClearancePadding = 1.2;
+export const LaunchClearancePadding = 2.4;
+/** 0.8 s at 120 Hz. Tiny outer wells clear a 1.2 pad and get recaptured on the way out. */
+export const LaunchIgnoreMinSteps = 96;
+
+/** True once the Runner has both left the dock height and spent the launch grace. */
+export function hasClearedLaunchOrigin({
+  originRadius,
+  originX,
+  originY,
+  originZ = 0,
+  runnerX,
+  runnerY,
+  runnerZ = 0,
+  seedRadius = RunnerRadius,
+  elapsedSteps = 0,
+} = {}) {
+  if (!(elapsedSteps >= LaunchIgnoreMinSteps)) {
+    return false;
+  }
+  if (!(originRadius > 0) || !(seedRadius > 0)) {
+    return true;
+  }
+  const ClearDistance = originRadius + seedRadius + LaunchClearancePadding;
+  const OffsetX = runnerX - originX;
+  const OffsetY = runnerY - originY;
+  const OffsetZ = runnerZ - originZ;
+  return ((OffsetX * OffsetX) + (OffsetY * OffsetY) + (OffsetZ * OffsetZ))
+    > (ClearDistance * ClearDistance);
+}
 export const StardustPickupRadius = 0.22;
 export const StardustCollectionRadius = RunnerRadius + StardustPickupRadius;
 export const StardustCollectionRadiusSquared = StardustCollectionRadius ** 2;

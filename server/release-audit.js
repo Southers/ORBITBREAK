@@ -117,9 +117,27 @@ export function auditReleaseReadiness() {
     MainBuildVersion === MainAssetVersion && MainBuildVersion === StyleAssetVersion,
     'HTML, CSS and published canvas build identifiers must match.',
   );
+  const SourceFiles = listRepositoryFiles('src', ['.js']);
+  const RelativeImportPattern = /from ['"](\.\.?\/[^'"]+)['"]/g;
+  for (const RelativePath of SourceFiles) {
+    const Source = readRepositoryFile(RelativePath);
+    for (const Match of Source.matchAll(RelativeImportPattern)) {
+      const Specifier = Match[1];
+      if (!Specifier.includes('.js')) {
+        continue;
+      }
+      const Version = Specifier.match(/\?v=([^'"#]+)/)?.[1];
+      requireCondition(
+        Version === MainBuildVersion,
+        `${RelativePath} must cache-bust ${Specifier} with the shared ${MainBuildVersion} token.`,
+      );
+    }
+  }
   requireCondition(
     PhysicsSource.includes('export const MaximumLaunchSpeed = 16.5;')
-      && PhysicsSource.includes('LaunchClearancePadding')
+      && PhysicsSource.includes('hasClearedLaunchOrigin')
+      && SectorSource.includes('export function hasTravelledFurther(')
+      && FlightResolverSource.includes('flightElapsedSteps')
       && MainSource.includes('LaunchVelocityPerDragUnit = MaximumLaunchSpeed / MaximumDragDistance')
       && MainSource.includes('updateSlingshotBandVisuals(')
       && ScoringSource.includes('export function getSlingshotBandRadii('),

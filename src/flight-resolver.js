@@ -5,7 +5,7 @@
  * module so scoring, relays and Warden pursuit cannot drift apart.
  */
 
-import { isWorldheartUnlocked } from './campaign.js';
+import { isWorldheartUnlocked } from './campaign.js?v=20260819-ob133';
 import {
   applyBreakerBurn,
   calculateBodyPositionAtTime,
@@ -16,15 +16,15 @@ import {
   findCollidingWorld,
   simulatePhysicsStep,
   advanceOrbitTrap,
-} from './physics.js';
+} from './physics.js?v=20260819-ob133';
 import {
   addCircuitBonus,
   addVictoryBonus,
   bankFlightScore,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js';
-import { settleRunFlight } from './run.js';
+} from './scoring.js?v=20260819-ob133';
+import { settleRunFlight } from './run.js?v=20260819-ob133';
 import {
   connectRelayWorlds,
   countLiveRelayWorlds,
@@ -32,7 +32,7 @@ import {
   listProtectedRelayWorlds,
   listVulnerableRelayWorlds,
   suppressRelayWorld,
-} from './network.js';
+} from './network.js?v=20260819-ob133';
 import {
   WardenPursuitEvents,
   chooseWardenTarget,
@@ -40,22 +40,22 @@ import {
   resolveWardenPursuit,
   shouldRevealWarden,
   shouldWardenCatchRunner,
-} from './warden.js';
+} from './warden.js?v=20260819-ob133';
 import {
-  isFurtherReachLive,
+  hasTravelledFurther,
   isInnerClusterLive,
   shouldOpenCommandWorldRoute,
-} from './sector.js';
+} from './sector.js?v=20260819-ob133';
 import {
   DefaultLiberationValue,
-  LaunchClearancePadding,
+  hasClearedLaunchOrigin,
   RelayPortBullseyeBonus,
   RelayPortBullseyeFraction,
   RelayPortCleanBonus,
   RunnerRadius,
   StardustCollectionRadiusSquared,
   SurfaceRestLift,
-} from './sim-constants.js';
+} from './sim-constants.js?v=20260819-ob133';
 
 /** Snaps an impact onto a body's orbital-plane circumference. */
 export function calculateSurfaceRestPosition(BodyDefinition, ImpactPosition, BodyPosition) {
@@ -170,6 +170,7 @@ export function clearLaunchIgnoreIfReady(
   BodyDefinition,
   BodyPosition,
   RunnerPosition,
+  elapsedSteps = 0,
 ) {
   if (!IgnoredIdentifier) {
     return null;
@@ -177,8 +178,17 @@ export function clearLaunchIgnoreIfReady(
   if (!BodyDefinition || !BodyPosition) {
     return null;
   }
-  const ClearDistance = BodyDefinition.radius + RunnerRadius + LaunchClearancePadding;
-  if (calculateDistanceSquared(RunnerPosition, BodyPosition) > (ClearDistance ** 2)) {
+  if (hasClearedLaunchOrigin({
+    originRadius: BodyDefinition.radius,
+    originX: BodyPosition.x,
+    originY: BodyPosition.y,
+    originZ: BodyPosition.z,
+    runnerX: RunnerPosition.x,
+    runnerY: RunnerPosition.y,
+    runnerZ: RunnerPosition.z,
+    seedRadius: RunnerRadius,
+    elapsedSteps,
+  })) {
     return null;
   }
   return IgnoredIdentifier;
@@ -206,6 +216,7 @@ export function advanceSimulatedFlightStep({
   ignoredBodyIdentifier = null,
   ignoredBodyDefinition = null,
   flightOriginWorldIdentifier = null,
+  flightElapsedSteps = 0,
   flightCollectedStardust,
   outOfBoundsDistance,
   orbitTrapState = null,
@@ -221,6 +232,7 @@ export function advanceSimulatedFlightStep({
     OriginWorld,
     OriginWorld?.position ?? null,
     NextPhysicsState.position,
+    flightElapsedSteps,
   );
   const IgnoredBodyPosition = ignoredBodyDefinition
     ? calculateBodyPositionAtTime(ignoredBodyDefinition, simulationTimeSeconds)
@@ -230,6 +242,7 @@ export function advanceSimulatedFlightStep({
     ignoredBodyDefinition,
     IgnoredBodyPosition,
     NextPhysicsState.position,
+    flightElapsedSteps,
   );
 
   const SlingshotEvents = sampleSlingshotBodies(
@@ -435,9 +448,11 @@ export function resolveWardenAfterNonCommandFlight({
         LiveWorldIdentifiers,
         runtime.innerClusterWorldIdentifiers,
       ),
-      furtherWorldLive: isFurtherReachLive(
+      furtherWorldLive: hasTravelledFurther(
         LiveWorldIdentifiers,
+        runtime.innerClusterWorldIdentifiers,
         runtime.furtherReachWorldIdentifiers,
+        runtime.commandWorldIdentifier,
       ),
     }),
   });
@@ -482,6 +497,8 @@ export function resolveWardenAfterNonCommandFlight({
       furtherReachWorldIdentifiers: runtime.furtherReachWorldIdentifiers,
       requiresShieldBreaks: runtime.commandWorldRequiresShieldBreaks === true,
       wardenStatus: NextWardenState.status,
+      commandWorldIdentifier: runtime.commandWorldIdentifier,
+      currentWorldIdentifier: currentNodeIdentifier,
     });
   }
 
