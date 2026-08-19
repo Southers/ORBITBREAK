@@ -5,7 +5,7 @@
  * module so scoring, relays and Warden pursuit cannot drift apart.
  */
 
-import { isWorldheartUnlocked } from './campaign.js?v=20260819-ob140';
+import { isWorldheartUnlocked } from './campaign.js?v=20260819-ob141';
 import {
   applyBreakerBurn,
   calculateBodyPositionAtTime,
@@ -16,15 +16,15 @@ import {
   findCollidingWorld,
   simulatePhysicsStep,
   advanceOrbitTrap,
-} from './physics.js?v=20260819-ob140';
+} from './physics.js?v=20260819-ob141';
 import {
   addCircuitBonus,
   addVictoryBonus,
   bankFlightScore,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260819-ob140';
-import { settleRunFlight } from './run.js?v=20260819-ob140';
+} from './scoring.js?v=20260819-ob141';
+import { settleRunFlight } from './run.js?v=20260819-ob141';
 import {
   connectRelayWorlds,
   countLiveRelayWorlds,
@@ -32,7 +32,7 @@ import {
   listProtectedRelayWorlds,
   listVulnerableRelayWorlds,
   suppressRelayWorld,
-} from './network.js?v=20260819-ob140';
+} from './network.js?v=20260819-ob141';
 import {
   WardenPursuitEvents,
   chooseWardenTarget,
@@ -40,12 +40,12 @@ import {
   resolveWardenPursuit,
   shouldRevealWarden,
   shouldWardenCatchRunner,
-} from './warden.js?v=20260819-ob140';
+} from './warden.js?v=20260819-ob141';
 import {
   hasTravelledFurther,
   isInnerClusterLive,
   shouldOpenCommandWorldRoute,
-} from './sector.js?v=20260819-ob140';
+} from './sector.js?v=20260819-ob141';
 import {
   DefaultLiberationValue,
   hasClearedLaunchOrigin,
@@ -55,7 +55,7 @@ import {
   RunnerRadius,
   StardustCollectionRadiusSquared,
   SurfaceRestLift,
-} from './sim-constants.js?v=20260819-ob140';
+} from './sim-constants.js?v=20260819-ob141';
 
 /** Snaps an impact onto a body's orbital-plane circumference. */
 export function calculateSurfaceRestPosition(BodyDefinition, ImpactPosition, BodyPosition) {

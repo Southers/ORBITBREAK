@@ -27,8 +27,8 @@
   <meta name="twitter:image" content="https://southers.github.io/ORBITBREAK/assets/warden-portrait.jpg" />
   <title>ORBITBREAK</title>
   <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260818-ob123" />
-  <!-- copy-revision: 20260819-ob140 -->
-  <link rel="stylesheet" href="./src/style.css?v=20260819-ob140" />
+  <!-- copy-revision: 20260819-ob141 -->
+  <link rel="stylesheet" href="./src/style.css?v=20260819-ob141" />
 
   <!--
     Buildless release import map. Three.js is pinned and vendored so startup
@@ -55,10 +55,10 @@
       Keyboard controls: focus the game, use left and right or A and D to steer, use up and
       down or W and S to change power, hold Shift for fine adjustments, and press Enter or
       Space to launch. Q and E walk around the current world; T and F walk over the poles.
-      Drag the planet to walk. Pull the ship, then let go. Linking them lets those worlds prosper.
+      Drag the ground to walk around this little world. Pull the ship and let go to fly.
       Drag back onto the ship or press Escape to cancel.
       During flight, drag from the ship to break your line, or press Space to break along your heading.
-      Occupied worlds have Warden cages. Tap the cage to break it.
+      If a red cage is in the way, tap it.
       Press Escape when not aiming to pause. Press R to reset. Keyboard shortcuts C, plus, minus, G, P, M and R stay live during play.
     </p>
     <div id="LiberationFlash" class="liberation-flash" aria-hidden="true"></div>
@@ -108,12 +108,12 @@
       <div class="how-to-play__board">
         <h2 id="HowToPlayTitle">How to play</h2>
         <ul id="HowToPlayList" class="how-to-play__list">
-          <li>Drag the planet to walk, or use Q and E. T and F walk the poles.</li>
-          <li>Pull the ship to aim and release to fly. A and D steer; W and S change power.</li>
-          <li>Landing links worlds. Land in the gold beacon to restore them.</li>
-          <li>Occupied worlds have a red Warden cage. Tap the cage to break it.</li>
-          <li>Drag empty space to look around. C opens the Scout map.</li>
-          <li>R starts the run over. Reach the moving Command World to finish.</li>
+          <li>Drag the ground to walk around this little world. Q and E walk the rim; T and F walk the poles.</li>
+          <li>Pull the ship and let go to fly. A and D steer; W and S change power.</li>
+          <li>Land on another world to link it.</li>
+          <li>If you see a red cage, walk up to it and tap it to smash it.</li>
+          <li>Drag empty space to look around. C opens Scout. Escape pauses.</li>
+          <li>Finish by landing on the moving Command World.</li>
         </ul>
         <button id="HowToPlayContinueButton" type="button">Continue</button>
       </div>
@@ -252,6 +252,6 @@
     </section>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260819-ob140"></script>
+  <script type="module" src="./src/main.js?v=20260819-ob141"></script>
 </body>
 </html>

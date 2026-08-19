@@ -3,10 +3,14 @@
  * GameCanvas.dataset diagnostic writes stay on the same canvas contract.
  */
 
-import { countRestoredWorlds } from './campaign.js?v=20260819-ob140';
-import { countLiveRelayWorlds, listRelayCircuits } from './network.js?v=20260819-ob140';
-import { getCoachClipId } from './audio-catalog.js?v=20260819-ob140';
-import { getFirstRunCoachPresentation, getLoopObjectivePresentation } from './presentation.js?v=20260819-ob140';
+import { countRestoredWorlds } from './campaign.js?v=20260819-ob141';
+import { countLiveRelayWorlds, listRelayCircuits } from './network.js?v=20260819-ob141';
+import { getCoachClipId } from './audio-catalog.js?v=20260819-ob141';
+import {
+  FirstRunCoachBodies,
+  getFirstRunCoachPresentation,
+  getLoopObjectivePresentation,
+} from './presentation.js?v=20260819-ob141';
 
 const TaughtCaptionStorageKey = 'orbitbreak.taughtCaptions';
 const FirstRunCaptionKinds = new Set(['break', 'missed-port']);
@@ -271,7 +275,7 @@ export function createHud(host) {
     }, host.PrefersReducedMotion ? 4200 : 3200);
   }
 
-  /** Walk names prosper. Aim names cage-break. Titles stay in presentation.js. */
+  /** Walk names walking. Aim names fly, then smash. Titles stay in presentation.js. */
   function updateFirstRunCoach() {
     const Coach = getFirstRunCoachPresentation({
       gamePhase: host.GamePhase,
@@ -292,9 +296,9 @@ export function createHud(host) {
     }
     const CoachBody = Coach.body
       || (Coach.kind === 'walk'
-        ? 'Linking them lets those worlds prosper.'
+        ? FirstRunCoachBodies.walk
         : Coach.kind === 'aim'
-          ? 'Occupied worlds have Warden cages. Tap the cage to break it.'
+          ? FirstRunCoachBodies.aim
           : '');
     const SameCaption = PlayCaptionElement.dataset.coachKind === Coach.kind
       && PlayCaptionTitleElement.textContent === Coach.title

@@ -33,23 +33,24 @@ import {
   clampLandedCameraPanOffset,
   shouldCancelAimedLaunch,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob140';
+} from './controls.js?v=20260819-ob141';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
   resolveClampTap,
   resolveHostileCut,
-} from './encounter.js?v=20260819-ob140';
-import { applyBreakerBurn, calculateBodyPositionAtTime, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob140';
+} from './encounter.js?v=20260819-ob141';
+import { applyBreakerBurn, calculateBodyPositionAtTime, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob141';
 import {
+  CageSmashHint,
   getCageClearPulseDurationSeconds,
   getActiveViewZoomMinimumScale,
   getLaunchFacingPresentation,
   getLogicalSurfaceDirectionFromWorldHit,
   shouldAssistCommandLock,
-} from './presentation.js?v=20260819-ob140';
-import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob140';
-import { releaseRunLaunch } from './run.js?v=20260819-ob140';
+} from './presentation.js?v=20260819-ob141';
+import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob141';
+import { releaseRunLaunch } from './run.js?v=20260819-ob141';
 
 export function createInputController(THREE, host) {
   const {
@@ -349,7 +350,8 @@ function pickCageClampId(PointerEventData) {
     while (Node && Node !== HostilePylonGroup) {
       if (Number.isInteger(Node.userData?.clampId)) {
         const Clamp = RemainingClamps.find((Entry) => Entry.id === Node.userData.clampId);
-        if (Clamp) {
+        const ClampMesh = HostilePylonGroup.children[Node.userData.clampId];
+        if (Clamp && ClampMesh?.visible === true) {
           return Clamp.id;
         }
       }
@@ -1899,7 +1901,7 @@ function updateBreakerBurnInterface() {
     const EncounterWorldId = host.ActiveHostileEncounterState.worldIdentifier;
     if (host.DestroyTeachWorldIdentifier !== EncounterWorldId && RemainingCount > 0) {
       host.DestroyTeachWorldIdentifier = EncounterWorldId;
-      showStatusToast('Tap the cage to break it. Pull the ship to fly.', 2400);
+      showStatusToast(CageSmashHint, 2400);
       showHostileEncounterInstruction();
     }
     publishHostileEncounterState();

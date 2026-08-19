@@ -111,18 +111,51 @@ export function getCutEndPoint(Origin, Pointer, MaxCutLength = DefaultMaxCutLeng
   };
 }
 
-export function getClampWorldPosition(World, AngleRadians) {
+export function getClampSite(ClampOrAngle) {
+  if (Number.isFinite(ClampOrAngle)) {
+    return { longitude: ClampOrAngle, latitude: 0 };
+  }
+  const Longitude = Number.isFinite(ClampOrAngle?.longitude)
+    ? ClampOrAngle.longitude
+    : ClampOrAngle?.surfaceAngle;
+  const Latitude = Number.isFinite(ClampOrAngle?.latitude) ? ClampOrAngle.latitude : 0;
+  if (!Number.isFinite(Longitude) || !Number.isFinite(Latitude)) {
+    throw new Error('Clamp site requires a finite longitude and latitude.');
+  }
+  return { longitude: Longitude, latitude: Latitude };
+}
+
+export function getClampWorldPosition(World, ClampOrAngle) {
+  const Site = getClampSite(ClampOrAngle);
   const Distance = World.radius + ClampSurfaceLift;
+  const CosLatitude = Math.cos(Site.latitude);
   return {
-    x: World.position.x + (Math.cos(AngleRadians) * Distance),
-    y: World.position.y + (Math.sin(AngleRadians) * Distance),
+    x: World.position.x + (CosLatitude * Math.cos(Site.longitude) * Distance),
+    y: World.position.y + (CosLatitude * Math.sin(Site.longitude) * Distance),
+    z: (World.position.z ?? 0) + (Math.sin(Site.latitude) * Distance),
   };
+}
+
+function clampSiteDirection(ClampOrAngle) {
+  const Site = getClampSite(ClampOrAngle);
+  const CosLatitude = Math.cos(Site.latitude);
+  return {
+    x: CosLatitude * Math.cos(Site.longitude),
+    y: CosLatitude * Math.sin(Site.longitude),
+    z: Math.sin(Site.latitude),
+  };
+}
+
+function directionSeparationRadians(First, Second) {
+  const Dot = (First.x * Second.x) + (First.y * Second.y) + (First.z * Second.z);
+  return Math.acos(Math.max(-1, Math.min(1, Dot)));
 }
 
 export function createHostileEncounterState({
   worldIdentifier,
   runnerSurfaceAngle,
   clampOffsetsRadians = DefaultClampOffsetsRadians,
+  cageSites = null,
   cutHitRadius = DefaultCutHitRadius,
   maxCutLength = DefaultMaxCutLength,
 }) {
@@ -142,11 +175,19 @@ export function createHostileEncounterState({
   ) {
     throw new Error('Hostile encounter cuts require finite clamp offsets and positive reach.');
   }
+  const Sites = Array.isArray(cageSites) && cageSites.length > 0
+    ? cageSites.map((Site) => getClampSite(Site))
+    : Offsets.map((Offset) => ({
+      longitude: normalizeAngle(runnerSurfaceAngle + Offset),
+      latitude: 0,
+    }));
   return {
     worldIdentifier,
-    clamps: Offsets.map((Offset, ClampIndex) => ({
+    clamps: Sites.map((Site, ClampIndex) => ({
       id: ClampIndex,
-      surfaceAngle: normalizeAngle(runnerSurfaceAngle + Offset),
+      surfaceAngle: Site.longitude,
+      longitude: Site.longitude,
+      latitude: Site.latitude,
       remaining: true,
     })),
     cutHitRadius,
@@ -159,11 +200,15 @@ export function getRemainingClamps(State) {
   return State.clamps.filter((Clamp) => Clamp.remaining);
 }
 
-export function getNearestRemainingClamp(State, RunnerSurfaceAngle) {
+export function getNearestRemainingClamp(State, RunnerSurfaceAngle, RunnerLatitude = 0) {
   let BestClamp = null;
   let BestDistance = Infinity;
+  const RunnerDirection = clampSiteDirection({
+    longitude: RunnerSurfaceAngle,
+    latitude: RunnerLatitude,
+  });
   for (const Clamp of getRemainingClamps(State)) {
-    const Distance = Math.abs(normalizeAngle(Clamp.surfaceAngle - RunnerSurfaceAngle));
+    const Distance = directionSeparationRadians(RunnerDirection, clampSiteDirection(Clamp));
     if (Distance < BestDistance) {
       BestClamp = Clamp;
       BestDistance = Distance;
@@ -172,11 +217,15 @@ export function getNearestRemainingClamp(State, RunnerSurfaceAngle) {
   return BestClamp;
 }
 
-export function getHostileEncounterAngularDistance(State, RunnerSurfaceAngle) {
-  const NearestClamp = getNearestRemainingClamp(State, RunnerSurfaceAngle);
-  return NearestClamp
-    ? Math.abs(normalizeAngle(NearestClamp.surfaceAngle - RunnerSurfaceAngle))
-    : 0;
+export function getHostileEncounterAngularDistance(State, RunnerSurfaceAngle, RunnerLatitude = 0) {
+  const NearestClamp = getNearestRemainingClamp(State, RunnerSurfaceAngle, RunnerLatitude);
+  if (!NearestClamp) {
+    return 0;
+  }
+  return directionSeparationRadians(
+    clampSiteDirection({ longitude: RunnerSurfaceAngle, latitude: RunnerLatitude }),
+    clampSiteDirection(NearestClamp),
+  );
 }
 
 /** Returns the shortest signed surface direction toward the nearest remaining clamp. */
@@ -190,7 +239,7 @@ export function getCutHits(State, Origin, End, World) {
   if (!World?.position || !(World.radius > 0)) return [];
   const HitRadius = getCutHitRadius(World, State.cutHitRadius);
   return getRemainingClamps(State).filter((Clamp) => {
-    const ClampPosition = getClampWorldPosition(World, Clamp.surfaceAngle);
+    const ClampPosition = getClampWorldPosition(World, Clamp);
     return getPointToSegmentDistance(ClampPosition, Origin, End) <= HitRadius;
   });
 }
@@ -243,7 +292,7 @@ export function resolveClampTap(State, ClampId) {
 export function getNearestClampCut(State, Origin, World, RunnerSurfaceAngle) {
   const NearestClamp = getNearestRemainingClamp(State, RunnerSurfaceAngle);
   if (!NearestClamp) return null;
-  const ClampPosition = getClampWorldPosition(World, NearestClamp.surfaceAngle);
+  const ClampPosition = getClampWorldPosition(World, NearestClamp);
   const End = getCutEndPoint(Origin, ClampPosition, getCutMaxLength(World, State.maxCutLength));
   return {
     origin: Origin,

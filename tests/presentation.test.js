@@ -55,7 +55,15 @@ import {
   getDerivedOccupationLatitude,
   resolveOccupationSite,
   listOccupationSites,
+  listHostileCageSites,
+  getOccupationSiteSeparationRadians,
+  getPlantedCageWorldPlacement,
+  getHostileCagePresentationScale,
+  HostileCageLocalHeight,
+  HostileCageMinShipSeparationRadians,
   getSphereLifePlacement,
+  FirstRunCoachBodies,
+  CageSmashHint,
   getInhabitantSurfaceSite,
   getTradeHullFamily,
   getLivingInhabitantSlotCount,
@@ -315,15 +323,20 @@ test('how to play is one short page in Matt voice before the first walk', () => 
   assert.equal(Presentation.title, 'How to play');
   assert.equal(Presentation.continueLabel, 'Continue');
   assert.deepEqual(Presentation.lines, [
-    'Drag the planet to walk, or use Q and E. T and F walk the poles.',
-    'Pull the ship to aim and release to fly. A and D steer; W and S change power.',
-    'Landing links worlds. Land in the gold beacon to restore them.',
-    'Occupied worlds have a red Warden cage. Tap the cage to break it.',
-    'Drag empty space to look around. C opens the Scout map.',
-    'R starts the run over. Reach the moving Command World to finish.',
+    'Drag the ground to walk around this little world. Q and E walk the rim; T and F walk the poles.',
+    'Pull the ship and let go to fly. A and D steer; W and S change power.',
+    'Land on another world to link it.',
+    'If you see a red cage, walk up to it and tap it to smash it.',
+    'Drag empty space to look around. C opens Scout. Escape pauses.',
+    'Finish by landing on the moving Command World.',
   ]);
   assert.equal(HowToPlayLines.length, 6);
   assert.equal(Presentation.lines.join(' ').includes('\u2014'), false);
+  assert.equal(HowToPlayLines.join(' ').toLowerCase().includes('prosper'), false);
+  assert.equal(HowToPlayLines.join(' ').toLowerCase().includes('gold beacon'), false);
+  assert.equal(FirstRunCoachBodies.walk.toLowerCase().includes('prosper'), false);
+  assert.equal(FirstRunCoachBodies.aim.toLowerCase().includes('prosper'), false);
+  assert.equal(CageSmashHint.toLowerCase().includes('gold beacon'), false);
   assert.equal(shouldShowHowToPlayAfterOpening({}), true);
   assert.equal(shouldShowHowToPlayAfterOpening({ hasCompletedHowToPlay: true }), false);
   assert.equal(shouldShowHowToPlayAfterOpening({ replayActive: true }), false);
@@ -869,7 +882,7 @@ test('first-run captions stay until the ship is grabbed, then until launch, then
   });
   assert.equal(Opening.visible, true);
   assert.equal(Opening.title, 'Drag the planet to walk');
-  assert.equal(Opening.body, 'Linking them lets those worlds prosper.');
+  assert.equal(Opening.body, 'Drag the ground to walk around this little world.');
   const AfterWalkBeforeGrab = getFirstRunCoachPresentation({
     gamePhase: 'attached',
     hasGrabbedShipOnce: false,
@@ -882,7 +895,7 @@ test('first-run captions stay until the ship is grabbed, then until launch, then
     hasLaunchedOnce: false,
   });
   assert.equal(AfterGrab.title, 'Pull the ship, then let go');
-  assert.equal(AfterGrab.body, 'Occupied worlds have Warden cages. Tap the cage to break it.');
+  assert.equal(AfterGrab.body, 'Pull the ship and let go to fly. If a red cage is in the way, tap it.');
   const AfterLaunch = getFirstRunCoachPresentation({
     gamePhase: 'attached',
     hasGrabbedShipOnce: true,
@@ -1434,6 +1447,80 @@ test('toy diorama props shrink on outposts instead of swallowing the crust', () 
   assert.equal(getToyDioramaScale(3.2), 1);
   assert.equal(getToyDioramaScale(4.2), 1);
   assert.ok(Math.abs(getToyDioramaScale(1.1) - (1.1 / 3.2)) < 1e-12);
+  assert.ok(getHostileCagePresentationScale(3.2) * HostileCageLocalHeight < 3.2);
+  assert.ok(getHostileCagePresentationScale(3.2) > 0.7);
+  assert.ok(getHostileCagePresentationScale(1.1) < 1.1);
+});
+
+test('occupation cages plant on crust lat/lon and walk spin does not glue them in front of the runner', () => {
+  const OccupiedWorld = {
+    occupationSites: [
+      { longitude: 0.12, latitude: 0.1 },
+      { longitude: 1.85, latitude: -0.42 },
+      { longitude: -1.1, latitude: 0.88 },
+    ],
+  };
+  const Sites = listHostileCageSites(OccupiedWorld, {
+    clampCount: 1,
+    clampOffsetsRadians: [1.5],
+    runnerLongitude: 0,
+    runnerLatitude: 0,
+  });
+  assert.equal(Sites.length, 1);
+  assert.ok(Number.isFinite(Sites[0].longitude));
+  assert.ok(Number.isFinite(Sites[0].latitude));
+  assert.notEqual(Sites[0].latitude, 0);
+  assert.ok(
+    getOccupationSiteSeparationRadians(Sites[0], { longitude: 0, latitude: 0 })
+      >= HostileCageMinShipSeparationRadians - 1e-9,
+  );
+
+  const World = { x: 4, y: -2, z: 0, radius: 3.2 };
+  const CageSite = { longitude: Math.PI / 2, latitude: 0.4 };
+  const Visuals = [];
+  for (const RunnerLongitude of [0, Math.PI / 2, Math.PI]) {
+    const Crust = getWorldCrustWalkQuaternion({
+      surfaceDirectionX: Math.cos(RunnerLongitude),
+      surfaceDirectionY: Math.sin(RunnerLongitude),
+      surfaceDirectionZ: 0,
+    });
+    const Plant = getPlantedCageWorldPlacement({
+      worldX: World.x,
+      worldY: World.y,
+      worldZ: World.z,
+      worldRadius: World.radius,
+      longitude: CageSite.longitude,
+      latitude: CageSite.latitude,
+      crustQX: Crust.x,
+      crustQY: Crust.y,
+      crustQZ: Crust.z,
+      crustQW: Crust.w,
+    });
+    Visuals.push(Plant);
+    assert.equal(Plant.longitude, CageSite.longitude);
+    assert.equal(Plant.latitude, CageSite.latitude);
+    const DistFromFacingPole = Math.hypot(
+      Plant.x - World.x,
+      Plant.y - World.y,
+      Plant.z - (World.z + World.radius),
+    );
+    assert.ok(DistFromFacingPole > 0.7, 'cage must not teleport onto the walker');
+  }
+  const Walked = Math.hypot(
+    Visuals[0].x - Visuals[2].x,
+    Visuals[0].y - Visuals[2].y,
+    Visuals[0].z - Visuals[2].z,
+  );
+  assert.ok(Walked > 2, 'cage must ride the crust as the runner walks');
+  const DistFromPole = (Plant) => Math.hypot(
+    Plant.x - World.x,
+    Plant.y - World.y,
+    Plant.z - (World.z + World.radius),
+  );
+  assert.ok(
+    DistFromPole(Visuals[0]) > DistFromPole(Visuals[1]) + 0.8,
+    'walking toward the cage must bring it in, not keep it glued in front of the runner',
+  );
 });
 
 test('landed camera frames the equatorial rim so Destroy cages stay on-screen', () => {

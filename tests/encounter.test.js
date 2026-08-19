@@ -195,6 +195,24 @@ test('leftover Destroy is a single cage, not a Bastion cage', () => {
   assert.ok(LeftoverClampOffsetsRadians[0] >= 1.5);
 });
 
+test('occupied-world cages store a crust lat/lon, not only an equatorial angle', () => {
+  const State = createHostileEncounterState({
+    worldIdentifier: 'ember',
+    runnerSurfaceAngle: 0,
+    cageSites: [{ longitude: 1.85, latitude: -0.42 }],
+  });
+  assert.equal(State.clamps.length, 1);
+  assert.equal(State.clamps[0].longitude, 1.85);
+  assert.equal(State.clamps[0].latitude, -0.42);
+  assert.notEqual(State.clamps[0].latitude, 0);
+  const Position = {
+    x: Math.cos(State.clamps[0].longitude) * Math.cos(State.clamps[0].latitude),
+    y: Math.sin(State.clamps[0].longitude) * Math.cos(State.clamps[0].latitude),
+    z: Math.sin(State.clamps[0].latitude),
+  };
+  assert.ok(Math.abs(Position.z) > 0.3);
+});
+
 test('occupied unrestored worlds expose a tappable rim cage', () => {
   assert.equal(getOccupiedWorldCageEncounter({
     id: 'haven',

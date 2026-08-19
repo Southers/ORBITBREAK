@@ -3,8 +3,8 @@
  * Trajectory line drawing stays in the playable shell next to player meshes.
  */
 
-import { getScoutZoomPresentation } from './controls.js?v=20260819-ob140';
-import { countLiveRelayWorlds, listRelayCircuits } from './network.js?v=20260819-ob140';
+import { getScoutZoomPresentation } from './controls.js?v=20260819-ob141';
+import { countLiveRelayWorlds, listRelayCircuits } from './network.js?v=20260819-ob141';
 import {
   getActiveViewZoomMinimumScale,
   getLandedCameraScale,
@@ -14,7 +14,7 @@ import {
   getPlanningFocusWorldIdentifiers,
   getSectorPlanningCamera,
   shouldHoldCommittedPrediction,
-} from './presentation.js?v=20260819-ob140';
+} from './presentation.js?v=20260819-ob141';
 
 /** How quickly the camera height eases between landed, Scout and flight. */
 const CameraRigStiffness = 4.2;

@@ -5,7 +5,7 @@
  * the fixed-step simulation and its directors.
  */
 
-import { SurfaceGestureModes } from './controls.js?v=20260819-ob140';
+import { SurfaceGestureModes } from './controls.js?v=20260819-ob141';
 import {
   getLandedSurfacePlant,
   getLandedVerbHighlight,
@@ -16,8 +16,8 @@ import {
   getRunnerPose,
   getWorldCrustWalkQuaternion,
   shouldSpinWorldCrustUnderWalker,
-} from './presentation.js?v=20260819-ob140';
-import { sampleLiveDiscoveries } from './discoveries.js?v=20260819-ob140';
+} from './presentation.js?v=20260819-ob141';
+import { sampleLiveDiscoveries } from './discoveries.js?v=20260819-ob141';
 
 export function createFrameVisuals(THREE, host) {
   const {

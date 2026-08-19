@@ -1,7 +1,14 @@
 /**
- * Warden vessel, forecast, event pulse and hostile-rim pylons.
+ * Warden vessel, forecast, event pulse and hostile crust cages.
  * Pursuit resolution stays in the playable shell / flight resolver.
  */
+
+import {
+  getHostileCagePresentationScale,
+  getHostileCageRadialOffset,
+  getPlantedCageWorldPlacement,
+  LandedFarSideLifeDirectionZ,
+} from './presentation.js?v=20260819-ob141';
 
 export function createWardenVisuals(THREE, Scene, host) {
   const {
@@ -61,7 +68,9 @@ export function createWardenVisuals(THREE, Scene, host) {
     return Cage;
   }
 
-  const ClampHitGeometry = new THREE.SphereGeometry(0.42, 12, 8);
+  const SurfaceUp = new THREE.Vector3(0, 1, 0);
+  const SurfaceNormal = new THREE.Vector3();
+  const ClampHitGeometry = new THREE.SphereGeometry(0.55, 12, 8);
   const ClampHitMaterial = new THREE.MeshBasicMaterial({
     visible: false,
     transparent: true,
@@ -180,10 +189,11 @@ export function createWardenVisuals(THREE, Scene, host) {
       } else {
         ClampBreakWorldPosition.set(
           WorldDefinition.position.x
-            + (Math.cos(Clamp.surfaceAngle) * (WorldDefinition.radius + 0.55)),
+            + (Math.cos(Clamp.longitude ?? Clamp.surfaceAngle) * (WorldDefinition.radius + 0.55)),
           WorldDefinition.position.y
-            + (Math.sin(Clamp.surfaceAngle) * (WorldDefinition.radius + 0.55)),
-          0.12,
+            + (Math.sin(Clamp.longitude ?? Clamp.surfaceAngle) * (WorldDefinition.radius + 0.55)),
+          WorldDefinition.position.z
+            + (Math.sin(Clamp.latitude ?? 0) * (WorldDefinition.radius + 0.55)),
         );
       }
       const ReducedMotion = host.PrefersReducedMotion === true;
@@ -286,8 +296,18 @@ export function createWardenVisuals(THREE, Scene, host) {
     for (const ClampMesh of HostilePylonGroup.children) {
       ClampMesh.visible = false;
     }
-    const CageScale = Math.min(0.32, Math.max(0.2, WorldDefinition.radius * 0.09));
-    const ClampDistance = WorldDefinition.radius + 0.14;
+    const WorldGroup = host.WorldRuntimeByIdentifier?.get(WorldDefinition.id)?.group;
+    const CrustQuaternion = WorldGroup?.quaternion;
+    const CageScale = getHostileCagePresentationScale(WorldDefinition.radius);
+    const RadialOffset = getHostileCageRadialOffset(WorldDefinition.radius);
+    const CrustSpinning = Boolean(
+      CrustQuaternion
+      && (
+        Math.abs(CrustQuaternion.x) > 1e-5
+        || Math.abs(CrustQuaternion.y) > 1e-5
+        || Math.abs(CrustQuaternion.z) > 1e-5
+      ),
+    );
     for (const Clamp of EncounterState.clamps) {
       const ClampMesh = HostilePylonGroup.children[Clamp.id];
       if (!ClampMesh) continue;
@@ -295,12 +315,31 @@ export function createWardenVisuals(THREE, Scene, host) {
         ClampMesh.visible = false;
         continue;
       }
-      ClampMesh.position.set(
-        WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
-        WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
-        WorldDefinition.position.z ?? 0,
-      );
-      ClampMesh.rotation.set(0, 0, Clamp.surfaceAngle - (Math.PI * 0.5));
+      const Placement = getPlantedCageWorldPlacement({
+        worldX: WorldDefinition.position.x,
+        worldY: WorldDefinition.position.y,
+        worldZ: WorldDefinition.position.z ?? 0,
+        worldRadius: WorldDefinition.radius,
+        longitude: Number.isFinite(Clamp.longitude) ? Clamp.longitude : Clamp.surfaceAngle,
+        latitude: Number.isFinite(Clamp.latitude) ? Clamp.latitude : 0,
+        crustQX: CrustQuaternion?.x ?? 0,
+        crustQY: CrustQuaternion?.y ?? 0,
+        crustQZ: CrustQuaternion?.z ?? 0,
+        crustQW: CrustQuaternion?.w ?? 1,
+        radialOffset: RadialOffset,
+      });
+      if (CrustSpinning && Placement.directionZ < LandedFarSideLifeDirectionZ) {
+        ClampMesh.visible = false;
+        continue;
+      }
+      ClampMesh.position.set(Placement.x, Placement.y, Placement.z);
+      SurfaceNormal.set(Placement.directionX, Placement.directionY, Placement.directionZ);
+      if (SurfaceNormal.lengthSq() < 1e-8) {
+        SurfaceNormal.set(0, 0, 1);
+      } else {
+        SurfaceNormal.normalize();
+      }
+      ClampMesh.quaternion.setFromUnitVectors(SurfaceUp, SurfaceNormal);
       ClampMesh.visible = true;
       ClampMesh.renderOrder = 24;
       AnyVisible = true;

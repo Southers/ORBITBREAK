@@ -4,7 +4,7 @@ import {
   isInnerClusterLive,
   hasTravelledFurther,
   shouldOpenCommandWorldRoute,
-} from './sector.js?v=20260819-ob140';
+} from './sector.js?v=20260819-ob141';
 
 /** Maps gameplay state to one legible Runner animation state. */
 export function getRunnerAnimationState(GamePhase, IsPointerAiming, IsWalking = false) {
@@ -429,11 +429,14 @@ export function getLandedSurfacePlant({
  * walk drag never reads as entering aim mode; the aim line then holds until the
  * first launch.
  */
-/** Sticky first-run coach bodies. Walk names prosper; aim names the cage. */
+/** Sticky first-run coach bodies. Walk names walking; aim names fly, then smash. */
 export const FirstRunCoachBodies = Object.freeze({
-  walk: 'Linking them lets those worlds prosper.',
-  aim: 'Occupied worlds have Warden cages. Tap the cage to break it.',
+  walk: 'Drag the ground to walk around this little world.',
+  aim: 'Pull the ship and let go to fly. If a red cage is in the way, tap it.',
 });
+
+/** Landed toast when a tappable cage is up. */
+export const CageSmashHint = 'Tap the red cage to smash it. Pull the ship to fly.';
 
 export function getFirstRunCoachPresentation({
   gamePhase = 'attached',
@@ -558,6 +561,16 @@ export function getRangeVeilStrength(
 
 /** Overlay and prosperity props are authored for ~radius-3 globes. */
 export const ToyDioramaReferenceRadius = 3.2;
+/** Unscaled hostile cage from base to lock. Keep in sync with warden-visuals posts. */
+export const HostileCageLocalHeight = 0.44;
+/** On-crust cage height on a radius-3 toy world. Phone-tappable, not a planet beam. */
+export const HostileCageReferenceHeight = 0.58;
+/** Local Y of the cage base. Radial offset plants that base on the crust. */
+export const HostileCageLocalBaseY = -0.2;
+/** Skip a site sitting under the parked hull; leftover used ~1.5 rad on the rim. */
+export const HostileCageMinShipSeparationRadians = 0.55;
+/** Landed +Z close-up hides far-side life below this world-space Z direction. */
+export const LandedFarSideLifeDirectionZ = 0.22;
 
 /** Shrinks toy props on outposts so houses and trees stay smaller than the crust. */
 export function getToyDioramaScale(worldRadius, referenceRadius = ToyDioramaReferenceRadius) {
@@ -567,6 +580,17 @@ export function getToyDioramaScale(worldRadius, referenceRadius = ToyDioramaRefe
     return 1;
   }
   return Math.min(1, Radius / Reference);
+}
+
+/** Toy-diorama occupation cage. Readable on a phone, never a world-diameter beam. */
+export function getHostileCagePresentationScale(worldRadius) {
+  const ToyScale = getToyDioramaScale(worldRadius);
+  const HeightScale = HostileCageReferenceHeight / HostileCageLocalHeight;
+  return Math.min(1.35, Math.max(0.55, HeightScale * ToyScale));
+}
+
+export function getHostileCageRadialOffset(worldRadius) {
+  return Math.abs(HostileCageLocalBaseY) * getHostileCagePresentationScale(worldRadius);
 }
 
 /** Scout and aim stay a sector view; landed close-up may take one extra zoom-in notch. */
@@ -937,6 +961,158 @@ export function listOccupationSites(worldDefinition = {}, { deriveLatitude = tru
   ));
 }
 
+function normalizeOccupationAngle(AngleRadians) {
+  const FullCircle = Math.PI * 2;
+  return ((AngleRadians + Math.PI) % FullCircle + FullCircle) % FullCircle - Math.PI;
+}
+
+/** Great-circle radians between two lat/lon occupation sites. */
+export function getOccupationSiteSeparationRadians(FirstSite, SecondSite) {
+  const First = resolveOccupationSite(FirstSite);
+  const Second = resolveOccupationSite(SecondSite);
+  const FirstPlacement = getSphereLifePlacement({
+    worldX: 0,
+    worldY: 0,
+    worldZ: 0,
+    worldRadius: 1,
+    longitude: First.longitude,
+    latitude: First.latitude,
+  });
+  const SecondPlacement = getSphereLifePlacement({
+    worldX: 0,
+    worldY: 0,
+    worldZ: 0,
+    worldRadius: 1,
+    longitude: Second.longitude,
+    latitude: Second.latitude,
+  });
+  const Dot = (FirstPlacement.directionX * SecondPlacement.directionX)
+    + (FirstPlacement.directionY * SecondPlacement.directionY)
+    + (FirstPlacement.directionZ * SecondPlacement.directionZ);
+  return Math.acos(Math.max(-1, Math.min(1, Dot)));
+}
+
+/**
+ * Plants Destroy cages on authored occupation sites (lat/lon), not on the
+ * orbital-plane rim. Prefers sites off the parked hull, then fills from
+ * leftover offsets with derived latitude so Command lattice still has cages.
+ */
+export function listHostileCageSites(worldDefinition = {}, {
+  clampCount,
+  clampOffsetsRadians,
+  runnerLongitude = 0,
+  runnerLatitude = 0,
+} = {}) {
+  const Offsets = Array.isArray(clampOffsetsRadians) && clampOffsetsRadians.length > 0
+    ? clampOffsetsRadians.filter((Offset) => Number.isFinite(Offset))
+    : [1.5];
+  const Count = Number.isInteger(clampCount) && clampCount > 0
+    ? clampCount
+    : Offsets.length;
+  if (Count < 1) {
+    throw new Error('Hostile cage sites require a positive clamp count.');
+  }
+  if (!Number.isFinite(runnerLongitude) || !Number.isFinite(runnerLatitude)) {
+    throw new Error('Hostile cage sites require a finite runner pose.');
+  }
+  const OccupationSites = listOccupationSites(worldDefinition, { deriveLatitude: true });
+  const Runner = { longitude: runnerLongitude, latitude: runnerLatitude };
+  const Picked = [];
+  const Used = new Set();
+
+  function tryPick(Site, Key, minSeparation) {
+    if (Picked.length >= Count || Used.has(Key)) {
+      return;
+    }
+    const Resolved = resolveOccupationSite(Site);
+    if (getOccupationSiteSeparationRadians(Resolved, Runner) < minSeparation) {
+      return;
+    }
+    if (Picked.some((Existing) => getOccupationSiteSeparationRadians(Existing, Resolved) < 0.35)) {
+      return;
+    }
+    Used.add(Key);
+    Picked.push({
+      longitude: Resolved.longitude,
+      latitude: Resolved.latitude,
+    });
+  }
+
+  OccupationSites.forEach((Site, SiteIndex) => {
+    tryPick(Site, `occ-${SiteIndex}`, HostileCageMinShipSeparationRadians);
+  });
+  OccupationSites.forEach((Site, SiteIndex) => {
+    tryPick(Site, `occ-${SiteIndex}`, 0);
+  });
+  let FillIndex = 0;
+  while (Picked.length < Count) {
+    const Offset = Offsets[Math.min(FillIndex, Offsets.length - 1)];
+    Picked.push({
+      longitude: normalizeOccupationAngle(runnerLongitude + Offset + (FillIndex * 0.55)),
+      latitude: getDerivedOccupationLatitude(Picked.length),
+    });
+    FillIndex += 1;
+  }
+  return Picked;
+}
+
+/**
+ * World-space cage plant after the occupied world's crust quaternion.
+ * Walk spin rotates the cage with the planet; it does not keep the cage
+ * glued in front of the Runner on the camera-facing pole.
+ */
+export function getPlantedCageWorldPlacement({
+  worldX,
+  worldY,
+  worldZ = 0,
+  worldRadius,
+  longitude,
+  latitude,
+  crustQX = 0,
+  crustQY = 0,
+  crustQZ = 0,
+  crustQW = 1,
+  radialOffset = 0,
+} = {}) {
+  const Local = getSphereLifePlacement({
+    worldX: 0,
+    worldY: 0,
+    worldZ: 0,
+    worldRadius,
+    longitude,
+    latitude,
+    radialOffset,
+  });
+  const Rotated = rotateVectorByQuaternion(
+    Local.x,
+    Local.y,
+    Local.z,
+    crustQX,
+    crustQY,
+    crustQZ,
+    crustQW,
+  );
+  const RotatedDirection = rotateVectorByQuaternion(
+    Local.directionX,
+    Local.directionY,
+    Local.directionZ,
+    crustQX,
+    crustQY,
+    crustQZ,
+    crustQW,
+  );
+  return {
+    x: worldX + Rotated.x,
+    y: worldY + Rotated.y,
+    z: worldZ + Rotated.z,
+    directionX: RotatedDirection.x,
+    directionY: RotatedDirection.y,
+    directionZ: RotatedDirection.z,
+    longitude: Local.longitude,
+    latitude: Local.latitude,
+  };
+}
+
 /** Cottage, furnace, canopy or jetty — pooled families, not per-world meshes. */
 export function getProsperityBuildingFamily(visualKey) {
   if (typeof visualKey !== 'string' || visualKey.length === 0) {
@@ -947,7 +1123,7 @@ export function getProsperityBuildingFamily(visualKey) {
 
 /**
  * Places life on the crust with up along the surface normal. Presentation only:
- * Destroy clamps and flight stay in the orbital plane.
+ * flight stays in the orbital plane. Destroy cages use the same lat/lon plant.
  */
 export function getSphereLifePlacement({
   worldX,
@@ -1989,12 +2165,12 @@ export function shouldPlayOpeningBriefing({
 
 /** One-page control card. Shown after the intro (or Skip intro) before the first walk. */
 export const HowToPlayLines = Object.freeze([
-  'Drag the planet to walk, or use Q and E. T and F walk the poles.',
-  'Pull the ship to aim and release to fly. A and D steer; W and S change power.',
-  'Landing links worlds. Land in the gold beacon to restore them.',
-  'Occupied worlds have a red Warden cage. Tap the cage to break it.',
-  'Drag empty space to look around. C opens the Scout map.',
-  'R starts the run over. Reach the moving Command World to finish.',
+  'Drag the ground to walk around this little world. Q and E walk the rim; T and F walk the poles.',
+  'Pull the ship and let go to fly. A and D steer; W and S change power.',
+  'Land on another world to link it.',
+  'If you see a red cage, walk up to it and tap it to smash it.',
+  'Drag empty space to look around. C opens Scout. Escape pauses.',
+  'Finish by landing on the moving Command World.',
 ]);
 
 export function getHowToPlayPresentation() {
