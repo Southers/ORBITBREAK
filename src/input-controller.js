@@ -34,23 +34,23 @@ import {
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob137';
+} from './controls.js?v=20260819-ob138';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
   resolveClampTap,
   resolveHostileCut,
-} from './encounter.js?v=20260819-ob137';
-import { applyBreakerBurn, calculateBodyPositionAtTime, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob137';
+} from './encounter.js?v=20260819-ob138';
+import { applyBreakerBurn, calculateBodyPositionAtTime, createOrbitTrapState, createVector, getBreakerBurnDirection, predictTrajectory } from './physics.js?v=20260819-ob138';
 import {
   getCageClearPulseDurationSeconds,
   getActiveViewZoomMinimumScale,
   getLaunchFacingPresentation,
   getLogicalSurfaceDirectionFromWorldHit,
   shouldAssistCommandLock,
-} from './presentation.js?v=20260819-ob137';
-import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob137';
-import { releaseRunLaunch } from './run.js?v=20260819-ob137';
+} from './presentation.js?v=20260819-ob138';
+import { recordReplayBurn, recordReplayLaunch } from './replay.js?v=20260819-ob138';
+import { releaseRunLaunch } from './run.js?v=20260819-ob138';
 
 export function createInputController(THREE, host) {
   const {
@@ -1532,6 +1532,7 @@ function getLogicalWalkPose(AttachedWorld, Hit) {
  * @param {PointerEvent} PointerEventData - Browser pointer event.
  */
 function handlePointerDown(PointerEventData) {
+  WorldseedSound.ensureStarted();
   if (isPlayInputBlocked()) {
     return;
   }

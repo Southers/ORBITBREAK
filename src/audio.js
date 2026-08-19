@@ -15,7 +15,7 @@ import {
   listMusicClips,
   listSfxClips,
   listVoiceClips,
-} from './audio-catalog.js?v=20260819-ob137';
+} from './audio-catalog.js?v=20260819-ob138';
 
 export class WorldseedAudio {
   constructor() {
@@ -43,13 +43,19 @@ export class WorldseedAudio {
     this.voicePlayToken = 0;
     this.howToPlayToken = 0;
     this.audioAssetVersion = AudioAssetVersion;
+    this.resumePromise = Promise.resolve();
+    this.didGestureUnlock = false;
   }
 
-  /** Creates the graph lazily inside a trusted pointer or button gesture. */
+  /**
+   * Creates the graph lazily inside a trusted pointer or button gesture.
+   * Mobile browsers start a new AudioContext suspended; resume and a one-sample
+   * silent source must run in this same call or the graph stays mute.
+   */
   ensureStarted() {
     if (this.context) {
       if (this.context.state === 'suspended') {
-        this.context.resume();
+        this.resumeContext();
       }
       return true;
     }
@@ -70,10 +76,51 @@ export class WorldseedAudio {
     Compressor.release.value = 0.22;
     this.masterGain.connect(Compressor).connect(this.context.destination);
 
+    this.resumeContext();
+    this.playGestureUnlock();
     this.createNoiseBuffer();
     this.createMusicBed();
     this.preloadSampledLibrary();
     return true;
+  }
+
+  resumeContext() {
+    if (!this.context) {
+      return;
+    }
+    try {
+      this.resumePromise = Promise.resolve(this.context.resume()).catch(() => {});
+    } catch {
+      this.resumePromise = Promise.resolve();
+    }
+  }
+
+  /** iOS only unlocks after a BufferSource starts during the trusted gesture. */
+  playGestureUnlock() {
+    if (!this.context || !this.masterGain || this.didGestureUnlock) {
+      return;
+    }
+    this.didGestureUnlock = true;
+    try {
+      const UnlockBuffer = this.context.createBuffer(1, 1, this.context.sampleRate);
+      const UnlockSource = this.context.createBufferSource();
+      UnlockSource.buffer = UnlockBuffer;
+      UnlockSource.connect(this.masterGain);
+      UnlockSource.start(0);
+    } catch {
+      this.didGestureUnlock = false;
+    }
+  }
+
+  whenContextRunning() {
+    if (!this.context) {
+      return Promise.resolve(false);
+    }
+    if (this.context.state === 'running') {
+      return Promise.resolve(true);
+    }
+    this.resumeContext();
+    return this.resumePromise.then(() => this.context?.state === 'running');
   }
 
   setReducedMotion(IsReduced) {
@@ -228,7 +275,25 @@ export class WorldseedAudio {
       this.transientSources.add(Source);
       Source.addEventListener('ended', () => this.transientSources.delete(Source), { once: true });
     }
-    Source.start();
+    const startSource = () => {
+      if (!this.context || this.context.state === 'closed') {
+        return;
+      }
+      try {
+        Source.start();
+      } catch {
+        // Already started or already stopped.
+      }
+    };
+    if (this.context.state === 'running') {
+      startSource();
+    } else {
+      this.whenContextRunning().then((IsRunning) => {
+        if (IsRunning) {
+          startSource();
+        }
+      });
+    }
     return Source;
   }
 
@@ -239,9 +304,17 @@ export class WorldseedAudio {
     }
     this.stopSampledVoice();
     const Token = this.voicePlayToken;
-    this.loadClip(Clip).then((Buffer) => {
-      if (!Buffer || Token !== this.voicePlayToken) {
-        if (!Buffer && Token === this.voicePlayToken) {
+    this.loadClip(Clip).then(async (Buffer) => {
+      if (Token !== this.voicePlayToken) {
+        return;
+      }
+      if (!Buffer) {
+        this.briefingVoice(Clip.speaker);
+        return;
+      }
+      const IsRunning = await this.whenContextRunning();
+      if (!IsRunning || Token !== this.voicePlayToken) {
+        if (Token === this.voicePlayToken) {
           this.briefingVoice(Clip.speaker);
         }
         return;
@@ -265,6 +338,13 @@ export class WorldseedAudio {
       return false;
     }
     this.stopSampledVoice();
+    this.playTone({
+      frequency: 392,
+      endFrequency: 523.25,
+      duration: 0.14,
+      volume: 0.05,
+      type: 'triangle',
+    });
     const Token = this.howToPlayToken;
     const ClipIds = getHowToPlayClipIds();
     const playNext = (Index) => {
@@ -272,21 +352,31 @@ export class WorldseedAudio {
         return;
       }
       const Clip = getClipById(ClipIds[Index]);
+      const advanceAfterBlip = () => {
+        globalThis.setTimeout(() => playNext(Index + 1), 480);
+      };
       if (!Clip) {
-        playNext(Index + 1);
+        this.briefingVoice('THE RUNNER');
+        advanceAfterBlip();
         return;
       }
-      this.loadClip(Clip).then((Buffer) => {
+      this.loadClip(Clip).then(async (Buffer) => {
         if (Token !== this.howToPlayToken) {
           return;
         }
+        const IsRunning = await this.whenContextRunning();
+        if (!IsRunning || Token !== this.howToPlayToken) {
+          return;
+        }
         if (!Buffer) {
-          playNext(Index + 1);
+          this.briefingVoice(Clip.speaker || 'THE RUNNER');
+          advanceAfterBlip();
           return;
         }
         const Source = this.startBuffer(Buffer, { volume: 0.58, channel: 'voice' });
         if (!Source) {
-          playNext(Index + 1);
+          this.briefingVoice(Clip.speaker || 'THE RUNNER');
+          advanceAfterBlip();
           return;
         }
         Source.addEventListener('ended', () => playNext(Index + 1), { once: true });
@@ -305,24 +395,41 @@ export class WorldseedAudio {
       return false;
     }
     const ReadyBuffer = this.decodedBuffers.get(Clip.id);
-    if (ReadyBuffer) {
+    if (ReadyBuffer && this.context.state === 'running') {
       this.startBuffer(ReadyBuffer, { volume: 0.5, channel: 'sfx' });
       return true;
     }
-    this.loadClip(Clip);
+    if (!ReadyBuffer) {
+      this.loadClip(Clip);
+    }
     return false;
   }
 
   playUiContinue() {
-    const Clip = getClipById('sfx/ui-continue');
-    if (!Clip || !this.ensureStarted()) {
+    if (!this.ensureStarted()) {
       return false;
     }
-    this.loadClip(Clip).then((Buffer) => {
-      if (!Buffer) {
-        return;
-      }
-      this.startBuffer(Buffer, { volume: 0.42, channel: 'sfx' });
+    const Clip = getClipById('sfx/ui-continue');
+    const ReadyBuffer = Clip && !this.missingClips.has(Clip.id)
+      ? this.decodedBuffers.get(Clip.id)
+      : null;
+    if (ReadyBuffer) {
+      this.whenContextRunning().then((IsRunning) => {
+        if (IsRunning) {
+          this.startBuffer(ReadyBuffer, { volume: 0.42, channel: 'sfx' });
+        }
+      });
+      return true;
+    }
+    if (Clip && !this.missingClips.has(Clip.id)) {
+      this.loadClip(Clip);
+    }
+    this.playTone({
+      frequency: 660,
+      endFrequency: 880,
+      duration: 0.1,
+      volume: 0.05,
+      type: 'triangle',
     });
     return true;
   }
@@ -335,8 +442,12 @@ export class WorldseedAudio {
     const WantsLoop = Stage === 'quiet' || Stage === 'hope';
     const LoopClip = listMusicClips().find((Clip) => Clip.id === 'music/tiny-worlds');
     if (WantsLoop && LoopClip && (force || !this.sampledMusicSource)) {
-      this.loadClip(LoopClip).then((Buffer) => {
+      this.loadClip(LoopClip).then(async (Buffer) => {
         if (!Buffer || this.storyPaused || this.prefersReducedMotion) {
+          return;
+        }
+        const IsRunning = await this.whenContextRunning();
+        if (!IsRunning || this.storyPaused || this.prefersReducedMotion) {
           return;
         }
         if (this.sampledMusicSource && !force) {
@@ -364,8 +475,12 @@ export class WorldseedAudio {
     if ((Stage === 'hunt' || Stage === 'crown') && (force || stageChanged)) {
       const Sting = listMusicClips().find((Clip) => Clip.id === 'music/warden-sting');
       if (Sting) {
-        this.loadClip(Sting).then((Buffer) => {
+        this.loadClip(Sting).then(async (Buffer) => {
           if (!Buffer || this.storyPaused) {
+            return;
+          }
+          const IsRunning = await this.whenContextRunning();
+          if (!IsRunning || this.storyPaused) {
             return;
           }
           this.startBuffer(Buffer, { volume: 0.28, channel: 'sfx' });
@@ -567,23 +682,37 @@ export class WorldseedAudio {
     if (!this.ensureStarted()) {
       return;
     }
-    const StartTime = this.context.currentTime + delay;
-    const EndTime = StartTime + duration;
-    const Oscillator = this.context.createOscillator();
-    const Gain = this.context.createGain();
-    Oscillator.type = type;
-    Oscillator.frequency.setValueAtTime(Math.max(1, frequency), StartTime);
-    Oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, endFrequency), EndTime);
-    Gain.gain.setValueAtTime(0.0001, StartTime);
-    Gain.gain.exponentialRampToValueAtTime(volume, StartTime + Math.min(0.025, duration * 0.25));
-    Gain.gain.exponentialRampToValueAtTime(0.0001, EndTime);
-    Oscillator.connect(Gain).connect(this.masterGain);
-    this.transientSources.add(Oscillator);
-    Oscillator.addEventListener('ended', () => this.transientSources.delete(Oscillator), {
-      once: true,
+    const scheduleTone = () => {
+      if (!this.context || this.context.state === 'closed') {
+        return;
+      }
+      const StartTime = this.context.currentTime + delay;
+      const EndTime = StartTime + duration;
+      const Oscillator = this.context.createOscillator();
+      const Gain = this.context.createGain();
+      Oscillator.type = type;
+      Oscillator.frequency.setValueAtTime(Math.max(1, frequency), StartTime);
+      Oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, endFrequency), EndTime);
+      Gain.gain.setValueAtTime(0.0001, StartTime);
+      Gain.gain.exponentialRampToValueAtTime(volume, StartTime + Math.min(0.025, duration * 0.25));
+      Gain.gain.exponentialRampToValueAtTime(0.0001, EndTime);
+      Oscillator.connect(Gain).connect(this.masterGain);
+      this.transientSources.add(Oscillator);
+      Oscillator.addEventListener('ended', () => this.transientSources.delete(Oscillator), {
+        once: true,
+      });
+      Oscillator.start(StartTime);
+      Oscillator.stop(EndTime + 0.03);
+    };
+    if (this.context.state === 'running') {
+      scheduleTone();
+      return;
+    }
+    this.whenContextRunning().then((IsRunning) => {
+      if (IsRunning) {
+        scheduleTone();
+      }
     });
-    Oscillator.start(StartTime);
-    Oscillator.stop(EndTime + 0.03);
   }
 
   /** Plays a filtered noise transient for release, impact and recovery texture. */
@@ -591,21 +720,35 @@ export class WorldseedAudio {
     if (!this.ensureStarted()) {
       return;
     }
-    const StartTime = this.context.currentTime + delay;
-    const Source = this.context.createBufferSource();
-    const Filter = this.context.createBiquadFilter();
-    const Gain = this.context.createGain();
-    Source.buffer = this.noiseBuffer;
-    Filter.type = 'bandpass';
-    Filter.frequency.value = frequency;
-    Filter.Q.value = 0.7;
-    Gain.gain.setValueAtTime(volume, StartTime);
-    Gain.gain.exponentialRampToValueAtTime(0.0001, StartTime + duration);
-    Source.connect(Filter).connect(Gain).connect(this.masterGain);
-    this.transientSources.add(Source);
-    Source.addEventListener('ended', () => this.transientSources.delete(Source), { once: true });
-    Source.start(StartTime);
-    Source.stop(StartTime + duration + 0.02);
+    const scheduleNoise = () => {
+      if (!this.context || this.context.state === 'closed' || !this.noiseBuffer) {
+        return;
+      }
+      const StartTime = this.context.currentTime + delay;
+      const Source = this.context.createBufferSource();
+      const Filter = this.context.createBiquadFilter();
+      const Gain = this.context.createGain();
+      Source.buffer = this.noiseBuffer;
+      Filter.type = 'bandpass';
+      Filter.frequency.value = frequency;
+      Filter.Q.value = 0.7;
+      Gain.gain.setValueAtTime(volume, StartTime);
+      Gain.gain.exponentialRampToValueAtTime(0.0001, StartTime + duration);
+      Source.connect(Filter).connect(Gain).connect(this.masterGain);
+      this.transientSources.add(Source);
+      Source.addEventListener('ended', () => this.transientSources.delete(Source), { once: true });
+      Source.start(StartTime);
+      Source.stop(StartTime + duration + 0.02);
+    };
+    if (this.context.state === 'running') {
+      scheduleNoise();
+      return;
+    }
+    this.whenContextRunning().then((IsRunning) => {
+      if (IsRunning) {
+        scheduleNoise();
+      }
+    });
   }
 
   beginAim() {
@@ -1017,6 +1160,7 @@ export class WorldseedAudio {
   toggleMute() {
     this.isMuted = !this.isMuted;
     if (this.ensureStarted()) {
+      this.resumeContext();
       this.masterGain.gain.setTargetAtTime(
         this.isMuted ? 0 : 0.7,
         this.context.currentTime,

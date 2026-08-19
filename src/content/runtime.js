@@ -3,7 +3,7 @@
  * Mutable play state is always cloned from these definitions.
  */
 
-import { assertValidAuthoredSystemDefinition } from './schema.js?v=20260819-ob137';
+import { assertValidAuthoredSystemDefinition } from './schema.js?v=20260819-ob138';
 
 const DefaultEnvironmentDefinition = {
   backgroundColor: 0x0a1826,
