@@ -2,6 +2,7 @@ import {
   getRangeVeilStrength as getAuthoredRangeVeilStrength,
   isFurtherReachLive,
   isInnerClusterLive,
+  shouldOpenCommandWorldRoute,
 } from './sector.js';
 
 /** Maps gameplay state to one legible Runner animation state. */
@@ -506,7 +507,8 @@ export function shouldHideLandedOrbitalOverlays({
   gamePhase,
   isAiming = false,
 } = {}) {
-  return (gamePhase === 'attached' || gamePhase === 'restoring') && isAiming !== true;
+  void isAiming;
+  return gamePhase === 'attached' || gamePhase === 'restoring';
 }
 
 /** Lit windows mean the world is talking. Isolated houses stay dark clay. */
@@ -543,7 +545,7 @@ export function getWorldLifeStage({ restored, liveLinkCount = 0 } = {}) {
   return liveLinkCount >= 1 ? 'living' : 'isolated';
 }
 
-export { isFurtherReachLive, isInnerClusterLive };
+export { isFurtherReachLive, isInnerClusterLive, shouldOpenCommandWorldRoute };
 
 export function getRangeVeilStrength(
   worldIdentifier,
@@ -1900,13 +1902,29 @@ export function separateRouteLabelsFromTacticalLabels(
 export function separateOverlappingTacticalLabels(LabelPositions, Options = {}) {
   separateRouteLabelsFromTacticalLabels([], [], Options);
   const ResolvedPositions = [];
+  const MaxAnchorDrift = Number.isFinite(Options.maxAnchorDrift)
+    ? Options.maxAnchorDrift
+    : 28;
   for (const LabelPosition of LabelPositions) {
     const [ResolvedPosition] = separateRouteLabelsFromTacticalLabels(
       [LabelPosition],
       ResolvedPositions,
       Options,
     );
-    ResolvedPositions.push(ResolvedPosition);
+    const AnchorX = Number.isFinite(LabelPosition.anchorX)
+      ? LabelPosition.anchorX
+      : LabelPosition.x;
+    const AnchorY = Number.isFinite(LabelPosition.anchorY)
+      ? LabelPosition.anchorY
+      : LabelPosition.y;
+    ResolvedPositions.push({
+      ...ResolvedPosition,
+      x: AnchorX,
+      y: Math.max(
+        AnchorY - MaxAnchorDrift,
+        Math.min(AnchorY + MaxAnchorDrift, ResolvedPosition.y),
+      ),
+    });
   }
   return ResolvedPositions;
 }

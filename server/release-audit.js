@@ -118,7 +118,8 @@ export function auditReleaseReadiness() {
     'HTML, CSS and published canvas build identifiers must match.',
   );
   requireCondition(
-    PhysicsSource.includes('export const MaximumLaunchSpeed = 12.5;')
+    PhysicsSource.includes('export const MaximumLaunchSpeed = 16.5;')
+      && PhysicsSource.includes('LaunchClearancePadding')
       && MainSource.includes('LaunchVelocityPerDragUnit = MaximumLaunchSpeed / MaximumDragDistance')
       && MainSource.includes('updateSlingshotBandVisuals(')
       && ScoringSource.includes('export function getSlingshotBandRadii('),
@@ -143,7 +144,9 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     ControlsSource.includes('KeyboardAimDefaultPowerRatio = 0.62')
-      && ControlsSource.includes('KeyboardAimCoarseDegrees = 12')
+      && ControlsSource.includes('KeyboardAimCoarseDegrees = 18')
+      && ControlsSource.includes('export function isLaunchKeyboardEvent(')
+      && InputControllerSource.includes('tickHeldAim(')
       && InputControllerSource.includes("dataset.keyboardAimAssist = 'direct'")
       && InputControllerSource.includes('Opens keyboard aim from the current launch face')
       && PresentationSource.includes('export function getCommandWorldTacticalLabel(')

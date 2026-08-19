@@ -196,20 +196,20 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   /** Cottage: walls, pitched roof, chimney and a door that reads from orbit. */
   function createCottageBuildingGeometry() {
     return mergePrimitiveParts([
-      { geometry: new THREE.BoxGeometry(0.72, 0.42, 0.58), position: [0, 0.21, 0], color: 0xe4c49a },
-      { geometry: new THREE.ConeGeometry(0.58, 0.38, 4), position: [0, 0.58, 0], rotation: [0, Math.PI * 0.25, 0], color: 0xb24a3a },
-      { geometry: new THREE.BoxGeometry(0.12, 0.22, 0.12), position: [0.18, 0.7, -0.08], color: 0x7a5344 },
-      { geometry: new THREE.BoxGeometry(0.16, 0.26, 0.05), position: [0, 0.16, 0.3], color: 0x4a2e24 },
+      { geometry: new THREE.BoxGeometry(0.28, 0.18, 0.22), position: [0, 0.09, 0], color: 0xe4c49a },
+      { geometry: new THREE.ConeGeometry(0.22, 0.16, 4), position: [0, 0.24, 0], rotation: [0, Math.PI * 0.25, 0], color: 0xb24a3a },
+      { geometry: new THREE.BoxGeometry(0.05, 0.09, 0.05), position: [0.07, 0.28, -0.03], color: 0x7a5344 },
+      { geometry: new THREE.BoxGeometry(0.06, 0.1, 0.02), position: [0, 0.07, 0.12], color: 0x4a2e24 },
     ]);
   }
 
   /** Furnace: kiln body, stack and a mouth so workshops read as industry. */
   function createFurnaceBuildingGeometry() {
     return mergePrimitiveParts([
-      { geometry: new THREE.CylinderGeometry(0.22, 0.26, 0.38, 8), position: [0, 0.19, 0], color: 0xb76545 },
-      { geometry: new THREE.CylinderGeometry(0.1, 0.12, 0.52, 6), position: [0, 0.62, 0], color: 0x5a3a32 },
-      { geometry: new THREE.BoxGeometry(0.16, 0.14, 0.08), position: [0, 0.18, 0.24], color: 0xff7b32 },
-      { geometry: new THREE.BoxGeometry(0.36, 0.08, 0.36), position: [0, 0.04, 0], color: 0x4a2c24 },
+      { geometry: new THREE.CylinderGeometry(0.09, 0.11, 0.16, 8), position: [0, 0.08, 0], color: 0xb76545 },
+      { geometry: new THREE.CylinderGeometry(0.04, 0.05, 0.2, 6), position: [0, 0.24, 0], color: 0x5a3a32 },
+      { geometry: new THREE.BoxGeometry(0.06, 0.055, 0.03), position: [0, 0.08, 0.1], color: 0xff7b32 },
+      { geometry: new THREE.BoxGeometry(0.14, 0.03, 0.14), position: [0, 0.015, 0], color: 0x4a2c24 },
     ]);
   }
 
@@ -626,22 +626,22 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   ));
   const OccupationScarCapacity = Math.max(1, OccupationScarInstances.length);
   const OccupationScarMaterial = new THREE.MeshStandardMaterial({
-    color: 0x321019,
-    emissive: 0xff342f,
-    emissiveIntensity: 0.82,
-    roughness: 0.4,
-    metalness: 0.82,
+    color: 0x6a2818,
+    emissive: 0xc42a18,
+    emissiveIntensity: 0.55,
+    roughness: 0.78,
+    metalness: 0.12,
   });
   const OccupationMineGeometry = new THREE.LatheGeometry([
-    new THREE.Vector2(0.42, -0.1),
-    new THREE.Vector2(0.36, 0.02),
-    new THREE.Vector2(0.14, 0.08),
-    new THREE.Vector2(0.11, 0.46),
-    new THREE.Vector2(0.28, 0.52),
-    new THREE.Vector2(0.08, 0.56),
-    new THREE.Vector2(0.07, 0.92),
-    new THREE.Vector2(0.13, 0.98),
-    new THREE.Vector2(0.04, 1.08),
+    new THREE.Vector2(0.14, -0.04),
+    new THREE.Vector2(0.12, 0.01),
+    new THREE.Vector2(0.05, 0.03),
+    new THREE.Vector2(0.04, 0.16),
+    new THREE.Vector2(0.09, 0.18),
+    new THREE.Vector2(0.03, 0.2),
+    new THREE.Vector2(0.025, 0.32),
+    new THREE.Vector2(0.045, 0.34),
+    new THREE.Vector2(0.015, 0.38),
   ], 7);
   const OccupationMineMesh = new THREE.InstancedMesh(
     OccupationMineGeometry,
@@ -737,7 +737,8 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         hideInstance(OccupationScarTransform, OccupationFumeMesh, ScarIndex);
         continue;
       }
-      const Height = Scar.profile.height * (1 + ((Scar.patternIndex % 2) * 0.12));
+      const ToyScale = getToyDioramaScale(Scar.worldDefinition.radius) * 0.55;
+      const Height = Scar.profile.height * (1 + ((Scar.patternIndex % 2) * 0.12)) * ToyScale;
       const ScarPlacement = getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.12);
       if (shouldHideFarSideLife(Scar.worldDefinition, ScarPlacement)) {
         hideInstance(OccupationScarTransform, OccupationMineMesh, ScarIndex);
@@ -748,18 +749,18 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       applySphereInstance(
         OccupationScarTransform,
         ScarPlacement,
-        Scar.profile.depth * ScarStrength,
+        Scar.profile.depth * ScarStrength * ToyScale,
         Height * ScarStrength,
-        Scar.profile.depth * ScarStrength,
+        Scar.profile.depth * ScarStrength * ToyScale,
       );
       OccupationMineMesh.setMatrixAt(ScarIndex, OccupationScarTransform.matrix);
 
       applySphereInstance(
         OccupationScarTransform,
         getWorldLifePlacement(Scar.worldDefinition, Scar.site, Height * 0.58),
-        Scar.profile.width * ScarStrength,
-        Scar.profile.depth * ScarStrength,
-        Scar.profile.depth * ScarStrength,
+        Scar.profile.width * ScarStrength * ToyScale,
+        Scar.profile.depth * ScarStrength * ToyScale,
+        Scar.profile.depth * ScarStrength * ToyScale,
       );
       OccupationClampMesh.setMatrixAt(ScarIndex, OccupationScarTransform.matrix);
 
@@ -1538,9 +1539,9 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       applySphereInstance(
         DiscoveryMarkerTransform,
         getWorldLifePlacement(Marker.worldDefinition, Marker.discovery, Collected ? 0.04 : 0.08),
-        Collected ? 1.45 : 2.35 * Pulse,
-        Collected ? 1.2 : 2.55 * Pulse,
-        Collected ? 1.45 : 2.35 * Pulse,
+        (Collected ? 0.55 : 0.72 * Pulse) * getToyDioramaScale(Marker.worldDefinition.radius),
+        (Collected ? 0.48 : 0.8 * Pulse) * getToyDioramaScale(Marker.worldDefinition.radius),
+        (Collected ? 0.55 : 0.72 * Pulse) * getToyDioramaScale(Marker.worldDefinition.radius),
       );
       DiscoveryMarkerMesh.setMatrixAt(MarkerIndex, DiscoveryMarkerTransform.matrix);
       if (Collected) {

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260819-ob128';
+import { WorldseedAudio } from './audio.js?v=20260819-ob131';
 import {
   SurfaceGestureModes,
   createKeyboardAimState,
@@ -8,9 +8,10 @@ import {
   getSphereSurfacePosition,
   getSurfacePosition,
   isEditingTextField,
+  isSpaceKeyboardEvent,
   LaunchCancelRadius,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260819-ob130';
+} from './controls.js?v=20260819-ob132';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -29,22 +30,22 @@ import {
   getViewportPixelRatioCap,
 } from './performance.js?v=20260818-ob109';
 import { addEnvironment } from './environment.js?v=20260818-ob109';
-import { createWorldVisuals } from './world-geometry.js?v=20260819-ob129';
-import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260819-ob129';
-import { createWardenVisuals } from './warden-visuals.js?v=20260819-ob129';
+import { createWorldVisuals } from './world-geometry.js?v=20260819-ob131';
+import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260819-ob131';
+import { createWardenVisuals } from './warden-visuals.js?v=20260819-ob131';
 import { createPlayerVisuals } from './player-visuals.js?v=20260819-ob130';
 import { createStoryDirector } from './story-director.js?v=20260819-ob128';
 import { createHud } from './hud.js?v=20260819-ob128';
 import { createAimPreview } from './aim-preview.js?v=20260819-ob130';
-import { createLandingDirector } from './landing-director.js?v=20260819-ob130';
+import { createLandingDirector } from './landing-director.js?v=20260819-ob131';
 import { createCameraController } from './camera-controller.js?v=20260819-ob130';
-import { createInputController } from './input-controller.js?v=20260819-ob130';
+import { createInputController } from './input-controller.js?v=20260819-ob132';
 import { createHostileSurface } from './hostile-surface.js?v=20260819-ob130';
 import { createScanner } from './scanner.js?v=20260817-ob99';
-import { createRoutePresentation } from './route-presentation.js?v=20260819-ob130';
+import { createRoutePresentation } from './route-presentation.js?v=20260819-ob131';
 import { createRecordsUi } from './records-ui.js?v=20260819-ob128';
 import { createFrameVisuals } from './frame-visuals.js?v=20260819-ob130';
-import { createRestorationVisuals } from './restoration-visuals.js?v=20260819-ob130';
+import { createRestorationVisuals } from './restoration-visuals.js?v=20260819-ob131';
 import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=0.179.1';
 import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=0.179.1';
 import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=0.179.1';
@@ -64,7 +65,7 @@ import {
   getTrajectoryPickupIdentifiers,
   isSystemRestored,
   isWorldheartUnlocked,
-} from './campaign.js?v=20260814-ob8';
+} from './campaign.js?v=20260819-ob131';
 
 import {
   MaximumLaunchSpeed,
@@ -77,25 +78,26 @@ import {
   findCollidingWorld,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260816-ob92';
+} from './physics.js?v=20260819-ob132';
 import {
   FixedPhysicsStepHertz,
   FixedPhysicsStepSeconds,
   RunnerRadius,
   StardustCollectionRadius,
   StardustPickupRadius,
-} from './sim-constants.js?v=20260815-ob89';
+} from './sim-constants.js?v=20260819-ob132';
 import {
   getSectorWardenRevealFlag,
   isFurtherReachLive,
   isInnerClusterLive,
-} from './sector.js?v=20260815-ob89';
+  shouldOpenCommandWorldRoute,
+} from './sector.js?v=20260819-ob131';
 import {
   advanceSimulatedFlightStep,
   collectFlightStardust,
   resolveWardenAfterNonCommandFlight,
   rollbackFlightStardust as rollbackSharedFlightStardust,
-} from './flight-resolver.js?v=20260816-ob92';
+} from './flight-resolver.js?v=20260819-ob131';
 import { createLeaderboardClient, resolveLeaderboardBaseUrl } from './leaderboard-client.js?v=20260816-ob91';
 import {
   connectRelayWorlds,
@@ -154,7 +156,7 @@ import {
   getLandedCameraScale,
   getHowToPlayPresentation,
   shouldShowHowToPlayAfterOpening,
-} from './presentation.js?v=20260819-ob130';
+} from './presentation.js?v=20260819-ob131';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
@@ -301,7 +303,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260819-ob130';
+GameCanvas.dataset.build = '20260819-ob132';
 GameCanvas.dataset.howToPlay = 'closed';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
@@ -740,25 +742,29 @@ const {
 } = WardenVisuals;
 
 
-/** Opens the command route only after both authored progress gates are satisfied. */
+/** Opens Command after a living neighbourhood plus further travel, or after shields crack. */
 function updateCommandWorldAvailability() {
-  const HasRestorationSignal = isWorldheartUnlocked(
-    WorldDefinitions,
-    WorldheartUnlockThreshold,
-  );
-  const HasBrokenCommandShields = !ActiveSystem.commandWorldRequiresShieldBreaks
-    || WardenPursuitState.status === 'exposed';
-  if (
-    !WorldheartDefinition.routeAvailable
-    && HasRestorationSignal
-    && HasBrokenCommandShields
-  ) {
-    WorldheartDefinition.routeAvailable = true;
-    WorldheartJustUnlocked = true;
-    updateWorldheartObjective();
-    return true;
+  if (WorldheartDefinition.routeAvailable) {
+    return false;
   }
-  return false;
+  const ShouldOpen = shouldOpenCommandWorldRoute({
+    restorationUnlocked: isWorldheartUnlocked(
+      WorldDefinitions,
+      WorldheartUnlockThreshold,
+    ),
+    liveWorldIdentifiers: listLiveWorldIdentifiers(),
+    innerClusterWorldIdentifiers: ActiveSystem.innerClusterWorldIdentifiers,
+    furtherReachWorldIdentifiers: ActiveSystem.furtherReachWorldIdentifiers,
+    requiresShieldBreaks: ActiveSystem.commandWorldRequiresShieldBreaks === true,
+    wardenStatus: WardenPursuitState.status,
+  });
+  if (!ShouldOpen) {
+    return false;
+  }
+  WorldheartDefinition.routeAvailable = true;
+  WorldheartJustUnlocked = true;
+  updateWorldheartObjective();
+  return true;
 }
 
 function publishWardenState() {
@@ -2993,7 +2999,7 @@ function simulateSeedFixedStep() {
   updateFlightFeedback();
 
   if (
-    FlightElapsedSeconds >= 6.5
+    FlightElapsedSeconds >= 1
     && LostInSpaceCueShown !== true
   ) {
     const FarFromWorlds = WorldDefinitions.every((WorldDefinition) => (
@@ -3002,7 +3008,15 @@ function simulateSeedFixedStep() {
         SeedPhysicsState.position.y - WorldDefinition.position.y,
       ) > WorldDefinition.radius + 14
     ));
-    if (FarFromWorlds) {
+    const SkimmingWorld = WorldDefinitions.some((WorldDefinition) => {
+      const Distance = Math.hypot(
+        SeedPhysicsState.position.x - WorldDefinition.position.x,
+        SeedPhysicsState.position.y - WorldDefinition.position.y,
+      );
+      return Distance > WorldDefinition.radius + RunnerRadius
+        && Distance <= WorldDefinition.radius + 2.2;
+    });
+    if (FarFromWorlds || SkimmingWorld) {
       LostInSpaceCueShown = true;
       showStatusToast('Still flying - Break to recapture, or wait to miss', 2200);
     }
@@ -3046,8 +3060,9 @@ function simulateSeedFixedStep() {
   }
 
   if (CollisionBody?.definition.kind === 'worldheart') {
-    attachSeedToWorldheart(SeedPhysicsState.position, CollisionBody.position);
-    return;
+    if (attachSeedToWorldheart(SeedPhysicsState.position, CollisionBody.position)) {
+      return;
+    }
   }
 
   if (CollisionWorldDefinition) {
@@ -4016,10 +4031,11 @@ window.addEventListener('keydown', (KeyboardEventData) => {
   }
   const PressedKey = KeyboardEventData.key.toLowerCase();
   if (
-    PressedKey === ' '
+    isSpaceKeyboardEvent(KeyboardEventData)
     && ActiveHostileEncounterState
     && GamePhase === 'attached'
     && !IsKeyboardAiming
+    && !IsPointerAiming
   ) {
     KeyboardEventData.preventDefault();
     if (IsCutAiming) fireHostileCutFromPreview();

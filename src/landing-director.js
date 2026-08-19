@@ -532,7 +532,7 @@ export function createLandingDirector(THREE, host) {
   /** Lands on the exposed mobile command body and starts its final surface approach. */
   function attachSeedToWorldheart(ImpactPosition, BodyPosition) {
     if (!host.WorldheartDefinition.routeAvailable || host.WorldheartDefinition.restored) {
-      return;
+      return false;
     }
     host.IsBreakerBurnAvailable = false;
     host.IsBreakerBurnPending = false;
@@ -585,6 +585,7 @@ export function createLandingDirector(THREE, host) {
       );
     }
     host.updateBreakerBurnInterface();
+    return true;
   }
 
   /** Starts the final system-scale pulse only after the seed physically lands in the core. */

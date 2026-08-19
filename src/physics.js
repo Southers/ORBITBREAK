@@ -6,6 +6,8 @@
  * and suitable for use both by the live seed simulation and the trajectory preview.
  */
 
+import { LaunchClearancePadding } from './sim-constants.js';
+
 /**
  * Creates a small immutable-style vector object used by the deterministic physics layer.
  *
@@ -94,8 +96,8 @@ export function applyBreakerBurn(PhysicsState, Impulse = BreakerBurnImpulse, Dir
   return NextState;
 }
 
-/** Fast enough for adjacent hops, slow enough that a hard pull still has to ride gravity. */
-export const MaximumLaunchSpeed = 12.5;
+/** Fast enough to leave Grove and Ember after the first hop; a mid pull still rides gravity. */
+export const MaximumLaunchSpeed = 16.5;
 
 /** Tight wells that never intersect still recover after this many revolutions. */
 export const OrbitTrapOuterRadiusFactor = 2.8;
@@ -104,6 +106,14 @@ export const OrbitTrapMinSteps = 96;
 /** 3 s at 120 Hz: a crawl that never completes a revolution still recovers. */
 export const FlightStallTimeoutSteps = 360;
 export const FlightStallDisplacement = 0.5;
+/**
+ * 2 s at 120 Hz. A skim just outside collision looks landed, kills walk,
+ * and never completes a revolution. Recapture before the run dies. The
+ * launch-origin world is ignored so a normal throw can leave the dock.
+ */
+export const FlightSkimTimeoutSteps = 240;
+/** Thin shell beyond the collision radius. Origin-world launch height is ignored. */
+export const FlightSkimClearance = 0.72;
 
 /** Creates persistent orbit-trap accumulators shared by live flight, prediction and replay. */
 export function createOrbitTrapState() {
@@ -116,6 +126,8 @@ export function createOrbitTrapState() {
     stallY: 0,
     stallSteps: 0,
     stallAnchored: false,
+    skimWorldIdentifier: null,
+    skimSteps: 0,
   };
 }
 
@@ -123,7 +135,12 @@ export function createOrbitTrapState() {
  * Counts wrapped travel around the nearest well. A graze that never collides still
  * recovers once the Runner has looped instead of flying forever.
  */
-export function advanceOrbitTrap(TrapState, Position, WorldDefinitions) {
+export function advanceOrbitTrap(
+  TrapState,
+  Position,
+  WorldDefinitions,
+  IgnoredWorldIdentifier = null,
+) {
   if (!TrapState.stallAnchored) {
     TrapState.stallX = Position.x;
     TrapState.stallY = Position.y;
@@ -164,7 +181,27 @@ export function advanceOrbitTrap(TrapState, Position, WorldDefinitions) {
     TrapState.lastAngle = 0;
     TrapState.accumulatedAngle = 0;
     TrapState.steps = 0;
+    TrapState.skimWorldIdentifier = null;
+    TrapState.skimSteps = 0;
     return false;
+  }
+  const SkimLimit = NearestWorld.radius + FlightSkimClearance;
+  if (
+    NearestDistance <= SkimLimit
+    && NearestWorld.id !== IgnoredWorldIdentifier
+  ) {
+    if (TrapState.skimWorldIdentifier !== NearestWorld.id) {
+      TrapState.skimWorldIdentifier = NearestWorld.id;
+      TrapState.skimSteps = 1;
+    } else {
+      TrapState.skimSteps += 1;
+      if (TrapState.skimSteps >= FlightSkimTimeoutSteps) {
+        return true;
+      }
+    }
+  } else {
+    TrapState.skimWorldIdentifier = null;
+    TrapState.skimSteps = 0;
   }
   const Angle = Math.atan2(
     Position.y - NearestWorld.position.y,
@@ -428,7 +465,9 @@ export function predictTrajectory(
       );
 
       if (StartingWorldDefinition) {
-        const ClearDistance = StartingWorldDefinition.radius + PredictionSettings.seedRadius + 0.35;
+        const ClearDistance = StartingWorldDefinition.radius
+          + PredictionSettings.seedRadius
+          + LaunchClearancePadding;
         if (calculateDistanceSquared(PredictedState.position, StartingWorldDefinition.position) > (ClearDistance * ClearDistance)) {
           IgnoredWorldIdentifier = null;
         }
@@ -469,7 +508,12 @@ export function predictTrajectory(
       break;
     }
 
-    if (advanceOrbitTrap(OrbitTrapState, PredictedState.position, WorldDefinitions)) {
+    if (advanceOrbitTrap(
+      OrbitTrapState,
+      PredictedState.position,
+      WorldDefinitions,
+      IgnoredWorldIdentifier,
+    )) {
       break;
     }
 

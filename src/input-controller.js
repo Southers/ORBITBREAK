@@ -11,6 +11,10 @@ import {
   classifyLandedPointerStart,
   createKeyboardAimState,
   KeyboardAimDefaultPowerRatio,
+  KeyboardAimHoldDelayMs,
+  KeyboardAimHoldIntervalMs,
+  isLaunchKeyboardEvent,
+  isSpaceKeyboardEvent,
   findNearestKeyboardAimAngle,
   getAimCameraStage,
   getKeyboardAimDragVector,
@@ -30,7 +34,7 @@ import {
   shouldCancelAimedLaunch,
   stepSurfacePoseToward,
   SurfaceWalkTapRadians,
-} from './controls.js?v=20260819-ob130';
+} from './controls.js?v=20260819-ob132';
 import {
   getNearestRemainingClamp,
   getRemainingClamps,
@@ -138,6 +142,11 @@ export function createInputController(THREE, host) {
   const HeldWalkKeys = new Set();
   let HeldWalkFine = false;
   let HeldWalkFrameHandle = 0;
+  const HeldAimKeys = new Set();
+  let HeldAimFine = false;
+  let HeldAimFrameHandle = 0;
+  let HeldAimStartedAtMs = 0;
+  let LastHeldAimStepAtMs = 0;
 
 /**
  * Converts pointer coordinates into world space. Planning and flight still hit
@@ -507,20 +516,105 @@ function startHeldWalkLoop() {
   HeldWalkFrameHandle = requestAnimationFrame(tickHeldWalk);
 }
 
+function isAimSteerKey(PressedKey) {
+  return PressedKey === 'a' || PressedKey === 'd'
+    || PressedKey === 'w' || PressedKey === 's'
+    || PressedKey === 'arrowleft' || PressedKey === 'arrowright'
+    || PressedKey === 'arrowup' || PressedKey === 'arrowdown';
+}
+
+function getHeldAimAxes() {
+  let Rotation = 0;
+  let Power = 0;
+  if (HeldAimKeys.has('a') || HeldAimKeys.has('arrowleft')) Rotation += 1;
+  if (HeldAimKeys.has('d') || HeldAimKeys.has('arrowright')) Rotation -= 1;
+  if (HeldAimKeys.has('w') || HeldAimKeys.has('arrowup')) Power += 1;
+  if (HeldAimKeys.has('s') || HeldAimKeys.has('arrowdown')) Power -= 1;
+  return { rotation: Rotation, power: Power };
+}
+
+function canHoldAimKeys() {
+  return host.IsKeyboardAiming === true
+    && host.GamePhase === 'attached'
+    && host.ReplayPlaybackState === null
+    && !isPlayInputBlocked();
+}
+
+function clearHeldAimKeys() {
+  HeldAimKeys.clear();
+  HeldAimFine = false;
+  if (HeldAimFrameHandle && typeof cancelAnimationFrame === 'function') {
+    cancelAnimationFrame(HeldAimFrameHandle);
+  }
+  HeldAimFrameHandle = 0;
+}
+
+function applyHeldAimStep(Repeat) {
+  if (!canHoldAimKeys() || !host.KeyboardAimState) {
+    return false;
+  }
+  const Axes = getHeldAimAxes();
+  if (Axes.rotation === 0 && Axes.power === 0) {
+    return false;
+  }
+  host.KeyboardAimState = adjustKeyboardAimState(host.KeyboardAimState, {
+    rotationDirection: Axes.rotation,
+    powerDirection: Axes.power,
+    fine: HeldAimFine,
+    repeat: Repeat === true,
+  });
+  updateKeyboardAimPreview();
+  return true;
+}
+
+function tickHeldAim(FrameTimeMs) {
+  HeldAimFrameHandle = 0;
+  if (HeldAimKeys.size < 1 || !canHoldAimKeys()) {
+    if (!canHoldAimKeys()) {
+      HeldAimKeys.clear();
+    }
+    return;
+  }
+  const Now = Number.isFinite(FrameTimeMs)
+    ? FrameTimeMs
+    : (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  if (
+    Now - HeldAimStartedAtMs >= KeyboardAimHoldDelayMs
+    && Now - LastHeldAimStepAtMs >= KeyboardAimHoldIntervalMs
+  ) {
+    applyHeldAimStep(true);
+    LastHeldAimStepAtMs = Now;
+  }
+  HeldAimFrameHandle = requestAnimationFrame(tickHeldAim);
+}
+
+function startHeldAimLoop() {
+  if (HeldAimFrameHandle || typeof requestAnimationFrame !== 'function') {
+    return;
+  }
+  HeldAimFrameHandle = requestAnimationFrame(tickHeldAim);
+}
+
 function handleWalkKeyUp(KeyboardEventData) {
-  const ReleasedKey = KeyboardEventData.key.toLowerCase();
+  const ReleasedKey = String(KeyboardEventData.key ?? '').toLowerCase();
   if (ReleasedKey === 'q' || ReleasedKey === 'e' || ReleasedKey === 't' || ReleasedKey === 'f') {
     HeldWalkKeys.delete(ReleasedKey);
   }
+  if (isAimSteerKey(ReleasedKey)) {
+    HeldAimKeys.delete(ReleasedKey);
+  }
   if (KeyboardEventData.key === 'Shift') {
     HeldWalkFine = false;
+    HeldAimFine = false;
   }
 }
 
 GameCanvas.addEventListener('keyup', handleWalkKeyUp);
+window.addEventListener('keyup', handleWalkKeyUp);
 GameCanvas.addEventListener('blur', () => {
   HeldWalkKeys.clear();
   HeldWalkFine = false;
+  clearHeldAimKeys();
 });
 
 function showWalkFacingInstruction(AttachedWorld) {
@@ -762,11 +856,31 @@ function syncKeyboardLaunchVectors() {
   host.LastAimScreenDistancePixels = Number.POSITIVE_INFINITY;
 }
 
+/** Keyboard Enter/Space must throw, even at the lowest W/S power. */
+function ensureMinimumKeyboardLaunchDrag() {
+  if (AimDragVector.length() >= MinimumLaunchDragDistance) {
+    return;
+  }
+  if (AimDragVector.length() > 0.0001) {
+    AimDragVector.setLength(MinimumLaunchDragDistance);
+  } else if (host.KeyboardAimState) {
+    const DragVector = getKeyboardAimDragVector({
+      ...host.KeyboardAimState,
+      powerRatio: MinimumLaunchDragDistance / MaximumDragDistance,
+    }, MaximumDragDistance);
+    AimDragVector.set(DragVector.x, DragVector.y, 0);
+  } else {
+    return;
+  }
+  AimLaunchVelocity.copy(AimDragVector).multiplyScalar(LaunchVelocityPerDragUnit);
+}
+
 /** Cancels pointer or keyboard aim without spending a launch. */
 function cancelAimedLaunch({ announce = true } = {}) {
   const WasAiming = host.IsPointerAiming || host.IsKeyboardAiming;
   host.IsPointerAiming = false;
   host.IsKeyboardAiming = false;
+  clearHeldAimKeys();
   host.IsPointerWalking = false;
   host.IsPointerScouting = false;
   host.PointerGestureMode = SurfaceGestureModes.pending;
@@ -808,7 +922,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
     GameCanvas.focus({ preventScroll: true });
   }
 
-  const PressedKey = KeyboardEventData.key.toLowerCase();
+  const PressedKey = String(KeyboardEventData.key ?? '').toLowerCase();
   if (
     !host.IsKeyboardAiming
     && (PressedKey === 'q' || PressedKey === 'e' || PressedKey === 't' || PressedKey === 'f')
@@ -836,7 +950,7 @@ function handleKeyboardAimKey(KeyboardEventData) {
       KeyboardEventData.shiftKey ? SurfaceWalkTapRadians * 0.5 : SurfaceWalkTapRadians,
     );
   }
-  const IsLaunchKey = PressedKey === 'enter' || PressedKey === ' ';
+  const IsLaunchKey = isLaunchKeyboardEvent(KeyboardEventData);
   const RotationDirection = PressedKey === 'arrowleft' || PressedKey === 'a'
     ? 1
     : (PressedKey === 'arrowright' || PressedKey === 'd' ? -1 : 0);
@@ -877,8 +991,8 @@ function handleKeyboardAimKey(KeyboardEventData) {
     }
     return true;
   }
-  if (host.ActiveHostileEncounterState && host.GamePhase === 'attached' && !host.IsKeyboardAiming) {
-    if (PressedKey === ' ') {
+  if (host.ActiveHostileEncounterState && host.GamePhase === 'attached' && !host.IsKeyboardAiming && !host.IsPointerAiming) {
+    if (isSpaceKeyboardEvent(KeyboardEventData)) {
       KeyboardEventData.preventDefault();
       if (KeyboardEventData.repeat) return true;
       if (host.IsCutAiming) fireHostileCutFromPreview();
@@ -893,8 +1007,18 @@ function handleKeyboardAimKey(KeyboardEventData) {
     KeyboardEventData.preventDefault();
     return true;
   }
-  if (PressedKey === 'enter' && host.IsCutAiming) {
+  if (IsLaunchKey && (PressedKey === 'enter' || KeyboardEventData.code === 'Enter' || KeyboardEventData.code === 'NumpadEnter') && host.IsCutAiming) {
     cancelCutAim({ announce: false });
+  }
+  if (IsLaunchKey && (host.IsKeyboardAiming || host.IsPointerAiming)) {
+    KeyboardEventData.preventDefault();
+    clearHeldAimKeys();
+    if (host.IsKeyboardAiming) {
+      syncKeyboardLaunchVectors();
+      ensureMinimumKeyboardLaunchDrag();
+    }
+    releaseAimedLaunch({ cancelIfShort: host.IsKeyboardAiming !== true });
+    return true;
   }
   if (!host.IsKeyboardAiming && !beginKeyboardAim()) {
     return false;
@@ -902,18 +1026,32 @@ function handleKeyboardAimKey(KeyboardEventData) {
 
   KeyboardEventData.preventDefault();
   if (IsLaunchKey) {
-    if (host.IsKeyboardAiming) {
-      syncKeyboardLaunchVectors();
-      releaseAimedLaunch();
-    }
+    clearHeldAimKeys();
+    syncKeyboardLaunchVectors();
+    ensureMinimumKeyboardLaunchDrag();
+    releaseAimedLaunch({ cancelIfShort: false });
     return true;
+  }
+
+  if (isAimSteerKey(PressedKey)) {
+    HeldAimFine = KeyboardEventData.shiftKey === true;
+    const WasEmpty = HeldAimKeys.size < 1;
+    HeldAimKeys.add(PressedKey);
+    if (WasEmpty) {
+      HeldAimStartedAtMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      LastHeldAimStepAtMs = HeldAimStartedAtMs;
+      startHeldAimLoop();
+    }
+    if (KeyboardEventData.repeat === true) {
+      return true;
+    }
   }
 
   host.KeyboardAimState = adjustKeyboardAimState(host.KeyboardAimState, {
     rotationDirection: RotationDirection,
     powerDirection: PowerDirection,
     fine: KeyboardEventData.shiftKey,
-    repeat: KeyboardEventData.repeat === true,
+    repeat: false,
   });
   updateKeyboardAimPreview();
   return true;
@@ -1336,6 +1474,7 @@ function handlePointerDown(PointerEventData) {
     isOverShip: Occupancy.isOverShip,
     isOverCage: Occupancy.isOverCage,
     isOverWorld: Occupancy.isOverWorld,
+    isOverShipMesh: Occupancy.isOverShipMesh,
   });
   if (PointerStartTarget === LandedPointerTargets.ship) {
     setScoutMode(false);
@@ -1516,11 +1655,15 @@ function handlePointerMove(PointerEventData) {
 }
 
 /** Launches the current pointer or keyboard aim through the shared deterministic path. */
-function releaseAimedLaunch() {
+function releaseAimedLaunch({ cancelIfShort = true } = {}) {
   if (host.IsKeyboardAiming) {
     syncKeyboardLaunchVectors();
+    ensureMinimumKeyboardLaunchDrag();
   }
   if (AimDragVector.length() < MinimumLaunchDragDistance) {
+    if (cancelIfShort !== true) {
+      return false;
+    }
     host.IsPointerAiming = false;
     host.IsPointerWalking = false;
     host.IsPointerScouting = false;
@@ -1528,6 +1671,7 @@ function releaseAimedLaunch() {
     host.IsKeyboardAiming = false;
     host.ActivePointerIdentifier = null;
     GameCanvas.classList.remove('is-aiming', 'is-walking', 'is-scouting', 'is-ship-armed');
+    clearHeldAimKeys();
     releaseAimInteractionCamera();
     clearCommittedAimCamera();
     clearTrajectoryPreview();
@@ -1540,6 +1684,7 @@ function releaseAimedLaunch() {
   host.IsPointerScouting = false;
   host.PointerGestureMode = SurfaceGestureModes.pending;
   host.IsKeyboardAiming = false;
+  clearHeldAimKeys();
   setScoutMode(false);
   host.FlightElapsedSeconds = 0;
   host.IsBreakerBurnAvailable = false;
@@ -1588,6 +1733,12 @@ function releaseAimedLaunch() {
   host.GamePhase = 'flying';
   host.FlightElapsedSeconds = 0;
   host.FlightOrbitTrapState = createOrbitTrapState();
+  if (host.ActiveHostileEncounterState) {
+    host.ActiveHostileEncounterState = null;
+    HostilePylonGroup.visible = false;
+    hideCutGuide();
+    publishHostileEncounterState();
+  }
   host.IsBreakerBurnAvailable = true;
   host.IsBreakerBurnPending = false;
   updateBreakerBurnInterface();

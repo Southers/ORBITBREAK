@@ -74,7 +74,11 @@ export function createRestorationVisuals(THREE, host) {
 
   function hideCloseupOrbitalOverlays(WorldRuntime) {
     WorldRuntime.contourRingGroup.visible = false;
-    const CloseUp = isWorldCloseUp(WorldRuntime);
+    const IsParkedWorld = (
+      (host.GamePhase === 'attached' || host.GamePhase === 'restoring')
+      && host.CurrentWorldIdentifier === WorldRuntime.definition.id
+    );
+    const CloseUp = IsParkedWorld || isWorldCloseUp(WorldRuntime);
     if (CloseUp) {
       WorldRuntime.stillnessCageGroup.visible = false;
     }

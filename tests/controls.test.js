@@ -45,6 +45,11 @@ import {
   isEditingTextField,
   ShipGrabAimDeadzonePixels,
   shouldCancelAimedLaunch,
+  KeyboardAimCoarseDegrees,
+  KeyboardAimFineDegrees,
+  KeyboardAimRepeatDegrees,
+  isLaunchKeyboardEvent,
+  isSpaceKeyboardEvent,
 } from '../src/controls.js';
 
 test('keyboard lead search checks the direct route then nearest alternating offsets', () => {
@@ -84,7 +89,7 @@ test('keyboard steering wraps angles and offers coarse and fine control', () => 
   assert.ok(CoarseState.angleRadians > Math.PI);
   assert.ok(FineState.angleRadians > CoarseState.angleRadians);
   assert.ok(Math.abs(
-    FineState.angleRadians - ((Math.PI * 2) - (9 * Math.PI / 180)),
+    FineState.angleRadians - ((Math.PI * 2) - ((KeyboardAimCoarseDegrees - KeyboardAimFineDegrees) * Math.PI / 180)),
   ) < 1e-12);
 });
 
@@ -94,9 +99,30 @@ test('keyboard A/D stays free and does not snap back toward a neighbour bearing'
   for (let Step = 0; Step < 40; Step += 1) {
     AimState = adjustKeyboardAimState(AimState, { rotationDirection: 1 });
   }
-  const Expected = (40 * 12 * Math.PI / 180) % (Math.PI * 2);
+  const Expected = (40 * KeyboardAimCoarseDegrees * Math.PI / 180) % (Math.PI * 2);
   assert.ok(Math.abs(AimState.angleRadians - Expected) < 1e-12);
   assert.ok(Math.abs(AimState.angleRadians - NeighbourAngle) > 0.2);
+});
+
+test('held keyboard steering uses a larger repeat step than a tap', () => {
+  const Start = createKeyboardAimState({ directionX: 1, directionY: 0 });
+  const Tap = adjustKeyboardAimState(Start, { rotationDirection: 1 });
+  const Held = adjustKeyboardAimState(Start, { rotationDirection: 1, repeat: true });
+  const TapDelta = Math.abs(Tap.angleRadians - Start.angleRadians);
+  const HeldDelta = Math.abs(Held.angleRadians - Start.angleRadians);
+  assert.ok(Math.abs(TapDelta - (KeyboardAimCoarseDegrees * Math.PI / 180)) < 1e-12);
+  assert.ok(Math.abs(HeldDelta - (KeyboardAimRepeatDegrees * Math.PI / 180)) < 1e-12);
+  assert.ok(HeldDelta > TapDelta);
+});
+
+test('Enter, Numpad Enter and Space are launch keys', () => {
+  assert.equal(isLaunchKeyboardEvent({ key: 'Enter', code: 'Enter' }), true);
+  assert.equal(isLaunchKeyboardEvent({ key: 'Enter', code: 'NumpadEnter' }), true);
+  assert.equal(isLaunchKeyboardEvent({ key: ' ', code: 'Space' }), true);
+  assert.equal(isLaunchKeyboardEvent({ key: 'Unidentified', code: 'Enter' }), true);
+  assert.equal(isLaunchKeyboardEvent({ key: 'a', code: 'KeyA' }), false);
+  assert.equal(isSpaceKeyboardEvent({ key: ' ', code: 'Space' }), true);
+  assert.equal(isSpaceKeyboardEvent({ key: 'Enter', code: 'Enter' }), false);
 });
 
 test('keyboard W/S from mid power changes drag length in both directions', () => {
@@ -295,6 +321,12 @@ test('landed pointer-down locks ship, world or space before the drag moves', () 
     isOverCage: true,
     isOverWorld: true,
   }), LandedPointerTargets.cage);
+  assert.equal(classifyLandedPointerStart({
+    isOverShip: true,
+    isOverShipMesh: true,
+    isOverCage: true,
+    isOverWorld: true,
+  }), LandedPointerTargets.ship);
   assert.ok(SeedScreenGrabRadiusPixels > 44);
 });
 

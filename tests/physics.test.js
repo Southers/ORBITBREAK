@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { getTrajectoryPickupIdentifiers } from '../src/campaign.js';
 import {
   BrokenBeltSystemDefinition,
+  BreakerReachSystemDefinition,
   LongNightSystemDefinition,
   WorldheartSystemDefinition,
   WanderingGardenSystemDefinition,
@@ -19,6 +20,7 @@ import {
   getBreakerBurnDirection,
   advanceOrbitTrap,
   FlightStallTimeoutSteps,
+  FlightSkimTimeoutSteps,
   FlightStallDisplacement,
   calculateBodyPositionAtTime,
   calculateDistanceSquared,
@@ -30,6 +32,7 @@ import {
   predictTrajectory,
   simulatePhysicsStep,
 } from '../src/physics.js';
+import { LaunchClearancePadding } from '../src/sim-constants.js';
 import { predictSlingshotEvents } from '../src/scoring.js';
 
 /**
@@ -52,8 +55,47 @@ test('gravity accelerates the seed toward a world', () => {
 });
 
 test('launch speed stays inside the gravity-assist range', () => {
-  assert.equal(MaximumLaunchSpeed, 12.5);
+  assert.equal(MaximumLaunchSpeed, 16.5);
   assert.ok(MaximumLaunchSpeed < 18, 'Full-power darts must not outrun every well.');
+});
+
+test('a full-power Grove throw toward Frost leaves the origin well', () => {
+  const Runtime = createAuthoredSystemRuntime(BreakerReachSystemDefinition, { createVector });
+  const Grove = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'grove');
+  const Frost = Runtime.worlds.find((WorldDefinition) => WorldDefinition.id === 'frost');
+  const SeedRadius = 0.46;
+  const DirectionX = Frost.position.x - Grove.position.x;
+  const DirectionY = Frost.position.y - Grove.position.y;
+  const DirectionLength = Math.hypot(DirectionX, DirectionY);
+  const SurfaceDistance = Grove.radius + SeedRadius + 0.03;
+  const StartingPosition = createVector(
+    Grove.position.x + ((DirectionX / DirectionLength) * SurfaceDistance),
+    Grove.position.y + ((DirectionY / DirectionLength) * SurfaceDistance),
+    0,
+  );
+  const LaunchVelocity = createVector(
+    (DirectionX / DirectionLength) * MaximumLaunchSpeed,
+    (DirectionY / DirectionLength) * MaximumLaunchSpeed,
+    0,
+  );
+  const Prediction = predictTrajectory(
+    StartingPosition,
+    LaunchVelocity,
+    Runtime.worlds,
+    {
+      seedRadius: SeedRadius,
+      fixedStepSeconds: 1 / 120,
+      maximumSteps: 1800,
+      ignoredWorldIdentifier: 'grove',
+    },
+  );
+
+  assert.notEqual(Prediction.collisionWorldIdentifier, 'grove');
+  assert.ok(
+    Prediction.collisionWorldIdentifier === 'frost'
+      || Prediction.collisionKind === null,
+    `Full-power Grove throw must leave the origin, not recapture it (${Prediction.collisionWorldIdentifier}).`,
+  );
 });
 
 test('Breaker Burn adds one deterministic impulse along current heading', () => {
@@ -270,7 +312,7 @@ test('First Light Seedstone is reachable with matching prediction and live fligh
   for (let StepIndex = 1; StepIndex <= 520; StepIndex += 1) {
     LiveState = simulatePhysicsStep(LiveState, WorldDefinitions, FixedStepSeconds);
     if (IgnoredWorldIdentifier) {
-      const ClearDistance = WorldDefinitions[0].radius + SeedRadius + 0.35;
+      const ClearDistance = WorldDefinitions[0].radius + SeedRadius + LaunchClearancePadding;
       if (
         calculateDistanceSquared(LiveState.position, WorldDefinitions[0].position)
         > (ClearDistance * ClearDistance)
@@ -612,7 +654,7 @@ test('the opening Meadow shot predicts and reaches Ember on the same fixed step'
   for (let StepIndex = 1; StepIndex <= 520; StepIndex += 1) {
     LiveState = simulatePhysicsStep(LiveState, WorldDefinitions, FixedStepSeconds);
     if (IgnoredWorldIdentifier) {
-      const ClearDistance = WorldDefinitions[0].radius + SeedRadius + 0.35;
+      const ClearDistance = WorldDefinitions[0].radius + SeedRadius + LaunchClearancePadding;
       if (
         calculateDistanceSquared(LiveState.position, WorldDefinitions[0].position)
         > (ClearDistance * ClearDistance)
@@ -707,7 +749,7 @@ test('the alternate Meadow shot predicts and reaches Grove on the same fixed ste
   for (let StepIndex = 1; StepIndex <= 520; StepIndex += 1) {
     LiveState = simulatePhysicsStep(LiveState, WorldDefinitions, FixedStepSeconds);
     if (IgnoredWorldIdentifier) {
-      const ClearDistance = WorldDefinitions[0].radius + SeedRadius + 0.35;
+      const ClearDistance = WorldDefinitions[0].radius + SeedRadius + LaunchClearancePadding;
       if (
         calculateDistanceSquared(LiveState.position, WorldDefinitions[0].position)
         > (ClearDistance * ClearDistance)
@@ -1284,7 +1326,7 @@ test('Long Night has complete deterministic safe and two-body chain routes', () 
       const HollowDefinition = Runtime.worlds.find((WorldDefinition) => (
         WorldDefinition.id === IgnoredWorldIdentifier
       ));
-      const ClearDistance = HollowDefinition.radius + 0.46 + 0.35;
+      const ClearDistance = HollowDefinition.radius + 0.46 + LaunchClearancePadding;
       if (calculateDistanceSquared(LiveState.position, HollowDefinition.position) > ClearDistance ** 2) {
         IgnoredWorldIdentifier = null;
       }
@@ -1661,6 +1703,38 @@ test('orbit trap counts wrapped travel and ignores a short graze', () => {
   }
   assert.equal(advanceOrbitTrap(GrazeState, { x: 20, y: 0, z: 0 }, [World]), false);
   assert.equal(GrazeState.worldIdentifier, null);
+});
+
+test('a near-surface skim that never lands still recaptures', () => {
+  const World = {
+    id: 'well',
+    radius: 1.6,
+    position: { x: 0, y: 0, z: 0 },
+  };
+  const SkimState = createOrbitTrapState();
+  const SkimRadius = World.radius + 0.35;
+  let Trapped = false;
+  let StepCount = 0;
+  while (!Trapped && StepCount < FlightSkimTimeoutSteps + 2) {
+    const Angle = StepCount * 0.035;
+    Trapped = advanceOrbitTrap(SkimState, {
+      x: Math.cos(Angle) * SkimRadius,
+      y: Math.sin(Angle) * SkimRadius,
+      z: 0,
+    }, [World]);
+    StepCount += 1;
+  }
+  assert.equal(Trapped, true);
+  assert.equal(StepCount, FlightSkimTimeoutSteps);
+
+  const FlybyState = createOrbitTrapState();
+  for (let StepIndex = 0; StepIndex < 40; StepIndex += 1) {
+    assert.equal(advanceOrbitTrap(FlybyState, {
+      x: 8 - (StepIndex * 0.35),
+      y: World.radius + 0.4,
+      z: 0,
+    }, [World]), false);
+  }
 });
 
 test('a crawl that never completes a revolution still recovers after the stall timeout', () => {

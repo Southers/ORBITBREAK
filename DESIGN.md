@@ -257,7 +257,7 @@ After Haven, Ember and Grove are all live:
 - Scout may zoom further out;
 - the coach says the dark is not as wide as they said.
 
-Launch power stays the current 12.5 cap unless a later checkpoint proves the outer Reach is unflyable without a network-derived envelope. Further travel should come from the slingshot skill the hopeful act just taught. Outer worlds remain in the physics scene the whole time so prediction, ghosts and replays stay honest; the veil is presentation and camera, keyed to network state.
+Launch power is 16.5 so Grove and Ember can still escape their own wells after the first hop. 12.5 sat below those escape speeds, so a max pull looped home and W looked capped. Default keyboard power stays mid so adjacent hops still ride gravity; W stretches the throw to unlinked bodies. Origin ignore lasts 1.2 world units so a just-escaping throw is not recaptured on the first beat. Further travel should still come from the slingshot skill the hopeful act taught. Outer worlds remain in the physics scene the whole time so prediction, ghosts and replays stay honest; the veil is presentation and camera, keyed to network state.
 
 ### Warden timing, precisely
 
@@ -373,7 +373,7 @@ Proposed ladder, earliest first:
 3. **Destroy** — occupied unrestored worlds spawn a tappable equatorial cage on dock. Ember keeps one leftover cage after the first live link. Bastion and Command keep the full cage. The cage banner only appears while a cage is actually up.
 4. **Second Break** — only after the neighbourhood is talking, still one at a time, still recorded. Never a spray. Ranked schema bump still required.
 5. **Circuit beacon** — after the first loop, a visible gold ghost of the next closing edge. Information, not an auto-aim.
-6. **Command lock** — after both shields crack, keyboard/pointer lead on the moving crown. Finale gift only. Scout and aim always show one Command label (LOCKED until the route opens, EXPOSED after); A/D never snaps to already-linked neighbours.
+6. **Command lock** — the route opens once the inner neighbourhood is live and the Runner has travelled further, or after both Warden shields crack. Cage smash alone does not open it. Scout and aim always show one Command label (LOCKED until the route opens, EXPOSED after); A/D never snaps to already-linked neighbours.
 
 Keyboard aim starts from the current launch face at mid power. A/D steer freely; W/S change throw strength and the aim stem/arc length. Route beacons still mark useful neighbours without stealing the angle.
 

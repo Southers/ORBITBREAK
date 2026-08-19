@@ -33,6 +33,31 @@ export function isInnerClusterLive(
     && InnerCluster.every((WorldIdentifier) => Live.has(WorldIdentifier));
 }
 
+/**
+ * Command becomes reachable after a living neighbourhood plus further travel,
+ * or after the authored restoration and shield gates. Cage smash alone does not
+ * open it. Circuits still expose and weaken the Warden vessel.
+ */
+export function shouldOpenCommandWorldRoute({
+  restorationUnlocked = false,
+  liveWorldIdentifiers = [],
+  innerClusterWorldIdentifiers = [],
+  furtherReachWorldIdentifiers = [],
+  requiresShieldBreaks = false,
+  wardenStatus = 'hidden',
+} = {}) {
+  const ShieldOpened = requiresShieldBreaks !== true || wardenStatus === 'exposed';
+  if (restorationUnlocked === true && ShieldOpened) {
+    return true;
+  }
+  const LiveIdentifiers = Array.isArray(liveWorldIdentifiers)
+    ? liveWorldIdentifiers
+    : [];
+  return isInnerClusterLive(LiveIdentifiers, innerClusterWorldIdentifiers)
+    && isFurtherReachLive(LiveIdentifiers, furtherReachWorldIdentifiers)
+    && LiveIdentifiers.length >= 4;
+}
+
 /** True when any further-reach world currently holds a live relay. */
 export function isFurtherReachLive(
   liveWorldIdentifiers = [],

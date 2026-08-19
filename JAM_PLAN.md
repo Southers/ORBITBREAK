@@ -1034,6 +1034,13 @@ Checkpoint 26 — 18 August 2026: How to play. After the two-page opening, or
 Skip intro, a single Continue-gated card sits in front of the first walk.
 Pause can open the same page later. Copy is six short lines. Not a HUD.
 
+Checkpoint 27 — 19 August 2026: Grove and Ember can leave. 12.5 sat
+below those wells' escape speeds, so a max pull looped home and W looked
+capped after the first hop. Launch speed is 16.5; origin ignore lasts 1.2
+so a just-escaping throw is not slapped back. A/D hold steers. Enter still
+launches. Command still opens from a live neighbourhood plus further travel,
+not from inner restores alone.
+
 Keep `main` playable. Do not add free-surface exploration, dialogue trees or ship
 stat upgrades. Do not delay the Warden until the hostile world is already solved. Range is the silence
 receding, not a level-up. Pursuit still advances on resolved flights only.
