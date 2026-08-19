@@ -22,7 +22,7 @@ import {
   getHostileEncounterMoveDirection,
   getNearestClampCut,
   getRemainingClamps,
-} from './encounter.js';
+} from './encounter.js?v=20260819-ob126';
 import { createVector } from './physics.js';
 import { calculateSurfaceRestPosition as calculateSharedSurfaceRestPosition } from './flight-resolver.js';
 

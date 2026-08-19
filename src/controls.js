@@ -15,19 +15,20 @@ export const LandedPointerTargets = Object.freeze({
 });
 
 /**
- * Ship, then cage, then crust, then empty space. A ship pull never becomes
- * Destroy, and a cage tap never becomes a launch.
+ * Cage, then ship, then crust, then empty space. A finger on or near a cage
+ * always Destroys; ship pull stays launch-only when the press is clearly on
+ * the ship and not on a cage.
  */
 export function classifyLandedPointerStart({
   isOverShip = false,
   isOverCage = false,
   isOverWorld = false,
 } = {}) {
-  if (isOverShip === true) {
-    return LandedPointerTargets.ship;
-  }
   if (isOverCage === true) {
     return LandedPointerTargets.cage;
+  }
+  if (isOverShip === true) {
+    return LandedPointerTargets.ship;
   }
   if (isOverWorld === true) {
     return LandedPointerTargets.world;
@@ -37,8 +38,8 @@ export function classifyLandedPointerStart({
 
 /**
  * Generous screen halo around the ship, larger than the tiny diorama mesh.
- * Ship-first classification means a miss inside this halo still aims instead of
- * walking, so first-timers stop fumbling grabs against the terminator glow.
+ * A miss inside this halo still aims instead of walking when no cage is under
+ * the finger, so first-timers stop fumbling grabs against the terminator glow.
  */
 export const SeedScreenGrabRadiusPixels = 96;
 /**
@@ -73,6 +74,44 @@ export function getLandedShipGrabRadiusPixels({
     ? Math.max(0, worldScreenRadiusPixels)
     : Number.POSITIVE_INFINITY;
   return Math.min(onGlobePixels, Math.max(22, WorldRadiusPixels * 0.38));
+}
+
+/**
+ * Phone-thumb halo around a Destroy cage. Larger than the on-globe ship grab
+ * so a 390px-wide phone can tap the cage after walking near it.
+ */
+export const CageScreenGrabRadiusPixels = 88;
+
+export function getLandedCageGrabRadiusPixels({
+  worldScreenRadiusPixels = Number.POSITIVE_INFINITY,
+} = {}) {
+  if (!(CageScreenGrabRadiusPixels > 0) || !Number.isFinite(CageScreenGrabRadiusPixels)) {
+    throw new Error('Cage grab radius requires a positive finite pixel size.');
+  }
+  const WorldRadiusPixels = Number.isFinite(worldScreenRadiusPixels)
+    ? Math.max(0, worldScreenRadiusPixels)
+    : Number.POSITIVE_INFINITY;
+  return Math.min(110, Math.max(CageScreenGrabRadiusPixels, WorldRadiusPixels * 0.42));
+}
+
+/**
+ * True when ship and cage screen halos would both claim the same press.
+ * Used to keep leftover/default cages outside the parked ship's grab.
+ */
+export function doLandedCageAndShipHalosOverlap({
+  angularSeparationRadians,
+  worldScreenRadiusPixels,
+} = {}) {
+  if (!Number.isFinite(angularSeparationRadians) || !Number.isFinite(worldScreenRadiusPixels)) {
+    throw new Error('Cage/ship overlap requires finite angular separation and screen radius.');
+  }
+  const ArcPixels = Math.abs(angularSeparationRadians) * worldScreenRadiusPixels;
+  const ShipHalo = getLandedShipGrabRadiusPixels({
+    isOverWorld: true,
+    worldScreenRadiusPixels,
+  });
+  const CageHalo = getLandedCageGrabRadiusPixels({ worldScreenRadiusPixels });
+  return ArcPixels < (ShipHalo + CageHalo);
 }
 
 function normalizeAngle(AngleRadians) {

@@ -411,7 +411,7 @@ export const WanderingGardenSystemDefinition = {
         { longitude: 1.5, latitude: 0.94 },
       ],
       hostileEncounter: {
-        clampOffsetsRadians: [0.55],
+        clampOffsetsRadians: [1.5],
         cutHitRadius: 0.48,
         maxCutLength: 2.85,
       },
@@ -494,7 +494,7 @@ export const WanderingGardenSystemDefinition = {
       ],
       disposition: 'hostile',
       hostileEncounter: {
-        clampOffsetsRadians: [0.4, 0.85, 1.3],
+        clampOffsetsRadians: [1.5, 2.05, 2.6],
         cutHitRadius: 0.48,
         maxCutLength: 2.85,
       },
@@ -535,7 +535,7 @@ export const WanderingGardenSystemDefinition = {
         phaseRadians: 0, angularSpeedRadiansPerSecond: 0.08,
       },
       hostileEncounter: {
-        clampOffsetsRadians: [0.35, 0.75, 1.2],
+        clampOffsetsRadians: [1.5, 2.05, 2.6],
         cutHitRadius: 0.5,
         maxCutLength: 2.7,
       },

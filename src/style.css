@@ -78,6 +78,10 @@ button[aria-disabled='true'] {
   cursor: grab;
 }
 
+#GameCanvas.is-cage-ready {
+  cursor: pointer;
+}
+
 #GameCanvas.is-ship-armed {
   cursor: grabbing;
 }

@@ -1,7 +1,7 @@
 const FullCircleRadians = Math.PI * 2;
 
-export const DefaultClampOffsetsRadians = Object.freeze([0.4, 0.85, 1.3]);
-export const LeftoverClampOffsetsRadians = Object.freeze([0.55]);
+export const DefaultClampOffsetsRadians = Object.freeze([1.5, 2.05, 2.6]);
+export const LeftoverClampOffsetsRadians = Object.freeze([1.5]);
 export const DefaultCutHitRadius = 0.48;
 export const DefaultMaxCutLength = 2.85;
 export const ClampSurfaceLift = 0.3;
