@@ -14,11 +14,11 @@ export function createWardenVisuals(THREE, Scene, host) {
   /** Spread cage cells on a hostile rim. Tap a cage to tear it. */
   const HostilePylonGroup = new THREE.Group();
   const HostilePylonTemplateMaterial = new THREE.MeshStandardMaterial({
-    color: 0x3a161c,
-    emissive: 0xff493f,
-    emissiveIntensity: 1.05,
-    roughness: 0.42,
-    metalness: 0.72,
+    color: 0xff2a22,
+    emissive: 0xff1a12,
+    emissiveIntensity: 0.72,
+    roughness: 0.38,
+    metalness: 0.55,
   });
   const ClampPostGeometry = new THREE.BoxGeometry(0.18, 1.35, 0.18);
   const ClampBarXGeometry = new THREE.BoxGeometry(0.95, 0.12, 0.14);
@@ -82,6 +82,8 @@ export function createWardenVisuals(THREE, Scene, host) {
     HostilePylonGroup.add(ClampMesh);
   }
   HostilePylonGroup.visible = false;
+  HostilePylonGroup.renderOrder = 24;
+  HostilePylonGroup.frustumCulled = false;
   Scene.add(HostilePylonGroup);
 
   const CutSlashMaterial = new THREE.MeshBasicMaterial({
@@ -270,26 +272,21 @@ export function createWardenVisuals(THREE, Scene, host) {
       if (HostilePylonGroup.parent !== Scene) {
         Scene.add(HostilePylonGroup);
       }
+      HostilePylonGroup.position.set(0, 0, 0);
+      HostilePylonGroup.quaternion.identity();
       return;
     }
-    const WorldGroup = host.WorldRuntimeByIdentifier?.get(WorldDefinition.id)?.group;
-    if (WorldGroup) {
-      if (HostilePylonGroup.parent !== WorldGroup) {
-        WorldGroup.add(HostilePylonGroup);
-      }
-      HostilePylonGroup.position.set(0, 0, 0);
-      HostilePylonGroup.rotation.set(0, 0, 0);
-      HostilePylonGroup.quaternion.identity();
-    } else if (HostilePylonGroup.parent !== Scene) {
+    if (HostilePylonGroup.parent !== Scene) {
       Scene.add(HostilePylonGroup);
-      HostilePylonGroup.position.set(0, 0, 0);
-      HostilePylonGroup.quaternion.identity();
     }
+    HostilePylonGroup.position.set(0, 0, 0);
+    HostilePylonGroup.rotation.set(0, 0, 0);
+    HostilePylonGroup.quaternion.identity();
     let AnyVisible = false;
     for (const ClampMesh of HostilePylonGroup.children) {
       ClampMesh.visible = false;
     }
-    const CageScale = Math.max(0.42, WorldDefinition.radius * 0.16);
+    const CageScale = Math.max(0.95, WorldDefinition.radius * 0.32);
     const ClampDistance = WorldDefinition.radius + (0.22 * CageScale);
     for (const Clamp of EncounterState.clamps) {
       const ClampMesh = HostilePylonGroup.children[Clamp.id];
@@ -298,28 +295,21 @@ export function createWardenVisuals(THREE, Scene, host) {
         ClampMesh.visible = false;
         continue;
       }
-      if (WorldGroup) {
-        ClampMesh.position.set(
-          Math.cos(Clamp.surfaceAngle) * ClampDistance,
-          Math.sin(Clamp.surfaceAngle) * ClampDistance,
-          0,
-        );
-      } else {
-        ClampMesh.position.set(
-          WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
-          WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
-          WorldDefinition.position.z ?? 0,
-        );
-      }
+      ClampMesh.position.set(
+        WorldDefinition.position.x + (Math.cos(Clamp.surfaceAngle) * ClampDistance),
+        WorldDefinition.position.y + (Math.sin(Clamp.surfaceAngle) * ClampDistance),
+        WorldDefinition.position.z ?? 0,
+      );
       ClampMesh.rotation.set(0, 0, Clamp.surfaceAngle - (Math.PI * 0.5));
       ClampMesh.visible = true;
+      ClampMesh.renderOrder = 24;
       AnyVisible = true;
       const IsHighlighted = HighlightedIdSet.has(Clamp.id);
       const ClampMaterial = ClampMesh.userData.clampMaterial;
       if (ClampMaterial) {
-        ClampMaterial.color.setHex(IsHighlighted ? 0xffe7a8 : 0x4a1c24);
-        ClampMaterial.emissive.setHex(IsHighlighted ? 0xffd678 : 0xff5a4a);
-        ClampMaterial.emissiveIntensity = IsHighlighted ? 2.6 : 1.15;
+        ClampMaterial.color.setHex(IsHighlighted ? 0xffe7a8 : 0xff2a22);
+        ClampMaterial.emissive.setHex(IsHighlighted ? 0xffd678 : 0xff1a12);
+        ClampMaterial.emissiveIntensity = IsHighlighted ? 2.6 : 0.85;
       }
       ClampMesh.scale.setScalar(IsHighlighted ? CageScale * 1.12 : CageScale);
     }

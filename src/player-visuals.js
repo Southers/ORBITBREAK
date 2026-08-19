@@ -99,7 +99,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   /** A compact procedural Runner stays tiny on the world; collision radius is unchanged. */
   const SeedGroup = new THREE.Group();
   const RunnerVisualGroup = new THREE.Group();
-  const RunnerPresentationScale = 0.26;
+  const RunnerPresentationScale = 0.38;
   const ShipPresentationScale = 0.3;
   RunnerVisualGroup.scale.setScalar(RunnerPresentationScale);
   GameCanvas.dataset.runnerVisualScale = String(RunnerPresentationScale);
@@ -366,7 +366,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
    * Grab cue hugs the toy ship. Idle Haven draws nothing; a filled sphere here
    * intersected the crust as a flashlight donut around the Runner.
    */
-  const SeedHaloGeometry = new THREE.TorusGeometry(0.07, 0.01, 8, 24);
+  const SeedHaloGeometry = new THREE.TorusGeometry(0.55, 0.06, 8, 24);
   const SeedHaloMaterial = new THREE.MeshBasicMaterial({
     color: 0x8fe7ff,
     transparent: true,
@@ -511,6 +511,7 @@ export function createPlayerVisuals(THREE, Scene, host) {
   });
   const PullGuideLine = new THREE.Line(PullGuideGeometry, PullGuideMaterial);
   PullGuideLine.visible = false;
+  PullGuideLine.frustumCulled = false;
   PullGuideLine.renderOrder = 20;
   Scene.add(PullGuideLine);
   const PullGuideRibbon = createPlanarRibbon(THREE, Scene, {

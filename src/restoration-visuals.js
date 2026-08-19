@@ -6,7 +6,7 @@
  * (memory toast, hostile-encounter start, victory reveal).
  */
 
-import { getLeftoverHostileEncounter } from './encounter.js?v=20260819-ob126';
+import { getLeftoverHostileEncounter, getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob130';
 import { countLiveRelayWorlds } from './network.js';
 import { consumePendingDiscoveryToast } from './discoveries.js?v=20260818-ob123';
 import {
@@ -369,6 +369,10 @@ export function createRestorationVisuals(THREE, host) {
                   });
               }
               const EncounterDefinition = WorldDefinition.hostileEncounter
+                ?? getOccupiedWorldCageEncounter(WorldDefinition, {
+                  leftoverUnlocked: countLiveRelayWorlds(host.RelayNetworkState) >= 2,
+                  includeRestored: true,
+                })
                 ?? (
                   host.PendingRecaptureCutWorldIdentifier === WorldDefinition.id
                     ? getLeftoverHostileEncounter()

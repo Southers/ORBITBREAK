@@ -24,6 +24,7 @@ import {
   CageScreenGrabRadiusPixels,
   getLandedCageGrabRadiusPixels,
   doLandedCageAndShipHalosOverlap,
+  clampLandedCameraPanOffset,
   createSurfacePose,
   flattenSurfacePoseToEquator,
   getSphereSurfacePosition,
@@ -62,14 +63,14 @@ test('keyboard lead search checks the direct route then nearest alternating offs
   assert.ok(Math.abs(Fallback - (Math.PI / 3)) < 1e-12);
 });
 
-test('keyboard aim starts toward the suggested destination at full power', () => {
+test('keyboard aim starts at mid power so W and S both change the throw', () => {
   const AimState = createKeyboardAimState({ directionX: 0, directionY: 4 });
   const DragVector = getKeyboardAimDragVector(AimState, 6.25);
 
   assert.ok(Math.abs(AimState.angleRadians - (Math.PI / 2)) < 1e-12);
-  assert.equal(AimState.powerRatio, 1);
+  assert.equal(AimState.powerRatio, 0.62);
   assert.ok(Math.abs(DragVector.x) < 1e-12);
-  assert.equal(DragVector.y, 6.25);
+  assert.ok(Math.abs(DragVector.y - (6.25 * 0.62)) < 1e-12);
 });
 
 test('keyboard steering wraps angles and offers coarse and fine control', () => {
@@ -83,8 +84,33 @@ test('keyboard steering wraps angles and offers coarse and fine control', () => 
   assert.ok(CoarseState.angleRadians > Math.PI);
   assert.ok(FineState.angleRadians > CoarseState.angleRadians);
   assert.ok(Math.abs(
-    FineState.angleRadians - ((Math.PI * 2) - (1.5 * Math.PI / 180)),
+    FineState.angleRadians - ((Math.PI * 2) - (9 * Math.PI / 180)),
   ) < 1e-12);
+});
+
+test('keyboard A/D stays free and does not snap back toward a neighbour bearing', () => {
+  const NeighbourAngle = Math.PI / 2;
+  let AimState = createKeyboardAimState({ directionX: 1, directionY: 0, powerRatio: 0.62 });
+  for (let Step = 0; Step < 40; Step += 1) {
+    AimState = adjustKeyboardAimState(AimState, { rotationDirection: 1 });
+  }
+  const Expected = (40 * 12 * Math.PI / 180) % (Math.PI * 2);
+  assert.ok(Math.abs(AimState.angleRadians - Expected) < 1e-12);
+  assert.ok(Math.abs(AimState.angleRadians - NeighbourAngle) > 0.2);
+});
+
+test('keyboard W/S from mid power changes drag length in both directions', () => {
+  const Start = createKeyboardAimState({ directionX: 1, directionY: 0 });
+  const Stronger = adjustKeyboardAimState(Start, { powerDirection: 1 });
+  const Weaker = adjustKeyboardAimState(Start, { powerDirection: -1 });
+  assert.ok(Stronger.powerRatio > Start.powerRatio);
+  assert.ok(Weaker.powerRatio < Start.powerRatio);
+  assert.ok(
+    getKeyboardAimDragVector(Stronger, 6.25).x > getKeyboardAimDragVector(Start, 6.25).x,
+  );
+  assert.ok(
+    getKeyboardAimDragVector(Weaker, 6.25).x < getKeyboardAimDragVector(Start, 6.25).x,
+  );
 });
 
 test('keyboard power stays inside the launchable range', () => {
@@ -292,7 +318,7 @@ test('landed ship grab stays small on the visible crust so planet drags can walk
     worldScreenRadiusPixels: 48,
   });
   assert.equal(TightDisc, SeedOnGlobeGrabMinRadiusPixels);
-  assert.ok(TightDisc < 48 * 0.5);
+  assert.ok(TightDisc < 48 * 0.7);
   assert.equal(classifyLandedPointerStart({
     isOverShip: false,
     isOverWorld: true,
@@ -300,9 +326,9 @@ test('landed ship grab stays small on the visible crust so planet drags can walk
 });
 
 test('a filling phone globe grabs the parked hull, not a fraction of the world disc', () => {
-  assert.equal(SeedOnGlobeGrabRadiusPixels, 28);
-  assert.equal(SeedOnGlobeGrabMinRadiusPixels, 20);
-  assert.equal(SeedOnGlobeGrabWorldRadiusScale, 0.12);
+  assert.equal(SeedOnGlobeGrabRadiusPixels, 48);
+  assert.equal(SeedOnGlobeGrabMinRadiusPixels, 28);
+  assert.equal(SeedOnGlobeGrabWorldRadiusScale, 0.22);
   const FillingRadius = 195;
   const Hull = getLandedShipGrabRadiusPixels({
     isOverWorld: true,
@@ -316,7 +342,7 @@ test('a filling phone globe grabs the parked hull, not a fraction of the world d
     ),
   );
   assert.ok(Hull <= SeedOnGlobeGrabRadiusPixels);
-  assert.ok(Hull < FillingRadius * 0.2);
+  assert.ok(Hull < FillingRadius * 0.25);
   const InVoidBesideGlobe = getLandedShipGrabRadiusPixels({
     isOverWorld: false,
     worldScreenRadiusPixels: FillingRadius,
@@ -426,6 +452,13 @@ test('returning the pull onto the ship cancels launch', () => {
   assert.equal(shouldCancelAimedLaunch({ pointerDistanceFromShip: 0.85 }), true);
   assert.equal(shouldCancelAimedLaunch({ pointerDistanceFromShip: 0.86 }), false);
   assert.throws(() => shouldCancelAimedLaunch({ pointerDistanceFromShip: -1 }), /non-negative/);
+});
+
+test('landed empty-space pans stay inside the current world so the courier cannot leave the frame', () => {
+  assert.deepEqual(clampLandedCameraPanOffset({ x: 0.2, y: 0 }, 4), { x: 0.2, y: 0 });
+  const Clamped = clampLandedCameraPanOffset({ x: 10, y: 0 }, 4);
+  assert.ok(Math.abs(Clamped.x - 1.68) < 1e-12);
+  assert.equal(Clamped.y, 0);
 });
 
 test('a zoomed-out aim still cancels inside a constant screen disk around the ship', () => {

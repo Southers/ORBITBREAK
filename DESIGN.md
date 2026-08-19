@@ -370,10 +370,12 @@ Proposed ladder, earliest first:
 
 1. **Break** — already the first flight verb. Directed drag is the tutorial unlock; heading Space remains the accessible fallback.
 2. **Longer prediction** — after the first live link the committed chain stays on the map 1.7s; reduced motion skips the hold.
-3. **Destroy** — Ember keeps one leftover cage after the first live link. Tap it. Bastion and Command keep the full cage.
+3. **Destroy** — occupied unrestored worlds spawn a tappable equatorial cage on dock. Ember keeps one leftover cage after the first live link. Bastion and Command keep the full cage. The cage banner only appears while a cage is actually up.
 4. **Second Break** — only after the neighbourhood is talking, still one at a time, still recorded. Never a spray. Ranked schema bump still required.
 5. **Circuit beacon** — after the first loop, a visible gold ghost of the next closing edge. Information, not an auto-aim.
-6. **Command lock** — after both shields crack, keyboard/pointer lead on the moving crown. Finale gift only.
+6. **Command lock** — after both shields crack, keyboard/pointer lead on the moving crown. Finale gift only. Scout and aim always show one Command label (LOCKED until the route opens, EXPOSED after); A/D never snaps to already-linked neighbours.
+
+Keyboard aim starts from the current launch face at mid power. A/D steer freely; W/S change throw strength and the aim stem/arc length. Route beacons still mark useful neighbours without stealing the angle.
 
 Roguelike flavour without roguelike chaos: after the Warden arrives, a once-per-run recapture Destroy on a silenced world that has no authored cage. Extra Break stays deferred so ranked flights keep one recorded burn. The map, wells and ranked physics stay authored. Score still cannot reward waiting. No HP, no loot, no ship stats that persist between runs.
 

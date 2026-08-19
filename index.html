@@ -27,8 +27,8 @@
   <meta name="twitter:image" content="https://southers.github.io/ORBITBREAK/assets/warden-portrait.jpg" />
   <title>ORBITBREAK</title>
   <link rel="icon" type="image/svg+xml" href="./assets/orbitbreak-mark.svg?v=20260818-ob123" />
-  <!-- copy-revision: 20260819-ob128 -->
-  <link rel="stylesheet" href="./src/style.css?v=20260819-ob128" />
+  <!-- copy-revision: 20260819-ob130 -->
+  <link rel="stylesheet" href="./src/style.css?v=20260819-ob130" />
 
   <!--
     Buildless release import map. Three.js is pinned and vendored so startup
@@ -108,12 +108,12 @@
       <div class="how-to-play__board">
         <h2 id="HowToPlayTitle">How to play</h2>
         <ul id="HowToPlayList" class="how-to-play__list">
-          <li>Drag the planet to walk. The world turns under you.</li>
-          <li>Pull the ship and let go to fly to another tiny world.</li>
-          <li>Landing links worlds. Linked worlds prosper.</li>
-          <li>Occupied worlds have Warden cages. Tap the cage to break it.</li>
-          <li>Drag empty space to look around. C pulls the camera back.</li>
-          <li>R starts the run over.</li>
+          <li>Drag the planet to walk, or use Q and E. T and F walk the poles.</li>
+          <li>Pull the ship to aim and release to fly. A and D steer; W and S change power.</li>
+          <li>Landing links worlds. Land in the gold beacon to restore them.</li>
+          <li>Occupied worlds have a red Warden cage. Tap the cage to break it.</li>
+          <li>Drag empty space to look around. C opens the Scout map.</li>
+          <li>R starts the run over. Reach the moving Command World to finish.</li>
         </ul>
         <button id="HowToPlayContinueButton" type="button">Continue</button>
       </div>
@@ -236,9 +236,9 @@
       <div class="pause-sheet__board">
         <h2 id="PauseSheetTitle">Paused</h2>
         <div class="pause-sheet__actions">
-          <button id="ScoutButton" type="button" aria-pressed="false" aria-controls="GameCanvas" aria-keyshortcuts="C">Scout [C]</button>
-          <button id="ScoutZoomOutButton" class="scout-zoom-button" type="button" aria-label="Scout zoom out, currently 100%" aria-controls="GameCanvas" aria-keyshortcuts="-" aria-disabled="false" hidden>−</button>
-          <button id="ScoutZoomInButton" class="scout-zoom-button" type="button" aria-label="Scout zoom in, currently 100%" aria-controls="GameCanvas" aria-keyshortcuts="+" aria-disabled="false" hidden>+</button>
+          <button id="ScoutButton" type="button" aria-pressed="false" aria-controls="GameCanvas" aria-keyshortcuts="C">Scout map [C]</button>
+          <button id="ScoutZoomOutButton" class="scout-zoom-button" type="button" aria-label="Zoom out, currently 100%" aria-controls="GameCanvas" aria-keyshortcuts="-" aria-disabled="false" hidden>Zoom −</button>
+          <button id="ScoutZoomInButton" class="scout-zoom-button" type="button" aria-label="Zoom in, currently 100%" aria-controls="GameCanvas" aria-keyshortcuts="+" aria-disabled="false" hidden>Zoom +</button>
           <span id="ScoutZoomStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
           <button id="GhostButton" type="button" aria-pressed="false" aria-label="Personal-best route ghost off" aria-keyshortcuts="G" hidden>Ghost [G]</button>
           <button id="MotionButton" type="button" aria-pressed="mixed" aria-keyshortcuts="P">Motion system [P]</button>
@@ -251,6 +251,6 @@
     </section>
   </main>
 
-  <script type="module" src="./src/main.js?v=20260819-ob128"></script>
+  <script type="module" src="./src/main.js?v=20260819-ob130"></script>
 </body>
 </html>

@@ -20,6 +20,7 @@ import {
   separateOverlappingTacticalLabels,
   separateRouteLabelsFromTacticalLabels,
   shouldShowPlayfieldWorldLabels,
+  getCommandWorldTacticalLabel,
 } from './presentation.js';
 
 export function createRoutePresentation(THREE, host) {
@@ -69,45 +70,50 @@ export function createRoutePresentation(THREE, host) {
     const ExpansionChoices = getRouteChoices(
       CampaignNodeDefinitions,
       host.CurrentWorldIdentifier,
-      MaximumChoiceCount,
+      Math.max(MaximumChoiceCount, 4),
       ActiveSystem.routeSuggestions[host.CurrentWorldIdentifier] ?? [],
     );
-    if (
-      WorldheartDefinition.routeAvailable
+    const InjectCommand = WorldheartDefinition.routeAvailable
       && !WorldheartDefinition.restored
-      && host.CurrentWorldIdentifier !== WorldheartDefinition.id
-    ) {
-      return [
-        WorldheartDefinition,
-        ...ExpansionChoices.filter((Choice) => Choice.id !== WorldheartDefinition.id),
-      ].slice(0, MaximumChoiceCount);
+      && host.CurrentWorldIdentifier !== WorldheartDefinition.id;
+    if (host.WardenPursuitState.status === 'hidden' && !InjectCommand) {
+      return ExpansionChoices.slice(0, MaximumChoiceCount);
     }
-    if (host.WardenPursuitState.status === 'hidden') {
-      return ExpansionChoices;
+    const CircuitChoices = host.WardenPursuitState.status === 'hidden'
+      ? []
+      : WorldDefinitions
+        .filter((WorldDefinition) => (
+          WorldDefinition.id !== host.CurrentWorldIdentifier
+          && WorldDefinition.restored
+          && wouldCloseRelayCircuit(
+            host.RelayNetworkState,
+            host.CurrentWorldIdentifier,
+            WorldDefinition.id,
+          )
+        ))
+        .sort((FirstWorld, SecondWorld) => {
+          const CurrentWorld = getWorldDefinition(host.CurrentWorldIdentifier);
+          const FirstDistance = Math.hypot(
+            FirstWorld.position.x - CurrentWorld.position.x,
+            FirstWorld.position.y - CurrentWorld.position.y,
+          );
+          const SecondDistance = Math.hypot(
+            SecondWorld.position.x - CurrentWorld.position.x,
+            SecondWorld.position.y - CurrentWorld.position.y,
+          );
+          return FirstDistance - SecondDistance || FirstWorld.id.localeCompare(SecondWorld.id);
+        });
+    const Ordered = [];
+    if (InjectCommand) {
+      Ordered.push(WorldheartDefinition);
     }
-    const CircuitChoices = WorldDefinitions
-      .filter((WorldDefinition) => (
-        WorldDefinition.id !== host.CurrentWorldIdentifier
-        && WorldDefinition.restored
-        && wouldCloseRelayCircuit(
-          host.RelayNetworkState,
-          host.CurrentWorldIdentifier,
-          WorldDefinition.id,
-        )
-      ))
-      .sort((FirstWorld, SecondWorld) => {
-        const CurrentWorld = getWorldDefinition(host.CurrentWorldIdentifier);
-        const FirstDistance = Math.hypot(
-          FirstWorld.position.x - CurrentWorld.position.x,
-          FirstWorld.position.y - CurrentWorld.position.y,
-        );
-        const SecondDistance = Math.hypot(
-          SecondWorld.position.x - CurrentWorld.position.x,
-          SecondWorld.position.y - CurrentWorld.position.y,
-        );
-        return FirstDistance - SecondDistance || FirstWorld.id.localeCompare(SecondWorld.id);
-      });
-    return [...CircuitChoices, ...ExpansionChoices]
+    for (const Choice of ExpansionChoices) {
+      Ordered.push(Choice);
+    }
+    for (const Choice of CircuitChoices) {
+      Ordered.push(Choice);
+    }
+    return Ordered
       .filter((Choice, ChoiceIndex, Choices) => (
         Choices.findIndex((Candidate) => Candidate.id === Choice.id) === ChoiceIndex
       ))
@@ -288,6 +294,14 @@ export function createRoutePresentation(THREE, host) {
         hidePlayfieldLabel(RouteLabelElement);
         continue;
       }
+      if (
+        WorldDefinition.id === WorldheartDefinition.id
+        || WorldDefinition.kind === 'worldheart'
+        || WorldDefinition.label === WorldheartDefinition.label
+      ) {
+        hidePlayfieldLabel(RouteLabelElement);
+        continue;
+      }
 
       RouteLabelProjection.set(
         WorldDefinition.position.x,
@@ -407,9 +421,9 @@ export function createRoutePresentation(THREE, host) {
     TacticalBodyTransform.updateMatrix();
     TacticalBodyMesh.setMatrixAt(1, TacticalBodyTransform.matrix);
 
-    const WorldheartPulseScale = WorldheartDefinition.routeAvailable
-      ? 1 + (Math.sin(ElapsedTimeSeconds * 3.2) * 0.1)
-      : 0.36 + (Math.sin(ElapsedTimeSeconds * 1.4) * 0.018);
+    const WorldheartPulseScale =       WorldheartDefinition.routeAvailable
+        ? 1 + (Math.sin(ElapsedTimeSeconds * 3.2) * 0.1)
+        : 0.78 + (Math.sin(ElapsedTimeSeconds * 1.4) * 0.03);
     TacticalBodyTransform.position.set(
       WorldheartPosition.x,
       WorldheartPosition.y,
@@ -459,15 +473,16 @@ export function createRoutePresentation(THREE, host) {
         position: AsteroidPosition,
         text: `${AsteroidDefinition.label} · MOVING`,
       },
-      WorldheartDefinition.routeAvailable && !IsShortLandscape
-        ? {
-          definition: WorldheartDefinition,
-          position: WorldheartPosition,
-          text: WorldheartDefinition.orbit
-            ? `${WorldheartDefinition.label} · EXPOSED · MOVING`
-            : `${WorldheartDefinition.label} · EXPOSED`,
-        }
-        : null,
+      {
+        definition: WorldheartDefinition,
+        position: WorldheartPosition,
+        text: getCommandWorldTacticalLabel({
+          label: WorldheartDefinition.label,
+          routeAvailable: WorldheartDefinition.routeAvailable === true,
+          isMoving: Boolean(WorldheartDefinition.orbit),
+          compact: IsShortLandscape,
+        }),
+      },
     ];
     TacticalLabelScreenPositions.length = 0;
     const ProjectedTacticalLabelPositions = [];
@@ -484,6 +499,19 @@ export function createRoutePresentation(THREE, host) {
       ) {
         hidePlayfieldLabel(TacticalLabelElement);
         continue;
+      }
+      if (TacticalLabelDefinition.definition.kind === 'hazard') {
+        const OverlapsWorld = WorldDefinitions.some((WorldDefinition) => {
+          const Distance = Math.hypot(
+            WorldDefinition.position.x - TacticalLabelDefinition.position.x,
+            WorldDefinition.position.y - TacticalLabelDefinition.position.y,
+          );
+          return Distance < WorldDefinition.radius + 3.2;
+        });
+        if (OverlapsWorld) {
+          hidePlayfieldLabel(TacticalLabelElement);
+          continue;
+        }
       }
 
       RouteLabelProjection.set(

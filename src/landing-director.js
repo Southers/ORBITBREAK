@@ -6,7 +6,7 @@
 
 import { countRestoredWorlds } from './campaign.js';
 import { evaluateRelayPortLanding } from './flight-resolver.js';
-import { connectRelayWorlds } from './network.js';
+import { countLiveRelayWorlds, connectRelayWorlds } from './network.js';
 import { createVector } from './physics.js';
 import {
   getRelayRevealLookTarget,
@@ -18,6 +18,7 @@ import { calculateNormalizedSphericalDistance } from './restoration.js';
 import { addCircuitBonus, addVictoryBonus } from './scoring.js';
 import { settleRunFlight } from './run.js';
 import { WardenPursuitEvents } from './warden.js';
+import { getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob130';
 
 export function createLandingDirector(THREE, host) {
   const {
@@ -63,6 +64,20 @@ export function createLandingDirector(THREE, host) {
     CourierStartTimesByLinkId,
   } = host;
   const centerLandedCamera = (...Args) => host.centerLandedCamera(...Args);
+
+  function beginOccupiedWorldCagesIfNeeded(WorldDefinition) {
+    if (host.ReplayPlaybackState !== null || host.GamePhase !== 'attached') {
+      return;
+    }
+    const Encounter = getOccupiedWorldCageEncounter(WorldDefinition, {
+      leftoverUnlocked: countLiveRelayWorlds(host.RelayNetworkState) >= 2,
+      includeRestored: !CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id),
+    });
+    if (!Encounter) {
+      return;
+    }
+    host.beginHostileEncounter(WorldDefinition, Encounter);
+  }
 
   /**
    * Starts the lightweight greybox restoration animation and marks objective state.
@@ -322,8 +337,8 @@ export function createLandingDirector(THREE, host) {
       clearTrajectoryPreview();
       showStatusToast(
         TotalBankedPoints > 0
-          ? `DOCKED · BEACON ARC MISSED · +${TotalBankedPoints.toLocaleString('en-GB')} BANKED`
-          : 'DOCKED · BEACON ARC MISSED',
+          ? `DOCKED · missed the gold landing · +${TotalBankedPoints.toLocaleString('en-GB')} BANKED`
+          : 'DOCKED · missed the gold landing',
         1450,
       );
       host.showInstruction(
@@ -341,6 +356,9 @@ export function createLandingDirector(THREE, host) {
         850,
       );
       host.showRouteChoiceInstruction();
+    }
+    if (host.GamePhase === 'attached') {
+      beginOccupiedWorldCagesIfNeeded(WorldDefinition);
     }
     const SuppressedWorld = host.settleNonCommandFlight({
       firstCircuitClosed: RelayConnection?.circuitClosed === true,

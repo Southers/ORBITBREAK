@@ -2,7 +2,7 @@
  * World mesh factory. Presentation-only; never enters ranked simulation.
  */
 
-import { getWorldSurfaceFinish } from './presentation.js';
+import { getToyDioramaScale, getWorldSurfaceFinish } from './presentation.js';
 
 export function createWorldVisuals(THREE, Scene, {
   worldDefinitions: WorldDefinitions,
@@ -158,7 +158,8 @@ export function createWorldVisuals(THREE, Scene, {
       InstancePosition.copy(TemporaryThreeVector)
         .multiplyScalar(WorldDefinition.radius * (1 - surfaceInset));
       InstanceQuaternion.setFromUnitVectors(UpAxis, TemporaryThreeVector);
-      const ScatterScale = minimumScale + (nextRandomValue() * (maximumScale - minimumScale));
+      const ScatterScale = (minimumScale + (nextRandomValue() * (maximumScale - minimumScale)))
+        * getToyDioramaScale(WorldDefinition.radius);
       InstanceScale.setScalar(ScatterScale);
       InstanceMatrix.compose(InstancePosition, InstanceQuaternion, InstanceScale);
       ScatterMesh.setMatrixAt(InstanceIndex, InstanceMatrix);
@@ -336,7 +337,7 @@ export function createWorldVisuals(THREE, Scene, {
     if (VisualKey === 'ember' || VisualKey === 'kiln' || VisualKey === 'lantern' || VisualKey === 'vault') {
       return mergeScatterParts([
         { geometry: new THREE.CylinderGeometry(0.04, 0.07, 0.22, 6), position: [0, 0.11, 0], color: 0x4a3438 },
-        { geometry: new THREE.OctahedronGeometry(0.07, 0), position: [0, 0.26, 0], scale: [0.7, 1.55, 0.7], color: 0x5a3a3c },
+        { geometry: new THREE.OctahedronGeometry(0.07, 0), position: [0, 0.26, 0], scale: [0.7, 1.55, 0.7], color: 0xc4784a },
         { geometry: new THREE.SphereGeometry(0.042, 6, 5), position: [0.02, 0.2, 0.03], color: 0xff7a38 },
       ]);
     }
@@ -428,12 +429,13 @@ export function createWorldVisuals(THREE, Scene, {
     const GlowColor = (WorldDefinition.accentColor ?? WorldDefinition.aliveColor
       ?? DeadWorldColor).clone();
     const GlowMaterial = new THREE.MeshStandardMaterial({
-      color: 0x141a1e,
+      color: 0xffd089,
       roughness: 0.5,
       metalness: 0,
       emissive: GlowColor,
       emissiveIntensity: 2.3,
     });
+    GlowMaterial.userData.scatterDeadColor = new THREE.Color(0x6a4a28);
     applyScatterRestorationShader(
       GlowMaterial,
       RestorationUniforms,
@@ -826,7 +828,7 @@ export function createWorldVisuals(THREE, Scene, {
   }
 
   /** Places a local-Y-up prop against a spherical surface and registers wave metadata. */
-  const SurfacePropDioramaScale = 0.92;
+  const SurfacePropDioramaScale = 0.48;
   function placeSurfaceProp(
     PropObject,
     SurfaceDirection,
@@ -835,8 +837,9 @@ export function createWorldVisuals(THREE, Scene, {
     SurfaceOffset = 0,
   ) {
     const NormalizedDirection = SurfaceDirection.clone().normalize();
-    const PropScale = BaseScale * SurfacePropDioramaScale;
-    PropObject.position.copy(NormalizedDirection).multiplyScalar(WorldRadius + SurfaceOffset);
+    const PropScale = BaseScale * SurfacePropDioramaScale * getToyDioramaScale(WorldRadius);
+    const PlantRadius = (WorldRadius * 0.97) + SurfaceOffset;
+    PropObject.position.copy(NormalizedDirection).multiplyScalar(PlantRadius);
     PropObject.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), NormalizedDirection);
     PropObject.userData.baseQuaternion = PropObject.quaternion.clone();
     PropObject.scale.setScalar(PropScale);
@@ -853,11 +856,11 @@ export function createWorldVisuals(THREE, Scene, {
       color: SuitHex,
       roughness: 0.58,
     });
-    const Body = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.2, 3, 6), SuitMaterial);
-    Body.position.y = 0.2;
+    const Body = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.08, 3, 6), SuitMaterial);
+    Body.position.y = 0.1;
     Walker.add(Body);
-    const Head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), SuitMaterial);
-    Head.position.y = 0.42;
+    const Head = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), SuitMaterial);
+    Head.position.y = 0.21;
     Walker.add(Head);
     placeSurfaceProp(Walker, SurfaceDirection, WorldDefinition.radius, 1.08, 0.02);
     registerRestorableMaterial(Walker, SuitMaterial);
@@ -2474,12 +2477,12 @@ export function createWorldVisuals(THREE, Scene, {
     ];
     JettySites.forEach((Direction, Index) => {
       const Jetty = new THREE.Group();
-      const Deck = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.08, 0.36), DeckMaterial);
-      Deck.position.y = 0.12;
+      const Deck = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.05, 0.12), DeckMaterial);
+      Deck.position.y = 0.06;
       Jetty.add(Deck);
-      for (const [PilingX, PilingZ] of [[-0.4, 0.12], [0.4, 0.12], [-0.4, -0.12], [0.4, -0.12]]) {
-        const Piling = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.18, 5), PilingMaterial);
-        Piling.position.set(PilingX, 0.06, PilingZ);
+      for (const [PilingX, PilingZ] of [[-0.12, 0.04], [0.12, 0.04], [-0.12, -0.04], [0.12, -0.04]]) {
+        const Piling = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.1, 5), PilingMaterial);
+        Piling.position.set(PilingX, 0.03, PilingZ);
         Jetty.add(Piling);
       }
       placeSurfaceProp(Jetty, Direction, WorldDefinition.radius, 1.05 + (Index * 0.06), 0.02);
@@ -2489,7 +2492,7 @@ export function createWorldVisuals(THREE, Scene, {
       SurfacePropGroup.add(Jetty);
     });
     const Boat = new THREE.Group();
-    const Hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.42, 3, 6), HullMaterial);
+    const Hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, 0.14, 3, 6), HullMaterial);
     Hull.rotation.z = Math.PI * 0.5;
     Hull.position.y = 0.12;
     Boat.add(Hull);
@@ -2498,7 +2501,7 @@ export function createWorldVisuals(THREE, Scene, {
     Boat.userData.kind = 'boat';
     SurfacePropGroup.add(Boat);
     const SecondBoat = new THREE.Group();
-    const SecondHull = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.42, 3, 6), HullMaterial);
+    const SecondHull = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, 0.14, 3, 6), HullMaterial);
     SecondHull.rotation.z = Math.PI * 0.5;
     SecondHull.position.y = 0.12;
     SecondBoat.add(SecondHull);

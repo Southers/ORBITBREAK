@@ -22,7 +22,7 @@ import {
   getHostileEncounterMoveDirection,
   getNearestClampCut,
   getRemainingClamps,
-} from './encounter.js?v=20260819-ob126';
+} from './encounter.js?v=20260819-ob130';
 import { createVector } from './physics.js';
 import { calculateSurfaceRestPosition as calculateSharedSurfaceRestPosition } from './flight-resolver.js';
 
@@ -191,11 +191,19 @@ export function createHostileSurface(THREE, host) {
     return CutReady;
   }
 
+  function hasTappableHostileCage() {
+    if (!host.ActiveHostileEncounterState) return false;
+    if (getRemainingClamps(host.ActiveHostileEncounterState).length < 1) return false;
+    return HostilePylonGroup?.visible === true;
+  }
+
   function showHostileEncounterInstruction() {
     const AttachedWorld = getCurrentAttachedWorld();
     if (!AttachedWorld || !host.ActiveHostileEncounterState) return false;
-    const IsCommandApproach = AttachedWorld.kind === 'worldheart';
+    if (host.IsKeyboardAiming || host.IsPointerAiming) return false;
     const RemainingCount = getRemainingClamps(host.ActiveHostileEncounterState).length;
+    if (RemainingCount < 1 || HostilePylonGroup?.visible !== true) return false;
+    const IsCommandApproach = AttachedWorld.kind === 'worldheart';
     const CommandApproachTitle = ActiveSystem.commandApproachLine
       ?? 'The lattice is open.';
     const RunnerSurfaceAngle = getRunnerSurfaceAngle(AttachedWorld);
@@ -242,6 +250,11 @@ export function createHostileSurface(THREE, host) {
       || CompletedHostileEncounterWorldIdentifiers.has(WorldDefinition.id)
     ) {
       return false;
+    }
+    if (host.ActiveHostileEncounterState?.worldIdentifier === WorldDefinition.id) {
+      publishHostileEncounterState();
+      showHostileEncounterInstruction();
+      return true;
     }
     cancelCutAim({ announce: false });
     host.ActiveHostileEncounterState = createHostileEncounterState({
@@ -346,6 +359,7 @@ export function createHostileSurface(THREE, host) {
     refreshHostileClampVisuals,
     publishHostileEncounterState,
     showHostileEncounterInstruction,
+    hasTappableHostileCage,
     beginHostileEncounter,
     setRunnerSurfaceAngle,
     setRunnerSurfacePose,

@@ -45,14 +45,14 @@ export const SeedScreenGrabRadiusPixels = 96;
  * On a filling phone globe, min(72, worldRadius*0.38) became a ~210px disc
  * that armed launch over half of 390px. Grab the parked hull only.
  */
-export const SeedOnGlobeGrabRadiusPixels = 28;
+export const SeedOnGlobeGrabRadiusPixels = 48;
 /** Floor so a tiny world still has a tappable hull disk. */
-export const SeedOnGlobeGrabMinRadiusPixels = 20;
+export const SeedOnGlobeGrabMinRadiusPixels = 28;
 /**
  * Hull disk as a fraction of world screen radius. 0.38 of a filling planet
- * swallowed the crust; 0.12 stays on the mesh.
+ * swallowed the crust; 0.22 covers the parked hull without eating the walk.
  */
-export const SeedOnGlobeGrabWorldRadiusScale = 0.12;
+export const SeedOnGlobeGrabWorldRadiusScale = 0.22;
 
 /**
  * Ship grab is the parked hull on a filling globe, and the 96px empty-space
@@ -514,29 +514,48 @@ export function getScoutZoomPresentation(
   };
 }
 
+/**
+ * Mid power so W and S both change the throw. Full power from the inner
+ * wells dumps every line into a neighbour; starting at 1 made W a no-op.
+ */
+export const KeyboardAimDefaultPowerRatio = 0.62;
+/** Coarse A/D step. 8° still read as neighbour-snapping inside a tight cluster. */
+export const KeyboardAimCoarseDegrees = 12;
+export const KeyboardAimRepeatDegrees = 16;
+export const KeyboardAimFineDegrees = 3;
+export const KeyboardAimFineRepeatDegrees = 6;
+export const KeyboardAimCoarsePowerStep = 0.08;
+export const KeyboardAimFinePowerStep = 0.02;
+
 /** Keeps keyboard aim state finite, normalized and inside the playable power range. */
 export function createKeyboardAimState({
   directionX = 1,
   directionY = 0,
-  powerRatio = 1,
+  powerRatio = KeyboardAimDefaultPowerRatio,
 } = {}) {
   const DirectionLength = Math.hypot(directionX, directionY);
   const AngleRadians = DirectionLength > 0
     ? Math.atan2(directionY / DirectionLength, directionX / DirectionLength)
     : 0;
+  const FallbackPower = KeyboardAimDefaultPowerRatio;
   return {
     angleRadians: (AngleRadians + FullCircleRadians) % FullCircleRadians,
-    powerRatio: Math.min(1, Math.max(0.04, Number.isFinite(powerRatio) ? powerRatio : 1)),
+    powerRatio: Math.min(
+      1,
+      Math.max(0.04, Number.isFinite(powerRatio) ? powerRatio : FallbackPower),
+    ),
   };
 }
 
 /** Applies one keyboard steering or power adjustment without coupling input to physics. */
 export function adjustKeyboardAimState(
   AimState,
-  { rotationDirection = 0, powerDirection = 0, fine = false } = {},
+  { rotationDirection = 0, powerDirection = 0, fine = false, repeat = false } = {},
 ) {
-  const RotationStepRadians = (fine ? 0.5 : 2) * (Math.PI / 180);
-  const PowerStep = fine ? 0.01 : 0.04;
+  const CoarseDegrees = repeat === true ? KeyboardAimRepeatDegrees : KeyboardAimCoarseDegrees;
+  const FineDegrees = repeat === true ? KeyboardAimFineRepeatDegrees : KeyboardAimFineDegrees;
+  const RotationStepRadians = (fine ? FineDegrees : CoarseDegrees) * (Math.PI / 180);
+  const PowerStep = fine ? KeyboardAimFinePowerStep : KeyboardAimCoarsePowerStep;
   return {
     angleRadians: (
       AimState.angleRadians
@@ -640,6 +659,26 @@ export function getPointerClientDistance(FirstPointer, SecondPointer) {
     SecondPointer.clientX - FirstPointer.clientX,
     SecondPointer.clientY - FirstPointer.clientY,
   );
+}
+
+/** Keeps landed empty-space pans from losing the courier off-screen. */
+export function clampLandedCameraPanOffset(offset, worldRadius, maxRadiusScale = 0.42) {
+  const X = Number(offset?.x);
+  const Y = Number(offset?.y);
+  const Radius = Number(worldRadius);
+  if (!Number.isFinite(X) || !Number.isFinite(Y)) {
+    return { x: 0, y: 0 };
+  }
+  if (!Number.isFinite(Radius) || Radius <= 0) {
+    return { x: X, y: Y };
+  }
+  const MaxLength = Radius * maxRadiusScale;
+  const Length = Math.hypot(X, Y);
+  if (Length <= MaxLength) {
+    return { x: X, y: Y };
+  }
+  const Scale = MaxLength / Length;
+  return { x: X * Scale, y: Y * Scale };
 }
 
 /** Screen pull that leaves a ship-locked twitch pending and then shows the aim tether. */

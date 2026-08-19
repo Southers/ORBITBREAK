@@ -15,6 +15,7 @@ import {
   getRelayLinkOpacity,
   getPlanningAtmosphere,
   getPlanningFocusWorldIdentifiers,
+  getCommandWorldTacticalLabel,
   getRelayRevealHoldDurationSeconds,
   getRelayRevealLookTarget,
   getRunUnlockState,
@@ -65,6 +66,8 @@ import {
   getRangeVeilStrength,
   getTyrantOccupationStrength,
   getExtractionFreighterTravelProgress,
+  getToyDioramaScale,
+  ToyDioramaReferenceRadius,
   getLandedCameraScale,
   getLandedSurfaceCameraPose,
   getActiveViewZoomMinimumScale,
@@ -310,12 +313,12 @@ test('how to play is one short page in Matt voice before the first walk', () => 
   assert.equal(Presentation.title, 'How to play');
   assert.equal(Presentation.continueLabel, 'Continue');
   assert.deepEqual(Presentation.lines, [
-    'Drag the planet to walk. The world turns under you.',
-    'Pull the ship and let go to fly to another tiny world.',
-    'Landing links worlds. Linked worlds prosper.',
-    'Occupied worlds have Warden cages. Tap the cage to break it.',
-    'Drag empty space to look around. C pulls the camera back.',
-    'R starts the run over.',
+    'Drag the planet to walk, or use Q and E. T and F walk the poles.',
+    'Pull the ship to aim and release to fly. A and D steer; W and S change power.',
+    'Landing links worlds. Land in the gold beacon to restore them.',
+    'Occupied worlds have a red Warden cage. Tap the cage to break it.',
+    'Drag empty space to look around. C opens the Scout map.',
+    'R starts the run over. Reach the moving Command World to finish.',
   ]);
   assert.equal(HowToPlayLines.length, 6);
   assert.equal(Presentation.lines.join(' ').includes('\u2014'), false);
@@ -738,19 +741,26 @@ test('default planning focus stays on the neighbourhood until the outer Reach is
     currentWorldIdentifier: 'meadow',
     ...BreakerReachCluster,
   }).sort(), ['ember', 'grove', 'meadow']);
-  assert.deepEqual(getPlanningFocusWorldIdentifiers({
+  const AliveFocus = getPlanningFocusWorldIdentifiers({
     innerClusterLive: true,
     commandRouteAvailable: false,
     currentWorldIdentifier: 'grove',
     nearbyWorldIdentifiers: ['tide', 'bastion'],
+    sectorWorldIdentifiers: ['glasswing', 'cinder'],
     ...BreakerReachCluster,
-  }).sort(), ['bastion', 'grove', 'tide']);
+  });
+  assert.ok(AliveFocus.includes('grove'));
+  assert.ok(AliveFocus.includes('tide'));
+  assert.ok(AliveFocus.includes('bastion'));
+  assert.ok(AliveFocus.includes('frost'));
+  assert.ok(AliveFocus.includes('worldheart'));
+  assert.ok(AliveFocus.includes('glasswing'));
   assert.equal(getPlanningFocusWorldIdentifiers({
     innerClusterLive: true,
     commandRouteAvailable: false,
     currentWorldIdentifier: 'grove',
     ...BreakerReachCluster,
-  }).includes('tide'), false);
+  }).includes('worldheart'), true);
   assert.ok(getPlanningFocusWorldIdentifiers({
     innerClusterLive: true,
     commandRouteAvailable: true,
@@ -1032,8 +1042,8 @@ test('parked Orbitbreaker lies on the crust instead of standing as a pole', () =
   });
   assert.equal(NearFace.dorsal.z, 1);
   assert.equal(NearFace.lieDownX, 0);
-  assert.equal(NearFace.scale, 0.08);
-  assert.ok(NearFace.scale < 0.26, 'parked courier must be smaller than the Runner');
+  assert.equal(NearFace.scale, 0.14);
+  assert.ok(NearFace.scale < LandedRunnerPresentationScale, 'parked courier must be smaller than the Runner');
   assert.ok(Math.abs(NearFace.nose.z) < 0.08);
   assert.ok(
     Math.abs(NearFace.nose.y) < 0.08,
@@ -1223,7 +1233,7 @@ test('walking a full circuit keeps the Runner on the camera-facing pole of one w
   const ShipDrop = getParkedShipCrustDrop();
   assert.ok(ShipDrop > 0.08);
   assert.ok(ShipDrop < FootOffset);
-  assert.equal(ParkedShipPresentationScale, 0.08);
+  assert.equal(ParkedShipPresentationScale, 0.14);
 });
 
 test('Stillness cage visibly expands and vanishes through liberation', () => {
@@ -1410,17 +1420,24 @@ test('tyrant occupation collapses through the liberation wave and never returns 
   assert.equal(MidHaul.isReturning, false);
 });
 
+test('toy diorama props shrink on outposts instead of swallowing the crust', () => {
+  assert.equal(ToyDioramaReferenceRadius, 3.2);
+  assert.equal(getToyDioramaScale(3.2), 1);
+  assert.equal(getToyDioramaScale(4.2), 1);
+  assert.ok(Math.abs(getToyDioramaScale(1.1) - (1.1 / 3.2)) < 1e-12);
+});
+
 test('landed camera frames one world tightly enough for surface art to read', () => {
   const EmberScale = getLandedCameraScale({ worldRadius: 3.2, viewportWorldHeight: 24 });
-  assert.ok(EmberScale >= 0.32 && EmberScale <= 0.46);
-  assert.ok(EmberScale < 0.42);
+  assert.ok(EmberScale >= 0.18 && EmberScale <= 0.28);
+  assert.ok(EmberScale < 0.27);
   const TinyScale = getLandedCameraScale({ worldRadius: 2.15, viewportWorldHeight: 24 });
-  assert.equal(TinyScale, 0.32);
+  assert.equal(TinyScale, 0.18);
 });
 
 test('landed close-up may zoom one extra notch while Scout stays a sector view', () => {
   assert.equal(ScoutMinimumZoomScale, 0.38);
-  assert.equal(LandedMinimumZoomScale, 0.28);
+  assert.equal(LandedMinimumZoomScale, 0.18);
   assert.equal(getActiveViewZoomMinimumScale({ isScoutMode: true }), ScoutMinimumZoomScale);
   assert.equal(getActiveViewZoomMinimumScale({ isPlanningCamera: true }), ScoutMinimumZoomScale);
   assert.equal(getActiveViewZoomMinimumScale({}), LandedMinimumZoomScale);
@@ -1539,6 +1556,18 @@ test('occupied atmospheres and surface finishes keep Ember, Grove and Frost dist
     toastVisible: true,
   }), false);
   assert.equal(shouldShowPlayfieldWorldLabels({}), false);
+  assert.equal(getCommandWorldTacticalLabel({
+    routeAvailable: false,
+    isMoving: true,
+  }), 'COMMAND WORLD · LOCKED · MOVING');
+  assert.equal(getCommandWorldTacticalLabel({
+    routeAvailable: true,
+    isMoving: true,
+  }), 'COMMAND WORLD · EXPOSED · MOVING');
+  assert.equal(getCommandWorldTacticalLabel({
+    routeAvailable: false,
+    compact: true,
+  }), 'COMMAND WORLD · LOCKED');
   assert.equal(isProjectedLabelInsideWorldDisc({
     labelNdcX: 0.02,
     labelNdcY: 0.01,

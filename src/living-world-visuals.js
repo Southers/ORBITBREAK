@@ -27,6 +27,7 @@ import {
   getTradeHullScale,
   getTyrantOccupationStrength,
   getWorldLifeStage,
+  getToyDioramaScale,
   listOccupationSites,
   shouldShowInhabitantSlot,
 } from './presentation.js';
@@ -224,27 +225,17 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
   /** Jetty: deck, pilings and a bollard so docks read as harbour, not a plank. */
   function createJettyBuildingGeometry() {
     return mergePrimitiveParts([
-      { geometry: new THREE.BoxGeometry(1.42, 0.1, 0.48), position: [0, 0.16, 0], color: 0x8a6a48 },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, 0.16], color: 0x5a4030 },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, 0.16], color: 0x5a4030 },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [-0.52, 0.08, -0.16], color: 0x5a4030 },
-      { geometry: new THREE.CylinderGeometry(0.05, 0.06, 0.22, 6), position: [0.52, 0.08, -0.16], color: 0x5a4030 },
-      { geometry: new THREE.CylinderGeometry(0.04, 0.05, 0.16, 6), position: [0.48, 0.26, 0], color: 0xc9a078 },
+      { geometry: new THREE.BoxGeometry(0.32, 0.06, 0.14), position: [0, 0.08, 0], color: 0x8a6a48 },
+      { geometry: new THREE.CylinderGeometry(0.02, 0.024, 0.1, 6), position: [-0.12, 0.04, 0.05], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.02, 0.024, 0.1, 6), position: [0.12, 0.04, 0.05], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.02, 0.024, 0.1, 6), position: [-0.12, 0.04, -0.05], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.02, 0.024, 0.1, 6), position: [0.12, 0.04, -0.05], color: 0x5a4030 },
+      { geometry: new THREE.CylinderGeometry(0.016, 0.02, 0.08, 6), position: [0.12, 0.14, 0], color: 0xc9a078 },
     ]);
   }
 
   function getDisplayedProsperityPresence(stage) {
-    const NetworkPresence = getProsperityPresence(stage);
-    if (NetworkPresence > 0) {
-      return NetworkPresence;
-    }
-    if (stage === 'isolated') {
-      return 0.72;
-    }
-    if (stage === 'tyrant') {
-      return 0.54;
-    }
-    return 0;
+    return getProsperityPresence(stage);
   }
 
   function getDisplayedBuildingKind(stage, patternIndex, satelliteIndex = 0) {
@@ -831,25 +822,30 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
       );
       const Visibility = OccupationStrength * Haul.opacity;
       if (Visibility > 0.05) NextVisibleExtractionFreighterCount += 1;
-      const OriginX = WorldDefinition.position.x;
-      const OriginY = WorldDefinition.position.y;
+      const OriginPlacement = getWorldLifePlacement(WorldDefinition, {
+        longitude: (FreighterIndex * 0.9) + (WorldDefinition.relayPort?.angleRadians ?? 0),
+        latitude: 0.12,
+      }, 0.18);
+      const OriginX = OriginPlacement.x;
+      const OriginY = OriginPlacement.y;
       const TravelX = THREE.MathUtils.lerp(OriginX, ExtractionSink.x, Haul.travelProgress);
       const TravelY = THREE.MathUtils.lerp(OriginY, ExtractionSink.y, Haul.travelProgress);
       const OffsetX = OriginY - ExtractionSink.y;
       const OffsetY = ExtractionSink.x - OriginX;
       const OffsetLength = Math.hypot(OffsetX, OffsetY) || 1;
       const LaneOffset = Math.sin(Haul.travelProgress * Math.PI) * 1.6;
+      const CraftScale = Visibility * 0.22 * getToyDioramaScale(WorldDefinition.radius);
       ExtractionFreighterTransform.position.set(
         TravelX + ((OffsetX / OffsetLength) * LaneOffset),
         TravelY + ((OffsetY / OffsetLength) * LaneOffset),
-        0.42 + (Math.sin(Haul.travelProgress * Math.PI) * 0.55),
+        OriginPlacement.z + (Math.sin(Haul.travelProgress * Math.PI) * 0.35),
       );
       ExtractionFreighterTransform.rotation.set(
         0,
         0,
         Math.atan2(ExtractionSink.y - OriginY, ExtractionSink.x - OriginX) - (Math.PI * 0.5),
       );
-      ExtractionFreighterTransform.scale.setScalar(Visibility);
+      ExtractionFreighterTransform.scale.setScalar(CraftScale);
       ExtractionFreighterTransform.updateMatrix();
       ExtractionFreighterMesh.setMatrixAt(FreighterIndex, ExtractionFreighterTransform.matrix);
     }
@@ -1104,7 +1100,8 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         continue;
       }
       NextVisibleProsperityBuildingCount += 1;
-      const StanceScale = 1.35;
+      const ToyScale = getToyDioramaScale(Building.worldDefinition.radius);
+      const StanceScale = ToyScale;
       const Height = BuildingProfile.height
         * Presence
         * StanceScale
@@ -1564,22 +1561,35 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
 
   function updateLocalCraftVisuals(ElapsedTimeSeconds) {
     const PulseTime = host.PrefersReducedMotion ? 0 : ElapsedTimeSeconds;
+    let VisibleLocalCraftCount = 0;
     for (let WorldIndex = 0; WorldIndex < LocalCraftWorlds.length; WorldIndex += 1) {
       const WorldDefinition = LocalCraftWorlds[WorldIndex];
       const Sites = listOccupationSites(WorldDefinition);
+      const ToyScale = getToyDioramaScale(WorldDefinition.radius);
+      const ShowCrafts = WorldDefinition.restored === true;
       for (let CraftSlot = 0; CraftSlot < 2; CraftSlot += 1) {
         const InstanceIndex = (WorldIndex * 2) + CraftSlot;
+        if (!ShowCrafts || Sites.length < 1) {
+          hideInstance(LocalCraftTransform, LocalCraftMesh, InstanceIndex);
+          continue;
+        }
         const Site = Sites[CraftSlot % Sites.length];
         const Phase = PulseTime * 1.5 + WorldIndex + (CraftSlot * 2.1);
+        const Placement = getWorldLifePlacement(WorldDefinition, {
+          longitude: Site.longitude + (CraftSlot === 0 ? 0.28 : -0.32),
+          latitude: Site.latitude * 0.42,
+        }, 0.05 + (Math.sin(Phase) * 0.012));
+        if (shouldHideFarSideLife(WorldDefinition, Placement)) {
+          hideInstance(LocalCraftTransform, LocalCraftMesh, InstanceIndex);
+          continue;
+        }
+        VisibleLocalCraftCount += 1;
         applySphereInstance(
           LocalCraftTransform,
-          getWorldLifePlacement(WorldDefinition, {
-            longitude: Site.longitude + (CraftSlot === 0 ? 0.28 : -0.32),
-            latitude: Site.latitude * 0.42,
-          }, 0.05 + (Math.sin(Phase) * 0.012)),
-          2.35,
-          1.15,
-          1.35,
+          Placement,
+          0.28 * ToyScale,
+          0.14 * ToyScale,
+          0.16 * ToyScale,
           Site.longitude + (CraftSlot * 0.8),
         );
         LocalCraftMesh.setMatrixAt(InstanceIndex, LocalCraftTransform.matrix);
@@ -1606,7 +1616,7 @@ export function createLivingWorldVisuals(THREE, Scene, host) {
         LocalCraftMesh.instanceColor.needsUpdate = true;
       }
     }
-    GameCanvas.dataset.localCraftCount = String(LocalCraftWorlds.length * 2);
+    GameCanvas.dataset.localCraftCount = String(VisibleLocalCraftCount);
   }
 
   function publishRelayNetworkState() {

@@ -190,6 +190,9 @@ function getPlanningFocusPoints() {
     ],
     currentWorldIdentifier: CurrentWorldIdentifier,
     nearbyWorldIdentifiers: NearbyWorldIdentifiers,
+    sectorWorldIdentifiers: isLiveInnerCluster()
+      ? WorldDefinitions.map((WorldDefinition) => WorldDefinition.id)
+      : [],
     ...getSectorClusterRules(),
   }));
   const FocusPoints = WorldDefinitions
@@ -210,7 +213,6 @@ function applySectorPlanningCamera() {
   const PlanningCamera = getSectorPlanningCamera({
     runner: host.SeedPhysicsState.position,
     focusPoints: FocusPoints,
-    pathPoints: host.LastPlanningPathPoints,
     viewportWorldWidth: ActiveSystem.camera?.viewportWorldWidth ?? 20,
     viewportWorldHeight: ActiveSystem.camera?.viewportWorldHeight ?? 24,
   });
@@ -360,7 +362,7 @@ function setScoutMode(Enabled, { snapToRunner = true } = {}) {
       host.getActiveElement() === ScoutZoomOutButtonElement
       || host.getActiveElement() === ScoutZoomInButtonElement
     );
-  ScoutButtonElement.textContent = host.IsScoutMode ? 'Runner [C]' : 'Scout [C]';
+  ScoutButtonElement.textContent = host.IsScoutMode ? 'Runner [C]' : 'Scout map [C]';
   ScoutButtonElement.setAttribute('aria-pressed', String(host.IsScoutMode));
   if (!host.IsScoutMode) {
     ScoutZoomStatusElement.textContent = WasScoutMode ? 'Scout view off' : '';

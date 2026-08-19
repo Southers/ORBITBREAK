@@ -142,6 +142,19 @@ export function auditReleaseReadiness() {
     'Aiming must frame the readable neighbourhood, lift fog and keep pinch zoom on the exact remaining path.',
   );
   requireCondition(
+    ControlsSource.includes('KeyboardAimDefaultPowerRatio = 0.62')
+      && ControlsSource.includes('KeyboardAimCoarseDegrees = 12')
+      && InputControllerSource.includes("dataset.keyboardAimAssist = 'direct'")
+      && InputControllerSource.includes('Opens keyboard aim from the current launch face')
+      && PresentationSource.includes('export function getCommandWorldTacticalLabel(')
+      && RoutePresentationSource.includes('getCommandWorldTacticalLabel(')
+      && HostileSurfaceSource.includes('hasTappableHostileCage')
+      && HostileSurfaceSource.includes('HostilePylonGroup?.visible !== true')
+      && MainSource.includes('TrajectoryLine.visible = PreviewPointCount > 1')
+      && LandingDirectorSource.includes('includeRestored: !CompletedHostileEncounterWorldIdentifiers.has'),
+    'Keyboard aim must free-steer from the launch face at mid power, keep the arc drawn, label Command once, and show the cage banner only when a cage is up.',
+  );
+  requireCondition(
     InputControllerSource.includes('classifyPendingShipGrab(')
       && InputControllerSource.includes('classifyLandedPointerStart(')
       && InputControllerSource.includes('LandedPointerTargets.ship')
@@ -156,8 +169,8 @@ export function auditReleaseReadiness() {
       && ControlsSource.includes('if (isOverCage === true)')
       && ControlsSource.includes('CageScreenGrabRadiusPixels = 88')
       && ControlsSource.includes('SeedScreenGrabRadiusPixels = 96')
-      && ControlsSource.includes('SeedOnGlobeGrabRadiusPixels = 28')
-      && ControlsSource.includes('SeedOnGlobeGrabWorldRadiusScale = 0.12')
+      && ControlsSource.includes('SeedOnGlobeGrabRadiusPixels = 48')
+      && ControlsSource.includes('SeedOnGlobeGrabWorldRadiusScale = 0.22')
       && !InputControllerSource.includes('Walk near')
       && !HostileSurfaceSource.includes('Walk near')
       && InputControllerSource.includes('finishArmedCageTap(')
@@ -170,7 +183,7 @@ export function auditReleaseReadiness() {
     'First-timer walk vs aim must lock from where the drag starts, not how it moves, with sticky walk-then-launch captions.',
   );
   requireCondition(
-    PlayerSource.includes('const SeedHaloGeometry = new THREE.TorusGeometry(0.07, 0.01, 8, 24)')
+    PlayerSource.includes('const SeedHaloGeometry = new THREE.TorusGeometry(0.55, 0.06, 8, 24)')
       && PlayerSource.includes('new THREE.PointLight(0x72dcff, 0, 0.01, 2)')
       && PlayerSource.includes('SeedPointLight.visible = false')
       && !PlayerSource.includes('SeedGroup.add(SeedPointLight)')
@@ -200,7 +213,7 @@ export function auditReleaseReadiness() {
       && PresentationSource.includes('parentY: { x: NoseX, y: NoseY, z: NoseZ }')
       && PresentationSource.includes('parentZ: { x: DorsalX, y: DorsalY, z: DorsalZ }')
       && PresentationSource.includes('lieDownX: 0')
-      && PresentationSource.includes('ParkedShipPresentationScale = 0.08')
+      && PresentationSource.includes('ParkedShipPresentationScale = 0.14')
       && !PresentationSource.includes('parentY: { x: DorsalX, y: DorsalY, z: DorsalZ }')
       && PlayerSource.includes('new THREE.CylinderGeometry(0.07, 0.13, 0.52, 10)')
       && PlayerSource.includes('new THREE.ConeGeometry(0.07, 0.32, 10)')
@@ -244,10 +257,10 @@ export function auditReleaseReadiness() {
       && LivingWorldSource.includes('OccupationFumeMesh')
       && LivingWorldSource.includes('ExtractionFreighterMesh')
       && LivingWorldSource.includes('visiblePrisonerCount')
-      && PlayerSource.includes('RunnerPresentationScale = 0.26')
+      && PlayerSource.includes('RunnerPresentationScale = 0.38')
       && CameraSource.includes('getLandedCameraScale(')
       && CameraSource.includes('getActiveViewZoomMinimumScale(')
-      && PresentationSource.includes('LandedMinimumZoomScale = 0.28')
+      && PresentationSource.includes('LandedMinimumZoomScale = 0.18')
       && PresentationSource.includes('ScoutMinimumZoomScale = 0.38')
       && PresentationSource.includes('house: { height: 0.24')
       && PresentationSource.includes('workshop: { height: 0.33')
@@ -268,12 +281,12 @@ export function auditReleaseReadiness() {
   requireCondition(
     PresentationSource.includes('export function getHowToPlayPresentation(')
       && PresentationSource.includes("title: 'How to play'")
-      && PresentationSource.includes('Drag the planet to walk. The world turns under you.')
-      && PresentationSource.includes('Pull the ship and let go to fly to another tiny world.')
-      && PresentationSource.includes('Landing links worlds. Linked worlds prosper.')
-      && PresentationSource.includes('Occupied worlds have Warden cages. Tap the cage to break it.')
-      && PresentationSource.includes('Drag empty space to look around. C pulls the camera back.')
-      && PresentationSource.includes('R starts the run over.')
+      && PresentationSource.includes('Drag the planet to walk, or use Q and E. T and F walk the poles.')
+      && PresentationSource.includes('Pull the ship to aim and release to fly. A and D steer; W and S change power.')
+      && PresentationSource.includes('Landing links worlds. Land in the gold beacon to restore them.')
+      && PresentationSource.includes('Occupied worlds have a red Warden cage. Tap the cage to break it.')
+      && PresentationSource.includes('Drag empty space to look around. C opens the Scout map.')
+      && PresentationSource.includes('R starts the run over. Reach the moving Command World to finish.')
       && PresentationSource.includes('export function shouldShowHowToPlayAfterOpening({')
       && /id="HowToPlay"[^>]*role="dialog"[^>]*aria-modal="true"/.test(IndexHtml)
       && /id="HowToPlayContinueButton"/.test(IndexHtml)
@@ -455,8 +468,10 @@ export function auditReleaseReadiness() {
     RoutePresentationSource.includes('const RouteLabelMinimumGap = IsShortLandscape ? 160 : 76')
       && RoutePresentationSource.includes('horizontalClearance: IsShortLandscape ? 180 : 100')
       && RoutePresentationSource.includes('verticalClearance: IsShortLandscape ? 22 : 30')
-      && RoutePresentationSource.includes('WorldheartDefinition.routeAvailable && !IsShortLandscape'),
-    'Short-landscape Command exposure must separate choices and omit its duplicate tactical chip.',
+      && RoutePresentationSource.includes('getCommandWorldTacticalLabel(')
+      && RoutePresentationSource.includes("WorldDefinition.kind === 'worldheart'")
+      && PresentationSource.includes('compact === true'),
+    'Short-landscape Command stays one labelled target; route pills must not duplicate the tactical chip.',
   );
   requireCondition(
     /@media\s*\(orientation:\s*landscape\)\s*and\s*\(min-width:\s*480px\)\s*and\s*\(max-width:\s*640px\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.result-actions\s+button\s*\{[^}]*padding:\s*10px\s+8px;[^}]*font-size:\s*13px;[^}]*line-height:\s*1\.2;[^}]*white-space:\s*nowrap;/s.test(StyleSheet),
