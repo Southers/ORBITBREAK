@@ -1512,11 +1512,14 @@ test('occupation cages plant on crust lat/lon and walk spin does not glue them i
     Visuals[0].z - Visuals[2].z,
   );
   assert.ok(Walked > 2, 'cage must ride the crust as the runner walks');
-  const FacingOffset0 = Math.hypot(Visuals[0].x - World.x, Visuals[0].y - World.y);
-  const FacingOffset1 = Math.hypot(Visuals[2].x - World.x, Visuals[2].y - World.y);
+  const DistFromPole = (Plant) => Math.hypot(
+    Plant.x - World.x,
+    Plant.y - World.y,
+    Plant.z - (World.z + World.radius),
+  );
   assert.ok(
-    Math.abs(FacingOffset0 - FacingOffset1) > 0.4,
-    'walk spin must not keep the cage glued in front of the runner',
+    DistFromPole(Visuals[0]) > DistFromPole(Visuals[1]) + 0.8,
+    'walking toward the cage must bring it in, not keep it glued in front of the runner',
   );
 });
 
