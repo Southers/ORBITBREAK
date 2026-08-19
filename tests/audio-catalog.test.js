@@ -114,9 +114,14 @@ test('playable sources never call ElevenLabs and the workflow never echoes the s
   assert.equal(AudioSource.includes('whenContextRunning()'), true);
   assert.equal(Workflow.includes('secrets.ELEVENLABS_API_KEY'), true);
   assert.equal(Workflow.includes('workflow_dispatch'), true);
+  assert.equal(Workflow.includes('FORCE_REGENERATE'), true);
+  assert.equal(Workflow.includes("paths:"), true);
+  assert.equal(Workflow.includes("'src/audio-catalog.js'"), true);
   assert.equal(Workflow.includes('echo "$ELEVENLABS_API_KEY"'), false);
   assert.equal(Workflow.includes('echo $ELEVENLABS_API_KEY'), false);
   assert.equal(Generator.includes('process.env.ELEVENLABS_API_KEY'), true);
+  assert.equal(Generator.includes('process.env.FORCE_REGENERATE'), true);
+  assert.equal(Generator.includes('skip existing'), true);
   assert.equal(Generator.includes('console.log(ApiKey)'), false);
   assert.equal(Generator.includes('const Error = new Error'), false);
   assert.equal(Credits.includes('ElevenLabs'), true);

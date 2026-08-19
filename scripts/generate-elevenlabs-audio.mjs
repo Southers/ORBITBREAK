@@ -4,9 +4,13 @@
  *
  * Reads ELEVENLABS_API_KEY from the environment only. Never prints, writes, or
  * commits the key. The playable game never calls this API.
+ *
+ * Existing non-empty files under assets/audio/ are skipped so a catalog
+ * cache-bust does not regenerate or spend quota. Set FORCE_REGENERATE=1 to
+ * overwrite every clip.
  */
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,10 +21,11 @@ import {
 
 const ScriptDirectory = dirname(fileURLToPath(import.meta.url));
 const RepositoryRoot = resolve(ScriptDirectory, '..');
-const AudioRoot = resolve(RepositoryRoot, 'assets/audio');
+const DefaultAudioRoot = resolve(RepositoryRoot, 'assets/audio');
 const ApiOrigin = 'https://api.elevenlabs.io';
 const SfxDurationMinimumSeconds = 0.5;
 const SfxDurationMaximumSeconds = 30;
+export const ExistingAudioMinimumBytes = 64;
 
 function clampSfxDurationSeconds(DurationSeconds) {
   const Duration = Number(DurationSeconds);
@@ -31,6 +36,10 @@ function clampSfxDurationSeconds(DurationSeconds) {
     SfxDurationMaximumSeconds,
     Math.max(SfxDurationMinimumSeconds, Duration),
   );
+}
+
+export function isForceRegenerateEnabled() {
+  return String(process.env.FORCE_REGENERATE ?? '').trim() === '1';
 }
 
 function readApiKey() {
@@ -48,14 +57,23 @@ function elevenHeaders(ApiKey) {
   };
 }
 
-async function writeAudioFile(RelativeFile, Bytes) {
+export async function existingClipIsReusable(AbsolutePath) {
+  try {
+    const Info = await stat(AbsolutePath);
+    return Info.isFile() && Info.size > ExistingAudioMinimumBytes;
+  } catch {
+    return false;
+  }
+}
+
+async function writeAudioFile(AudioRoot, RelativeFile, Bytes) {
   const AbsolutePath = resolve(AudioRoot, RelativeFile);
   await mkdir(dirname(AbsolutePath), { recursive: true });
   await writeFile(AbsolutePath, Bytes);
 }
 
-async function postAudio(ApiKey, Path, Body) {
-  const Response = await fetch(`${ApiOrigin}${Path}`, {
+async function postAudio(FetchImpl, ApiKey, Path, Body) {
+  const Response = await FetchImpl(`${ApiOrigin}${Path}`, {
     method: 'POST',
     headers: elevenHeaders(ApiKey),
     body: JSON.stringify(Body),
@@ -68,19 +86,20 @@ async function postAudio(ApiKey, Path, Body) {
     throw RequestError;
   }
   const BufferData = Buffer.from(await Response.arrayBuffer());
-  if (BufferData.length < 64) {
+  if (BufferData.length < ExistingAudioMinimumBytes) {
     throw new Error(`ElevenLabs ${Path} returned an empty audio body.`);
   }
   return BufferData;
 }
 
-async function generateVoiceClip(ApiKey, Clip) {
+async function generateVoiceClip(Context, Clip) {
   const Profile = ElevenLabsVoiceProfiles[Clip.voice];
   if (!Profile) {
     throw new Error(`Unknown voice profile ${Clip.voice} for ${Clip.id}.`);
   }
   const Bytes = await postAudio(
-    ApiKey,
+    Context.fetchImpl,
+    Context.apiKey,
     `/v1/text-to-speech/${Profile.voiceId}?output_format=mp3_44100_128`,
     {
       text: Clip.text,
@@ -88,19 +107,21 @@ async function generateVoiceClip(ApiKey, Clip) {
       voice_settings: Profile.settings,
     },
   );
-  await writeAudioFile(Clip.file, Bytes);
+  await writeAudioFile(Context.audioRoot, Clip.file, Bytes);
+  return true;
 }
 
-async function generateSfxClip(ApiKey, Clip) {
-  const Bytes = await postAudio(ApiKey, '/v1/sound-generation', {
+async function generateSfxClip(Context, Clip) {
+  const Bytes = await postAudio(Context.fetchImpl, Context.apiKey, '/v1/sound-generation', {
     text: Clip.prompt,
     duration_seconds: clampSfxDurationSeconds(Clip.durationSeconds),
     prompt_influence: 0.35,
   });
-  await writeAudioFile(Clip.file, Bytes);
+  await writeAudioFile(Context.audioRoot, Clip.file, Bytes);
+  return true;
 }
 
-async function generateMusicClip(ApiKey, Clip) {
+async function generateMusicClip(Context, Clip) {
   const MusicBodies = [
     {
       path: '/v1/music',
@@ -120,8 +141,8 @@ async function generateMusicClip(ApiKey, Clip) {
   let LastError = null;
   for (const Attempt of MusicBodies) {
     try {
-      const Bytes = await postAudio(ApiKey, Attempt.path, Attempt.body);
-      await writeAudioFile(Clip.file, Bytes);
+      const Bytes = await postAudio(Context.fetchImpl, Context.apiKey, Attempt.path, Attempt.body);
+      await writeAudioFile(Context.audioRoot, Clip.file, Bytes);
       return true;
     } catch (Caught) {
       LastError = Caught;
@@ -141,9 +162,74 @@ async function generateMusicClip(ApiKey, Clip) {
 }
 
 function sleep(Milliseconds) {
+  if (!Milliseconds) {
+    return Promise.resolve();
+  }
   return new Promise((Resolve) => {
     setTimeout(Resolve, Milliseconds);
   });
+}
+
+async function processClip(Context, Clip, Kind, GenerateFn) {
+  const AbsolutePath = resolve(Context.audioRoot, Clip.file);
+  if (!Context.forceRegenerate && await existingClipIsReusable(AbsolutePath)) {
+    Context.log(`skip existing ${Clip.id}`);
+    Context.skipped += 1;
+    return;
+  }
+  if (!Context.apiKey) {
+    throw new Error('ELEVENLABS_API_KEY is not set.');
+  }
+  const Generated = await GenerateFn();
+  if (Generated) {
+    Context.log(`${Kind} ${Clip.id}`);
+    Context.generated += 1;
+  } else {
+    Context.log(`${Kind} skipped ${Clip.id}`);
+  }
+  await sleep(Context.sleepMs);
+}
+
+export async function generateCatalogAudio({
+  apiKey = '',
+  audioRoot = DefaultAudioRoot,
+  jobs = listGenerateJobs(),
+  forceRegenerate = isForceRegenerateEnabled(),
+  fetchImpl = globalThis.fetch,
+  log = console.log,
+  sleepMs = 120,
+} = {}) {
+  const Context = {
+    apiKey,
+    audioRoot,
+    forceRegenerate,
+    fetchImpl,
+    log,
+    sleepMs,
+    generated: 0,
+    skipped: 0,
+  };
+
+  log(
+    `Generating ${jobs.voices.length} unique voice files, ${jobs.sfx.length} SFX, ${jobs.music.length} music clips.`,
+  );
+
+  for (const Clip of jobs.voices) {
+    await processClip(Context, Clip, 'voice', () => generateVoiceClip(Context, Clip));
+  }
+  for (const Clip of jobs.sfx) {
+    await processClip(Context, Clip, 'sfx', () => generateSfxClip(Context, Clip));
+  }
+  for (const Clip of jobs.music) {
+    await processClip(Context, Clip, 'music', () => generateMusicClip(Context, Clip));
+  }
+
+  if (Context.generated === 0) {
+    log('ElevenLabs generation finished. No new audio files.');
+  } else {
+    log(`ElevenLabs generation finished. Generated ${Context.generated}, skipped ${Context.skipped}.`);
+  }
+  return { generated: Context.generated, skipped: Context.skipped };
 }
 
 async function main() {
@@ -154,30 +240,12 @@ async function main() {
     return;
   }
 
-  const Jobs = listGenerateJobs();
-  console.log(
-    `Generating ${Jobs.voices.length} unique voice files, ${Jobs.sfx.length} SFX, ${Jobs.music.length} music clips.`,
-  );
-
-  for (const Clip of Jobs.voices) {
-    await generateVoiceClip(ApiKey, Clip);
-    console.log(`voice ${Clip.id}`);
-    await sleep(120);
-  }
-  for (const Clip of Jobs.sfx) {
-    await generateSfxClip(ApiKey, Clip);
-    console.log(`sfx ${Clip.id}`);
-    await sleep(120);
-  }
-  for (const Clip of Jobs.music) {
-    const Generated = await generateMusicClip(ApiKey, Clip);
-    console.log(Generated ? `music ${Clip.id}` : `music skipped ${Clip.id}`);
-    await sleep(120);
-  }
-  console.log('ElevenLabs generation finished.');
+  await generateCatalogAudio({ apiKey: ApiKey });
 }
 
-main().catch((Caught) => {
-  console.error(Caught.message);
-  process.exitCode = 1;
-});
+if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
+  main().catch((Caught) => {
+    console.error(Caught.message);
+    process.exitCode = 1;
+  });
+}

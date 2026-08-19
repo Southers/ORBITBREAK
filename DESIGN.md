@@ -359,7 +359,7 @@ A still frame of three linked worlds shows different buildings, different ships 
 GitHub Pages being static does not mean the campaign stays quiet. These are the next ambitious layers, in roughly this order, while `main` stays playable:
 
 1. **Second Break.** Neighbourhood gift and hunt extra-Break boon. Schema bump, replay recorder/validator, and golden rewrite only for that checkpoint.
-2. **External voices and image APIs.** ElevenLabs sampled voice, SFX and music are generated in GitHub Actions from `secrets.ELEVENLABS_API_KEY` and committed under `assets/audio/`. The public Pages build never calls the API. In-engine Web Audio remains the fallback until those files exist. Gemini portraits stay optional and out of repo secrets.
+2. **External voices and image APIs.** ElevenLabs sampled voice, SFX and music are generated in GitHub Actions from `secrets.ELEVENLABS_API_KEY` and committed under `assets/audio/`. Existing non-empty files are skipped unless `FORCE_REGENERATE=1`. The public Pages build never calls the API. In-engine Web Audio remains the fallback until those files exist. Gemini portraits stay optional and out of repo secrets.
 
 Do not treat a toast, a HUD chip or a one-line coach as the delivery of those beats.
 
