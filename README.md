@@ -44,7 +44,7 @@ Optional: `npm run test:boot` loads the playable shell in headless Chromium, and
 
 Story boards, How to play, first-run coaches, destroy/launch toasts, landing memories, Warden broadcasts and win/lose boards can play committed ElevenLabs clips from `assets/audio/` after the first tap. Mute (`M`), reduced-motion (music off) and the in-engine Web Audio bed still work if those files have not been generated yet.
 
-Generation is a GitHub Action (`Generate ElevenLabs audio`) that reads `secrets.ELEVENLABS_API_KEY` and never ships the key to Pages. Run it with **workflow_dispatch** after the secret exists. Do not put an API key in the tree, a `.env`, or a pull request.
+Generation is a GitHub Action (`Generate ElevenLabs audio`) that reads `secrets.ELEVENLABS_API_KEY` and never ships the key to Pages. Existing non-empty files under `assets/audio/` are skipped, so a catalog cache-bust does not regenerate or spend quota. Run it with **workflow_dispatch** after the secret exists. Set `FORCE_REGENERATE=1` on that run to overwrite every clip. Do not put an API key in the tree, a `.env`, or a pull request.
 
 ## Current development controls
 

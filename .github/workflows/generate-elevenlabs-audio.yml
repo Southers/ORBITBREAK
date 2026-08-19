@@ -1,8 +1,16 @@
 name: Generate ElevenLabs audio
 
 # After ELEVENLABS_API_KEY is a real sk_ key, run Actions → Generate ElevenLabs audio → Run workflow.
+# Existing non-empty files under assets/audio/ are skipped so a catalog cache-bust does not
+# regenerate or spend quota. New spoken lines still generate because they have no file yet.
+# To overwrite every clip, run workflow_dispatch with FORCE_REGENERATE=1.
 on:
   workflow_dispatch:
+    inputs:
+      force_regenerate:
+        description: 'Set to 1 to overwrite existing audio files (FORCE_REGENERATE=1).'
+        required: false
+        default: '0'
   push:
     branches: [main]
     paths:
@@ -39,6 +47,8 @@ jobs:
 
       - name: Generate sampled audio
         if: steps.secret.outputs.missing == 'false'
+        env:
+          FORCE_REGENERATE: ${{ github.event.inputs.force_regenerate == '1' && '1' || '0' }}
         run: node scripts/generate-elevenlabs-audio.mjs
 
       - name: Upload audio artifacts
