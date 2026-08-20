@@ -5,7 +5,6 @@ import { readFileSync } from 'node:fs';
 import {
   getControlModePresentation,
   getLiberationFlashOpacity,
-  getLeaderboardActionLabel,
   getPersonalBestStatus,
   getPlayfieldLabelTopMargin,
   getPlayfieldLabelVerticalBounds,
@@ -577,12 +576,6 @@ test('hidden Warden coach teaches purpose, then waking, then range', () => {
     title: 'Choose TIDE or FROST',
     body: 'The dark is not as wide as they said.',
   });
-});
-
-test('rankings action discloses offline state before opening the board', () => {
-  assert.equal(getLeaderboardActionLabel(true), 'Rankings');
-  assert.equal(getLeaderboardActionLabel(false), 'Rankings offline');
-  assert.throws(() => getLeaderboardActionLabel('false'), /requires configured state/);
 });
 
 test('nearby route labels separate without changing distant or edge-clamped layouts', () => {

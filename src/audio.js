@@ -15,7 +15,7 @@ import {
   listMusicClips,
   listSfxClips,
   listVoiceClips,
-} from './audio-catalog.js?v=20260819-ob141';
+} from './audio-catalog.js?v=20260819-ob142';
 
 export class WorldseedAudio {
   constructor() {

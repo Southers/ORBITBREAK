@@ -8,7 +8,7 @@ import {
   getHostileCageRadialOffset,
   getPlantedCageWorldPlacement,
   LandedFarSideLifeDirectionZ,
-} from './presentation.js?v=20260819-ob141';
+} from './presentation.js?v=20260819-ob142';
 
 export function createWardenVisuals(THREE, Scene, host) {
   const {

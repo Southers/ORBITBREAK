@@ -440,10 +440,14 @@ export function auditReleaseReadiness() {
     'Short-landscape verified results must keep their actions visible and scrollable.',
   );
   requireCondition(
-    /\.result-actions--terminal\s+#LeaderboardButton\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;[^}]*justify-self:\s*center;[^}]*width:\s*calc\(\(100% - 8px\) \/ 2\);/s.test(StyleSheet)
-      && /@media\s*\(orientation:\s*landscape\)\s*and\s*\(max-height:\s*520px\)\s*\{[\s\S]*?\.result-actions--terminal\s+#LeaderboardButton\s*\{[^}]*grid-column:\s*auto;[^}]*justify-self:\s*stretch;[^}]*width:\s*auto;/s.test(StyleSheet)
+    /id="ReplayButton"/.test(IndexHtml)
+      && /id="WatchReplayButton"/.test(IndexHtml)
+      && /id="PlayAgainButton"/.test(IndexHtml)
+      && !/id="LeaderboardButton"/.test(IndexHtml)
+      && !IndexHtml.includes('Rankings offline')
+      && !/\.result-actions[\s\S]*#LeaderboardButton/.test(StyleSheet)
       && /classList\.toggle\('result-actions--terminal',\s*!CanContinueToNextSystem\)/.test(MainSource),
-    'Terminal results must centre their unpaired rankings action.',
+    'Verified results must keep Run again, Watch replay and Continue without a rankings action.',
   );
   requireCondition(
     /id="ReplayIndicator"/.test(IndexHtml)

@@ -5,26 +5,26 @@
  * presents honest results and never pretends a local score is online.
  */
 
-import { getSystemEmblems } from './campaign.js?v=20260819-ob141';
-import { getReplayGhostWaypoints } from './ghost.js?v=20260819-ob141';
+import { getSystemEmblems } from './campaign.js?v=20260819-ob142';
+import { getReplayGhostWaypoints } from './ghost.js?v=20260819-ob142';
 import {
   getPersonalBestStatus,
   getRunResourceSummary,
-} from './presentation.js?v=20260819-ob141';
+} from './presentation.js?v=20260819-ob142';
 import {
   createRunResult,
   loadPersonalBest,
   savePersonalBest,
-} from './records.js?v=20260819-ob141';
+} from './records.js?v=20260819-ob142';
 import {
   finishReplay,
   getPersonalBestGhostStorageKey,
   getReplayStorageKey,
   parseReplay,
   serializeReplay,
-} from './replay.js?v=20260819-ob141';
-import { createReplayPlaybackState } from './replay-playback.js?v=20260819-ob141';
-import { validateSerializedReplay } from './replay-validator.js?v=20260819-ob141';
+} from './replay.js?v=20260819-ob142';
+import { createReplayPlaybackState } from './replay-playback.js?v=20260819-ob142';
+import { validateSerializedReplay } from './replay-validator.js?v=20260819-ob142';
 
 export function createRecordsUi(THREE, host) {
   const {
@@ -40,6 +40,7 @@ export function createRecordsUi(THREE, host) {
     VictoryPanelElement,
     VictoryTitleElement,
     VictoryBodyElement,
+    ReplayButtonElement,
     WatchReplayButtonElement,
     ReplayIndicatorElement,
     PersonalBestLabelElement,
@@ -52,7 +53,6 @@ export function createRecordsUi(THREE, host) {
     LeaderboardListElement,
     LeaderboardPanelElement,
     LeaderboardFormElement,
-    LeaderboardButtonElement,
     CallsignInputElement,
     CloseLeaderboardButtonElement,
     SubmitScoreButtonElement,
@@ -447,7 +447,7 @@ export function createRecordsUi(THREE, host) {
     VictoryPanelElement.removeAttribute('inert');
     VictoryPanelElement.removeAttribute('aria-hidden');
     if (RestoreFocus && !VictoryPanelElement.hidden) {
-      LeaderboardButtonElement.focus({ preventScroll: true });
+      ReplayButtonElement.focus({ preventScroll: true });
     }
   }
 

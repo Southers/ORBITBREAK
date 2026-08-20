@@ -6,9 +6,9 @@
  * (memory toast, hostile-encounter start, victory reveal).
  */
 
-import { getLeftoverHostileEncounter, getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob141';
-import { countLiveRelayWorlds } from './network.js?v=20260819-ob141';
-import { consumePendingDiscoveryToast } from './discoveries.js?v=20260819-ob141';
+import { getLeftoverHostileEncounter, getOccupiedWorldCageEncounter } from './encounter.js?v=20260819-ob142';
+import { countLiveRelayWorlds } from './network.js?v=20260819-ob142';
+import { consumePendingDiscoveryToast } from './discoveries.js?v=20260819-ob142';
 import {
   getOccupiedAtmosphereOpacity,
   getAtmosphereDistanceFade,
@@ -19,12 +19,12 @@ import {
   getStillnessPresentation,
   shouldHideLandedOrbitalOverlays,
   shouldHoldWorldCrustIdleSpin,
-} from './presentation.js?v=20260819-ob141';
+} from './presentation.js?v=20260819-ob142';
 import {
   calculateRestorationWaveProgress,
   calculateStagedGrowthProgress,
-} from './restoration.js?v=20260819-ob141';
-import { WardenPursuitEvents } from './warden.js?v=20260819-ob141';
+} from './restoration.js?v=20260819-ob142';
+import { WardenPursuitEvents } from './warden.js?v=20260819-ob142';
 
 export function createRestorationVisuals(THREE, host) {
   const {
