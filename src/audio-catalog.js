@@ -25,12 +25,14 @@ export const ElevenLabsVoiceProfiles = Object.freeze({
   warden: Object.freeze({
     key: 'warden',
     voiceId: 'onwK4e9ZLuTAKqWW03F9',
-    name: 'Daniel',
+    name: 'Daniel (legacy production fallback)',
+    revision: 'warden-broadcast-v2-pending-selection',
     modelId: 'eleven_multilingual_v2',
     settings: Object.freeze({
-      stability: 0.78,
+      stability: 0.63,
       similarity_boost: 0.74,
-      style: 0.04,
+      style: 0,
+      speed: 0.92,
       use_speaker_boost: true,
     }),
   }),

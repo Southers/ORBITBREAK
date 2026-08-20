@@ -7,8 +7,11 @@ import { dirname, resolve } from 'node:path';
 import { listGenerateJobs } from '../src/audio-catalog.js';
 import {
   ExistingAudioMinimumBytes,
+  filterGenerateJobs,
   generateCatalogAudio,
+  generatedClipRelativeFile,
   isForceRegenerateEnabled,
+  parseGeneratorArguments,
 } from '../scripts/generate-elevenlabs-audio.mjs';
 
 const DummyAudio = Buffer.alloc(ExistingAudioMinimumBytes + 16, 7);
@@ -156,4 +159,50 @@ test('FORCE_REGENERATE is enabled only by the string 1', () => {
       process.env.FORCE_REGENERATE = Previous;
     }
   }
+});
+
+test('Warden scope excludes Runner, SFX and music jobs', () => {
+  const Scoped = filterGenerateJobs(listGenerateJobs(), 'warden');
+  assert.ok(Scoped.voices.length > 0);
+  assert.equal(Scoped.voices.every((Clip) => Clip.voice === 'warden'), true);
+  assert.deepEqual(Scoped.sfx, []);
+  assert.deepEqual(Scoped.music, []);
+  assert.throws(() => filterGenerateJobs(listGenerateJobs(), 'unknown'), /scope must be one of/);
+});
+
+test('Warden generation accepts a reviewed voice override and preserves a clean source', async () => {
+  const AudioRoot = await mkdtemp(resolve(tmpdir(), 'orbitbreak-warden-clean-'));
+  const Calls = [];
+  const WardenClip = filterGenerateJobs(listGenerateJobs(), 'warden').voices[0];
+  try {
+    await generateCatalogAudio({
+      apiKey: PlaceholderKey,
+      audioRoot: AudioRoot,
+      jobs: { voices: [WardenClip], sfx: [], music: [] },
+      forceRegenerate: true,
+      cleanWarden: true,
+      wardenVoiceId: 'reviewed-warden-id',
+      fetchImpl: createOkFetch(Calls),
+      log() {},
+      sleepMs: 0,
+    });
+    assert.equal(Calls.length, 1);
+    assert.equal(Calls[0].url.includes('/text-to-speech/reviewed-warden-id'), true);
+    const CleanRelativeFile = generatedClipRelativeFile(WardenClip, { cleanWarden: true });
+    assert.equal(CleanRelativeFile.startsWith('voice-clean/warden-'), true);
+    assert.equal((await readFile(resolve(AudioRoot, CleanRelativeFile))).equals(DummyAudio), true);
+  } finally {
+    await rm(AudioRoot, { recursive: true, force: true });
+  }
+});
+
+test('generation CLI validates scope and optional Warden voice id', () => {
+  assert.deepEqual(parseGeneratorArguments([
+    '--scope=warden',
+    '--warden-voice-id=reviewed-id',
+  ]), {
+    scope: 'warden',
+    wardenVoiceId: 'reviewed-id',
+  });
+  assert.throws(() => parseGeneratorArguments(['--scope=everything']), /scope must be one of/);
 });

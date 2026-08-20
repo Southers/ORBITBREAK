@@ -6,8 +6,9 @@
  * commits the key. The playable game never calls this API.
  *
  * Existing non-empty files under assets/audio/ are skipped so a catalog
- * cache-bust does not regenerate or spend quota. Set FORCE_REGENERATE=1 to
- * overwrite every clip.
+ * cache-bust does not regenerate or spend quota. Use --scope=warden with
+ * FORCE_REGENERATE=1 to replace only Warden sources. Warden-only generation
+ * writes clean files under voice-clean/ for the offline mastering pass.
  */
 
 import { mkdir, stat, writeFile } from 'node:fs/promises';
@@ -26,6 +27,45 @@ const ApiOrigin = 'https://api.elevenlabs.io';
 const SfxDurationMinimumSeconds = 0.5;
 const SfxDurationMaximumSeconds = 30;
 export const ExistingAudioMinimumBytes = 64;
+export const AudioGenerationScopes = Object.freeze(['all', 'warden']);
+
+export function parseGeneratorArguments(ArgumentsList = process.argv.slice(2)) {
+  const Options = { scope: 'all', wardenVoiceId: '' };
+  for (const Argument of ArgumentsList) {
+    if (Argument.startsWith('--scope=')) {
+      Options.scope = Argument.slice('--scope='.length).trim();
+    } else if (Argument.startsWith('--warden-voice-id=')) {
+      Options.wardenVoiceId = Argument.slice('--warden-voice-id='.length).trim();
+    } else if (Argument !== '') {
+      throw new Error(`Unknown audio generation option ${Argument}.`);
+    }
+  }
+  if (!AudioGenerationScopes.includes(Options.scope)) {
+    throw new Error(`Audio generation scope must be one of: ${AudioGenerationScopes.join(', ')}.`);
+  }
+  return Options;
+}
+
+export function filterGenerateJobs(Jobs, Scope = 'all') {
+  if (!AudioGenerationScopes.includes(Scope)) {
+    throw new Error(`Audio generation scope must be one of: ${AudioGenerationScopes.join(', ')}.`);
+  }
+  if (Scope === 'warden') {
+    return {
+      voices: Jobs.voices.filter((Clip) => Clip.voice === 'warden'),
+      sfx: [],
+      music: [],
+    };
+  }
+  return Jobs;
+}
+
+export function generatedClipRelativeFile(Clip, { cleanWarden = false } = {}) {
+  if (cleanWarden && Clip.voice === 'warden') {
+    return Clip.file.replace(/^voice\//, 'voice-clean/');
+  }
+  return Clip.file;
+}
 
 function clampSfxDurationSeconds(DurationSeconds) {
   const Duration = Number(DurationSeconds);
@@ -92,22 +132,28 @@ async function postAudio(FetchImpl, ApiKey, Path, Body) {
   return BufferData;
 }
 
-async function generateVoiceClip(Context, Clip) {
+async function generateVoiceClip(Context, Clip, RelativeFile) {
   const Profile = ElevenLabsVoiceProfiles[Clip.voice];
   if (!Profile) {
     throw new Error(`Unknown voice profile ${Clip.voice} for ${Clip.id}.`);
   }
+  const VoiceId = Clip.voice === 'warden' && Context.wardenVoiceId
+    ? Context.wardenVoiceId
+    : Profile.voiceId;
+  if (!VoiceId) {
+    throw new Error(`Voice profile ${Clip.voice} has no selected ElevenLabs voice id.`);
+  }
   const Bytes = await postAudio(
     Context.fetchImpl,
     Context.apiKey,
-    `/v1/text-to-speech/${Profile.voiceId}?output_format=mp3_44100_128`,
+    `/v1/text-to-speech/${VoiceId}?output_format=mp3_44100_128`,
     {
       text: Clip.text,
       model_id: Profile.modelId,
       voice_settings: Profile.settings,
     },
   );
-  await writeAudioFile(Context.audioRoot, Clip.file, Bytes);
+  await writeAudioFile(Context.audioRoot, RelativeFile, Bytes);
   return true;
 }
 
@@ -171,7 +217,10 @@ function sleep(Milliseconds) {
 }
 
 async function processClip(Context, Clip, Kind, GenerateFn) {
-  const AbsolutePath = resolve(Context.audioRoot, Clip.file);
+  const RelativeFile = generatedClipRelativeFile(Clip, {
+    cleanWarden: Context.cleanWarden,
+  });
+  const AbsolutePath = resolve(Context.audioRoot, RelativeFile);
   if (!Context.forceRegenerate && await existingClipIsReusable(AbsolutePath)) {
     Context.log(`skip existing ${Clip.id}`);
     Context.skipped += 1;
@@ -180,7 +229,7 @@ async function processClip(Context, Clip, Kind, GenerateFn) {
   if (!Context.apiKey) {
     throw new Error('ELEVENLABS_API_KEY is not set.');
   }
-  const Generated = await GenerateFn();
+  const Generated = await GenerateFn(RelativeFile);
   if (Generated) {
     Context.log(`${Kind} ${Clip.id}`);
     Context.generated += 1;
@@ -195,6 +244,8 @@ export async function generateCatalogAudio({
   audioRoot = DefaultAudioRoot,
   jobs = listGenerateJobs(),
   forceRegenerate = isForceRegenerateEnabled(),
+  cleanWarden = false,
+  wardenVoiceId = '',
   fetchImpl = globalThis.fetch,
   log = console.log,
   sleepMs = 120,
@@ -203,6 +254,8 @@ export async function generateCatalogAudio({
     apiKey,
     audioRoot,
     forceRegenerate,
+    cleanWarden,
+    wardenVoiceId,
     fetchImpl,
     log,
     sleepMs,
@@ -215,7 +268,9 @@ export async function generateCatalogAudio({
   );
 
   for (const Clip of jobs.voices) {
-    await processClip(Context, Clip, 'voice', () => generateVoiceClip(Context, Clip));
+    await processClip(Context, Clip, 'voice', (RelativeFile) => (
+      generateVoiceClip(Context, Clip, RelativeFile)
+    ));
   }
   for (const Clip of jobs.sfx) {
     await processClip(Context, Clip, 'sfx', () => generateSfxClip(Context, Clip));
@@ -233,6 +288,11 @@ export async function generateCatalogAudio({
 }
 
 async function main() {
+  const Options = parseGeneratorArguments();
+  const EnvironmentWardenVoiceId = typeof process.env.WARDEN_VOICE_ID === 'string'
+    ? process.env.WARDEN_VOICE_ID.trim()
+    : '';
+  const WardenVoiceId = Options.wardenVoiceId || EnvironmentWardenVoiceId;
   const ApiKey = readApiKey();
   if (!ApiKey) {
     console.log('ELEVENLABS_API_KEY is not set. Skipping generation.');
@@ -240,7 +300,18 @@ async function main() {
     return;
   }
 
-  await generateCatalogAudio({ apiKey: ApiKey });
+  const Jobs = filterGenerateJobs(listGenerateJobs(), Options.scope);
+  if (Jobs.voices.some((Clip) => Clip.voice === 'warden') && !WardenVoiceId) {
+    throw new Error(
+      'A reviewed Warden Voice Design id is required via --warden-voice-id or WARDEN_VOICE_ID.',
+    );
+  }
+  await generateCatalogAudio({
+    apiKey: ApiKey,
+    jobs: Jobs,
+    cleanWarden: true,
+    wardenVoiceId: WardenVoiceId,
+  });
 }
 
 if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {

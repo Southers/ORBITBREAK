@@ -9,6 +9,25 @@ first player gesture. It never calls ElevenLabs from the browser.
 Until the generate job has run with `ELEVENLABS_API_KEY` set as a GitHub
 Actions secret, ORBITBREAK keeps its in-engine Web Audio bed.
 
+## Warden voice pipeline
+
+1. With explicit approval to spend quota, run the manual `Audition Warden Voice`
+   action (or `npm run audio:audition:warden` with a local key).
+   It writes three review-only previews and `manifest.json` under ignored
+   `artifacts/warden-auditions/`.
+2. After the user selects a candidate, save only that manifest-listed preview
+   with `node scripts/audition-warden-voice.mjs --select=<generated voice id>`.
+3. Pass the resulting reviewed voice id to
+   `node scripts/generate-elevenlabs-audio.mjs --scope=warden --warden-voice-id=<voice id>`.
+   Clean TTS sources are written to `voice-clean/`; Runner, SFX and music are
+   outside this scope.
+4. Run `npm run audio:master:warden` to produce mono radio/robot masters under
+   `voice/`. Bump `AudioAssetVersion` whenever those production files change.
+
+The mastering revision is authored in `scripts/master-warden-audio.mjs` and
+uses radio-band EQ, compression, mild saturation, restrained pitch doubling,
+low-level transmission noise, bookend squelch and loudness normalization.
+
 The committed ORBITBREAK audio files in this directory are released under the
 repository's MIT License. The project owner has confirmed that the generated
 outputs and their inputs permit commercial reuse and sublicensing. ElevenLabs

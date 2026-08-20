@@ -1,0 +1,53 @@
+name: Audition Warden Voice
+
+on:
+  workflow_dispatch:
+    inputs:
+      approve_quota_spend:
+        description: Generate three Voice Design previews and spend ElevenLabs quota.
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audition-warden-voice
+  cancel-in-progress: false
+
+jobs:
+  audition:
+    if: inputs.approve_quota_spend == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288ca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Generate review-only Warden candidates
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: |
+          if [ -z "${ELEVENLABS_API_KEY}" ]; then
+            echo "ELEVENLABS_API_KEY is not configured." >&2
+            exit 1
+          fi
+          npm run audio:audition:warden
+
+      - name: Upload review artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75d540449e92b4886f43607fa02 # v4
+        with:
+          name: orbitbreak-warden-auditions-${{ github.run_id }}
+          path: artifacts/warden-auditions
+          if-no-files-found: error
+          retention-days: 7

@@ -6,8 +6,20 @@ name: Generate ElevenLabs audio
 on:
   workflow_dispatch:
     inputs:
+      generation_scope:
+        description: Generate only the reviewed Warden voice, or the full catalog.
+        required: true
+        type: choice
+        options:
+          - warden
+          - all
+        default: warden
+      warden_voice_id:
+        description: Reviewed ORBITBREAK Warden Voice Design id.
+        required: true
+        type: string
       force_regenerate:
-        description: Overwrite existing audio files and spend quota regenerating them.
+        description: Overwrite existing files inside the selected scope.
         required: false
         type: boolean
         default: false
@@ -43,12 +55,14 @@ jobs:
         env:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           FORCE_REGENERATE: ${{ inputs.force_regenerate && '1' || '0' }}
+          WARDEN_VOICE_ID: ${{ inputs.warden_voice_id }}
         run: |
           if [ -z "${ELEVENLABS_API_KEY}" ]; then
             echo "ELEVENLABS_API_KEY is not configured." >&2
             exit 1
           fi
-          node scripts/generate-elevenlabs-audio.mjs
+          node scripts/generate-elevenlabs-audio.mjs --scope=${{ inputs.generation_scope }}
+          node scripts/master-warden-audio.mjs
           echo "artifact_ready=true" >> "$GITHUB_OUTPUT"
 
       - name: Upload generated audio

@@ -42,9 +42,9 @@ Optional: `npm run test:boot` loads the playable shell in headless Chromium, and
 
 ## Audio
 
-Story boards, How to play, first-run coaches, destroy/launch toasts, landing memories, Warden broadcasts and win/lose boards can play committed ElevenLabs clips from `assets/audio/` after the first tap. Mute (`M`), reduced-motion (music off) and the in-engine Web Audio bed still work if those files have not been generated yet.
+Story boards, How to play, first-run coaches, destroy/launch toasts, landing memories, Warden broadcasts and win/lose boards can play committed ElevenLabs clips from `assets/audio/`. A fresh run begins with **Receive Warden transmission** so the first gesture unlocks audio before revealing and speaking the opening Warden page. Mute (`M`), reduced-motion (music off) and the in-engine Web Audio bed still work if a sampled file cannot play.
 
-Generation is a GitHub Action (`Generate ElevenLabs audio`) that reads `secrets.ELEVENLABS_API_KEY` and never ships the key to Pages. Existing non-empty files under `assets/audio/` are skipped, so a catalog cache-bust does not regenerate or spend quota. Run it with **workflow_dispatch** after the secret exists. Set `FORCE_REGENERATE=1` on that run to overwrite every clip. Do not put an API key in the tree, a `.env`, or a pull request.
+The manual `Audition Warden Voice` action creates three review-only Voice Design candidates; `Save Selected Warden Voice` accepts only an id from that audition manifest. The separate `Generate ElevenLabs audio` action requires the reviewed production voice id. All three read `secrets.ELEVENLABS_API_KEY` without shipping it to Pages. Locally, `npm run audio:audition:warden` writes candidates under ignored `artifacts/`, `npm run audio:generate:warden` writes clean Warden sources under `assets/audio/voice-clean/`, and `npm run audio:master:warden` applies the reproducible mono radio master into `assets/audio/voice/`. Production generation defaults to Warden-only scope, so Runner, SFX and music are not regenerated. Do not put an API key in the tree, a `.env`, or a pull request.
 
 ## Current development controls
 

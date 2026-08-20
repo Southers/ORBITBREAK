@@ -5,6 +5,7 @@ Thumbs.db
 dist/
 coverage/
 captures/
+artifacts/
 test-results/
 playwright-report/
 blob-report/

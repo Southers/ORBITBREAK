@@ -36,8 +36,17 @@ export function createStoryDirector(host) {
     showHostileEncounterInstruction,
     showRouteChoiceInstruction,
   } = host;
+  let IsOpeningTransmissionGateActive = false;
+
+  function setOpeningTransmissionGateActive(IsActive) {
+    IsOpeningTransmissionGateActive = IsActive === true;
+    GameCanvas.dataset.openingTransmission = IsOpeningTransmissionGateActive
+      ? 'awaiting-gesture'
+      : 'received';
+  }
 
   function hideStoryBoardOverlay() {
+    setOpeningTransmissionGateActive(false);
     host.IsOpeningBriefingActive = false;
     host.ActiveStoryBoardId = null;
     host.ActiveStoryBoardTokens = {};
@@ -61,6 +70,50 @@ export function createStoryDirector(host) {
     WorldseedSound.setStoryPaused(false);
   }
 
+  /**
+   * A fresh browser cannot speak page one before a trusted gesture. Keep the
+   * Warden's actual page behind this explicit receiver so the first activation
+   * unlocks audio without advancing past the line it was meant to play.
+   */
+  function presentOpeningTransmissionGate() {
+    host.ActiveStoryBoardId = 'opening';
+    host.ActiveStoryBoardTokens = {};
+    host.OpeningBriefingPageIndex = 0;
+    host.IsOpeningBriefingActive = true;
+    host.StoryLookFocus = getStoryBoardCameraFocus({
+      boardId: 'opening',
+      portrait: 'warden',
+      focusWorldId: '',
+    });
+    setOpeningTransmissionGateActive(true);
+    BriefingKickerElement.textContent = 'INCOMING TRANSMISSION';
+    BriefingSpeakerElement.textContent = 'THE WARDEN';
+    BriefingTitleElement.textContent = 'Authoritarian channel detected.';
+    BriefingBodyElement.textContent = 'Receive the broadcast before you take the Orbitbreaker.';
+    BriefingProgressElement.textContent = 'SIGNAL LOCKED';
+    BriefingContinueButtonElement.textContent = 'Receive Warden transmission';
+    BriefingSkipButtonElement.textContent = 'Skip intro';
+    BriefingPortraitElement.src = './assets/warden-portrait.jpg?v=20260818-ob123';
+    BriefingPortraitElement.alt = 'THE WARDEN';
+    OpeningBriefingElement.classList.remove(
+      'is-haven',
+      'is-courier',
+      'is-runner',
+      'is-ember',
+      'is-grove',
+      'is-tide',
+      'is-frost',
+      'is-bastion',
+      'is-command',
+    );
+    OpeningBriefingElement.classList.add('is-warden');
+    OpeningBriefingElement.hidden = false;
+    GameCanvas.dataset.openingBriefing = 'opening:awaiting-gesture';
+    host.updatePauseChrome?.();
+    WorldseedSound.setStoryPaused(true);
+    BriefingContinueButtonElement.focus({ preventScroll: true });
+  }
+
   function hideOpeningBriefing() {
     host.StoryBoardQueue = [];
     host.PendingRunResetAfterStoryBoard = false;
@@ -81,6 +134,7 @@ export function createStoryDirector(host) {
   }
 
   function presentStoryBoardPage(PageIndex, { playVoice = false } = {}) {
+    setOpeningTransmissionGateActive(false);
     const Board = getActiveStoryBoardDefinition();
     const Presentation = getStoryBoardPresentation(Board.pages, PageIndex, {
       lastContinueLabel: Board.continueLabel,
@@ -261,6 +315,10 @@ export function createStoryDirector(host) {
       hideOpeningBriefing();
       return false;
     }
+    if (!WorldseedSound.context) {
+      presentOpeningTransmissionGate();
+      return true;
+    }
     return beginStoryBoard('opening');
   }
 
@@ -269,6 +327,10 @@ export function createStoryDirector(host) {
       return;
     }
     WorldseedSound.ensureStarted();
+    if (IsOpeningTransmissionGateActive) {
+      presentStoryBoardPage(0, { playVoice: true });
+      return;
+    }
     const Board = getActiveStoryBoardDefinition();
     if (!Board?.pages?.length || host.OpeningBriefingPageIndex >= Board.pages.length - 1) {
       finishOpeningBriefing();
