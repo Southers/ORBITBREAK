@@ -13,8 +13,22 @@ import {
 const ScriptDirectory = dirname(fileURLToPath(import.meta.url));
 const RepositoryRoot = resolve(ScriptDirectory, '..');
 
+/** Makes security hashes and text audits independent of checkout line endings. */
+export function normalizeRepositoryText(Content) {
+  return Content.replace(/\r\n?/g, '\n');
+}
+
+/** Returns the CSP digest for repository text after platform normalization. */
+export function computeCspHash(Content) {
+  return createHash('sha256')
+    .update(normalizeRepositoryText(Content))
+    .digest('base64');
+}
+
 function readRepositoryFile(RelativePath) {
-  return readFileSync(resolve(RepositoryRoot, RelativePath), 'utf8');
+  return normalizeRepositoryText(
+    readFileSync(resolve(RepositoryRoot, RelativePath), 'utf8'),
+  );
 }
 
 function listRepositoryFiles(RelativeDirectory, Extensions) {
@@ -64,6 +78,15 @@ export function auditReleaseReadiness() {
   const StyleSheet = readRepositoryFile('src/style.css');
   const Credits = readRepositoryFile('CREDITS.md');
   const ReleaseBrief = readRepositoryFile('RELEASE.md');
+  const License = readRepositoryFile('LICENSE');
+  const PackageManifest = JSON.parse(readRepositoryFile('package.json'));
+
+  requireCondition(
+    License.startsWith('MIT License\n\nCopyright (c) 2026 Southers\n')
+      && PackageManifest.license === 'MIT'
+      && Credits.includes("repository's [MIT License](LICENSE)"),
+    'Repository code and assets must retain the declared MIT licence and credits.',
+  );
 
   const LocalAssetReferences = [
     ...[...IndexHtml.matchAll(/(?:src|href)="(\.\/[^"#]+)(?:#[^"]*)?"/g)]
@@ -96,7 +119,7 @@ export function auditReleaseReadiness() {
   const ImportMapMatch = IndexHtml.match(/<script type="importmap">([\s\S]*?)<\/script>/);
   requireCondition(Boolean(ImportMapMatch), 'index.html must retain a hashed import map.');
   if (ImportMapMatch) {
-    const ImportMapHash = createHash('sha256').update(ImportMapMatch[1]).digest('base64');
+    const ImportMapHash = computeCspHash(ImportMapMatch[1]);
     requireCondition(
       IndexHtml.includes(`'sha256-${ImportMapHash}'`)
         && IndexHtml.includes("connect-src 'self' http://127.0.0.1:* http://localhost:*")
@@ -582,7 +605,9 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     existsSync(resolve(RepositoryRoot, 'SECURITY.md'))
-      && readRepositoryFile('SECURITY.md').includes('https://southers.github.io/ORBITBREAK/'),
+      && /https:\/\/southers\.github\.io\/ORBITBREAK\/(?:[\s)`]|$)/.test(
+        readRepositoryFile('SECURITY.md'),
+      ),
     'SECURITY.md must describe the public playtest surface.',
   );
   requireCondition(
@@ -736,8 +761,8 @@ export function auditReleaseReadiness() {
       && AudioSource.includes('playStoryVoice')
       && AudioSource.includes('playHtmlMediaUnlock')
       && AudioSource.includes('new AudioConstructor(')
-      && !AudioSource.includes('api.elevenlabs.io')
-      && !MainSource.includes('api.elevenlabs.io'),
+      && !/api\.elevenlabs\.io/.test(AudioSource)
+      && !/api\.elevenlabs\.io/.test(MainSource),
     'Sampled audio must play committed assets/audio files, unlock iPhone speakers with a same-origin HTML clip, and never call ElevenLabs from the browser.',
   );
   requireCondition(
@@ -772,6 +797,7 @@ export function auditReleaseReadiness() {
     campaignSystems: AuthoredCampaignSystemIdentifiers.length,
     checkedLocalAssets: LocalAssetReferences.length,
     failures: Failures,
+    license: PackageManifest.license ?? null,
   };
 }
 

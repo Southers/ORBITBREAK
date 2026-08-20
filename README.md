@@ -74,6 +74,14 @@ Generation is a GitHub Action (`Generate ElevenLabs audio`) that reads `secrets.
 
 ORBITBREAK began from the deterministic gameplay and rendering foundation of [WORLDSEED](https://github.com/Southers/WORLDSEED). WORLDSEED remains a separate playable project; ORBITBREAK has independent history, design and release decisions.
 
+## Licence
+
+ORBITBREAK is open source under the [MIT License](LICENSE). Unless a file says
+otherwise, that licence covers the source code, writing, original artwork and
+generated audio committed to this repository. Third-party components retain
+their own copyright notices and compatible licences as recorded in
+[CREDITS.md](CREDITS.md).
+
 ## External-action boundary
 
 Development and approved playtest builds may be prepared normally. No final external submission, publication, entry or marketing announcement may be performed without the user's explicit confirmation at that moment.

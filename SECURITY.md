@@ -35,6 +35,31 @@ The Worker, D1 database and production ranking endpoint do not exist yet. Do not
 
 If that service is approved later, remaining operator work includes Worker CPU traces, retention/deletion for callsigns and replays, and adding the exact HTTPS origin to both the HTML meta tag and CSP `connect-src`.
 
-## Reporting
+## Supported versions
 
-Open a GitHub issue or contact the repository owner. Do not file a public issue with secrets. This project has no bug bounty.
+ORBITBREAK supports only the current public build from the `main` branch.
+Older commits, forks, local modifications and undeployed server adapters are
+not supported releases, though reports that identify a current shared defect
+are welcome.
+
+| Version | Supported |
+| --- | --- |
+| Current `main` / public Pages build | Yes |
+| Older revisions and forks | No |
+| Undeployed leaderboard adapter | Pre-deployment review only |
+
+## Reporting a vulnerability
+
+Use [GitHub private vulnerability reporting](https://github.com/Southers/ORBITBREAK/security/advisories/new)
+for suspected security defects. Include the affected URL or commit, impact,
+reproduction steps and any safe proof of concept.
+
+Never disclose credentials, personal data or an exploitable vulnerability in
+a public issue, pull request, discussion, commit or workflow log. If private
+reporting is temporarily unavailable, wait for the private channel to return
+rather than publishing sensitive details.
+
+The maintainer aims to acknowledge a report within 7 days and provide an
+initial assessment within 14 days. Timelines for a fix or disclosure depend on
+severity and reproducibility. This project has no bug bounty and makes no
+guarantee of payment or reward.
