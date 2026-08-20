@@ -77,7 +77,7 @@ jobs:
 
       - name: Upload Warden auditions
         if: inputs.operation == 'audition'
-        uses: actions/upload-artifact@ea165f8d65b6e75d540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: orbitbreak-warden-auditions-${{ github.run_id }}
           path: artifacts/warden-auditions
@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload generated production audio
         if: steps.generate_production.outputs.production_ready == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: orbitbreak-elevenlabs-audio
           path: assets/audio
