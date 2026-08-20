@@ -8,3 +8,8 @@ first player gesture. It never calls ElevenLabs from the browser.
 
 Until the generate job has run with `ELEVENLABS_API_KEY` set as a GitHub
 Actions secret, ORBITBREAK keeps its in-engine Web Audio bed.
+
+The committed ORBITBREAK audio files in this directory are released under the
+repository's MIT License. The project owner has confirmed that the generated
+outputs and their inputs permit commercial reuse and sublicensing. ElevenLabs
+and its service branding are not licensed by this repository.
