@@ -20,13 +20,13 @@ import {
 export const AudioAssetVersion = '20260819-ob142';
 export const AudioAssetRoot = './assets/audio';
 
-/** Stock ElevenLabs library voices. Do not clone a real person. */
+/** Reviewed ElevenLabs voices. Do not clone a real person. */
 export const ElevenLabsVoiceProfiles = Object.freeze({
   warden: Object.freeze({
     key: 'warden',
-    voiceId: 'onwK4e9ZLuTAKqWW03F9',
-    name: 'Daniel (legacy production fallback)',
-    revision: 'warden-broadcast-v2-pending-selection',
+    voiceId: 'mpxAHu6BqQqF4MM1x1pI',
+    name: 'ORBITBREAK Warden',
+    revision: 'warden-broadcast-v2-candidate-3',
     modelId: 'eleven_multilingual_v2',
     settings: Object.freeze({
       stability: 0.63,

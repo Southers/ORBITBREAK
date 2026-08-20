@@ -17,6 +17,8 @@ Actions secret, ORBITBREAK keeps its in-engine Web Audio bed.
    `artifacts/warden-auditions/`.
 2. After the user selects a candidate, save only that manifest-listed preview
    with `node scripts/audition-warden-voice.mjs --select=<generated voice id>`.
+   Candidate 3 is the reviewed `warden-broadcast-v2` selection, saved as
+   `ORBITBREAK Warden` with voice id `mpxAHu6BqQqF4MM1x1pI`.
 3. Pass the resulting reviewed voice id to
    `node scripts/generate-elevenlabs-audio.mjs --scope=warden --warden-voice-id=<voice id>`.
    Clean TTS sources are written to `voice-clean/`; Runner, SFX and music are
