@@ -605,7 +605,9 @@ export function auditReleaseReadiness() {
   );
   requireCondition(
     existsSync(resolve(RepositoryRoot, 'SECURITY.md'))
-      && readRepositoryFile('SECURITY.md').includes('https://southers.github.io/ORBITBREAK/'),
+      && /https:\/\/southers\.github\.io\/ORBITBREAK\/(?:[\s)`]|$)/.test(
+        readRepositoryFile('SECURITY.md'),
+      ),
     'SECURITY.md must describe the public playtest surface.',
   );
   requireCondition(
@@ -759,8 +761,8 @@ export function auditReleaseReadiness() {
       && AudioSource.includes('playStoryVoice')
       && AudioSource.includes('playHtmlMediaUnlock')
       && AudioSource.includes('new AudioConstructor(')
-      && !AudioSource.includes('api.elevenlabs.io')
-      && !MainSource.includes('api.elevenlabs.io'),
+      && !/api\.elevenlabs\.io/.test(AudioSource)
+      && !/api\.elevenlabs\.io/.test(MainSource),
     'Sampled audio must play committed assets/audio files, unlock iPhone speakers with a same-origin HTML clip, and never call ElevenLabs from the browser.',
   );
   requireCondition(

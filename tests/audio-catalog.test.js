@@ -105,7 +105,7 @@ test('playable sources never call ElevenLabs and the workflow never echoes the s
   const Credits = readRepo('CREDITS.md');
   const Readme = readRepo('README.md');
   for (const Source of [AudioSource, CatalogSource, MainSource]) {
-    assert.equal(Source.includes('api.elevenlabs.io'), false);
+    assert.equal(/api\.elevenlabs\.io/.test(Source), false);
     assert.equal(Source.includes('xi-api-key'), false);
   }
   assert.equal(AudioSource.includes("from './audio-catalog.js"), true);
