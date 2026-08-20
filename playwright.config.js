@@ -12,9 +12,18 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'chromium-desktop',
       use: {
         ...devices['Desktop Chrome'],
+        ...(process.env.PLAYWRIGHT_CHROME_CHANNEL
+          ? { channel: process.env.PLAYWRIGHT_CHROME_CHANNEL }
+          : {}),
+      },
+    },
+    {
+      name: 'chromium-portrait',
+      use: {
+        ...devices['Pixel 5'],
         ...(process.env.PLAYWRIGHT_CHROME_CHANNEL
           ? { channel: process.env.PLAYWRIGHT_CHROME_CHANNEL }
           : {}),

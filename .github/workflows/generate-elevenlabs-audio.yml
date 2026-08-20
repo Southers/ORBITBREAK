@@ -1,83 +1,98 @@
 name: Generate ElevenLabs audio
 
-# After ELEVENLABS_API_KEY is a real sk_ key, run Actions → Generate ElevenLabs audio → Run workflow.
-# Existing non-empty files under assets/audio/ are skipped so a catalog cache-bust does not
-# regenerate or spend quota. New spoken lines still generate because they have no file yet.
-# To overwrite every clip, run workflow_dispatch with FORCE_REGENERATE=1.
+# This workflow is deliberately manual because generation may spend quota.
+# The API secret exists only in the read-only generation step. A separate job
+# receives the artifact and may open a reviewable pull request.
 on:
   workflow_dispatch:
     inputs:
       force_regenerate:
-        description: 'Set to 1 to overwrite existing audio files (FORCE_REGENERATE=1).'
+        description: Overwrite existing audio files and spend quota regenerating them.
         required: false
-        default: '0'
-  push:
-    branches: [main]
-    paths:
-      - 'src/audio-catalog.js'
-      - 'scripts/generate-elevenlabs-audio.mjs'
-      - '.github/workflows/generate-elevenlabs-audio.yml'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: elevenlabs-audio
+  cancel-in-progress: false
 
 jobs:
   generate:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
-      contents: write
-      pull-requests: write
-    env:
-      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      contents: read
+    outputs:
+      artifact_ready: ${{ steps.generate.outputs.artifact_ready }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
-      - name: Skip when the secret is missing
-        id: secret
+      - name: Generate sampled audio
+        id: generate
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          FORCE_REGENERATE: ${{ inputs.force_regenerate && '1' || '0' }}
         run: |
           if [ -z "${ELEVENLABS_API_KEY}" ]; then
-            echo "missing=true" >> "$GITHUB_OUTPUT"
-            echo "ELEVENLABS_API_KEY is not set on this repository. Skipping generation."
-          else
-            echo "missing=false" >> "$GITHUB_OUTPUT"
+            echo "ELEVENLABS_API_KEY is not configured." >&2
+            exit 1
           fi
+          node scripts/generate-elevenlabs-audio.mjs
+          echo "artifact_ready=true" >> "$GITHUB_OUTPUT"
 
-      - name: Generate sampled audio
-        if: steps.secret.outputs.missing == 'false'
-        env:
-          FORCE_REGENERATE: ${{ github.event.inputs.force_regenerate == '1' && '1' || '0' }}
-        run: node scripts/generate-elevenlabs-audio.mjs
-
-      - name: Upload audio artifacts
-        if: steps.secret.outputs.missing == 'false'
-        uses: actions/upload-artifact@v4
+      - name: Upload generated audio
+        if: steps.generate.outputs.artifact_ready == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: orbitbreak-elevenlabs-audio
           path: assets/audio
-          if-no-files-found: warn
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    needs: generate
+    if: needs.generate.outputs.artifact_ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Download generated audio
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: orbitbreak-elevenlabs-audio
+          path: assets/audio
 
       - name: Open asset PR
-        if: steps.secret.outputs.missing == 'false'
         env:
+          ASSET_BRANCH: audio/elevenlabs-assets-${{ github.run_id }}-${{ github.run_attempt }}
           GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -B audio/elevenlabs-assets
-          git add assets/audio
+          git switch -c "$ASSET_BRANCH"
+          git add -- assets/audio
           if git diff --cached --quiet; then
             echo "No audio files changed."
             exit 0
           fi
-          git commit -m "Add generated ElevenLabs voice, SFX and music assets."
-          git push -u origin audio/elevenlabs-assets --force
-          if gh pr list --head audio/elevenlabs-assets --state open --json number --jq 'length' | grep -q '[1-9]'; then
-            echo "Asset PR already open."
-            exit 0
-          fi
-          gh pr create --base main --head audio/elevenlabs-assets \
+          git commit -m "Add generated ElevenLabs audio assets"
+          git push --set-upstream origin "$ASSET_BRANCH"
+          gh pr create --base main --head "$ASSET_BRANCH" \
             --title "Add generated ElevenLabs audio assets" \
-            --body "Sampled voice, SFX and music generated by the ElevenLabs workflow from the repository secret. The playable game only loads committed files under assets/audio/."
+            --body "Sampled voice, SFX and music generated by the manually approved ElevenLabs workflow. The API secret was available only to the read-only generation job; this publishing job received only the generated artifact."
