@@ -4,7 +4,7 @@ import {
   isInnerClusterLive,
   hasTravelledFurther,
   shouldOpenCommandWorldRoute,
-} from './sector.js?v=20260819-ob141';
+} from './sector.js?v=20260819-ob142';
 
 /** Maps gameplay state to one legible Runner animation state. */
 export function getRunnerAnimationState(GamePhase, IsPointerAiming, IsWalking = false) {
@@ -1979,14 +1979,6 @@ export function getPublishedWardenState(PursuitStatus, IsCommandDefeated = false
       ? 'command-world-disabled'
       : (IsExposed ? 'command-world-exposed' : (IsVisible ? 'iron-crown-pursuit' : 'hidden')),
   };
-}
-
-/** Names the rankings action honestly before an offline player opens it. */
-export function getLeaderboardActionLabel(IsConfigured) {
-  if (typeof IsConfigured !== 'boolean') {
-    throw new Error('Leaderboard action label requires configured state.');
-  }
-  return IsConfigured ? 'Rankings' : 'Rankings offline';
 }
 
 /** Separates two nearby route labels horizontally while preserving their projected order. */

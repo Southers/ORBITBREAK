@@ -30,7 +30,7 @@ import {
   getToyDioramaScale,
   listOccupationSites,
   shouldShowInhabitantSlot,
-} from './presentation.js?v=20260819-ob141';
+} from './presentation.js?v=20260819-ob142';
 import {
   countLiveRelayWorlds,
   findCircuitBeaconLink,
@@ -38,15 +38,15 @@ import {
   listProtectedRelayWorlds,
   listRelayCircuits,
   listRelayLinks,
-} from './network.js?v=20260819-ob141';
-import { getSlingshotBandRadii, addDiscoveryBonus } from './scoring.js?v=20260819-ob141';
+} from './network.js?v=20260819-ob142';
+import { getSlingshotBandRadii, addDiscoveryBonus } from './scoring.js?v=20260819-ob142';
 import {
   consumePendingDiscoveryBank,
   getLiveDiscoveryState,
   isDiscoveryCollected,
   listWorldDiscoveries,
   resetLiveDiscoveryState,
-} from './discoveries.js?v=20260819-ob141';
+} from './discoveries.js?v=20260819-ob142';
 
 export function createLivingWorldVisuals(THREE, Scene, host) {
   const {

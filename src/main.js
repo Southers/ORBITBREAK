@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { WorldseedAudio } from './audio.js?v=20260819-ob141';
+import { WorldseedAudio } from './audio.js?v=20260819-ob142';
 import {
   SurfaceGestureModes,
   createKeyboardAimState,
@@ -11,7 +11,7 @@ import {
   isSpaceKeyboardEvent,
   LaunchCancelRadius,
   shouldCancelAimedLaunch,
-} from './controls.js?v=20260819-ob141';
+} from './controls.js?v=20260819-ob142';
 import {
   MotionPreferences,
   cycleMotionPreference,
@@ -19,7 +19,7 @@ import {
   getMotionPreferencePresentation,
   parseMotionPreference,
   resolveReducedMotion,
-} from './preferences.js?v=20260819-ob141';
+} from './preferences.js?v=20260819-ob142';
 import {
   AdaptiveSampleWindowSeconds,
   DefaultAdaptivePixelRatioCap,
@@ -28,35 +28,35 @@ import {
   getAdaptiveDeviceCap,
   getAdaptivePresentationSettings,
   getViewportPixelRatioCap,
-} from './performance.js?v=20260819-ob141';
-import { addEnvironment } from './environment.js?v=20260819-ob141';
-import { createWorldVisuals } from './world-geometry.js?v=20260819-ob141';
-import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260819-ob141';
-import { createWardenVisuals } from './warden-visuals.js?v=20260819-ob141';
-import { createPlayerVisuals } from './player-visuals.js?v=20260819-ob141';
-import { createStoryDirector } from './story-director.js?v=20260819-ob141';
-import { createHud } from './hud.js?v=20260819-ob141';
-import { createAimPreview } from './aim-preview.js?v=20260819-ob141';
-import { createLandingDirector } from './landing-director.js?v=20260819-ob141';
-import { createCameraController } from './camera-controller.js?v=20260819-ob141';
-import { createInputController } from './input-controller.js?v=20260819-ob141';
-import { createHostileSurface } from './hostile-surface.js?v=20260819-ob141';
-import { createScanner } from './scanner.js?v=20260819-ob141';
-import { createRoutePresentation } from './route-presentation.js?v=20260819-ob141';
-import { createRecordsUi } from './records-ui.js?v=20260819-ob141';
-import { createFrameVisuals } from './frame-visuals.js?v=20260819-ob141';
-import { createRestorationVisuals } from './restoration-visuals.js?v=20260819-ob141';
-import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=20260819-ob141';
-import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=20260819-ob141';
-import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=20260819-ob141';
-import { OutputPass } from '../vendor/postprocessing/OutputPass.js?v=20260819-ob141';
+} from './performance.js?v=20260819-ob142';
+import { addEnvironment } from './environment.js?v=20260819-ob142';
+import { createWorldVisuals } from './world-geometry.js?v=20260819-ob142';
+import { createLivingWorldVisuals } from './living-world-visuals.js?v=20260819-ob142';
+import { createWardenVisuals } from './warden-visuals.js?v=20260819-ob142';
+import { createPlayerVisuals } from './player-visuals.js?v=20260819-ob142';
+import { createStoryDirector } from './story-director.js?v=20260819-ob142';
+import { createHud } from './hud.js?v=20260819-ob142';
+import { createAimPreview } from './aim-preview.js?v=20260819-ob142';
+import { createLandingDirector } from './landing-director.js?v=20260819-ob142';
+import { createCameraController } from './camera-controller.js?v=20260819-ob142';
+import { createInputController } from './input-controller.js?v=20260819-ob142';
+import { createHostileSurface } from './hostile-surface.js?v=20260819-ob142';
+import { createScanner } from './scanner.js?v=20260819-ob142';
+import { createRoutePresentation } from './route-presentation.js?v=20260819-ob142';
+import { createRecordsUi } from './records-ui.js?v=20260819-ob142';
+import { createFrameVisuals } from './frame-visuals.js?v=20260819-ob142';
+import { createRestorationVisuals } from './restoration-visuals.js?v=20260819-ob142';
+import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js?v=20260819-ob142';
+import { RenderPass } from '../vendor/postprocessing/RenderPass.js?v=20260819-ob142';
+import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js?v=20260819-ob142';
+import { OutputPass } from '../vendor/postprocessing/OutputPass.js?v=20260819-ob142';
 
 import {
   DefaultAuthoredSystemIdentifier,
   createAuthoredSystemRuntime,
   getAuthoredSystemDefinition,
   getNextAuthoredSystemIdentifier,
-} from './content.js?v=20260819-ob141';
+} from './content.js?v=20260819-ob142';
 
 import {
   getLandingAccolade,
@@ -65,7 +65,7 @@ import {
   getTrajectoryPickupIdentifiers,
   isSystemRestored,
   isWorldheartUnlocked,
-} from './campaign.js?v=20260819-ob141';
+} from './campaign.js?v=20260819-ob142';
 
 import {
   MaximumLaunchSpeed,
@@ -80,27 +80,27 @@ import {
   getTacticalBodyCollisionRadius,
   predictTrajectory,
   simulatePhysicsStep,
-} from './physics.js?v=20260819-ob141';
+} from './physics.js?v=20260819-ob142';
 import {
   FixedPhysicsStepHertz,
   FixedPhysicsStepSeconds,
   RunnerRadius,
   StardustCollectionRadius,
   StardustPickupRadius,
-} from './sim-constants.js?v=20260819-ob141';
+} from './sim-constants.js?v=20260819-ob142';
 import {
   getSectorWardenRevealFlag,
   hasTravelledFurther,
   isInnerClusterLive,
   shouldOpenCommandWorldRoute,
-} from './sector.js?v=20260819-ob141';
+} from './sector.js?v=20260819-ob142';
 import {
   advanceSimulatedFlightStep,
   collectFlightStardust,
   resolveWardenAfterNonCommandFlight,
   rollbackFlightStardust as rollbackSharedFlightStardust,
-} from './flight-resolver.js?v=20260819-ob141';
-import { createLeaderboardClient, resolveLeaderboardBaseUrl } from './leaderboard-client.js?v=20260819-ob141';
+} from './flight-resolver.js?v=20260819-ob142';
+import { createLeaderboardClient, resolveLeaderboardBaseUrl } from './leaderboard-client.js?v=20260819-ob142';
 import {
   connectRelayWorlds,
   countLiveRelayWorlds,
@@ -113,20 +113,19 @@ import {
   listProtectedRelayWorlds,
   listRelayCircuits,
   listRelayLinks,
-} from './network.js?v=20260819-ob141';
+} from './network.js?v=20260819-ob142';
 import {
   WardenPursuitEvents,
   createWardenPursuitState,
-} from './warden.js?v=20260819-ob141';
+} from './warden.js?v=20260819-ob142';
 import {
   loadPersonalBest,
-} from './records.js?v=20260819-ob141';
+} from './records.js?v=20260819-ob142';
 import {
   getControlModePresentation,
   getExtractionFreighterTravelProgress,
   getCourierDockWorldRole,
   getInhabitantSilhouette,
-  getLeaderboardActionLabel,
   getLiveLinkShipCount,
   getStoryBoardPresentation,
   getTriggeredCampaignStoryBoardIds,
@@ -158,23 +157,23 @@ import {
   getLandedCameraScale,
   getHowToPlayPresentation,
   shouldShowHowToPlayAfterOpening,
-} from './presentation.js?v=20260819-ob141';
+} from './presentation.js?v=20260819-ob142';
 import {
   PhysicsModelVersion,
   createReplayRecorder,
   recordReplayBurn,
   recordReplayLaunch,
-} from './replay.js?v=20260819-ob141';
+} from './replay.js?v=20260819-ob142';
 import {
   consumeDueReplayBurn,
   consumeDueReplayLaunch,
-} from './replay-playback.js?v=20260819-ob141';
+} from './replay-playback.js?v=20260819-ob142';
 import {
   createRunState,
   failRunToWarden,
   releaseRunLaunch,
   settleRunFlight,
-} from './run.js?v=20260819-ob141';
+} from './run.js?v=20260819-ob142';
 import {
   bankFlightScore,
   createScoreState,
@@ -182,7 +181,7 @@ import {
   predictSlingshotEvents,
   rollbackFlightScore,
   sampleSlingshotBodies,
-} from './scoring.js?v=20260819-ob141';
+} from './scoring.js?v=20260819-ob142';
 
 const PageSearchParameters = new URLSearchParams(window.location.search);
 const RequestedSystemIdentifier = PageSearchParameters.get('system')
@@ -289,7 +288,6 @@ let ConstellationNodeElements = [];
 const PlayAgainButtonElement = document.querySelector('#PlayAgainButton');
 const ReplayButtonElement = document.querySelector('#ReplayButton');
 const WatchReplayButtonElement = document.querySelector('#WatchReplayButton');
-const LeaderboardButtonElement = document.querySelector('#LeaderboardButton');
 const LeaderboardPanelElement = document.querySelector('#LeaderboardPanel');
 const LeaderboardStatusElement = document.querySelector('#LeaderboardStatus');
 const LeaderboardFormElement = document.querySelector('#LeaderboardForm');
@@ -306,7 +304,7 @@ const ScoutZoomInButtonElement = document.querySelector('#ScoutZoomInButton');
 const ScoutZoomStatusElement = document.querySelector('#ScoutZoomStatus');
 const GhostButtonElement = document.querySelector('#GhostButton');
 configureSystemInterface();
-GameCanvas.dataset.build = '20260819-ob141';
+GameCanvas.dataset.build = '20260819-ob142';
 GameCanvas.dataset.howToPlay = 'closed';
 GameCanvas.dataset.system = ActiveSystem.id;
 GameCanvas.dataset.leaderboardConfigured = String(LeaderboardClient.configured);
@@ -601,7 +599,6 @@ function configureSystemInterface() {
   VictoryEyebrowElement.textContent = ActiveSystem.completion.eyebrow;
   VictoryTitleElement.textContent = ActiveSystem.completion.title;
   VictoryBodyElement.textContent = ActiveSystem.completion.body;
-  LeaderboardButtonElement.textContent = getLeaderboardActionLabel(LeaderboardClient.configured);
   ConstellationSummaryElement.setAttribute(
     'aria-label',
     `${ActiveSystem.label} constellation summary`,
@@ -1673,6 +1670,7 @@ const RecordsUi = createRecordsUi(THREE, {
   VictoryPanelElement,
   VictoryTitleElement,
   VictoryBodyElement,
+  ReplayButtonElement,
   WatchReplayButtonElement,
   ReplayIndicatorElement,
   PersonalBestLabelElement,
@@ -1685,7 +1683,6 @@ const RecordsUi = createRecordsUi(THREE, {
   LeaderboardListElement,
   LeaderboardPanelElement,
   LeaderboardFormElement,
-  LeaderboardButtonElement,
   CallsignInputElement,
   CloseLeaderboardButtonElement,
   SubmitScoreButtonElement,
@@ -1721,8 +1718,6 @@ const {
   savePersonalBestGhost,
   setPersonalBestGhostEnabled,
   updateVictorySummary,
-  setLeaderboardStatus,
-  openLeaderboardPanel,
   closeLeaderboardPanel,
   submitVerifiedScore,
   watchSerializedReplay,
@@ -4213,7 +4208,6 @@ HowToPlayElement.addEventListener('click', (PointerEventData) => {
   }
 });
 WatchReplayButtonElement.addEventListener('click', watchCompletedReplay);
-LeaderboardButtonElement.addEventListener('click', openLeaderboardPanel);
 LeaderboardFormElement.addEventListener('submit', submitVerifiedScore);
 CloseLeaderboardButtonElement.addEventListener('click', () => closeLeaderboardPanel());
 PlayAgainButtonElement.addEventListener('click', continueCampaignOrReplay);

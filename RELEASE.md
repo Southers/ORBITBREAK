@@ -78,12 +78,15 @@ Suggested 40-second trailer beat sheet:
 - On the same local diagnostic build, press Shift+G; confirm WebGL loss is reported, restored and rendering resumes.
 - Press Shift+F on that local build; confirm bloom/nebula/pixel-ratio degrade one step and restore one step without changing score or launches.
 - Confirm draw calls remain under the 190-call ceiling.
-- Confirm the Breakers Board says offline when no endpoint is configured.
+- Confirm the result sheet has no rankings or leaderboard action.
 - Re-run credits review after every asset, font, shader, sound or capture is added.
 - Record the final commit SHA, public build URL, leaderboard endpoint status and rules/version used for release.
 
 ## Current local candidate evidence
 
+- Build `20260819-ob142` is the local candidate after live ob141: a phone win of Breaker's Reach still showed `Rankings offline` on the result sheet. Pages cache-bust is `20260819-ob142`.
+- Highlight kill (`ob142`): the victory and run-lost result sheet no longer renders a rankings or leaderboard action. Run again, Watch replay, Continue, score breakdown and emblems stay. The leaderboard module remains in the tree but is not opened from the end screen. Cages, walk cap and audio stay.
+- Build `20260819-ob142` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, and the zero-HUD play contract (How to play overlay, pause sheet, ship fuel lights, Warden vessel telegraph).
 - Build `20260819-ob141` is the local candidate after live ob140: instructional copy was cryptic, and red cages sat on the equator so they looked tiny and orbited the walker. Pages cache-bust is `20260819-ob141`.
 - Highlight kill (`ob141`): Destroy cages plant on authored crust lat/lon and ride the world's walk quaternion like buildings. They stay nailed to that patch of ground, toy-diorama size, tap-to-smash on the visual cage. How to play and first-run coach name walk, fly, land, smash, look around, then finish on Command. Empty crust still walks, hull-pull still flies, cage tap still smashes. Walk cap, audio unlock and EXPOSED Command landing stay.
 - Build `20260819-ob141` passes deterministic tests, syntax checks, lint, typecheck, the three-sector release audit, the Playwright boot smoke, the 200-run validator benchmark (~52ms median per verified replay), and the zero-HUD play contract (How to play overlay, pause sheet, ship fuel lights, Warden vessel telegraph).
@@ -174,9 +177,8 @@ Suggested 40-second trailer beat sheet:
 - Play is diegetic: no masthead, scanner, aim meter, objective, Warden dashboard, mode chip or footer. Theme and remaining fuel live on the worlds and the ship.
 - Suggested-world labels now preserve a 76px centre gap when their projected positions converge, keeping both authored route choices readable after surface repositioning in short landscape without moving their worlds or camera.
 - Break and Destroy stay on ship grab and Space; there is no persistent on-screen Burn button covering the flight corridor.
-- Verified results use a compact 760px-wide short-landscape layout with a single sticky three-action row and internal scroll fallback, keeping focused actions visible without changing desktop or portrait results.
-- Offline candidates label the final action `Rankings offline` before the explanatory board opens; configured builds retain the shorter `Rankings` label.
-- Terminal results centre their unpaired rankings action at desktop and portrait sizes while preserving the short-landscape three-action row.
+- Verified results use a compact 760px-wide short-landscape layout with a sticky action row and internal scroll fallback, keeping Run again, Watch replay and Continue visible without changing desktop or portrait results.
+- The result sheet has no rankings or leaderboard action. Online rankings stay out of the player-facing end screen.
 - Verified replay progress is a 10px atomic polite status, so assistive technology receives each complete launch-count update rather than a changed fragment.
 - Warden telegraph stays on the vessel, forecast line, target-world pulse and one polite live region rather than a persistent dashboard.
 - Command World progress is an atomic polite status, keeping the objective label attached to relay, exposure, core-lock and liberation updates for assistive technology.
