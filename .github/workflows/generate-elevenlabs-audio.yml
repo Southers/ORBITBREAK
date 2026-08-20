@@ -45,6 +45,11 @@ on:
         required: false
         type: boolean
         default: false
+      open_asset_pr:
+        description: Open a pull request containing generated production assets.
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -153,7 +158,7 @@ jobs:
 
   publish:
     needs: generate
-    if: needs.generate.outputs.production_ready == 'true'
+    if: inputs.open_asset_pr == true && needs.generate.outputs.production_ready == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
