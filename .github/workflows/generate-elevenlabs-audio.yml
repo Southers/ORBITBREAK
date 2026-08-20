@@ -6,6 +6,19 @@ name: Generate ElevenLabs audio
 on:
   workflow_dispatch:
     inputs:
+      operation:
+        description: Create review-only Warden auditions, or generate production assets.
+        required: true
+        type: choice
+        options:
+          - audition
+          - production
+        default: audition
+      approve_quota_spend:
+        description: Confirm this run may spend ElevenLabs quota.
+        required: true
+        type: boolean
+        default: false
       generation_scope:
         description: Generate only the reviewed Warden voice, or the full catalog.
         required: true
@@ -16,7 +29,7 @@ on:
         default: warden
       warden_voice_id:
         description: Reviewed ORBITBREAK Warden Voice Design id.
-        required: true
+        required: false
         type: string
       force_regenerate:
         description: Overwrite existing files inside the selected scope.
@@ -33,12 +46,15 @@ concurrency:
 
 jobs:
   generate:
+    if: inputs.approve_quota_spend == true
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
     permissions:
       contents: read
     outputs:
-      artifact_ready: ${{ steps.generate.outputs.artifact_ready }}
+      production_ready: ${{ steps.generate_production.outputs.production_ready }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -50,10 +66,28 @@ jobs:
         with:
           node-version: 22
 
-      - name: Generate sampled audio
-        id: generate
+      - name: Generate review-only Warden auditions
+        if: inputs.operation == 'audition'
+        run: |
+          if [ -z "${ELEVENLABS_API_KEY}" ]; then
+            echo "ELEVENLABS_API_KEY is not configured." >&2
+            exit 1
+          fi
+          npm run audio:audition:warden
+
+      - name: Upload Warden auditions
+        if: inputs.operation == 'audition'
+        uses: actions/upload-artifact@ea165f8d65b6e75d540449e92b4886f43607fa02 # v4
+        with:
+          name: orbitbreak-warden-auditions-${{ github.run_id }}
+          path: artifacts/warden-auditions
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Generate sampled production audio
+        if: inputs.operation == 'production'
+        id: generate_production
         env:
-          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           FORCE_REGENERATE: ${{ inputs.force_regenerate && '1' || '0' }}
           WARDEN_VOICE_ID: ${{ inputs.warden_voice_id }}
         run: |
@@ -63,10 +97,10 @@ jobs:
           fi
           node scripts/generate-elevenlabs-audio.mjs --scope=${{ inputs.generation_scope }}
           node scripts/master-warden-audio.mjs
-          echo "artifact_ready=true" >> "$GITHUB_OUTPUT"
+          echo "production_ready=true" >> "$GITHUB_OUTPUT"
 
-      - name: Upload generated audio
-        if: steps.generate.outputs.artifact_ready == 'true'
+      - name: Upload generated production audio
+        if: steps.generate_production.outputs.production_ready == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: orbitbreak-elevenlabs-audio
@@ -76,7 +110,7 @@ jobs:
 
   publish:
     needs: generate
-    if: needs.generate.outputs.artifact_ready == 'true'
+    if: needs.generate.outputs.production_ready == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
